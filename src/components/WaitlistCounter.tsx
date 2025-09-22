@@ -78,11 +78,15 @@ export default function WaitlistCounter() {
 
   return (
     <div className="text-center">
-      <div className="text-gray-300 text-sm font-light">
+      <div className="text-gray-300 text-sm font-light flex items-center justify-center">
+        <div className="relative mr-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <div className="absolute inset-0 w-2 h-2 bg-green-500 rounded-full animate-ping opacity-75"></div>
+        </div>
         <span className="font-mono text-white font-medium">
           {waitlistData?.count.toLocaleString() || 0}
         </span>
-        <span className="ml-2">people on the waitlist</span>
+        <span className="ml-2">people already on the waitlist</span>
       </div>
     </div>
   );

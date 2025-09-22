@@ -3,7 +3,7 @@ import WaitlistCounter from "@/components/WaitlistCounter";
 
 export default function Home() {
   return (
-    <div className="h-screen bg-black text-white relative overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-black text-white relative overflow-hidden flex flex-col">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-10">
         <div
@@ -16,23 +16,38 @@ export default function Home() {
 
       {/* Header */}
       <header className="relative z-10 flex-shrink-0">
-        <div className="max-w-full mx-auto px-6 py-4">
+        <div className="max-w-full mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <span className="text-3xl font-bold text-white italic">
+              <span className="text-2xl sm:text-3xl font-bold text-white italic">
                 craft
-                <span className="text-sm text-white font-bold italic">
+                <span className="text-xs sm:text-sm text-white font-bold italic">
                   .tech
                 </span>
               </span>
             </div>
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <a
-                href="https://github.com/craftdottech/craft"
-                className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors flex items-center space-x-2"
+                href="https://x.com/craftdottech"
+                className="text-neutral-200 hover:text-white transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <svg
-                  className="w-4 h-4"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+              </a>
+              <a
+                href="https://github.com/craftdottech/craft"
+                className="bg-white text-black px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-neutral-100 transition-colors flex items-center space-x-1 sm:space-x-2"
+              >
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                   xmlns="http://www.w3.org/2000/svg"
@@ -43,7 +58,8 @@ export default function Home() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span>Star on GitHub</span>
+                <span className="hidden sm:inline">Star on GitHub</span>
+                <span className="sm:hidden">Star</span>
               </a>
             </div>
           </div>
@@ -51,49 +67,56 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex items-center justify-center flex-1 min-h-0">
-        <div className="text-center max-w-4xl mx-auto px-6">
+      <main className="relative z-10 flex items-center justify-center flex-1 min-h-0 py-8 sm:py-12">
+        <div className="text-center max-w-4xl mx-auto px-4 sm:px-6">
           {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
             <span className="font-bold">The Open Source</span>
             <br />
-            <span className="relative tracking-tight">
-              <span className="bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent font-bold">
+            <span className="relative -tracking-wider rotate-[-1deg] sm:rotate-[-2deg] inline-block mt-2 sm:mt-0">
+              <span className="text-white font-bold relative inline-block px-3 py-2 sm:px-1 sm:py-0 mt-1 border-2 border-orange-400/60 rounded-xl backdrop-blur-sm">
                 Vibe Coding Tool
+                {/* Decorative corner elements */}
+                <div className="absolute -top-1 -left-1 w-2 h-2 sm:w-3 sm:h-3 border-t-2 border-l-2 border-orange-300/80 rounded-tl-lg"></div>
+                <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 border-t-2 border-r-2 border-orange-300/80 rounded-tr-lg"></div>
+                <div className="absolute -bottom-1 -left-1 w-2 h-2 sm:w-3 sm:h-3 border-b-2 border-l-2 border-orange-300/80 rounded-bl-lg"></div>
+                <div className="absolute -bottom-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 border-b-2 border-r-2 border-orange-300/80 rounded-br-lg"></div>
+                {/* Subtle inner glow */}
+                <div className="absolute inset-0 border border-orange-400/15 rounded-xl"></div>
               </span>
-              <div className="absolute -inset-3 bg-gradient-to-r from-white/5 via-gray-200/10 to-gray-300/5 blur-xl rounded-lg -z-10"></div>
+              <div className="absolute -inset-2 sm:-inset-3 bg-gradient-to-r from-white/5 via-neutral-200/10 to-neutral-300/5 blur-xl rounded-lg -z-10"></div>
             </span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-neutral-400 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
             Craft beautiful apps by simply describing your vision to AI.
             <br />
-            <span className="italic text-gray-400 font-light">
+            <span className="italic text-neutral-400 font-light">
               No code required. Right in your browser.
             </span>
           </p>
 
           {/* Waitlist Form */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <WaitlistForm />
           </div>
 
           {/* Live Count */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <WaitlistCounter />
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 pt-2 pb-12 flex-shrink-0">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-gray-500 text-sm">
+      <footer className="relative z-10 pt-2 pb-8 sm:pb-12 flex-shrink-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+          <p className="text-neutral-500 text-xs sm:text-sm">
             Currently in beta • Open source on{" "}
             <a
               href="https://github.com/craftdottech/craft"
-              className="text-gray-400 hover:text-white underline transition-colors"
+              className="text-neutral-400 hover:text-white underline transition-colors"
             >
               GitHub
             </a>

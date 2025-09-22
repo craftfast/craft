@@ -84,30 +84,42 @@ export default function WaitlistForm() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto">
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
         <input
           type="email"
           value={state.email}
           onChange={handleEmailChange}
           placeholder="Enter your email"
-          className="flex-1 px-4 py-3 bg-neutral-900/50 border border-neutral-700/50 text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500/30 transition-all duration-200 rounded-full backdrop-blur-sm"
+          className="flex-1 px-4 py-3 bg-neutral-900/50 border border-neutral-700/50 text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500/30 transition-all duration-200 rounded-xl backdrop-blur-sm"
           disabled={state.isSubmitting}
           required
         />
         <button
           type="submit"
           disabled={state.isSubmitting || !state.email.trim()}
-          className="px-6 py-3 bg-white text-black font-medium hover:bg-neutral-100 disabled:bg-neutral-600 disabled:text-neutral-400 transition-all duration-200 rounded-full disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-white/10"
+          className="group px-6 py-3 bg-white text-black font-medium hover:bg-neutral-100 disabled:bg-white disabled:text-black transition-all duration-200 rounded-xl disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-white/10 w-full sm:w-auto"
         >
           {state.isSubmitting ? (
             <>
-              <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full"></div>
-              <span className="italic">Joining...</span>
+              <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-xl"></div>
+              <span className="font-medium">Joining...</span>
             </>
           ) : (
             <>
-              <span className="italic">Join waitlist</span>
-              <span>→</span>
+              <span className="font-medium">Join waitlist</span>
+              <svg
+                className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1 group-disabled:translate-x-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
             </>
           )}
         </button>
@@ -120,7 +132,7 @@ export default function WaitlistForm() {
       )}
 
       {state.isSuccess && (
-        <div className="mt-4 text-center">
+        <div className="mt-4 text-center px-2">
           <div className="text-2xl mb-3 text-white">✓</div>
           <h3 className="text-lg font-medium text-white mb-2 italic">
             You&apos;re on the list
