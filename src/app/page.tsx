@@ -74,7 +74,7 @@ export default function Home() {
             <span className="font-bold">The Open Source</span>
             <br />
             <span className="relative -tracking-wider rotate-[-1deg] sm:rotate-[-2deg] inline-block mt-2 sm:mt-0">
-              <span className="text-white font-bold relative inline-block px-3 py-2 sm:px-1 sm:py-0 mt-1 border-2 border-orange-400/60 rounded-xl backdrop-blur-sm">
+              <span className="text-white font-bold relative inline-block px-3 py-2 sm:px-3 sm:py-2 mt-1 border-2 border-orange-400/60 rounded-xl backdrop-blur-sm">
                 Vibe Coding Tool
                 {/* Decorative corner elements */}
                 <div className="absolute -top-1 -left-1 w-2 h-2 sm:w-3 sm:h-3 border-t-2 border-l-2 border-orange-300/80 rounded-tl-lg"></div>
