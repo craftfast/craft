@@ -54,7 +54,7 @@ export default function WaitlistCounter() {
 
   if (isLoading) {
     return (
-      <div className="text-center p-4 bg-gray-900/20 border border-gray-700 rounded-lg">
+      <div className="text-center">
         <div className="animate-pulse">
           <div className="text-gray-400 text-sm">Loading count...</div>
         </div>
@@ -64,7 +64,7 @@ export default function WaitlistCounter() {
 
   if (error) {
     return (
-      <div className="text-center p-4 bg-gray-900/20 border border-gray-700 rounded-lg">
+      <div className="text-center">
         <div className="text-gray-400 text-sm">{error}</div>
         <button
           onClick={fetchCount}
@@ -77,12 +77,12 @@ export default function WaitlistCounter() {
   }
 
   return (
-    <div className="text-center p-4 bg-gray-900/20 border border-gray-700 rounded-lg">
-      <div className="text-2xl font-bold text-white mb-1">
-        {waitlistData?.count.toLocaleString() || 0}
-      </div>
-      <div className="text-gray-400 text-sm">
-        {waitlistData?.message || "developers on the waitlist"}
+    <div className="text-center">
+      <div className="text-gray-300 text-sm font-light">
+        <span className="font-mono text-white font-medium">
+          {waitlistData?.count.toLocaleString() || 0}
+        </span>
+        <span className="ml-2">people on the waitlist</span>
       </div>
     </div>
   );

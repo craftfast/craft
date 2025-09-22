@@ -82,20 +82,6 @@ export default function WaitlistForm() {
     }));
   };
 
-  if (state.isSuccess) {
-    return (
-      <div className="text-center p-6 bg-green-900/20 border border-green-800 rounded-lg">
-        <div className="text-2xl mb-3">✓</div>
-        <h3 className="text-lg font-medium text-green-200 mb-2">
-          You&apos;re on the list
-        </h3>
-        <p className="text-sm text-green-400">
-          We&apos;ll email you when beta access is ready.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto">
       <div className="flex gap-3">
@@ -104,23 +90,23 @@ export default function WaitlistForm() {
           value={state.email}
           onChange={handleEmailChange}
           placeholder="Enter your email"
-          className="flex-1 px-4 py-3 bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:border-gray-500 focus:outline-none transition-colors rounded-lg"
+          className="flex-1 px-4 py-3 bg-gray-900/50 border border-gray-700/50 text-white placeholder-gray-500 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500/30 transition-all duration-200 rounded-lg backdrop-blur-sm"
           disabled={state.isSubmitting}
           required
         />
         <button
           type="submit"
           disabled={state.isSubmitting || !state.email.trim()}
-          className="px-6 py-3 bg-white text-black font-medium hover:bg-gray-100 disabled:bg-gray-600 disabled:text-gray-400 transition-colors rounded-lg disabled:cursor-not-allowed flex items-center space-x-2"
+          className="px-6 py-3 bg-white text-black font-medium hover:bg-gray-100 disabled:bg-gray-600 disabled:text-gray-400 transition-all duration-200 rounded-lg disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-white/10"
         >
           {state.isSubmitting ? (
             <>
               <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full"></div>
-              <span>Joining...</span>
+              <span className="italic">Joining...</span>
             </>
           ) : (
             <>
-              <span>Join waitlist</span>
+              <span className="italic">Join waitlist</span>
               <span>→</span>
             </>
           )}
@@ -128,8 +114,20 @@ export default function WaitlistForm() {
       </div>
 
       {state.error && (
-        <div className="mt-3 p-3 bg-red-900/20 border border-red-800 rounded-lg">
+        <div className="mt-3">
           <p className="text-red-400 text-sm">{state.error}</p>
+        </div>
+      )}
+
+      {state.isSuccess && (
+        <div className="mt-4 text-center">
+          <div className="text-2xl mb-3 text-white">✓</div>
+          <h3 className="text-lg font-medium text-white mb-2 italic">
+            You&apos;re on the list
+          </h3>
+          <p className="text-sm text-gray-300 font-light">
+            We&apos;ll email you when beta access is ready.
+          </p>
         </div>
       )}
     </form>

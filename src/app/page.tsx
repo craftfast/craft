@@ -21,7 +21,9 @@ export default function Home() {
             <div className="flex items-center">
               <span className="text-3xl font-bold text-white italic">
                 craft
-                <span className="text-sm text-white font-bold italic">.tech</span>
+                <span className="text-sm text-white font-bold italic">
+                  .tech
+                </span>
               </span>
             </div>
             <div className="flex items-center space-x-6">
@@ -52,31 +54,33 @@ export default function Home() {
       <main className="relative z-10 flex items-center justify-center flex-1 min-h-0">
         <div className="text-center max-w-4xl mx-auto px-6">
           {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
-            The Open Source
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+            <span className="font-bold">The Open Source</span>
             <br />
-            <span className="relative">
-              <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                Development Tool
+            <span className="relative tracking-tight">
+              <span className="bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent font-bold">
+                Vibe Coding Tool
               </span>
-              <div className="absolute -inset-2 bg-yellow-400/20 blur-lg rounded-lg -z-10"></div>
+              <div className="absolute -inset-3 bg-gradient-to-r from-white/5 via-gray-200/10 to-gray-300/5 blur-xl rounded-lg -z-10"></div>
             </span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg sm:text-xl text-gray-400 mb-6 max-w-2xl mx-auto leading-relaxed">
-            A simple but powerful development tool that gets the job done.
+          <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Craft beautiful apps by simply describing your vision to AI.
             <br />
-            Build with conversation.
+            <span className="italic text-gray-400 font-light">
+              No code required. Right in your browser.
+            </span>
           </p>
 
           {/* Waitlist Form */}
-          <div className="mb-6">
+          <div className="mb-8">
             <WaitlistForm />
           </div>
 
           {/* Live Count */}
-          <div className="mb-4">
+          <div className="mb-8">
             <WaitlistCounter />
           </div>
         </div>

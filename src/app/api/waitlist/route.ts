@@ -91,7 +91,7 @@ export async function GET() {
 
         return NextResponse.json({
             count,
-            message: `${count} developers on the waitlist`
+            message: `${count} people on the waitlist`
         });
     } catch (error) {
         console.error('Waitlist GET error:', error);
