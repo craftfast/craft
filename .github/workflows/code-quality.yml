@@ -1,0 +1,66 @@
+name: 🔍 Code Quality
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  quality-gate:
+    name: 🔍 Quality Gate
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: 📥 Install dependencies
+      run: npm ci
+      
+    - name: 🔍 Run ESLint with reporting
+      run: |
+        npm run lint -- --format=json --output-file=eslint-report.json || true
+        
+    - name: 📊 Upload ESLint report
+      uses: actions/upload-artifact@v4
+      with:
+        name: eslint-report
+        path: eslint-report.json
+        
+    - name: 🔍 Check for TODO/FIXME comments
+      run: |
+        echo "## TODO/FIXME Analysis" > code-analysis.md
+        echo "```" >> code-analysis.md
+        grep -r "TODO\|FIXME" src/ || echo "No TODO/FIXME comments found"
+        echo "```" >> code-analysis.md
+        
+    - name: 📊 Analyze bundle size
+      run: |
+        npm run build
+        echo "## Bundle Analysis" >> code-analysis.md
+        du -sh .next/ >> code-analysis.md || true
+        
+    - name: 📝 Comment PR with analysis
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          if (fs.existsSync('code-analysis.md')) {
+            const analysis = fs.readFileSync('code-analysis.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: analysis
+            });
+          }
