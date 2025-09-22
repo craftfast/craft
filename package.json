@@ -7,10 +7,10 @@
   "homepage": "https://craft.tech",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sudheerdotai/craft.git"
+    "url": "https://github.com/craftdottech/craft.git"
   },
   "bugs": {
-    "url": "https://github.com/sudheerdotai/craft/issues"
+    "url": "https://github.com/craftdottech/craft/issues"
   },
   "keywords": [
     "next.js",
@@ -38,13 +38,13 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "next": "15.5.3",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
