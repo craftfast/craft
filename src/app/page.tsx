@@ -1,15 +1,16 @@
 import WaitlistForm from "@/components/WaitlistForm";
 import WaitlistCounter from "@/components/WaitlistCounter";
+import { ASSETS, LINKS, APP } from "@/lib/constants";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden flex flex-col">
-      {/* Subtle background pattern */}
-      <div className="absolute inset-0 opacity-10">
+      {/* Hexagons background pattern */}
+      <div className="absolute inset-0 opacity-40">
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundImage: `url("${ASSETS.BACKGROUNDS.HEXAGONS_PATTERN}")`,
           }}
         />
       </div>
@@ -20,30 +21,17 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <span className="text-2xl sm:text-3xl font-bold text-white italic">
-                craft
+                {APP.NAME}
                 <span className="text-xs sm:text-sm text-white font-bold italic">
-                  .tech
+                  {APP.DOMAIN}
                 </span>
               </span>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className="flex items-center">
               <a
-                href="https://x.com/craftdottech"
-                className="text-neutral-200 hover:text-white transition-colors"
+                href={LINKS.GITHUB_REPO}
                 target="_blank"
                 rel="noopener noreferrer"
-              >
-                <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </a>
-              <a
-                href="https://github.com/craftdottech/craft"
                 className="bg-white text-black px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-neutral-100 transition-colors flex items-center space-x-1 sm:space-x-2"
               >
                 <svg
@@ -58,8 +46,7 @@ export default function Home() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span className="hidden sm:inline">Star on GitHub</span>
-                <span className="sm:hidden">Star</span>
+                <span>Star on GitHub</span>
               </a>
             </div>
           </div>
@@ -70,7 +57,7 @@ export default function Home() {
       <main className="relative z-10 flex items-center justify-center flex-1 min-h-0 py-8 sm:py-12">
         <div className="text-center max-w-4xl mx-auto px-4 sm:px-6">
           {/* Main Headline */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6">
             <span className="font-bold">The Open Source</span>
             <br />
             <span className="relative -tracking-wider rotate-[-1deg] sm:rotate-[-2deg] inline-block mt-2 sm:mt-0">
@@ -89,16 +76,16 @@ export default function Home() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-lg md:text-xl text-neutral-400 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
-            Craft beautiful apps by simply describing your vision to AI.
-            <br />
-            <span className="italic text-neutral-400 font-light">
-              No code required. Right in your browser.
+          <p className="text-base sm:text-lg md:text-xl text-neutral-400 my-6 sm:my-8 max-w-2xl mx-auto leading-relaxed px-2">
+            <span>
+              Craft beautiful apps and websites by simply describing your vision
+              to AI.{" "}
             </span>
+            <span>No code required. Right in your browser.</span>
           </p>
 
           {/* Waitlist Form */}
-          <div className="mb-6 sm:mb-8">
+          <div className="mb-6 sm:mb-4">
             <WaitlistForm />
           </div>
 
@@ -112,14 +99,35 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative z-10 pt-2 pb-8 sm:pb-12 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-neutral-500 text-xs sm:text-sm">
-            Currently in beta • Open source on{" "}
+          <p className="text-neutral-500 text-xs sm:text-sm flex flex-row justify-center items-center">
+            <span>
+              Follow
+              <a
+                href={LINKS.TWITTER_SUDHEER}
+                className="text-neutral-600 hover:text-white transition-colors mx-1"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                @sudheerdotai
+              </a>
+              on
+            </span>
             <a
-              href="https://github.com/craftdottech/craft"
-              className="text-neutral-400 hover:text-white underline transition-colors"
+              href={LINKS.TWITTER_CRAFT}
+              className="text-neutral-600 hover:text-white transition-colors mb-1 mx-1"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              GitHub
+              <svg
+                className="w-4 h-4"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
             </a>
+            <span>for updates</span>
           </p>
         </div>
       </footer>
