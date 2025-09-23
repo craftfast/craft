@@ -86,7 +86,7 @@ export default function WaitlistCounter() {
         <span className="font-mono text-white font-medium">
           {waitlistData?.count.toLocaleString() || 0}
         </span>
-        <span className="ml-2">people already on the waitlist</span>
+        <span className="ml-2">people have joined the waitlist</span>
       </div>
     </div>
   );

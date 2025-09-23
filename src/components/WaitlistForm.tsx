@@ -133,12 +133,8 @@ export default function WaitlistForm() {
 
       {state.isSuccess && (
         <div className="mt-4 text-center px-2">
-          <div className="text-2xl mb-3 text-white">✓</div>
-          <h3 className="text-lg font-medium text-white mb-2 italic">
-            You&apos;re on the list
-          </h3>
-          <p className="text-sm text-neutral-300 font-light">
-            We&apos;ll email you when beta access is ready.
+          <p className="text-sm text-green-400 font-light">
+            You&apos;re on the list! We&apos;ll email you when beta access is ready.
           </p>
         </div>
       )}
