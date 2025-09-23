@@ -1,5 +1,6 @@
 import WaitlistForm from "@/components/WaitlistForm";
 import WaitlistCounter from "@/components/WaitlistCounter";
+import { ASSETS, LINKS, APP } from "@/lib/constants";
 
 export default function Home() {
   return (
@@ -9,7 +10,7 @@ export default function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: `url("/hexagons-pattern-background.jpg")`,
+            backgroundImage: `url("${ASSETS.BACKGROUNDS.HEXAGONS_PATTERN}")`,
           }}
         />
       </div>
@@ -20,15 +21,15 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <span className="text-2xl sm:text-3xl font-bold text-white italic">
-                craft
+                {APP.NAME}
                 <span className="text-xs sm:text-sm text-white font-bold italic">
-                  .tech
+                  {APP.DOMAIN}
                 </span>
               </span>
             </div>
             <div className="flex items-center">
               <a
-                href="https://github.com/craftdottech/craft"
+                href={LINKS.GITHUB_REPO}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white text-black px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-neutral-100 transition-colors flex items-center space-x-1 sm:space-x-2"
@@ -77,7 +78,8 @@ export default function Home() {
           {/* Subtitle */}
           <p className="text-base sm:text-lg md:text-xl text-neutral-400 my-6 sm:my-8 max-w-2xl mx-auto leading-relaxed px-2">
             <span>
-              Craft beautiful apps and websites by simply describing your vision to AI.{" "}
+              Craft beautiful apps and websites by simply describing your vision
+              to AI.{" "}
             </span>
             <span>No code required. Right in your browser.</span>
           </p>
@@ -101,7 +103,7 @@ export default function Home() {
             <span>
               Follow
               <a
-                href="https://x.com/sudheerdotai"
+                href={LINKS.TWITTER_SUDHEER}
                 className="text-neutral-600 hover:text-white transition-colors mx-1"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -111,7 +113,7 @@ export default function Home() {
               on
             </span>
             <a
-              href="https://x.com/craftdottech"
+              href={LINKS.TWITTER_CRAFT}
               className="text-neutral-600 hover:text-white transition-colors mb-1 mx-1"
               target="_blank"
               rel="noopener noreferrer"
