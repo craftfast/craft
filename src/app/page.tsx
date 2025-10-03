@@ -10,7 +10,7 @@ export default function Home() {
 
       {/* Header */}
       <header className="relative z-10 flex-shrink-0">
-        <div className="px-4 py-2">
+        <div className="px-3 sm:px-4 py-2">
           <div className="flex items-center justify-between">
             <Logo iconClassName="text-white dark:text-white" />
             <HeaderNav />
@@ -19,8 +19,8 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex items-center justify-center flex-1 min-h-0 py-12 sm:py-16">
-        <div className="w-full max-w-3xl mx-auto px-6 sm:px-8">
+      <main className="relative z-10 flex items-center justify-center flex-1 min-h-0 py-8 sm:py-12 md:py-16">
+        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8">
           {/* Centered Greeting */}
           <div className="text-center mb-8">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-foreground mb-2">
@@ -35,7 +35,7 @@ export default function Home() {
 
       {/* Terms and Privacy Notice - Fixed at bottom */}
       <footer className="relative z-10 w-full py-4 flex-shrink-0">
-        <div className="w-full text-center">
+        <div className="w-full text-center px-4">
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             By messaging Craft, you agree to our{" "}
             <a

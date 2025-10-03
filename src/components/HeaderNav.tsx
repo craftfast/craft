@@ -149,11 +149,11 @@ export default function HeaderNav() {
   ];
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 sm:gap-2">
       {/* Log in Button */}
       <button
         onClick={() => router.push("/auth/signin")}
-        className="inline-flex items-center justify-center min-h-9 px-4 text-sm font-medium text-foreground hover:bg-stone-100 dark:hover:bg-neutral-800 rounded-full transition-colors duration-200 border border-stone-300 dark:border-neutral-600"
+        className="inline-flex items-center justify-center min-h-9 px-3 sm:px-4 text-sm font-medium text-foreground hover:bg-stone-100 dark:hover:bg-neutral-800 rounded-full transition-colors duration-200 border border-stone-300 dark:border-neutral-600"
       >
         Log in
       </button>
@@ -161,16 +161,17 @@ export default function HeaderNav() {
       {/* Sign up Button */}
       <button
         onClick={() => router.push("/auth/signup")}
-        className="inline-flex items-center justify-center min-h-9 px-4 text-sm font-medium bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-300 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+        className="inline-flex items-center justify-center min-h-9 px-3 sm:px-4 text-sm font-medium bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-300 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
       >
-        Sign up for free
+        <span className="hidden xs:inline">Sign up for free</span>
+        <span className="xs:hidden">Sign up</span>
       </button>
 
       {/* Settings Menu */}
       <div className="relative" ref={menuRef}>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-2 hover:bg-stone-100 dark:hover:bg-neutral-800 rounded-full transition-colors duration-200 flex items-center justify-center"
+          className="p-2 sm:p-2 min-w-[40px] min-h-[40px] hover:bg-stone-100 dark:hover:bg-neutral-800 rounded-full transition-colors duration-200 flex items-center justify-center active:bg-stone-200 dark:active:bg-neutral-700"
           aria-label="Settings menu"
         >
           <HelpCircle className="w-5 h-5 text-foreground" />
@@ -178,13 +179,13 @@ export default function HeaderNav() {
 
         {/* Dropdown Menu */}
         {isMenuOpen && (
-          <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-900 border border-stone-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white dark:bg-neutral-900 border border-stone-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="py-1.5">
               {menuItems.map((item, index) => (
                 <a
                   key={index}
                   href={item.href}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-stone-50 dark:hover:bg-neutral-800 transition-colors duration-150"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-stone-50 dark:hover:bg-neutral-800 transition-colors duration-150 active:bg-stone-100 dark:active:bg-neutral-700"
                   onClick={() => setIsMenuOpen(false)}
                   {...(item.external && {
                     target: "_blank",

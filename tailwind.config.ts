@@ -9,6 +9,9 @@ const config: Config = {
     darkMode: "media",
     theme: {
         extend: {
+            screens: {
+                'xs': '475px',
+            },
             colors: {
                 background: "var(--color-background)",
                 foreground: "var(--color-foreground)",
