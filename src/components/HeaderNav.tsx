@@ -163,8 +163,8 @@ export default function HeaderNav() {
         onClick={() => router.push("/auth/signup")}
         className="inline-flex items-center justify-center min-h-9 px-3 sm:px-4 text-sm font-medium bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-300 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
       >
-        <span className="hidden xs:inline">Sign up for free</span>
-        <span className="xs:hidden">Sign up</span>
+        <span className="hidden sm:inline">Sign up for free</span>
+        <span className="sm:hidden">Sign up</span>
       </button>
 
       {/* Settings Menu */}
