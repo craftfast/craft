@@ -38,4 +38,13 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# waitlist data (contains user emails)
+/data/
 next-env.d.ts
+
+# prisma database files
+prisma/*.db
+prisma/*.db-journal
+
+/src/generated/prisma

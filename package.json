@@ -7,10 +7,10 @@
   "homepage": "https://craft.tech",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sudheerdotai/craft.git"
+    "url": "https://github.com/craftdottech/craft.git"
   },
   "bugs": {
-    "url": "https://github.com/sudheerdotai/craft/issues"
+    "url": "https://github.com/craftdottech/craft/issues"
   },
   "keywords": [
     "next.js",
@@ -35,11 +35,13 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@prisma/client": "^6.16.2",
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
-    "next": "15.5.3",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "next": "15.5.4",
+    "prisma": "^6.16.2",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -48,8 +50,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.3",
+    "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
