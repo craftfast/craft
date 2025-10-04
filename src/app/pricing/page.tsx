@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 import HeaderNav from "@/components/HeaderNav";
+import Footer from "@/components/Footer";
 import {
   initiateRazorpayPayment,
   verifyPayment,
@@ -250,6 +251,27 @@ export default function PricingPage() {
                 </div>
               </div>
             )}
+
+            {/* Pricing Disclaimer */}
+            <div className="mt-6 text-center">
+              <p className="text-xs text-neutral-500 dark:text-neutral-500">
+                By subscribing, you agree to our{" "}
+                <a
+                  href="/terms"
+                  className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
+                >
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/refunds"
+                  className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
+                >
+                  Cancellation &amp; Refund Policy
+                </a>
+                .
+              </p>
+            </div>
           </div>
 
           {/* Pricing Cards */}
@@ -432,6 +454,24 @@ export default function PricingPage() {
 
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">
+                    What is your refund policy?
+                  </h3>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    Monthly subscriptions are generally non-refundable. However,
+                    we consider refunds for exceptional circumstances like
+                    duplicate charges or service unavailability. See our{" "}
+                    <a
+                      href="/refunds"
+                      className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
+                    >
+                      Cancellation &amp; Refund Policy
+                    </a>{" "}
+                    for details.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">
                     Is my data secure?
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -478,13 +518,7 @@ export default function PricingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 w-full py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            © 2025 Craft. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

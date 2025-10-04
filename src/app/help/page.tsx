@@ -1,5 +1,6 @@
 import HeaderNav from "@/components/HeaderNav";
 import Logo from "@/components/Logo";
+import Footer from "@/components/Footer";
 import Link from "next/link";
 
 export default function HelpPage() {
@@ -221,38 +222,11 @@ export default function HelpPage() {
               </Link>
             </div>
           </div>
-
-          {/* Additional Links */}
-          <div className="mt-12 pt-8 border-t border-neutral-200 dark:border-neutral-700">
-            <div className="flex flex-wrap justify-center gap-6 text-sm">
-              <Link
-                href="/pricing"
-                className="text-neutral-600 dark:text-neutral-400 hover:text-foreground dark:hover:text-neutral-200 transition-colors"
-              >
-                Pricing
-              </Link>
-              <Link
-                href="#"
-                className="text-neutral-600 dark:text-neutral-400 hover:text-foreground dark:hover:text-neutral-200 transition-colors"
-              >
-                Terms of Service
-              </Link>
-              <Link
-                href="#"
-                className="text-neutral-600 dark:text-neutral-400 hover:text-foreground dark:hover:text-neutral-200 transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="#"
-                className="text-neutral-600 dark:text-neutral-400 hover:text-foreground dark:hover:text-neutral-200 transition-colors"
-              >
-                Community Guidelines
-              </Link>
-            </div>
-          </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

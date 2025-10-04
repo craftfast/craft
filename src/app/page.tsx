@@ -39,14 +39,14 @@ export default function Home() {
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             By messaging Craft, you agree to our{" "}
             <a
-              href="#terms"
+              href="/terms"
               className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline underline-offset-2 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
             >
               Terms of Service
             </a>{" "}
             and acknowledge that you have read our{" "}
             <a
-              href="#privacy"
+              href="/privacy"
               className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline underline-offset-2 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
             >
               Privacy Policy

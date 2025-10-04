@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Logo from "@/components/Logo";
 import HeaderNav from "@/components/HeaderNav";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Enterprise - Craft",
@@ -218,6 +219,9 @@ export default function EnterprisePage() {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
