@@ -9,8 +9,8 @@ export default function HeaderNav() {
 
   const navigationLinks = [
     { href: "/pricing", label: "Pricing" },
-    { href: "#help", label: "Help" },
-    { href: "#terms", label: "Policy" },
+    { href: "/help", label: "Help" },
+    { href: "/enterprise", label: "Enterprise" },
     {
       href: "https://github.com/craftdottech/craft",
       label: "Contribute",

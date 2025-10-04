@@ -186,14 +186,14 @@ export default function PricingPage() {
       </header>
 
       {/* Main Content with padding to account for fixed header */}
-      <main className="py-12 sm:py-16 md:py-20 pt-20 sm:pt-24">
+      <main className="pt-20 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header Section */}
-          <div className="text-center mb-12 sm:mb-16">
+          <div className="text-center py-12 sm:py-16">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
               Pricing
             </h1>
-            <p className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
+            <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
               Choose the perfect plan to craft your applications with AI-powered
               assistance
             </p>
