@@ -87,7 +87,7 @@ const textSizes = {
 export default function Logo({
   showIcon = true,
   showText = true,
-  iconSize = "md",
+  iconSize = "lg",
   textSize = "md",
   className = "",
   iconClassName = "",
@@ -97,7 +97,7 @@ export default function Logo({
   const size = iconSizes[iconSize];
 
   const logoContent = (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center gap-2 ${className}`}>
       {showIcon && (
         <LogoIcon
           width={size.width}
@@ -107,7 +107,7 @@ export default function Logo({
       )}
       {showText && (
         <span
-          className={`font-medium text-foreground tracking-tight ${textSizes[textSize]} ${textClassName}`}
+          className={`font-medium text-foreground tracking-wide ${textSizes[textSize]} ${textClassName}`}
         >
           Craft
         </span>

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
-// Initialize Razorpay instance
-// Make sure to add these environment variables to your .env.local file
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+// Lazy-load Razorpay instance to avoid initialization during build
+function getRazorpayInstance() {
+    return new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID!,
+        key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    });
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
             },
         };
 
+        const razorpay = getRazorpayInstance();
         const order = await razorpay.orders.create(options);
 
         return NextResponse.json({
