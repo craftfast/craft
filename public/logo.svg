@@ -1,11 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <!-- Corrected isometric cube logo -->
-  <g fill-rule="evenodd">
-    <!-- Faces -->
-    <polygon points="12,2 3,7 12,12 21,7" fill="#73A9FF"/>
-    <polygon points="3,7 12,12 12,22 3,17" fill="#4A80FF"/>
-    <polygon points="21,7 12,12 12,22 21,17" fill="#2E5CB8"/>
-    <!-- Outline -->
-    <path d="M12,2 L3,7 L3,17 L12,22 L21,17 L21,7 L12,2 Z M3,7 L12,12 L21,7 M12,12 L12,22" fill="none" stroke="#B3D1FF" stroke-width="0.5"/>
-  </g>
+<svg width="194" height="214" viewBox="0 0 194 214" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M191.97 53.6663L97 106.427L2.0293 53.6663L97 0.905594L191.97 53.6663Z" fill="#E2E2E2" stroke="#C6C6C6"/>
+<path d="M96.5 107.294V212.816L1.5 160.039V54.5163L96.5 107.294Z" fill="#B2B2B2" stroke="#C6C6C6"/>
+<path d="M192.5 160.039L97.5 212.816V107.294L192.5 54.5163V160.039Z" fill="#828282" stroke="#C6C6C6"/>
+<path d="M1 53.6667L97 0.333328L193 53.6667M1 53.6667V160.333L97 213.667M1 53.6667L97 107M97 213.667L193 160.333V53.6667M97 213.667V107M193 53.6667L97 107" stroke="#C6C6C6" stroke-width="0.5"/>
 </svg>
