@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 interface LogoIconProps {
   width?: number;
@@ -63,6 +64,7 @@ interface LogoProps {
   className?: string;
   iconClassName?: string;
   textClassName?: string;
+  href?: string; // Add href prop for navigation
 }
 
 const iconSizes = {
@@ -90,10 +92,11 @@ export default function Logo({
   className = "",
   iconClassName = "",
   textClassName = "",
+  href = "/", // Default to home page
 }: LogoProps) {
   const size = iconSizes[iconSize];
 
-  return (
+  const logoContent = (
     <div className={`flex items-center gap-3 ${className}`}>
       {showIcon && (
         <LogoIcon
@@ -111,4 +114,18 @@ export default function Logo({
       )}
     </div>
   );
+
+  // If href is provided, wrap in Link
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="cursor-pointer hover:opacity-80 transition-opacity"
+      >
+        {logoContent}
+      </Link>
+    );
+  }
+
+  return logoContent;
 }

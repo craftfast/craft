@@ -8,7 +8,7 @@ export default function HeaderNav() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigationLinks = [
-    { href: "#pricing", label: "Pricing" },
+    { href: "/pricing", label: "Pricing" },
     { href: "#help", label: "Help" },
     { href: "#terms", label: "Policy" },
     {

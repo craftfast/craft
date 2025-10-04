@@ -41,6 +41,7 @@
     "lucide-react": "^0.544.0",
     "next": "15.5.4",
     "prisma": "^6.16.2",
+    "razorpay": "^2.9.6",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },

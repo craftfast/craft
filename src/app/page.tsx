@@ -8,18 +8,18 @@ export default function Home() {
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-stone-50 via-background to-stone-100 dark:from-neutral-900 dark:via-background dark:to-neutral-800 opacity-60" />
 
-      {/* Header */}
-      <header className="relative z-10 flex-shrink-0">
+      {/* Header - Fixed */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
           <div className="relative flex items-center justify-between">
-            <Logo iconClassName="text-white dark:text-white" />
+            <Logo iconClassName="text-white dark:text-white" href="/" />
             <HeaderNav />
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="relative flex items-center justify-center flex-1 min-h-0 py-8 sm:py-12 md:py-16">
+      {/* Main Content with padding to account for fixed header */}
+      <main className="relative flex items-center justify-center flex-1 min-h-0 py-8 sm:py-12 md:py-16 pt-20 sm:pt-24">
         <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8">
           {/* Centered Greeting */}
           <div className="text-center mb-8">
