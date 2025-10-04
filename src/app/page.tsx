@@ -11,7 +11,7 @@ export default function Home() {
       {/* Header */}
       <header className="relative z-10 flex-shrink-0">
         <div className="px-3 sm:px-4 py-2">
-          <div className="flex items-center justify-between">
+          <div className="relative flex items-center justify-between">
             <Logo iconClassName="text-white dark:text-white" />
             <HeaderNav />
           </div>
@@ -19,7 +19,7 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex items-center justify-center flex-1 min-h-0 py-8 sm:py-12 md:py-16">
+      <main className="relative flex items-center justify-center flex-1 min-h-0 py-8 sm:py-12 md:py-16">
         <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8">
           {/* Centered Greeting */}
           <div className="text-center mb-8">
