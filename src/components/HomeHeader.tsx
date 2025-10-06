@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 
-export default function HeaderNav() {
+export default function HomeHeader() {
   const router = useRouter();
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
