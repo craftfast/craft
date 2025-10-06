@@ -5,7 +5,13 @@ import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 
-export default function DashboardHeader() {
+interface DashboardHeaderProps {
+  title?: string;
+}
+
+export default function DashboardHeader({
+  title = "Dashboard",
+}: DashboardHeaderProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -18,12 +24,59 @@ export default function DashboardHeader() {
   return (
     <>
       {/* Page Title - Desktop */}
-      <h1 className="hidden sm:block text-lg md:text-xl font-semibold text-neutral-900 dark:text-neutral-100 ml-2">
-        Dashboard
+      <h1 className="hidden sm:block text-md md:text-lg font-semibold text-neutral-900 dark:text-neutral-100 ml-4">
+        {title}
       </h1>
 
       {/* Desktop User Menu */}
       <div className="hidden sm:flex items-center gap-3 ml-auto">
+        {/* Search Button */}
+        <button
+          onClick={() => {
+            // TODO: Implement search functionality
+          }}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full border border-neutral-300 dark:border-neutral-600 transition-colors"
+          aria-label="Search"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <span>Search</span>
+        </button>
+
+        {/* New Button */}
+        <button
+          onClick={() => {
+            // TODO: Implement new item functionality
+          }}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          <span>New Project</span>
+        </button>
+
         {session?.user && (
           <div className="relative">
             <button

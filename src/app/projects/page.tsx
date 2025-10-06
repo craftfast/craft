@@ -3,11 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Logo from "@/components/Logo";
 import DashboardHeader from "@/components/DashboardHeader";
-import CraftInput from "@/components/CraftInput";
-import RecentProjects from "@/components/RecentProjects";
+import Projects from "@/components/Projects";
 import type { Session } from "next-auth";
 
-export default async function DashboardPage() {
+export default async function ProjectsPage() {
   const session = (await getServerSession(authOptions)) as Session | null;
 
   // If not logged in, redirect to home page
@@ -29,29 +28,16 @@ export default async function DashboardPage() {
               iconClassName="text-white dark:text-white"
               href="/dashboard"
             />
-            <DashboardHeader />
+            <DashboardHeader title="Projects" />
           </div>
         </div>
       </header>
 
       {/* Main Content with padding to account for fixed header */}
-      <main className="relative flex-1 min-h-0 py-8 sm:py-12 md:py-16 pt-20 sm:pt-24">
-        {/* Chat Input Section */}
-        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8 mb-16 mt-[10%]">
-          {/* Centered Greeting with Personalization */}
-          <div className="text-center mb-8">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-foreground mb-2">
-              What can I help you craft?
-            </h1>
-          </div>
-
-          {/* ChatGPT-style Input */}
-          <CraftInput />
-        </div>
-
-        {/* Recent Projects Section - Full Width */}
-        <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
-          <RecentProjects />
+      <main className="relative flex-1 min-h-0 pt-14 sm:pt-20">
+        {/* Projects Section - Full Width */}
+        <div className="w-full mx-auto px-4">
+          <Projects />
         </div>
       </main>
     </div>
