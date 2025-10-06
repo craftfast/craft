@@ -54,20 +54,31 @@ export default function RefundPolicy() {
               <li>
                 Can be cancelled at any time without any refund implications
               </li>
-              <li>Pay-as-you-go credits are non-refundable once purchased</li>
+              <li>
+                20 credits per month (max 5 per day) - no purchases required
+              </li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mb-3 mt-6">1.2 Pro Plan</h3>
+            <ul className="space-y-2">
+              <li>Monthly or yearly subscription billed in advance</li>
+              <li>Pricing: Starting at $25/month (100 credits) or $250/year</li>
+              <li>Flexible tiers from 100-10,000 credits</li>
+              <li>Automatically renews each period unless cancelled</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              1.2 Premium Plan
+              1.3 Business Plan
             </h3>
             <ul className="space-y-2">
-              <li>Monthly subscription billed in advance</li>
-              <li>Pricing: $500/month (USD) or ₹41,500/month (INR)</li>
-              <li>Automatically renews each month unless cancelled</li>
+              <li>Monthly or yearly subscription billed in advance</li>
+              <li>Pricing: Starting at $50/month (100 credits) or $500/year</li>
+              <li>Flexible tiers from 100-10,000 credits</li>
+              <li>Automatically renews each period unless cancelled</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              1.3 Enterprise Plan
+              1.4 Enterprise Plan
             </h3>
             <ul className="space-y-2">
               <li>Custom pricing and terms</li>
@@ -99,7 +110,7 @@ export default function RefundPolicy() {
               <li>Writing to us at our registered office address</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">
+            <h3 className="text-xl font-semibold mb-3">
               2.2 Cancellation Effective Date
             </h3>
             <ul className="space-y-2">
@@ -108,10 +119,12 @@ export default function RefundPolicy() {
                 period
               </li>
               <li>
-                You will retain access to Premium features until the end of the
-                paid period
+                You will retain access to Pro or Business features until the end
+                of the paid period
               </li>
-              <li>No partial refunds are provided for unused time</li>
+              <li>
+                No partial refunds are provided for unused time or credits
+              </li>
               <li>
                 Your account will automatically downgrade to the Free plan
               </li>
@@ -122,8 +135,11 @@ export default function RefundPolicy() {
             </h3>
             <ul className="space-y-2">
               <li>Your projects and data remain accessible</li>
-              <li>Premium features are disabled</li>
-              <li>Usage is subject to Free plan limitations</li>
+              <li>Pro or Business features are disabled</li>
+              <li>
+                Usage is subject to Free plan limitations (20 credits/month, 3
+                projects max)
+              </li>
               <li>You can resubscribe at any time</li>
               <li>No data is deleted from your account</li>
             </ul>
@@ -182,8 +198,8 @@ export default function RefundPolicy() {
               3.3 Non-Refundable Items
             </h3>
             <ul className="space-y-2">
-              <li>Partial month subscriptions</li>
-              <li>Pay-as-you-go token credits once purchased</li>
+              <li>Partial period subscriptions</li>
+              <li>Unused credits from any plan</li>
               <li>Subscription fees after the 7-day refund request window</li>
               <li>
                 Any fees if service termination was due to Terms of Service
@@ -306,10 +322,10 @@ export default function RefundPolicy() {
             <h3 className="text-xl font-semibold mb-3">6.1 Auto-Renewal</h3>
             <ul className="space-y-2">
               <li>
-                Premium subscriptions automatically renew monthly unless
-                cancelled
+                Pro and Business subscriptions automatically renew monthly or
+                yearly unless cancelled
               </li>
-              <li>You will be charged on the same day each month</li>
+              <li>You will be charged on the same day each period</li>
               <li>Payment method on file will be charged automatically</li>
               <li>You can cancel auto-renewal at any time</li>
             </ul>

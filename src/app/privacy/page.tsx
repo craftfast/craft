@@ -57,7 +57,8 @@ export default function PrivacyPolicy() {
               <li>
                 <strong>Payment Information:</strong> Billing details, payment
                 card information (processed securely through Razorpay), and
-                transaction history for Premium and Enterprise subscriptions.
+                transaction history for Pro, Business, and Enterprise
+                subscriptions.
               </li>
               <li>
                 <strong>Profile Information:</strong> Optional information such
@@ -116,7 +117,8 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Database Content:</strong> Data stored in your Craft
-                databases (up to 0.5GB for Free users, 10GB for Premium users).
+                databases (0.5GB for Free, 5GB for Pro, 20GB for Business,
+                unlimited for Enterprise).
               </li>
               <li>
                 <strong>Integrations:</strong> Data from connected services like
@@ -141,18 +143,18 @@ export default function PrivacyPolicy() {
                 based on your usage patterns and preferences.
               </li>
               <li>
-                <strong>AI Training:</strong> For Free and Premium users, we may
-                use your prompts and interactions to improve our AI models.
-                Enterprise users can opt out of AI training.
+                <strong>AI Training:</strong> For Free and Pro users, we may use
+                your prompts and interactions to improve our AI models. Business
+                and Enterprise users can opt out of AI training.
               </li>
               <li>
                 <strong>User Memory:</strong> Store context and preferences to
-                provide better assistance over time (limited for Free users,
-                extended for Premium, unlimited for Enterprise).
+                provide better assistance over time.
               </li>
               <li>
                 <strong>Process Payments:</strong> Handle billing,
-                subscriptions, and token usage for Premium and Enterprise plans.
+                subscriptions, and credit usage for Pro, Business, and
+                Enterprise plans.
               </li>
               <li>
                 <strong>Communication:</strong> Send service updates, security
@@ -255,8 +257,8 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>AI Conversations:</strong> May be retained for up to 30
-                days (Free), 90 days (Premium), or as configured for Enterprise
-                users.
+                days (Free), 90 days (Pro and Business), or as configured for
+                Enterprise users.
               </li>
               <li>
                 <strong>Payment Records:</strong> Retained for 7 years for
@@ -335,12 +337,12 @@ export default function PrivacyPolicy() {
                 cookies, though this may limit functionality.
               </li>
               <li>
-                <strong>Analytics:</strong> Premium and Enterprise users can
-                request to opt out of certain analytics.
+                <strong>Analytics:</strong> Pro and Business users can request
+                to opt out of certain analytics.
               </li>
               <li>
-                <strong>AI Training:</strong> Enterprise users can opt out of
-                having their data used for AI model training.
+                <strong>AI Training:</strong> Business and Enterprise users can
+                opt out of having their data used for AI model training.
               </li>
             </ul>
 
@@ -423,12 +425,12 @@ export default function PrivacyPolicy() {
                 be used to improve AI models.
               </li>
               <li>
-                <strong>Premium Users:</strong> Your data may be used for model
+                <strong>Pro Users:</strong> Your data may be used for model
                 improvement with enhanced privacy controls.
               </li>
               <li>
-                <strong>Enterprise Users:</strong> Can opt out of AI training
-                entirely.
+                <strong>Business and Enterprise Users:</strong> Can opt out of
+                AI training entirely.
               </li>
             </ul>
 
@@ -454,17 +456,20 @@ export default function PrivacyPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              11. Token Usage and Billing
+              11. Credit Usage and Billing
             </h2>
 
-            <p className="mb-3">For users on paid plans or pay-as-you-go:</p>
+            <p className="mb-3">For users on paid plans:</p>
             <ul className="space-y-2">
-              <li>We track token usage for billing purposes</li>
+              <li>
+                We track credit usage for billing and service delivery purposes
+              </li>
               <li>
                 Usage data is retained for accounting and dispute resolution
               </li>
-              <li>Premium users receive 1M tokens per day (30M per month)</li>
-              <li>Free users can purchase tokens at $20 per 1M tokens</li>
+              <li>Pro users: Flexible tiers from 100-10,000 credits</li>
+              <li>Business users: Flexible tiers from 100-10,000 credits</li>
+              <li>Free users: 20 credits per month (max 5 per day)</li>
               <li>
                 Detailed usage logs are available in your account dashboard
               </li>

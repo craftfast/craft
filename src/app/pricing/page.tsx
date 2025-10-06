@@ -1,37 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 import HeaderNav from "@/components/HeaderNav";
 import Footer from "@/components/Footer";
+import CreditSelector from "@/components/CreditSelector";
 import {
   initiateRazorpayPayment,
   verifyPayment,
   convertToSmallestUnit,
-  getPlanPrice,
 } from "@/lib/razorpay";
-
-// Detect user location for currency
-function useUserLocation() {
-  const [isIndia, setIsIndia] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Try to detect user location
-    fetch("https://ipapi.co/json/")
-      .then((res) => res.json())
-      .then((data) => {
-        setIsIndia(data.country_code === "IN");
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, []);
-
-  return { isIndia, loading };
-}
+import {
+  calculateTierPrice,
+  getTierDisplayPrice,
+  type BillingPeriod,
+} from "@/lib/pricing-constants";
 
 interface PlanFeature {
   text: string;
@@ -41,39 +25,33 @@ interface PlanFeature {
 
 interface PricingPlan {
   name: string;
-  priceUSD: string;
-  priceINR: string;
+  priceMonthly: string;
+  priceYearly: string;
   description: string;
   features: PlanFeature[];
   cta: string;
   popular?: boolean;
   action: () => void;
+  showCreditSelector?: boolean;
 }
 
 export default function PricingPage() {
   const router = useRouter();
-  const { isIndia, loading } = useUserLocation();
-  const [selectedCurrency, setSelectedCurrency] = useState<"INR" | "USD">(
-    "USD"
-  );
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("MONTHLY");
+  const [proCredits, setProCredits] = useState(100);
+  const [businessCredits, setBusinessCredits] = useState(100);
 
-  // Update selected currency based on location when detected
-  useEffect(() => {
-    if (!loading) {
-      setSelectedCurrency(isIndia ? "INR" : "USD");
-    }
-  }, [isIndia, loading]);
-
-  const handlePremiumPayment = async () => {
-    const currency = selectedCurrency;
-    const amount = getPlanPrice("Premium", currency);
+  const handleProPayment = async () => {
+    const amount = calculateTierPrice("PRO", proCredits, billingPeriod);
 
     await initiateRazorpayPayment({
       amount: convertToSmallestUnit(amount),
-      currency: currency,
-      name: "Craft Premium",
-      description: "Premium Plan - Monthly Subscription",
-      planName: "Premium",
+      currency: "USD",
+      name: "Craft Pro",
+      description: `Pro Plan - ${proCredits} credits/month (${
+        billingPeriod === "YEARLY" ? "Yearly" : "Monthly"
+      })`,
+      planName: "Pro",
       onSuccess: async (response) => {
         // Verify payment
         const isVerified = await verifyPayment(
@@ -83,7 +61,44 @@ export default function PricingPage() {
         );
 
         if (isVerified) {
-          alert("Payment successful! Welcome to Premium 🎉");
+          alert("Payment successful! Welcome to Pro 🎉");
+          router.push("/dashboard");
+        } else {
+          alert("Payment verification failed. Please contact support.");
+        }
+      },
+      onFailure: (error) => {
+        console.error("Payment failed:", error);
+        alert("Payment failed. Please try again or contact support.");
+      },
+    });
+  };
+
+  const handleBusinessPayment = async () => {
+    const amount = calculateTierPrice(
+      "BUSINESS",
+      businessCredits,
+      billingPeriod
+    );
+
+    await initiateRazorpayPayment({
+      amount: convertToSmallestUnit(amount),
+      currency: "USD",
+      name: "Craft Business",
+      description: `Business Plan - ${businessCredits} credits/month (${
+        billingPeriod === "YEARLY" ? "Yearly" : "Monthly"
+      })`,
+      planName: "Business",
+      onSuccess: async (response) => {
+        // Verify payment
+        const isVerified = await verifyPayment(
+          response.razorpay_order_id,
+          response.razorpay_payment_id,
+          response.razorpay_signature
+        );
+
+        if (isVerified) {
+          alert("Payment successful! Welcome to Business 🎉");
           router.push("/dashboard");
         } else {
           alert("Payment verification failed. Please contact support.");
@@ -99,76 +114,121 @@ export default function PricingPage() {
   const plans: PricingPlan[] = [
     {
       name: "Free",
-      priceUSD: "$0",
-      priceINR: "₹0",
-      description: "For prototypes and side projects",
-      cta: "Get Started",
+      priceMonthly: "$0",
+      priceYearly: "$0",
+      description: "Perfect for getting started and trying out Craft",
+      cta: "Get Started Free",
       action: () => router.push("/auth/signup"),
+      showCreditSelector: false,
       features: [
         {
-          text: "Chat with AI to craft an app",
+          text: "20 credits per month",
           included: true,
           highlight: true,
         },
-        { text: "Unlimited projects (max 1,000)", included: true },
-        { text: "Deploy apps to Vercel", included: true },
+        {
+          text: "Max 5 credits per day",
+          included: true,
+          highlight: false,
+        },
+        { text: "AI-powered app building", included: true },
+        { text: "Up to 3 projects", included: true },
+        { text: "Deploy to Vercel", included: true },
         { text: "Import from Figma", included: true },
-        { text: "Sync with GitHub", included: true },
-        { text: "Limited database access (0.5GB per project)", included: true },
-        { text: "Bring your own OpenRouter API key", included: true },
-        { text: "Limited user memory for context", included: true },
+        { text: "GitHub sync", included: true },
+        { text: "0.5GB database storage", included: true },
         { text: "Community support", included: true },
-        { text: "Pay-as-you-go: $20 per 1M tokens", included: true },
-        { text: "No included AI tokens", included: false },
+        { text: "Credit rollover", included: false },
+        { text: "Custom domain", included: false },
+        { text: "Private projects", included: false },
         { text: "Priority support", included: false },
       ],
     },
     {
-      name: "Premium",
-      priceUSD: "$500",
-      priceINR: "₹41,500",
-      description: "For startups and growing teams",
-      cta: "Start Premium",
+      name: "Pro",
+      priceMonthly: getTierDisplayPrice("PRO", proCredits, "MONTHLY"),
+      priceYearly: getTierDisplayPrice("PRO", proCredits, "YEARLY"),
+      description: "Designed for fast-moving teams building in real time",
+      cta: "Start Pro",
       popular: true,
-      action: handlePremiumPayment,
+      action: handleProPayment,
+      showCreditSelector: true,
       features: [
-        { text: "Everything in Free", included: true, highlight: true },
-        { text: "1M tokens per day", included: true, highlight: true },
-        { text: "Extended memory for personalized code", included: true },
+        { text: "Everything in Free, plus:", included: true, highlight: true },
+        {
+          text: `${proCredits.toLocaleString()} credits per month`,
+          included: true,
+          highlight: true,
+        },
+        {
+          text: "No daily limits - use freely",
+          included: true,
+          highlight: true,
+        },
+        { text: "Credit rollover", included: true },
+        { text: "Unlimited projects", included: true },
+        { text: "Custom domains", included: true },
+        { text: "Private projects", included: true },
+        { text: "Remove Craft branding", included: true },
+        { text: "5GB database storage", included: true },
         { text: "Priority support", included: true },
-        { text: "Human oversight help when needed", included: true },
-        { text: "Advanced AI capabilities", included: true },
-        { text: "Faster response times", included: true },
-        { text: "Priority deployment queue", included: true },
-        { text: "Enhanced context sharing", included: true },
-        { text: "Premium integrations", included: true },
+      ],
+    },
+    {
+      name: "Business",
+      priceMonthly: getTierDisplayPrice("BUSINESS", businessCredits, "MONTHLY"),
+      priceYearly: getTierDisplayPrice("BUSINESS", businessCredits, "YEARLY"),
+      description: "Advanced controls for growing departments",
+      cta: "Start Business",
+      action: handleBusinessPayment,
+      showCreditSelector: true,
+      features: [
+        { text: "All features in Pro, plus:", included: true, highlight: true },
+        {
+          text: `${businessCredits.toLocaleString()} credits per month`,
+          included: true,
+          highlight: true,
+        },
+        {
+          text: "No daily limits - use freely",
+          included: true,
+          highlight: true,
+        },
+        { text: "SSO authentication", included: true },
+        { text: "Opt out of data training", included: true },
+        { text: "20GB database storage", included: true },
+        { text: "Priority support", included: true },
       ],
     },
     {
       name: "Enterprise",
-      priceUSD: "Contact Us",
-      priceINR: "Contact Us",
-      description: "For large companies requiring additional security",
+      priceMonthly: "Custom",
+      priceYearly: "Custom",
+      description: "Built for large orgs needing flexibility & scale",
       cta: "Contact Sales",
+      showCreditSelector: false,
       action: () => {
         window.location.href =
           "mailto:sales@craft.tech?subject=Enterprise Plan Inquiry";
       },
       features: [
-        { text: "Everything in Premium", included: true, highlight: true },
         {
-          text: "Training opt-out by default",
+          text: "Everything in Business, plus:",
           included: true,
           highlight: true,
         },
-        { text: "SAML SSO", included: true },
-        { text: "Priority access with no queues", included: true },
+        {
+          text: "Custom credit allocation",
+          included: true,
+          highlight: true,
+        },
         { text: "Dedicated support team", included: true },
-        { text: "Human oversight on demand", included: true },
-        { text: "Custom security policies", included: true },
-        { text: "SLA guarantees", included: true },
+        { text: "Onboarding services", included: true },
         { text: "Custom integrations", included: true },
-        { text: "Unlimited projects", included: true },
+        { text: "Group-based access control", included: true },
+        { text: "Custom design systems", included: true },
+        { text: "SLA guarantees", included: true },
+        { text: "Unlimited database storage", included: true },
         { text: "Advanced analytics", included: true },
       ],
     },
@@ -192,39 +252,39 @@ export default function PricingPage() {
           {/* Header Section */}
           <div className="text-center py-12 sm:py-16">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Pricing
+              Simple, transparent pricing
             </h1>
             <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
-              Choose the perfect plan to craft your applications with AI-powered
-              assistance
+              Start for free. Upgrade to get the capacity that exactly matches
+              your needs.
             </p>
 
-            {/* Currency Toggle */}
-            {!loading && (
-              <div className="mt-8 flex flex-col items-center gap-4">
-                <div className="inline-flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-full p-1 border border-neutral-200 dark:border-neutral-700">
-                  <button
-                    onClick={() => setSelectedCurrency("USD")}
-                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                      selectedCurrency === "USD"
-                        ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 shadow-sm"
-                        : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
-                    }`}
-                  >
-                    USD ($)
-                  </button>
-                  <button
-                    onClick={() => setSelectedCurrency("INR")}
-                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                      selectedCurrency === "INR"
-                        ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 shadow-sm"
-                        : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
-                    }`}
-                  >
-                    INR (₹)
-                  </button>
-                </div>
-                <div className="inline-flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-500">
+            {/* Billing Period Toggle */}
+            <div className="mt-8 flex flex-col items-center gap-4">
+              <div className="inline-flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-full p-1 border border-neutral-200 dark:border-neutral-700">
+                <button
+                  onClick={() => setBillingPeriod("MONTHLY")}
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                    billingPeriod === "MONTHLY"
+                      ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 shadow-sm"
+                      : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setBillingPeriod("YEARLY")}
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                    billingPeriod === "YEARLY"
+                      ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 shadow-sm"
+                      : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+                  }`}
+                >
+                  Yearly
+                </button>
+              </div>
+              {billingPeriod === "YEARLY" && (
+                <div className="inline-flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                   <svg
                     className="w-4 h-4"
                     fill="none"
@@ -235,66 +295,29 @@ export default function PricingPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  <span>
-                    Auto-detected:{" "}
-                    {isIndia ? "India (INR)" : "International (USD)"}
+                  <span className="font-medium">
+                    Save ~17% with yearly billing
                   </span>
                 </div>
-              </div>
-            )}
-
-            {/* Pricing Disclaimer */}
-            <div className="mt-6 text-center">
-              <p className="text-xs text-neutral-500 dark:text-neutral-500">
-                By subscribing, you agree to our{" "}
-                <a
-                  href="/terms"
-                  className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
-                >
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a
-                  href="/refunds"
-                  className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
-                >
-                  Cancellation &amp; Refund Policy
-                </a>
-                .
-              </p>
+              )}
             </div>
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
             {plans.map((plan) => (
               <div
                 key={plan.name}
-                className={`relative bg-white dark:bg-neutral-900 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl ${
+                className={`relative rounded-2xl border-2 transition-all duration-300 hover:shadow-xl flex flex-col ${
                   plan.popular
-                    ? "border-neutral-900 dark:border-neutral-100 shadow-lg scale-105"
-                    : "border-neutral-200 dark:border-neutral-700"
+                    ? "bg-neutral-50 dark:bg-neutral-800/50 border-neutral-900 dark:border-neutral-100 shadow-md"
+                    : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700"
                 }`}
               >
-                {/* Popular Badge */}
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center px-4 py-1 rounded-full text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-
-                <div className="p-6 sm:p-8">
+                <div className="p-6 sm:p-8 flex flex-col flex-grow">
                   {/* Plan Header */}
                   <div className="mb-6">
                     <h3 className="text-xl font-bold text-foreground mb-2">
@@ -309,15 +332,13 @@ export default function PricingPage() {
                   <div className="mb-6">
                     <div className="flex items-baseline gap-2">
                       <span className="text-4xl font-bold text-foreground">
-                        {loading
-                          ? "..."
-                          : selectedCurrency === "INR"
-                          ? plan.priceINR
-                          : plan.priceUSD}
+                        {billingPeriod === "YEARLY"
+                          ? plan.priceYearly
+                          : plan.priceMonthly}
                       </span>
                       {plan.name !== "Enterprise" && (
                         <span className="text-neutral-600 dark:text-neutral-400">
-                          /month
+                          {billingPeriod === "YEARLY" ? "/year" : "/month"}
                         </span>
                       )}
                     </div>
@@ -335,8 +356,25 @@ export default function PricingPage() {
                     {plan.cta}
                   </button>
 
+                  {/* Credit Selector Dropdown for Pro and Business */}
+                  {plan.showCreditSelector && (
+                    <CreditSelector
+                      selectedCredits={
+                        plan.name === "Pro" ? proCredits : businessCredits
+                      }
+                      onCreditsChange={(credits) => {
+                        if (plan.name === "Pro") {
+                          setProCredits(credits);
+                        } else {
+                          setBusinessCredits(credits);
+                        }
+                      }}
+                      popular={plan.popular}
+                    />
+                  )}
+
                   {/* Features List */}
-                  <div className="mt-8 space-y-4">
+                  <div className="mt-8 space-y-4 flex-grow">
                     {plan.features.map((feature, index) => (
                       <div key={index} className="flex items-start gap-3">
                         <div className="flex-shrink-0 mt-0.5">
@@ -393,6 +431,27 @@ export default function PricingPage() {
             ))}
           </div>
 
+          {/* Pricing Disclaimer */}
+          <div className="mt-8 text-center">
+            <p className="text-xs text-neutral-500 dark:text-neutral-500">
+              By subscribing, you agree to our{" "}
+              <a
+                href="/terms"
+                className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
+              >
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a
+                href="/refunds"
+                className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
+              >
+                Cancellation &amp; Refund Policy
+              </a>
+              .
+            </p>
+          </div>
+
           {/* Additional Information */}
           <div className="mt-16 sm:mt-20">
             <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 sm:p-12">
@@ -401,6 +460,39 @@ export default function PricingPage() {
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">
+                    What is a credit?
+                  </h3>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    A credit represents a unit of AI interaction. Each message,
+                    code generation, or AI task consumes credits based on
+                    complexity. Simple queries use fewer credits than complex
+                    app generation.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">
+                    Do unused credits roll over?
+                  </h3>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    Yes! On Pro and Business plans, unused credits roll over to
+                    the next month, so you never lose what you&apos;ve paid for.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">
+                    Are there daily credit limits?
+                  </h3>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    Free plan has a 5 credits/day limit to prevent abuse. Pro
+                    and Business plans have NO daily limits - use your monthly
+                    credits freely whenever you need them!
+                  </p>
+                </div>
+
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">
                     What payment methods do you accept?
@@ -424,26 +516,6 @@ export default function PricingPage() {
 
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">
-                    What is the database powered by?
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    All database storage is powered by Neon PostgreSQL,
-                    providing reliable and scalable database solutions.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    How does the pay-as-you-go pricing work?
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    On the Free plan, you can purchase credits at $20 per 1M
-                    tokens when needed. No subscription required.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">
                     What happens to my projects if I cancel?
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -458,8 +530,7 @@ export default function PricingPage() {
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     Monthly subscriptions are generally non-refundable. However,
-                    we consider refunds for exceptional circumstances like
-                    duplicate charges or service unavailability. See our{" "}
+                    we consider refunds for exceptional circumstances. See our{" "}
                     <a
                       href="/refunds"
                       className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
@@ -467,17 +538,6 @@ export default function PricingPage() {
                       Cancellation &amp; Refund Policy
                     </a>{" "}
                     for details.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Is my data secure?
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    Absolutely. We use industry-standard encryption and security
-                    practices. Enterprise plans include training opt-out by
-                    default.
                   </p>
                 </div>
               </div>

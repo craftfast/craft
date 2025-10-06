@@ -120,25 +120,40 @@ export default function TermsOfService() {
                 <p className="font-semibold mb-2">Free Plan</p>
                 <ul className="space-y-1 text-sm">
                   <li>• No monthly fee</li>
-                  <li>• Pay-as-you-go: $20 per 1 million tokens</li>
+                  <li>• 20 credits per month (max 5 credits per day)</li>
                   <li>• 0.5GB database storage</li>
-                  <li>• Unlimited projects</li>
-                  <li>• Use your own API keys</li>
+                  <li>• Up to 3 projects</li>
                   <li>• Community support</li>
+                  <li>• No credit rollover</li>
                 </ul>
               </div>
 
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
-                <p className="font-semibold mb-2">Premium Plan</p>
+                <p className="font-semibold mb-2">Pro Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• $500/month (or ₹41,500/month)</li>
-                  <li>• 1 million tokens per day (30M per month)</li>
-                  <li>• 10GB database storage</li>
+                  <li>• Starting at $25/month (100 credits)</li>
+                  <li>• $250/year (100 credits, save ~17%)</li>
+                  <li>• Flexible: 100-10,000 credits</li>
+                  <li>• 5GB database storage</li>
                   <li>• Unlimited projects</li>
                   <li>• Priority support</li>
-                  <li>• Advanced AI features</li>
-                  <li>• Human oversight</li>
-                  <li>• Extended memory</li>
+                  <li>• Custom domains</li>
+                  <li>• Credits roll over</li>
+                </ul>
+              </div>
+
+              <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
+                <p className="font-semibold mb-2">Business Plan</p>
+                <ul className="space-y-1 text-sm">
+                  <li>• Starting at $50/month (100 credits)</li>
+                  <li>• $500/year (100 credits, save ~17%)</li>
+                  <li>• Flexible: 100-10,000 credits</li>
+                  <li>• 20GB database storage</li>
+                  <li>• Unlimited projects</li>
+                  <li>• Priority support</li>
+                  <li>• Training opt-out</li>
+                  <li>• SSO support</li>
+                  <li>• Credits roll over</li>
                 </ul>
               </div>
 
@@ -146,12 +161,13 @@ export default function TermsOfService() {
                 <p className="font-semibold mb-2">Enterprise Plan</p>
                 <ul className="space-y-1 text-sm">
                   <li>• Custom pricing</li>
-                  <li>• Unlimited tokens and storage</li>
+                  <li>• Unlimited credits and storage</li>
                   <li>• Dedicated support</li>
                   <li>• SAML SSO</li>
                   <li>• Training opt-out</li>
                   <li>• Custom integrations</li>
                   <li>• SLA guarantees</li>
+                  <li>• Advanced analytics</li>
                 </ul>
               </div>
             </div>
@@ -165,12 +181,13 @@ export default function TermsOfService() {
                 securely through Razorpay
               </li>
               <li>
-                <strong>Subscription Renewals:</strong> Premium subscriptions
-                auto-renew monthly unless cancelled
+                <strong>Subscription Renewals:</strong> Pro and Business
+                subscriptions auto-renew monthly or yearly unless cancelled
               </li>
               <li>
-                <strong>Token Usage:</strong> Free users are billed for token
-                usage at the end of each billing period
+                <strong>Credit Usage:</strong> Credits are used for AI
+                interactions and features. Unused credits roll over for Pro and
+                Business plans.
               </li>
               <li>
                 <strong>Payment Methods:</strong> We accept credit cards, debit
@@ -181,8 +198,8 @@ export default function TermsOfService() {
                 taxes
               </li>
               <li>
-                <strong>Currency:</strong> Prices are in USD or INR as displayed
-                during purchase
+                <strong>Currency:</strong> Prices are in USD as displayed during
+                purchase
               </li>
             </ul>
 
@@ -197,7 +214,7 @@ export default function TermsOfService() {
               </li>
               <li>
                 <strong>Refunds:</strong> We do not offer refunds for partial
-                months or unused tokens.
+                periods or unused credits.
               </li>
               <li>
                 <strong>Downgrades:</strong> Plan downgrades take effect at the
@@ -362,19 +379,24 @@ export default function TermsOfService() {
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              6.2 Token Limits and Fair Use
+              6.2 Credit Limits and Fair Use
             </h3>
             <ul className="space-y-2">
               <li>
-                <strong>Free Users:</strong> Pay $20 per 1M tokens used
+                <strong>Free Users:</strong> 20 credits per month (max 5 credits
+                per day)
               </li>
               <li>
-                <strong>Premium Users:</strong> 1M tokens per day (soft limit;
-                reasonable overages may be allowed)
+                <strong>Pro Users:</strong> 100-10,000 credits based on selected
+                tier
               </li>
               <li>
-                <strong>Enterprise Users:</strong> Custom limits based on
-                agreement
+                <strong>Business Users:</strong> 100-10,000 credits based on
+                selected tier
+              </li>
+              <li>
+                <strong>Enterprise Users:</strong> Custom/unlimited credits
+                based on agreement
               </li>
               <li>
                 We reserve the right to implement rate limits to ensure fair use
@@ -388,11 +410,12 @@ export default function TermsOfService() {
             <h3 className="text-xl font-semibold mb-3 mt-6">6.3 AI Training</h3>
             <ul className="space-y-2">
               <li>
-                <strong>Free and Premium:</strong> Your prompts may be used to
+                <strong>Free and Pro:</strong> Your prompts may be used to
                 improve AI models
               </li>
               <li>
-                <strong>Enterprise:</strong> Can opt out of AI training
+                <strong>Business and Enterprise:</strong> Can opt out of AI
+                training
               </li>
               <li>
                 We implement privacy-preserving techniques when training models
@@ -407,13 +430,17 @@ export default function TermsOfService() {
             <h3 className="text-xl font-semibold mb-3">7.1 Storage Limits</h3>
             <ul className="space-y-2">
               <li>
-                <strong>Free:</strong> 0.5GB database storage
+                <strong>Free:</strong> 0.5GB database storage, up to 3 projects
               </li>
               <li>
-                <strong>Premium:</strong> 10GB database storage
+                <strong>Pro:</strong> 5GB database storage, unlimited projects
               </li>
               <li>
-                <strong>Enterprise:</strong> Unlimited storage
+                <strong>Business:</strong> 20GB database storage, unlimited
+                projects
+              </li>
+              <li>
+                <strong>Enterprise:</strong> Unlimited storage and projects
               </li>
               <li>
                 Exceeding storage limits may result in service interruption
@@ -431,7 +458,9 @@ export default function TermsOfService() {
               <li>
                 We perform regular backups but do not guarantee data recovery
               </li>
-              <li>Premium and Enterprise users have enhanced backup options</li>
+              <li>
+                Pro, Business, and Enterprise users have enhanced backup options
+              </li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
@@ -513,8 +542,8 @@ export default function TermsOfService() {
                 documentation
               </li>
               <li>
-                <strong>Premium:</strong> Priority email support with 24-hour
-                response time
+                <strong>Pro and Business:</strong> Priority email support with
+                24-hour response time
               </li>
               <li>
                 <strong>Enterprise:</strong> Dedicated support with custom SLA

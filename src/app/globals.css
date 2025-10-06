@@ -125,3 +125,41 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Minimalist Scrollbar Styling */
+.minimalist-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d4 transparent;
+}
+
+.minimalist-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.minimalist-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.minimalist-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #d4d4d4;
+  border-radius: 3px;
+}
+
+.minimalist-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #a3a3a3;
+}
+
+/* Dark mode scrollbar */
+@media (prefers-color-scheme: dark) {
+  .minimalist-scrollbar {
+    scrollbar-color: #525252 transparent;
+  }
+  
+  .minimalist-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #525252;
+  }
+  
+  .minimalist-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #737373;
+  }
+}

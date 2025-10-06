@@ -185,9 +185,21 @@ export function convertToSmallestUnit(amount: number): number {
  */
 export function getPlanPrice(planName: string, currency: "INR" | "USD"): number {
     const pricing: Record<string, Record<string, number>> = {
-        Premium: {
-            USD: 500,
-            INR: 41500,
+        PRO: {
+            USD: 25,
+            INR: 2075,
+        },
+        Pro: {
+            USD: 25,
+            INR: 2075,
+        },
+        BUSINESS: {
+            USD: 50,
+            INR: 4150,
+        },
+        Business: {
+            USD: 50,
+            INR: 4150,
         },
     };
 
