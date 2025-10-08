@@ -16,7 +16,7 @@ export default function Projects() {
       {/* Search and Filter Bar */}
       <div className="mb-6 space-y-4">
         {/* Search Input with View Toggle */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-row gap-3">
           {/* Search Input */}
           <div className="flex-1 relative">
             <input

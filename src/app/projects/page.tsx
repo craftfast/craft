@@ -34,7 +34,7 @@ export default async function ProjectsPage() {
       </header>
 
       {/* Main Content with padding to account for fixed header */}
-      <main className="relative flex-1 min-h-0 pt-14 sm:pt-20">
+      <main className="relative flex-1 min-h-0 mt-18">
         {/* Projects Section - Full Width */}
         <div className="w-full mx-auto px-4">
           <Projects />
