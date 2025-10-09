@@ -139,7 +139,7 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
       </div>
 
       {/* Input Area */}
-      <div className="border-neutral-200 dark:border-neutral-800 p-2">
+      <div className="border-neutral-200 dark:border-neutral-800 p-2 pl-4">
         <div className="max-w-3xl mx-auto">
           <div className="rounded-2xl px-2 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm hover:shadow-md focus-within:shadow-lg transition-shadow">
             <div className="relative">
