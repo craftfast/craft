@@ -15,25 +15,17 @@ interface Message {
 
 interface ChatPanelProps {
   projectId: string;
+  onFilesCreated?: (files: { path: string; content: string }[]) => void;
 }
 
-export default function ChatPanel({ projectId }: ChatPanelProps) {
+export default function ChatPanel({
+  projectId,
+  onFilesCreated,
+}: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // TODO: Use projectId to save/load conversation history from database
-  console.log("Project ID:", projectId);
-
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "Hi! I'm Claude, your Next.js development assistant. I'll help you build modern web applications using Next.js 15, TypeScript, and Tailwind CSS. What would you like to create today?",
-      createdAt: new Date(),
-    },
-  ]);
-
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,6 +36,72 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Function to extract code blocks from markdown
+  const extractCodeBlocks = (content: string) => {
+    const codeBlockRegex = /```(\w+)?\s*(?:\/\/\s*(.+?)\s*)?\n([\s\S]+?)```/g;
+    const files: { path: string; content: string; language: string }[] = [];
+    let match;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      const language = match[1] || "text";
+      const filePath = match[2]?.trim();
+      const code = match[3];
+
+      if (filePath && code) {
+        files.push({
+          path: filePath,
+          content: code.trim(),
+          language,
+        });
+      }
+    }
+
+    return files;
+  };
+
+  // Function to remove code blocks from content for display
+  const removeCodeBlocks = (content: string) => {
+    return content
+      .replace(/```(\w+)?\s*(?:\/\/\s*.+?\s*)?\n[\s\S]+?```/g, (match) => {
+        // Check if this code block has a file path comment
+        const hasFilePath = /```\w+\s*\/\/\s*.+?\s*\n/.test(match);
+        if (hasFilePath) {
+          // Remove the entire block if it has a file path (it's a file to be created)
+          return "";
+        }
+        // Keep code blocks without file paths (they're examples/explanations)
+        return match;
+      })
+      .replace(/\n{3,}/g, "\n\n")
+      .trim(); // Clean up extra newlines
+  };
+
+  // Function to save files to the project
+  const saveFiles = async (files: { path: string; content: string }[]) => {
+    try {
+      for (const file of files) {
+        await fetch("/api/files", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            projectId,
+            filePath: file.path,
+            content: file.content,
+          }),
+        });
+      }
+
+      // Notify parent component about new files
+      if (onFilesCreated) {
+        onFilesCreated(files);
+      }
+    } catch (error) {
+      console.error("Error saving files:", error);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -95,19 +153,36 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
       setMessages((prev) => [...prev, assistantMessage]);
 
       if (reader) {
+        let fullContent = "";
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           const chunk = decoder.decode(value);
-          const updatedMessage = {
-            ...assistantMessage,
-            content: assistantMessage.content + chunk,
-          };
-          assistantMessage.content += chunk;
+          fullContent += chunk;
+          assistantMessage.content = fullContent;
 
           setMessages((prev) =>
-            prev.map((m) => (m.id === assistantMessage.id ? updatedMessage : m))
+            prev.map((m) =>
+              m.id === assistantMessage.id ? { ...m, content: fullContent } : m
+            )
+          );
+        }
+
+        // After streaming is complete, extract and save code blocks
+        const extractedFiles = extractCodeBlocks(fullContent);
+        if (extractedFiles.length > 0) {
+          await saveFiles(extractedFiles);
+
+          // Update the message to remove code blocks from display
+          const contentWithoutCode = removeCodeBlocks(fullContent);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMessage.id
+                ? { ...m, content: contentWithoutCode }
+                : m
+            )
           );
         }
       }
