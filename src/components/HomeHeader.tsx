@@ -2,14 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useSession, signOut } from "next-auth/react";
-import Image from "next/image";
+import { useSession } from "next-auth/react";
+import UserMenu from "./UserMenu";
 
 export default function HomeHeader() {
   const router = useRouter();
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const navigationLinks = [
     { href: "/pricing", label: "Pricing" },
@@ -22,10 +21,6 @@ export default function HomeHeader() {
     },
     { href: "https://x.com/craftdottech", label: "Updates", external: true },
   ];
-
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/home" });
-  };
 
   return (
     <>
@@ -84,71 +79,7 @@ export default function HomeHeader() {
               </svg>
               Dashboard
             </button>
-            <div className="relative">
-              <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center justify-center hover:opacity-80 transition-opacity"
-              >
-                {session.user.image ? (
-                  <div className="w-8 h-8 rounded-full overflow-hidden relative">
-                    <Image
-                      src={session.user.image}
-                      alt={session.user.name || "User"}
-                      width={32}
-                      height={32}
-                      className="rounded-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-neutral-300 dark:bg-neutral-700 flex items-center justify-center text-sm font-semibold">
-                    {session.user.name?.[0]?.toUpperCase() ||
-                      session.user.email?.[0]?.toUpperCase()}
-                  </div>
-                )}
-              </button>
-
-              {/* User Dropdown Menu */}
-              {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-lg z-50">
-                  <div className="p-3 border-b border-neutral-200 dark:border-neutral-800">
-                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                      {session.user.name}
-                    </p>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                      {session.user.email}
-                    </p>
-                  </div>
-                  <div className="py-2">
-                    <button
-                      onClick={() => {
-                        router.push("/dashboard");
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                    >
-                      Dashboard
-                    </button>
-                    <button
-                      onClick={() => {
-                        router.push("/pricing");
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                    >
-                      Upgrade Plan
-                    </button>
-                  </div>
-                  <div className="border-t border-neutral-200 dark:border-neutral-800 py-2">
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <UserMenu user={session.user} showDashboardLink={true} />
           </>
         ) : (
           <>
@@ -255,8 +186,9 @@ export default function HomeHeader() {
             <div className="border-t border-neutral-200 dark:border-neutral-800 my-2" />
             {session?.user ? (
               <button
-                onClick={() => {
-                  handleSignOut();
+                onClick={async () => {
+                  const { signOut } = await import("next-auth/react");
+                  await signOut({ callbackUrl: "/home" });
                   setIsMobileMenuOpen(false);
                 }}
                 className="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full border border-neutral-300 dark:border-neutral-600 transition-colors"
