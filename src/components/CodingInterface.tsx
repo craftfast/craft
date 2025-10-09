@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Logo from "./Logo";
@@ -61,6 +61,28 @@ export default function CodingInterface({
   console.log(
     `🎯 CodingInterface mounted with project: "${project.name}" (ID: ${project.id})`
   );
+
+  // Load existing project files on mount
+  useEffect(() => {
+    const loadProjectFiles = async () => {
+      try {
+        const response = await fetch(`/api/files?projectId=${project.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setProjectFiles(data.files || {});
+          console.log(
+            `📁 Loaded ${
+              Object.keys(data.files || {}).length
+            } files for project`
+          );
+        }
+      } catch (error) {
+        console.error("Error loading project files:", error);
+      }
+    };
+
+    loadProjectFiles();
+  }, [project.id]);
 
   // Function to refresh project data
   const refreshProject = async () => {
@@ -452,6 +474,7 @@ export default function CodingInterface({
             <div className="flex-1 overflow-hidden">
               <ChatPanel
                 projectId={project.id}
+                projectDescription={project.description}
                 onFilesCreated={handleFilesCreated}
               />
             </div>
