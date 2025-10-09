@@ -69,8 +69,8 @@ export default function PreviewPanel({ projectId }: PreviewPanelProps) {
       </div>
 
       {/* Preview Frame */}
-      <div className="flex-1 bg-white dark:bg-neutral-900 px-2 pb-2 overflow-hidden">
-        <div className="h-full bg-white dark:bg-neutral-900 rounded-2xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-800">
+      <div className="flex-1 bg-white dark:bg-neutral-900 overflow-hidden">
+        <div className="h-full bg-white dark:bg-neutral-900 overflow-hidden border-t border-neutral-200 dark:border-neutral-800">
           {/* Placeholder content */}
           <div className="h-full flex items-center justify-center">
             <div className="text-center">

@@ -265,15 +265,29 @@ export default function CodingInterface({
                 />
               </button>
               <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 leading-1">
                 <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate">
                   {project.name}
                 </h1>
-                {project.description && (
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                    {project.description}
-                  </p>
-                )}
+                <a
+                  href={`/projects/${project.id}`}
+                  className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors inline-flex items-center gap-1 group"
+                >
+                  View Project
+                  <svg
+                    className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 17L17 7M17 7H7M17 7v10"
+                    />
+                  </svg>
+                </a>
               </div>
             </div>
 
@@ -351,26 +365,8 @@ export default function CodingInterface({
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* Deploy Button */}
-            <button className="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg border border-neutral-300 dark:border-neutral-600 transition-colors flex items-center gap-1.5">
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              <span className="hidden sm:inline">Deploy</span>
-            </button>
-
             {/* Share Button */}
-            <button className="px-3 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-lg transition-colors flex items-center gap-1.5">
+            <button className="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg border border-neutral-300 dark:border-neutral-600 transition-colors flex items-center gap-1.5">
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
@@ -385,6 +381,24 @@ export default function CodingInterface({
                 />
               </svg>
               <span className="hidden sm:inline">Share</span>
+            </button>
+
+            {/* Deploy Button */}
+            <button className="px-3 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-lg transition-colors flex items-center gap-1.5">
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              <span className="hidden sm:inline">Deploy</span>
             </button>
 
             {/* User Profile Menu */}
