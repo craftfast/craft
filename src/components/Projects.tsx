@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 type ViewMode = "grid" | "list";
 type SortOption = "recent" | "name" | "oldest";
@@ -266,8 +267,9 @@ export default function Projects() {
           }
         >
           {projects.map((project) => (
-            <div
+            <Link
               key={project.id}
+              href={`/chat/${project.id}`}
               className={`group bg-white dark:bg-neutral-800 rounded-2xl border border-stone-200 dark:border-neutral-700 hover:border-stone-300 dark:hover:border-neutral-600 transition-all cursor-pointer ${
                 viewMode === "grid" ? "p-6" : "p-4"
               }`}
@@ -333,7 +335,7 @@ export default function Projects() {
                   </span>
                 </div>
               )}
-            </div>
+            </Link>
           ))}
         </div>
       )}

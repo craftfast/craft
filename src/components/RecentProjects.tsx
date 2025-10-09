@@ -111,8 +111,9 @@ export default function RecentProjects() {
       {!loading && projects.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {projects.map((project) => (
-            <div
+            <Link
               key={project.id}
+              href={`/chat/${project.id}`}
               className="group p-6 bg-white dark:bg-neutral-800 rounded-2xl border border-stone-200 dark:border-neutral-700 hover:border-stone-300 dark:hover:border-neutral-600 transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
@@ -141,7 +142,7 @@ export default function RecentProjects() {
               <p className="text-sm text-stone-600 dark:text-neutral-400 line-clamp-2">
                 {project.description || "No description"}
               </p>
-            </div>
+            </Link>
           ))}
         </div>
       )}
