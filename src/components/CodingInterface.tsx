@@ -462,7 +462,12 @@ export default function CodingInterface({
         <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-neutral-900 px-2 pb-2">
           {/* Main Panel */}
           <main className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl">
-            {activeTab === "preview" && <PreviewPanel projectId={project.id} />}
+            {activeTab === "preview" && (
+              <PreviewPanel
+                projectId={project.id}
+                projectFiles={projectFiles}
+              />
+            )}
             {activeTab === "code" && (
               <CodeEditor projectId={project.id} projectFiles={projectFiles} />
             )}
