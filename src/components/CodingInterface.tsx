@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Plus, History } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import ChatPanel from "./coding-interface/ChatPanel";
@@ -56,6 +56,8 @@ export default function CodingInterface({
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [project, setProject] = useState(initialProject);
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
+  const [showChatHistory, setShowChatHistory] = useState(false);
+  const [triggerNewChat, setTriggerNewChat] = useState(0); // Counter to trigger new chat
   const chatWidth = 30; // Fixed at 30%
 
   console.log(
@@ -350,24 +352,22 @@ export default function CodingInterface({
             <div className="flex items-center gap-2 flex-shrink-0">
               {!isChatCollapsed ? (
                 <>
+                  {/* New Chat Button */}
+                  <button
+                    onClick={() => setTriggerNewChat((prev) => prev + 1)}
+                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+                    title="New Chat"
+                  >
+                    <Plus className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+                  </button>
+
                   {/* History Button */}
                   <button
+                    onClick={() => setShowChatHistory(!showChatHistory)}
                     className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-                    title="History"
+                    title="Chat History"
                   >
-                    <svg
-                      className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <History className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
                   </button>
 
                   {/* Chat Toggle Button */}
@@ -476,6 +476,9 @@ export default function CodingInterface({
                 projectId={project.id}
                 projectDescription={project.description}
                 onFilesCreated={handleFilesCreated}
+                showHistory={showChatHistory}
+                onHistoryClose={() => setShowChatHistory(false)}
+                triggerNewChat={triggerNewChat}
               />
             </div>
           </div>
