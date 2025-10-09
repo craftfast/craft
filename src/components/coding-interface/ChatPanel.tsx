@@ -13,21 +13,36 @@ interface Message {
   createdAt: Date;
 }
 
+interface ChatSession {
+  id: string;
+  name: string;
+  projectId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  messages: Message[];
+}
+
 interface ChatPanelProps {
   projectId: string;
+  projectDescription?: string | null;
   onFilesCreated?: (files: { path: string; content: string }[]) => void;
 }
 
 export default function ChatPanel({
   projectId,
+  projectDescription,
   onFilesCreated,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showSessionList, setShowSessionList] = useState(false);
+  const [hasAutoSentFirstMessage, setHasAutoSentFirstMessage] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,6 +51,134 @@ export default function ChatPanel({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load chat sessions on mount
+  useEffect(() => {
+    loadChatSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // Load messages when session changes
+  useEffect(() => {
+    if (currentSessionId) {
+      loadMessages(currentSessionId);
+    }
+  }, [currentSessionId]);
+
+  // Auto-send first message if project has description and no messages yet
+  useEffect(() => {
+    const sendFirstMessage = async () => {
+      // Check if we should auto-send the first message
+      if (
+        !hasAutoSentFirstMessage &&
+        currentSessionId &&
+        messages.length === 0 &&
+        projectDescription &&
+        projectDescription.trim() !== "" &&
+        !isLoading
+      ) {
+        console.log("🚀 Auto-sending first message from project description");
+        setHasAutoSentFirstMessage(true);
+
+        // Wait a brief moment to ensure state is set
+        setTimeout(() => {
+          handleSendMessage(projectDescription);
+        }, 100);
+      }
+    };
+
+    sendFirstMessage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    currentSessionId,
+    messages,
+    projectDescription,
+    hasAutoSentFirstMessage,
+    isLoading,
+  ]);
+
+  const loadChatSessions = async () => {
+    try {
+      const response = await fetch(`/api/chat-sessions?projectId=${projectId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setChatSessions(data.chatSessions);
+
+        // If there are sessions, select the most recent one
+        if (data.chatSessions.length > 0) {
+          setCurrentSessionId(data.chatSessions[0].id);
+        } else {
+          // Create a default session if none exists
+          createNewSession();
+        }
+      }
+    } catch (error) {
+      console.error("Error loading chat sessions:", error);
+    }
+  };
+
+  const loadMessages = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/chat-sessions/${sessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(
+          data.chatSession.messages.map(
+            (m: Message & { createdAt: string }) => ({
+              ...m,
+              createdAt: new Date(m.createdAt),
+            })
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error loading messages:", error);
+    }
+  };
+
+  const createNewSession = async (name?: string) => {
+    try {
+      const response = await fetch("/api/chat-sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId,
+          name: name || "New Chat",
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChatSessions((prev) => [data.chatSession, ...prev]);
+        setCurrentSessionId(data.chatSession.id);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Error creating chat session:", error);
+    }
+  };
+
+  const saveMessage = async (role: "user" | "assistant", content: string) => {
+    if (!currentSessionId) return;
+
+    try {
+      await fetch("/api/chat-messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chatSessionId: currentSessionId,
+          role,
+          content,
+        }),
+      });
+    } catch (error) {
+      console.error("Error saving message:", error);
+    }
+  };
 
   // Function to extract code blocks from markdown
   const extractCodeBlocks = (content: string) => {
@@ -103,19 +246,23 @@ export default function ChatPanel({
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSendMessage = async (messageContent?: string) => {
+    const contentToSend = messageContent || input;
+    if (!contentToSend.trim() || isLoading || !currentSessionId) return;
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: "user",
-      content: input,
+      content: contentToSend,
       createdAt: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+
+    // Save user message to database
+    await saveMessage("user", userMessage.content);
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -184,6 +331,12 @@ export default function ChatPanel({
                 : m
             )
           );
+
+          // Save assistant message with cleaned content
+          await saveMessage("assistant", contentWithoutCode);
+        } else {
+          // Save assistant message as-is
+          await saveMessage("assistant", fullContent);
         }
       }
     } catch (error) {
@@ -223,6 +376,138 @@ export default function ChatPanel({
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+      {/* Chat Session Header */}
+      <div className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex-1 relative">
+            <button
+              onClick={() => setShowSessionList(!showSessionList)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors w-full text-left"
+            >
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+              <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                {chatSessions.find((s) => s.id === currentSessionId)?.name ||
+                  "New Chat"}
+              </span>
+              <svg
+                className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 transition-transform ${
+                  showSessionList ? "rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {/* Session Dropdown */}
+            {showSessionList && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      createNewSession();
+                      setShowSessionList(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left"
+                  >
+                    <svg
+                      className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      New Chat
+                    </span>
+                  </button>
+                </div>
+                <div className="border-t border-neutral-200 dark:border-neutral-700" />
+                <div className="p-2 space-y-1">
+                  {chatSessions.map((session) => (
+                    <button
+                      key={session.id}
+                      onClick={() => {
+                        setCurrentSessionId(session.id);
+                        setShowSessionList(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left ${
+                        session.id === currentSessionId
+                          ? "bg-neutral-900 dark:bg-neutral-100"
+                          : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                      }`}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${
+                          session.id === currentSessionId
+                            ? "text-white dark:text-neutral-900"
+                            : "text-neutral-600 dark:text-neutral-400"
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                        />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-sm font-medium truncate ${
+                            session.id === currentSessionId
+                              ? "text-white dark:text-neutral-900"
+                              : "text-neutral-900 dark:text-neutral-100"
+                          }`}
+                        >
+                          {session.name}
+                        </p>
+                        <p
+                          className={`text-xs truncate ${
+                            session.id === currentSessionId
+                              ? "text-neutral-300 dark:text-neutral-600"
+                              : "text-neutral-500 dark:text-neutral-400"
+                          }`}
+                        >
+                          {new Date(session.updatedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-6">

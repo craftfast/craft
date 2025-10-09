@@ -48,6 +48,20 @@ export default function PreviewPanel({
     try {
       setSandboxStatus("loading");
       setError(null);
+      setLoadingMessage("Loading project files...");
+
+      // Fetch the latest files from the database before starting
+      const filesResponse = await fetch(`/api/files?projectId=${projectId}`);
+      let filesToSend = projectFiles;
+
+      if (filesResponse.ok) {
+        const filesData = await filesResponse.json();
+        filesToSend = filesData.files || {};
+        console.log(
+          `📁 Loaded ${Object.keys(filesToSend).length} files for preview`
+        );
+      }
+
       setLoadingMessage("Creating sandbox environment...");
 
       const response = await fetch(`/api/sandbox/${projectId}`, {
@@ -56,7 +70,7 @@ export default function PreviewPanel({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          files: projectFiles,
+          files: filesToSend,
         }),
       });
 
