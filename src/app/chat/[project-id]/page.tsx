@@ -5,6 +5,10 @@ import { prisma } from "@/lib/db";
 import CodingInterface from "@/components/CodingInterface";
 import type { Session } from "next-auth";
 
+// Force dynamic rendering to ensure fresh project data
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface PageProps {
   params: {
     "project-id": string;

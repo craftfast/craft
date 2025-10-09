@@ -163,3 +163,40 @@ body {
     background-color: #737373;
   }
 }
+
+/* Markdown and Code Block Styles */
+.prose {
+  max-width: none;
+}
+
+.prose pre {
+  background-color: #1e1e1e !important;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.prose code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+.prose pre code {
+  background-color: transparent !important;
+  padding: 0;
+  border-radius: 0;
+}
+
+.dark .prose pre {
+  background-color: #0d0d0d !important;
+}
+
+.prose p {
+  margin: 0.5rem 0;
+}
+
+.prose ul, .prose ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}

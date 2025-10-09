@@ -1,19 +1,133 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Sparkles } from "lucide-react";
 
 interface SettingsPanelProps {
   projectId: string;
+  onProjectUpdate?: () => void;
 }
 
-export default function SettingsPanel({ projectId }: SettingsPanelProps) {
-  const [projectName, setProjectName] = useState("My Awesome App");
-  const [projectDescription, setProjectDescription] = useState(
-    "A beautiful application built with Craft"
-  );
+export default function SettingsPanel({
+  projectId,
+  onProjectUpdate,
+}: SettingsPanelProps) {
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("private");
   const [autoSave, setAutoSave] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingName, setIsGeneratingName] = useState(false);
+
+  // Load project data
+  useEffect(() => {
+    const loadProject = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setProjectName(data.project.name || "");
+          setProjectDescription(data.project.description || "");
+        }
+      } catch (error) {
+        console.error("Error loading project:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProject();
+  }, [projectId]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: projectName,
+          description: projectDescription,
+        }),
+      });
+
+      if (response.ok) {
+        console.log("Project updated successfully");
+        // Notify parent component to refresh
+        if (onProjectUpdate) {
+          onProjectUpdate();
+        }
+      } else {
+        console.error("Failed to update project");
+      }
+    } catch (error) {
+      console.error("Error updating project:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGenerateName = async () => {
+    if (!projectDescription.trim()) {
+      alert("Please add a description first to generate a name");
+      return;
+    }
+
+    setIsGeneratingName(true);
+    try {
+      const response = await fetch("/api/projects/generate-name", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          description: projectDescription,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newName = data.name;
+        setProjectName(newName);
+
+        // Auto-save the new name
+        const saveResponse = await fetch(`/api/projects/${projectId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newName,
+            description: projectDescription,
+          }),
+        });
+
+        if (saveResponse.ok && onProjectUpdate) {
+          onProjectUpdate();
+        }
+      } else {
+        console.error("Failed to generate name");
+      }
+    } catch (error) {
+      console.error("Error generating name:", error);
+    } finally {
+      setIsGeneratingName(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-white dark:bg-neutral-900">
+        <div className="text-sm text-neutral-600 dark:text-neutral-400">
+          Loading settings...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
@@ -22,8 +136,12 @@ export default function SettingsPanel({ projectId }: SettingsPanelProps) {
         <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
           App Settings
         </h2>
-        <button className="px-4 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full hover:opacity-80 transition-opacity">
-          Save Changes
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="px-4 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full hover:opacity-80 transition-opacity disabled:opacity-50"
+        >
+          {isSaving ? "Saving..." : "Save Changes"}
         </button>
       </div>
 
@@ -37,13 +155,25 @@ export default function SettingsPanel({ projectId }: SettingsPanelProps) {
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                  Project Name
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    Project Name
+                  </label>
+                  <button
+                    onClick={handleGenerateName}
+                    disabled={isGeneratingName || !projectDescription.trim()}
+                    className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Generate name using AI"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {isGeneratingName ? "Generating..." : "Generate with AI"}
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="Enter project name"
                   className="w-full px-4 py-2 text-sm bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
                 />
               </div>
@@ -55,8 +185,12 @@ export default function SettingsPanel({ projectId }: SettingsPanelProps) {
                   value={projectDescription}
                   onChange={(e) => setProjectDescription(e.target.value)}
                   rows={3}
+                  placeholder="Describe your project..."
                   className="w-full px-4 py-3 text-sm bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-neutral-500/20 resize-none"
                 />
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                  Add a description to generate an AI-powered project name
+                </p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">

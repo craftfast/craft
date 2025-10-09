@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github-dark.css";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  createdAt: Date;
 }
 
 interface ChatPanelProps {
@@ -14,19 +18,24 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ projectId }: ChatPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "Hi! I'm here to help you craft your app. What would you like to build?",
-      timestamp: new Date(),
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // TODO: Use projectId to save/load conversation history from database
+  console.log("Project ID:", projectId);
+
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "welcome",
+      role: "assistant",
+      content:
+        "Hi! I'm Claude, your Next.js development assistant. I'll help you build modern web applications using Next.js 15, TypeScript, and Tailwind CSS. What would you like to create today?",
+      createdAt: new Date(),
+    },
+  ]);
+
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,43 +45,96 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
+  const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}`,
       role: "user",
       content: input,
-      timestamp: new Date(),
+      createdAt: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setIsLoading(true);
 
     // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
 
-    setIsLoading(true);
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          taskType: "coding",
+        }),
+      });
 
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: "I understand. Let me help you with that...",
-        timestamp: new Date(),
+        content: "",
+        createdAt: new Date(),
       };
+
       setMessages((prev) => [...prev, assistantMessage]);
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const updatedMessage = {
+            ...assistantMessage,
+            content: assistantMessage.content + chunk,
+          };
+          assistantMessage.content += chunk;
+
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantMessage.id ? updatedMessage : m))
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: "assistant",
+        content:
+          "Sorry, I encountered an error. Please make sure you have set up your OpenRouter API key in the .env.local file.",
+        createdAt: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSendMessage();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      handleSendMessage();
     }
   };
 
@@ -89,7 +151,8 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-6">
-          {messages.map((message) => (
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {messages.map((message: any) => (
             <div
               key={message.id}
               className={`flex gap-4 ${
@@ -108,9 +171,42 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
                     : "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                {message.role === "assistant" ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                      components={{
+                        code: ({ className, children, ...props }) => {
+                          const match = /language-(\w+)/.exec(className || "");
+                          const isInline = !match;
+                          return isInline ? (
+                            <code
+                              className="bg-neutral-200 dark:bg-neutral-700 px-1 py-0.5 rounded text-xs"
+                              {...props}
+                            >
+                              {children}
+                            </code>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                )}
                 <span className="text-xs opacity-60 mt-1 block">
-                  {message.timestamp.toLocaleTimeString()}
+                  {message.createdAt
+                    ? new Date(message.createdAt).toLocaleTimeString()
+                    : new Date().toLocaleTimeString()}
                 </span>
               </div>
               {message.role === "user" && (
@@ -146,8 +242,10 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
               <textarea
                 ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onInput={handleInput}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  handleInput(e);
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="Describe what you want to build or modify..."
                 rows={1}
@@ -180,7 +278,7 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
               </button>
 
               <button
-                onClick={handleSend}
+                onClick={handleFormSubmit}
                 disabled={!input.trim() || isLoading}
                 className="p-2 rounded-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Submit"

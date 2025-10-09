@@ -48,13 +48,33 @@ interface CodingInterfaceProps {
 }
 
 export default function CodingInterface({
-  project,
+  project: initialProject,
   user,
 }: CodingInterfaceProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("preview");
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const [project, setProject] = useState(initialProject);
   const chatWidth = 30; // Fixed at 30%
+
+  console.log(
+    `🎯 CodingInterface mounted with project: "${project.name}" (ID: ${project.id})`
+  );
+
+  // Function to refresh project data
+  const refreshProject = async () => {
+    try {
+      const response = await fetch(`/api/projects/${project.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setProject(data.project);
+        return data.project;
+      }
+    } catch (error) {
+      console.error("Error refreshing project:", error);
+    }
+    return null;
+  };
 
   const tabs = [
     {
@@ -438,7 +458,10 @@ export default function CodingInterface({
             {activeTab === "logs" && <LogsPanel projectId={project.id} />}
             {activeTab === "api" && <ApiPanel projectId={project.id} />}
             {activeTab === "settings" && (
-              <SettingsPanel projectId={project.id} />
+              <SettingsPanel
+                projectId={project.id}
+                onProjectUpdate={refreshProject}
+              />
             )}
             {activeTab === "auth" && <AuthPanel projectId={project.id} />}
           </main>

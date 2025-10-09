@@ -104,14 +104,14 @@ export default function CraftInput() {
     setIsCreating(true);
 
     try {
-      // Create a new project
+      // Create a new project with default name "New Project"
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: input.substring(0, 50), // Use first 50 chars as name
+          name: "New Project", // Default name
           description: input,
         }),
       });
