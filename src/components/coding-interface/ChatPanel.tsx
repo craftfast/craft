@@ -49,6 +49,10 @@ export default function ChatPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [hasAutoSentFirstMessage, setHasAutoSentFirstMessage] = useState(false);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [feedbackMessageId, setFeedbackMessageId] = useState<{
+    [key: string]: "like" | "dislike" | null;
+  }>({});
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -395,6 +399,25 @@ export default function ChatPanel({
     target.style.height = Math.min(target.scrollHeight, maxHeight) + "px";
   };
 
+  const handleCopyMessage = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (error) {
+      console.error("Failed to copy message:", error);
+    }
+  };
+
+  const handleFeedback = (messageId: string, feedback: "like" | "dislike") => {
+    setFeedbackMessageId((prev) => ({
+      ...prev,
+      [messageId]: prev[messageId] === feedback ? null : feedback,
+    }));
+    // Here you can add API call to save feedback to database
+    console.log(`Feedback for message ${messageId}: ${feedback}`);
+  };
+
   return (
     <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
       {/* Chat History Overlay */}
@@ -496,69 +519,168 @@ export default function ChatPanel({
                 message.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
-              {message.role === "assistant" && (
-                <div className="w-8 h-8 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm">✨</span>
-                </div>
-              )}
               <div
-                className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                className={`px-4 py-3 ${
                   message.role === "user"
-                    ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                    ? "max-w-[80%] bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-2xl"
+                    : "w-full text-neutral-900 dark:text-neutral-100"
                 }`}
               >
                 {message.role === "assistant" ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeHighlight]}
-                      components={{
-                        code: ({ className, children, ...props }) => {
-                          const match = /language-(\w+)/.exec(className || "");
-                          const isInline = !match;
-                          return isInline ? (
-                            <code
-                              className="bg-neutral-200 dark:bg-neutral-700 px-1 py-0.5 rounded text-xs"
-                              {...props}
+                  <>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        components={{
+                          code: ({ className, children, ...props }) => {
+                            const match = /language-(\w+)/.exec(
+                              className || ""
+                            );
+                            const isInline = !match;
+                            return isInline ? (
+                              <code
+                                className="bg-neutral-200 dark:bg-neutral-700 px-1 py-0.5 rounded text-xs"
+                                {...props}
+                              >
+                                {children}
+                              </code>
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs opacity-60">
+                        {message.createdAt
+                          ? new Date(message.createdAt).toLocaleTimeString()
+                          : new Date().toLocaleTimeString()}
+                      </span>
+                      <div className="flex items-center gap-1 ml-auto">
+                        {/* Copy Button */}
+                        <button
+                          onClick={() =>
+                            handleCopyMessage(message.content, message.id)
+                          }
+                          className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+                          aria-label="Copy response"
+                          title="Copy"
+                        >
+                          {copiedMessageId === message.id ? (
+                            <svg
+                              className="w-4 h-4 text-green-600 dark:text-green-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
                             >
-                              {children}
-                            </code>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
                           ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        },
-                      }}
-                    >
-                      {message.content}
-                    </ReactMarkdown>
-                  </div>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                        {/* Like Button */}
+                        <button
+                          onClick={() => handleFeedback(message.id, "like")}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            feedbackMessageId[message.id] === "like"
+                              ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                              : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                          }`}
+                          aria-label="Good response"
+                          title="Good response"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill={
+                              feedbackMessageId[message.id] === "like"
+                                ? "currentColor"
+                                : "none"
+                            }
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
+                            />
+                          </svg>
+                        </button>
+                        {/* Dislike Button */}
+                        <button
+                          onClick={() => handleFeedback(message.id, "dislike")}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            feedbackMessageId[message.id] === "dislike"
+                              ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                              : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                          }`}
+                          aria-label="Bad response"
+                          title="Bad response"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill={
+                              feedbackMessageId[message.id] === "dislike"
+                                ? "currentColor"
+                                : "none"
+                            }
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 ) : (
-                  <p className="text-sm whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                  <>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                    <span className="text-xs opacity-60 mt-1 block">
+                      {message.createdAt
+                        ? new Date(message.createdAt).toLocaleTimeString()
+                        : new Date().toLocaleTimeString()}
+                    </span>
+                  </>
                 )}
-                <span className="text-xs opacity-60 mt-1 block">
-                  {message.createdAt
-                    ? new Date(message.createdAt).toLocaleTimeString()
-                    : new Date().toLocaleTimeString()}
-                </span>
               </div>
-              {message.role === "user" && (
-                <div className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm">👤</span>
-                </div>
-              )}
             </div>
           ))}
           {isLoading && (
-            <div className="flex gap-4">
-              <div className="w-8 h-8 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center">
-                <span className="text-sm">✨</span>
-              </div>
-              <div className="px-4 py-3 rounded-2xl bg-neutral-100 dark:bg-neutral-800">
+            <div className="flex gap-4 justify-start">
+              <div className="px-4 py-3">
                 <div className="flex gap-1">
                   <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
                   <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.2s]" />
