@@ -55,6 +55,7 @@ export default function CodingInterface({
   const [activeTab, setActiveTab] = useState<TabType>("preview");
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [project, setProject] = useState(initialProject);
+  const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
   const chatWidth = 30; // Fixed at 30%
 
   console.log(
@@ -74,6 +75,18 @@ export default function CodingInterface({
       console.error("Error refreshing project:", error);
     }
     return null;
+  };
+
+  // Function to handle files created from chat
+  const handleFilesCreated = (files: { path: string; content: string }[]) => {
+    const newFiles: Record<string, string> = { ...projectFiles };
+    files.forEach((file) => {
+      newFiles[file.path] = file.content;
+    });
+    setProjectFiles(newFiles);
+
+    // Switch to code tab to show the new files
+    setActiveTab("code");
   };
 
   const tabs = [
@@ -437,7 +450,10 @@ export default function CodingInterface({
           >
             {/* Chat Content */}
             <div className="flex-1 overflow-hidden">
-              <ChatPanel projectId={project.id} />
+              <ChatPanel
+                projectId={project.id}
+                onFilesCreated={handleFilesCreated}
+              />
             </div>
           </div>
         )}
@@ -447,7 +463,9 @@ export default function CodingInterface({
           {/* Main Panel */}
           <main className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl">
             {activeTab === "preview" && <PreviewPanel projectId={project.id} />}
-            {activeTab === "code" && <CodeEditor projectId={project.id} />}
+            {activeTab === "code" && (
+              <CodeEditor projectId={project.id} projectFiles={projectFiles} />
+            )}
             {activeTab === "database" && (
               <DatabasePanel projectId={project.id} />
             )}
