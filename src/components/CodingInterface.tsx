@@ -71,12 +71,14 @@ export default function CodingInterface({
         const response = await fetch(`/api/files?projectId=${project.id}`);
         if (response.ok) {
           const data = await response.json();
-          setProjectFiles(data.files || {});
+          const loadedFiles = data.files || {};
+          setProjectFiles(loadedFiles);
           console.log(
-            `📁 Loaded ${
-              Object.keys(data.files || {}).length
-            } files for project`
+            `📁 Loaded ${Object.keys(loadedFiles).length} files for project`
           );
+          if (Object.keys(loadedFiles).length > 0) {
+            console.log(`📋 Files loaded:`, Object.keys(loadedFiles));
+          }
         }
       } catch (error) {
         console.error("Error loading project files:", error);
@@ -102,15 +104,52 @@ export default function CodingInterface({
   };
 
   // Function to handle files created from chat
-  const handleFilesCreated = (files: { path: string; content: string }[]) => {
+  const handleFilesCreated = async (
+    files: { path: string; content: string }[]
+  ) => {
     const newFiles: Record<string, string> = { ...projectFiles };
-    files.forEach((file) => {
-      newFiles[file.path] = file.content;
-    });
-    setProjectFiles(newFiles);
 
-    // Switch to code tab to show the new files
-    setActiveTab("code");
+    console.log(`📝 Handling ${files.length} files created from chat...`);
+
+    // Save each file to the database
+    for (const file of files) {
+      newFiles[file.path] = file.content;
+
+      try {
+        console.log(
+          `💾 Saving file: ${file.path} (${file.content.length} bytes)`
+        );
+        const response = await fetch("/api/files", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            projectId: project.id,
+            filePath: file.path,
+            content: file.content,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error(
+            `❌ Failed to save ${file.path}:`,
+            await response.text()
+          );
+        } else {
+          console.log(`✅ Saved ${file.path}`);
+        }
+      } catch (error) {
+        console.error(`Error saving file ${file.path}:`, error);
+      }
+    }
+
+    setProjectFiles(newFiles);
+    console.log(`✅ All ${files.length} files saved to database`);
+    console.log(`📋 Total files in state:`, Object.keys(newFiles));
+
+    // Switch to preview tab to show the new files
+    setActiveTab("preview");
   };
 
   const tabs = [

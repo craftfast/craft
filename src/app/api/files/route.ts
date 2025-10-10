@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-// POST /api/files - Create or update a file for a project
+// POST /api/files - Create or update files for a project
 export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -11,11 +11,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { projectId, filePath, content } = await req.json();
+        const body = await req.json();
+        const { projectId, filePath, content, files: batchFiles } = body;
 
-        if (!projectId || !filePath || content === undefined) {
+        // Support both single file and batch file updates
+        if (!projectId) {
             return NextResponse.json(
-                { error: "Missing required fields: projectId, filePath, content" },
+                { error: "Missing required field: projectId" },
                 { status: 400 }
             );
         }
@@ -35,25 +37,53 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Store file in database (JSON structure mapping file paths to content)
-        const files = (project.files as Record<string, string>) || {};
-        files[filePath] = content;
+        const currentFiles = (project.files as Record<string, string>) || {};
 
-        await prisma.project.update({
-            where: { id: projectId },
-            data: { files },
-        });
+        // Batch update: { projectId, files: { "path1": "content1", "path2": "content2" } }
+        if (batchFiles && typeof batchFiles === 'object') {
+            const updatedFiles = { ...currentFiles, ...batchFiles };
 
-        return NextResponse.json({
-            success: true,
-            filePath,
-            message: "File saved successfully",
-        });
+            await prisma.project.update({
+                where: { id: projectId },
+                data: { files: updatedFiles },
+            });
+
+            console.log(`📁 Batch updated ${Object.keys(batchFiles).length} files for project ${projectId}`);
+
+            return NextResponse.json({
+                success: true,
+                filesUpdated: Object.keys(batchFiles).length,
+                message: "Files saved successfully",
+            });
+        }
+
+        // Single file update: { projectId, filePath, content }
+        if (filePath && content !== undefined) {
+            currentFiles[filePath] = content;
+
+            await prisma.project.update({
+                where: { id: projectId },
+                data: { files: currentFiles },
+            });
+
+            console.log(`📄 Updated single file ${filePath} for project ${projectId}`);
+
+            return NextResponse.json({
+                success: true,
+                filePath,
+                message: "File saved successfully",
+            });
+        }
+
+        return NextResponse.json(
+            { error: "Must provide either 'files' object or 'filePath' and 'content'" },
+            { status: 400 }
+        );
     } catch (error) {
         console.error("File save error:", error);
         return NextResponse.json(
             {
-                error: "Failed to save file",
+                error: "Failed to save file(s)",
                 details: error instanceof Error ? error.message : "Unknown error",
             },
             { status: 500 }

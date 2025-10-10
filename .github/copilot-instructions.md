@@ -46,7 +46,38 @@ For complete design system documentation, see `docs/design-system.md`.
 
 - `src/app/` - App Router pages and layouts
 - `src/components/` - Reusable React components
+- `src/lib/` - Utilities, configurations, and services
+  - `src/lib/templates/` - Project template services (Next.js, etc.)
 - `public/` - Static assets
 - `docs/` - Documentation including design system
+- `tailwind.config.ts` - Tailwind CSS configuration
+- `next.config.js` - Next.js configuration
+
+## Professional Project Creation System
+
+All projects created in Craft start with a standardized Next.js template that includes:
+
+- Next.js 15 + React 19 + TypeScript
+- Tailwind CSS 3.4 pre-configured
+- Professional configuration files
+- Production-ready structure
+
+**Key files:**
+
+- `src/lib/templates/nextjs.ts` - Next.js template service
+- Template includes: package.json, tsconfig.json, app/layout.tsx, app/page.tsx, etc.
+- All template files are saved to database on project creation
+- AI edits these files based on user requirements
+- Files sync automatically to E2B sandbox for live preview
+
+**Workflow:**
+
+1. User creates project → Template generated
+2. AI edits template files → Saved to database
+3. User previews → Files deployed to E2B sandbox
+4. All changes persist in database
+
+See `docs/professional-project-creation-summary.md` for complete details.
+
 - `tailwind.config.ts` - Tailwind CSS configuration
 - `next.config.js` - Next.js configuration
