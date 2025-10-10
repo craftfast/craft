@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText } from "ai";
+import { getNextJsTemplate } from "@/lib/templates/nextjs";
 
 // Create OpenRouter client for AI name generation
 const openrouter = createOpenRouter({
@@ -125,14 +126,23 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Create the project with the generated (or default) name
+        // Generate standard Next.js template files
+        console.log("📦 Generating Next.js template files...");
+        const templateFiles = getNextJsTemplate();
+        console.log(`✅ Generated ${Object.keys(templateFiles).length} template files`);
+
+        // Create the project with the generated name and template files
         const project = await prisma.project.create({
             data: {
                 name: projectName,
                 description: description?.trim() || null,
                 userId: user.id,
+                files: templateFiles as object, // Store template files in database
             },
         });
+
+        console.log(`🎉 Project created with ID: ${project.id}`);
+        console.log(`📁 Template files saved to database`);
 
         return NextResponse.json({ project }, { status: 201 });
     } catch (error) {

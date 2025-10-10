@@ -136,14 +136,14 @@ export async function POST(
                                 ).catch(() => { });
                             }
 
-                            // Start new dev server - listen on 0.0.0.0 for E2B access
+                            // Start new dev server
                             const devCmd = await sandboxData.sandbox.commands.run(
-                                'cd /home/user && npx next dev -H 0.0.0.0 -p 3000 > /tmp/nextjs.log 2>&1 &',
+                                'cd /home/user && npm run dev > /tmp/nextjs.log 2>&1 &',
                                 { background: true }
                             );
 
                             sandboxData.devServerPid = devCmd.pid;
-                            console.log(`🚀 Dev server restarted on 0.0.0.0:3000 (PID: ${devCmd.pid})`);
+                            console.log(`🚀 Dev server restarted (PID: ${devCmd.pid})`);
                         }
                     }
 
@@ -206,11 +206,10 @@ export async function POST(
             console.log("✅ Dependencies installed");
 
             // Start Next.js dev server using commands.run() in background
-            // IMPORTANT: Use -H 0.0.0.0 to listen on all interfaces (required for E2B sandbox access)
-            console.log("🚀 Starting Next.js dev server on 0.0.0.0:3000...");
+            console.log("🚀 Starting Next.js dev server...");
 
             const devServerCmd = await sandbox.commands.run(
-                'cd /home/user && npx next dev -H 0.0.0.0 -p 3000 > /tmp/nextjs.log 2>&1 &',
+                'cd /home/user && npm run dev > /tmp/nextjs.log 2>&1 &',
                 { background: true }
             );
 
@@ -221,24 +220,21 @@ export async function POST(
             console.log("⏳ Waiting for compilation (15-20s)...");
             await new Promise(resolve => setTimeout(resolve, 20000));
 
-            // Verify server is running - check logs for "Ready" message
+            // Verify server is running
             console.log("🔍 Verifying server...");
-            const logsCmd = await sandbox.commands.run('tail -30 /tmp/nextjs.log');
-            console.log("📋 Server logs:", logsCmd.stdout);
-
-            if (logsCmd.stdout.includes('Ready in') || logsCmd.stdout.includes('✓ Ready')) {
-                console.log("✅ Next.js server is ready and compiled!");
-            } else {
-                console.warn("⚠️  Server may still be starting...");
-            }
-
-            // Also check if port is listening
-            const portCheck = await sandbox.commands.run(
-                'netstat -tuln | grep :3000 || lsof -i :3000 || echo "Checking..."',
+            const verifyCmd = await sandbox.commands.run(
+                'lsof -i :3000 2>/dev/null || echo "Not ready"',
                 { timeoutMs: 5000 }
             );
-            if (portCheck.stdout.includes('3000')) {
-                console.log("✅ Port 3000 is listening");
+
+            if (verifyCmd.stdout.includes(':3000') || verifyCmd.stdout.includes('LISTEN')) {
+                console.log("✅ Server is running on port 3000");
+            } else {
+                console.warn("⚠️  Could not confirm server status");
+
+                // Check logs
+                const logsCmd = await sandbox.commands.run('tail -20 /tmp/nextjs.log');
+                console.log("Recent logs:", logsCmd.stdout);
             }
 
             // Store sandbox reference with dev server PID
@@ -250,13 +246,9 @@ export async function POST(
 
             console.log(`💾 Sandbox stored. Active: ${activeSandboxes.size}`);
 
-            const sandboxUrl = `https://${sandbox.getHost(3000)}`;
-            console.log(`🌐 Sandbox URL: ${sandboxUrl}`);
-            console.log(`📍 Sandbox ID: ${sandbox.sandboxId}`);
-
             return NextResponse.json({
                 sandboxId: projectId,
-                url: sandboxUrl,
+                url: `https://${sandbox.getHost(3000)}`,
                 status: "created",
             });
 

@@ -44,11 +44,39 @@ export default function PreviewPanel({
     checkSandboxStatus();
   }, [projectId]);
 
+  // Auto-refresh preview when project files change
+  useEffect(() => {
+    const updatePreview = async () => {
+      if (sandboxStatus === "running" && Object.keys(projectFiles).length > 0) {
+        console.log(
+          `📝 Project files updated (${
+            Object.keys(projectFiles).length
+          } files), auto-updating preview...`
+        );
+        await updateSandboxFiles();
+      } else if (
+        sandboxStatus === "inactive" &&
+        Object.keys(projectFiles).length > 0
+      ) {
+        console.log(
+          `📝 Project has ${
+            Object.keys(projectFiles).length
+          } files, but sandbox not started yet`
+        );
+      }
+    };
+
+    updatePreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectFiles]);
+
   const startSandbox = async () => {
     try {
       setSandboxStatus("loading");
       setError(null);
-      setLoadingMessage("Loading project files...");
+      setLoadingMessage("Initializing Next.js environment...");
+
+      console.log("🚀 Starting Next.js sandbox for project:", projectId);
 
       // Fetch the latest files from the database before starting
       const filesResponse = await fetch(`/api/files?projectId=${projectId}`);
@@ -58,11 +86,30 @@ export default function PreviewPanel({
         const filesData = await filesResponse.json();
         filesToSend = filesData.files || {};
         console.log(
-          `📁 Loaded ${Object.keys(filesToSend).length} files for preview`
+          `📁 Loaded ${Object.keys(filesToSend).length} files from API`
         );
+        console.log(`📋 Files:`, Object.keys(filesToSend));
+      } else {
+        console.log(`⚠️ Could not fetch from API, using props`);
       }
 
-      setLoadingMessage("Creating sandbox environment...");
+      // If no files from API, use the projectFiles prop
+      if (
+        Object.keys(filesToSend).length === 0 &&
+        Object.keys(projectFiles).length > 0
+      ) {
+        filesToSend = projectFiles;
+        console.log(
+          `📁 Using ${Object.keys(filesToSend).length} files from props`
+        );
+        console.log(`📋 Files:`, Object.keys(filesToSend));
+      }
+
+      console.log(
+        `📤 Sending ${Object.keys(filesToSend).length} files to sandbox API...`
+      );
+
+      setLoadingMessage("Setting up Next.js project...");
 
       const response = await fetch(`/api/sandbox/${projectId}`, {
         method: "POST",
@@ -80,29 +127,45 @@ export default function PreviewPanel({
 
       const data = await response.json();
 
-      setLoadingMessage("Installing dependencies...");
+      console.log("📦 Sandbox created:", data);
+      console.log("🔗 Preview URL:", data.url);
 
-      // Wait a bit more for the server to fully start
+      // The server is already running thanks to the API!
+      // Just give it a moment to be fully ready
+      setLoadingMessage("Verifying server is ready...");
+
+      // Wait a bit for the server to be accessible
       await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      setLoadingMessage("Starting development server...");
 
       // Try to access the URL to verify it's ready
       let retries = 0;
-      const maxRetries = 10;
+      const maxRetries = 5;
       let isReady = false;
+
+      setLoadingMessage("Connecting to preview...");
 
       while (retries < maxRetries && !isReady) {
         try {
+          console.log(
+            `🔍 Attempt ${retries + 1}/${maxRetries}: Testing ${data.url}`
+          );
           await fetch(data.url, { mode: "no-cors" });
+          console.log("✅ Server responded!");
           isReady = true;
-        } catch {
+        } catch (err) {
+          console.warn(`⚠️  Attempt ${retries + 1} failed:`, err);
           retries++;
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1500));
           setLoadingMessage(`Waiting for server... (${retries}/${maxRetries})`);
         }
       }
 
+      if (!isReady) {
+        console.error("❌ Server did not respond after retries");
+        throw new Error("Server not responding");
+      }
+
+      console.log("🎉 Setting preview URL:", data.url);
       setPreviewUrl(data.url);
       setIframeUrl(data.url);
       setSandboxStatus("running");
@@ -110,6 +173,70 @@ export default function PreviewPanel({
       console.error("Error starting sandbox:", error);
       setError("Failed to start preview. Please try again.");
       setSandboxStatus("error");
+    }
+  };
+
+  const updateSandboxFiles = async () => {
+    if (sandboxStatus !== "running") return;
+
+    try {
+      console.log("🔄 Updating sandbox files...");
+      setIsRefreshing(true);
+
+      // Fetch the latest files from the database
+      const filesResponse = await fetch(`/api/files?projectId=${projectId}`);
+      let filesToUpdate = projectFiles;
+
+      if (filesResponse.ok) {
+        const filesData = await filesResponse.json();
+        filesToUpdate = filesData.files || projectFiles;
+        console.log(
+          `📁 Fetched ${Object.keys(filesToUpdate).length} files from database`
+        );
+        console.log(`📋 File list:`, Object.keys(filesToUpdate));
+      } else {
+        console.log(
+          `⚠️ Could not fetch files from API, using props (${
+            Object.keys(projectFiles).length
+          } files)`
+        );
+      }
+
+      console.log(
+        `📤 Sending ${Object.keys(filesToUpdate).length} files to sandbox...`
+      );
+
+      // Update sandbox with new files (without fully recreating it)
+      const response = await fetch(`/api/sandbox/${projectId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          files: filesToUpdate,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`✅ Files updated successfully`, data);
+
+        // Wait a moment for files to be written
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Force refresh the iframe to show updated content
+        setIframeUrl("");
+        setTimeout(() => {
+          setIframeUrl(previewUrl);
+          setIsRefreshing(false);
+        }, 100);
+      } else {
+        console.error(`❌ Failed to update files:`, await response.text());
+        setIsRefreshing(false);
+      }
+    } catch (error) {
+      console.error("Error updating sandbox files:", error);
+      setIsRefreshing(false);
     }
   };
 
@@ -138,6 +265,12 @@ export default function PreviewPanel({
     } else {
       setTimeout(() => setIsRefreshing(false), 500);
     }
+  };
+
+  const handleUpdatePreview = async () => {
+    setIsRefreshing(true);
+    await updateSandboxFiles();
+    setIsRefreshing(false);
   };
 
   const getDeviceWidth = () => {
@@ -175,6 +308,7 @@ export default function PreviewPanel({
               onClick={handleRefresh}
               disabled={sandboxStatus !== "running"}
               className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh preview"
             >
               <svg
                 className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 ${
@@ -191,6 +325,14 @@ export default function PreviewPanel({
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
+            </button>
+            <button
+              onClick={handleUpdatePreview}
+              disabled={sandboxStatus !== "running" || isRefreshing}
+              className="px-3 py-1 text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Update preview with latest files"
+            >
+              {isRefreshing ? "Updating..." : "Update Files"}
             </button>
           </div>
         </div>
@@ -258,13 +400,13 @@ export default function PreviewPanel({
                 No Preview Running
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
-                Start the preview to see your app live
+                Start the Next.js preview to see your app live
               </p>
               <button
                 onClick={startSandbox}
                 className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium rounded-full hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
               >
-                Start Preview
+                Start Next.js Preview
               </button>
             </div>
           )}
@@ -290,7 +432,7 @@ export default function PreviewPanel({
                 {loadingMessage}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                This may take up to 10 seconds...
+                Setting up Next.js (this may take 20-30 seconds)...
               </p>
             </div>
           )}
@@ -338,6 +480,12 @@ export default function PreviewPanel({
                   className="w-full h-full border-none"
                   title="Preview"
                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                  onLoad={() => {
+                    console.log("✅ Iframe loaded successfully!");
+                  }}
+                  onError={(e) => {
+                    console.error("❌ Iframe error:", e);
+                  }}
                 />
                 <button
                   onClick={stopSandbox}
