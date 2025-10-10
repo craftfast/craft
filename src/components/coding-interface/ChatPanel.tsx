@@ -419,7 +419,7 @@ export default function ChatPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+    <div className="h-full flex flex-col bg-white dark:bg-neutral-900 overflow-x-hidden">
       {/* Chat History Overlay */}
       {showHistory && (
         <div className="absolute inset-0 bg-white dark:bg-neutral-900 z-10 flex flex-col">
@@ -509,7 +509,7 @@ export default function ChatPanel({
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-minimal">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-minimal">
         <div className="max-w-3xl mx-auto space-y-6">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {messages.map((message: any) => (
