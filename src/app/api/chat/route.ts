@@ -12,7 +12,7 @@ const openrouter = createOpenRouter({
 
 export async function POST(req: Request) {
     try {
-        const { messages, taskType } = await req.json();
+        const { messages, taskType, projectFiles } = await req.json();
 
         // Determine which model to use based on task type
         // taskType can be: 'coding', 'naming', 'general'
@@ -22,9 +22,12 @@ export async function POST(req: Request) {
                 : process.env.CLAUDE_MODEL || "anthropic/claude-sonnet-4.5";
 
         // Get environment-aware system prompt
-        const systemPrompt = getSystemPrompt(taskType || 'coding');
+        const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles);
 
         console.log(`🤖 AI Chat Request - Model: ${modelName}, Task: ${taskType || 'coding'}`);
+        if (projectFiles && Object.keys(projectFiles).length > 0) {
+            console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
+        }
 
         const result = streamText({
             model: openrouter.chat(modelName),

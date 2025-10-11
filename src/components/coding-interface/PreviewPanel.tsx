@@ -49,18 +49,18 @@ export default function PreviewPanel({
     checkSandboxStatus();
   }, [projectId]);
 
-  // Auto-start sandbox when component mounts and files are available
+  // Auto-start sandbox when files are ready after AI generation
   useEffect(() => {
     let autoStartTimer: NodeJS.Timeout;
 
     // Only auto-start if:
     // 1. Sandbox is inactive
-    // 2. We have files
+    // 2. We have files (not empty project)
     // 3. AI is NOT currently generating files (wait for generation to complete)
+    // 4. Files actually exist (prevent starting on initial empty state)
+    const hasActualFiles = Object.keys(projectFiles).length > 0;
     const shouldAutoStart =
-      sandboxStatus === "inactive" &&
-      Object.keys(projectFiles).length > 0 &&
-      !isGeneratingFiles;
+      sandboxStatus === "inactive" && hasActualFiles && !isGeneratingFiles;
 
     if (shouldAutoStart) {
       console.log(
@@ -68,20 +68,18 @@ export default function PreviewPanel({
           Object.keys(projectFiles).length
         } files...`
       );
-      // Small delay to ensure smooth transition
+      // Small delay to ensure smooth transition after AI completes
       autoStartTimer = setTimeout(() => {
         startSandbox();
-      }, 500);
+      }, 1000); // Slightly longer delay to ensure files are fully saved
     } else if (sandboxStatus === "inactive" && isGeneratingFiles) {
       console.log(
-        `⏳ Waiting for AI to finish generating files... (current: ${
+        `⏳ AI is generating code... (current: ${
           Object.keys(projectFiles).length
-        })`
+        } files)`
       );
-    } else if (sandboxStatus === "inactive") {
-      console.log(
-        `⏳ Waiting for files... (current: ${Object.keys(projectFiles).length})`
-      );
+    } else if (sandboxStatus === "inactive" && !hasActualFiles) {
+      console.log(`⏳ Waiting for AI to generate initial code...`);
     }
 
     return () => {
@@ -299,10 +297,14 @@ export default function PreviewPanel({
     }
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
+    // Simple iframe refresh - just reload the webpage
     setIsRefreshing(true);
-    await updateSandboxFiles();
-    setIsRefreshing(false);
+    setIframeUrl("");
+    setTimeout(() => {
+      setIframeUrl(previewUrl);
+      setIsRefreshing(false);
+    }, 100);
   };
 
   const getDeviceWidth = () => {
@@ -340,7 +342,7 @@ export default function PreviewPanel({
               onClick={handleRefresh}
               disabled={sandboxStatus !== "running" || isRefreshing}
               className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Update files and refresh preview"
+              title="Refresh preview"
             >
               <svg
                 className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 ${
@@ -397,7 +399,39 @@ export default function PreviewPanel({
       {/* Preview Frame */}
       <div className="flex-1 bg-neutral-50 dark:bg-neutral-900 overflow-auto">
         <div className="h-full flex items-center justify-center">
-          {sandboxStatus === "inactive" && (
+          {/* Show generating state when AI is creating files */}
+          {isGeneratingFiles && sandboxStatus === "inactive" && (
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                <svg
+                  className="w-8 h-8 text-neutral-600 dark:text-neutral-400 animate-pulse"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                AI is generating your code...
+              </h3>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                Creating project files based on your description
+              </p>
+              <div className="mt-4 flex items-center justify-center gap-1">
+                <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
+                <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+              </div>
+            </div>
+          )}
+
+          {!isGeneratingFiles && sandboxStatus === "inactive" && (
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
                 <svg
@@ -421,10 +455,18 @@ export default function PreviewPanel({
                 </svg>
               </div>
               <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                Starting Preview...
+                {isGeneratingFiles
+                  ? "AI is generating your code..."
+                  : Object.keys(projectFiles).length > 0
+                  ? "Starting Preview..."
+                  : "Waiting for code..."}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                Your Next.js preview will load automatically
+                {isGeneratingFiles
+                  ? "Creating project files based on your description"
+                  : Object.keys(projectFiles).length > 0
+                  ? "Your Next.js preview will load automatically"
+                  : "Start chatting to generate your project files"}
               </p>
             </div>
           )}
