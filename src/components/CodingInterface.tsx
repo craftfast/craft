@@ -31,6 +31,9 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
+  version?: number; // v0 = template, v1+ = AI updates
+  generationStatus?: string; // "template" | "generating" | "ready"
+  lastCodeUpdateAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -108,46 +111,25 @@ export default function CodingInterface({
   const handleFilesCreated = async (
     files: { path: string; content: string }[]
   ) => {
-    const newFiles: Record<string, string> = { ...projectFiles };
-
     console.log(`📝 Handling ${files.length} files created from chat...`);
 
-    // Save each file to the database
-    for (const file of files) {
+    // Update local state with new files
+    const newFiles: Record<string, string> = { ...projectFiles };
+    files.forEach((file) => {
       newFiles[file.path] = file.content;
-
-      try {
-        console.log(
-          `💾 Saving file: ${file.path} (${file.content.length} bytes)`
-        );
-        const response = await fetch("/api/files", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId: project.id,
-            filePath: file.path,
-            content: file.content,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error(
-            `❌ Failed to save ${file.path}:`,
-            await response.text()
-          );
-        } else {
-          console.log(`✅ Saved ${file.path}`);
-        }
-      } catch (error) {
-        console.error(`Error saving file ${file.path}:`, error);
-      }
-    }
-
+    });
     setProjectFiles(newFiles);
-    console.log(`✅ All ${files.length} files saved to database`);
-    console.log(`📋 Total files in state:`, Object.keys(newFiles));
+
+    console.log(`📋 Total files in state:`, Object.keys(newFiles).length);
+
+    // Refresh project to get updated generationStatus from database
+    const updatedProject = await refreshProject();
+
+    if (updatedProject) {
+      console.log(
+        `🔄 Project refreshed, generationStatus: ${updatedProject.generationStatus}`
+      );
+    }
 
     // Switch to preview tab to show the new files
     setActiveTab("preview");
@@ -536,6 +518,8 @@ export default function CodingInterface({
                 projectId={project.id}
                 projectFiles={projectFiles}
                 isGeneratingFiles={isGeneratingFiles}
+                generationStatus={project.generationStatus}
+                version={project.version}
               />
             </div>
 

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { projectId, filePath, content, files: batchFiles } = body;
+        const { projectId, filePath, content, files: batchFiles, skipGenerationTracking, finalizeGeneration } = body;
 
         // Support both single file and batch file updates
         if (!projectId) {
@@ -37,6 +37,25 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Handle finalize generation - update status and increment version
+        if (finalizeGeneration) {
+            await prisma.project.update({
+                where: { id: projectId },
+                data: {
+                    generationStatus: "ready",
+                    version: { increment: 1 },
+                    lastCodeUpdateAt: new Date(),
+                },
+            });
+
+            console.log(`✅ Finalized generation - incremented version for project ${projectId}`);
+
+            return NextResponse.json({
+                success: true,
+                message: "Generation finalized, version incremented",
+            });
+        }
+
         const currentFiles = (project.files as Record<string, string>) || {};
 
         // Batch update: { projectId, files: { "path1": "content1", "path2": "content2" } }
@@ -45,7 +64,12 @@ export async function POST(req: NextRequest) {
 
             await prisma.project.update({
                 where: { id: projectId },
-                data: { files: updatedFiles },
+                data: {
+                    files: updatedFiles,
+                    generationStatus: "ready",
+                    version: { increment: 1 },
+                    lastCodeUpdateAt: new Date(),
+                },
             });
 
             console.log(`📁 Batch updated ${Object.keys(batchFiles).length} files for project ${projectId}`);
@@ -61,12 +85,24 @@ export async function POST(req: NextRequest) {
         if (filePath && content !== undefined) {
             currentFiles[filePath] = content;
 
+            // Prepare update data - conditionally include generation status
+            const updateData: {
+                files: Record<string, string>;
+                generationStatus?: string;
+            } = { files: currentFiles };
+
+            // Only update generation status if not skipped
+            if (!skipGenerationTracking) {
+                updateData.generationStatus = "ready";
+            }
+
             await prisma.project.update({
                 where: { id: projectId },
-                data: { files: currentFiles },
+                data: updateData,
             });
 
-            console.log(`📄 Updated single file ${filePath} for project ${projectId}`);
+            const trackingMsg = skipGenerationTracking ? " (status update skipped)" : "";
+            console.log(`📄 Updated single file ${filePath} for project ${projectId}${trackingMsg}`);
 
             return NextResponse.json({
                 success: true,

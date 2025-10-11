@@ -252,6 +252,7 @@ export default function ChatPanel({
   // Function to save files to the project
   const saveFiles = async (files: { path: string; content: string }[]) => {
     try {
+      // Save files one by one for better error handling
       for (const file of files) {
         await fetch("/api/files", {
           method: "POST",
@@ -262,9 +263,26 @@ export default function ChatPanel({
             projectId,
             filePath: file.path,
             content: file.content,
+            skipGenerationTracking: true, // Don't update tracking on each file
           }),
         });
       }
+
+      // After all files saved, update generation tracking ONCE
+      await fetch("/api/files", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId,
+          finalizeGeneration: true, // Signal to update generation tracking
+        }),
+      });
+
+      console.log(
+        `📦 Saved ${files.length} files and updated generation tracking`
+      );
 
       // Notify parent component about new files
       if (onFilesCreated) {
@@ -292,6 +310,13 @@ export default function ChatPanel({
 
     // Notify parent that we're generating files
     onGeneratingStatusChange?.(true);
+
+    // Set project status to "generating"
+    await fetch(`/api/projects/${projectId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ generationStatus: "generating" }),
+    });
 
     // Save user message to database
     await saveMessage("user", userMessage.content);
