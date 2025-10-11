@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText } from "ai";
-import { getMinimalNextJsTemplate } from "@/lib/templates/nextjs";
+import { getNextJsTemplate } from "@/lib/templates/nextjs";
 
 // Create OpenRouter client for AI name generation
 const openrouter = createOpenRouter({
@@ -127,12 +127,12 @@ export async function POST(req: NextRequest) {
         }
 
         // Create the project with minimal Next.js template
-        // This provides the essential package.json and config files needed for the sandbox
+        // This provides the full Next.js template with TypeScript, Tailwind CSS, ESLint
         // AI will modify/extend these files based on user requirements
-        console.log("📦 Creating project with base Next.js template...");
+        console.log("📦 Creating project with Next.js template...");
 
-        const baseTemplate = getMinimalNextJsTemplate();
-        console.log(`✅ Generated ${Object.keys(baseTemplate).length} base template files`);
+        const baseTemplate = getNextJsTemplate();
+        console.log(`✅ Generated ${Object.keys(baseTemplate).length} template files`);
 
         const project = await prisma.project.create({
             data: {

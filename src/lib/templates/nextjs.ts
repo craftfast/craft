@@ -11,79 +11,79 @@
  */
 
 export interface ProjectFiles {
-    [filepath: string]: string;
+  [filepath: string]: string;
 }
 
 export function getNextJsTemplate(): ProjectFiles {
-    return {
-        // Package.json - Dependencies and scripts
-        "package.json": JSON.stringify(
-            {
-                name: "craft-project",
-                version: "0.1.0",
-                private: true,
-                scripts: {
-                    dev: "next dev",
-                    build: "next build",
-                    start: "next start",
-                    lint: "next lint",
-                },
-                dependencies: {
-                    react: "^19.0.0",
-                    "react-dom": "^19.0.0",
-                    next: "^15.1.3",
-                },
-                devDependencies: {
-                    typescript: "^5",
-                    "@types/node": "^22",
-                    "@types/react": "^19",
-                    "@types/react-dom": "^19",
-                    postcss: "^8",
-                    tailwindcss: "^3.4.1",
-                    autoprefixer: "^10",
-                    eslint: "^9",
-                    "eslint-config-next": "^15.1.3",
-                },
-            },
-            null,
-            2
-        ),
+  return {
+    // Package.json - Dependencies and scripts
+    "package.json": JSON.stringify(
+      {
+        name: "craft-project",
+        version: "0.1.0",
+        private: true,
+        scripts: {
+          dev: "next dev",
+          build: "next build",
+          start: "next start",
+          lint: "next lint",
+        },
+        dependencies: {
+          react: "^19.0.0",
+          "react-dom": "^19.0.0",
+          next: "^15.1.3",
+        },
+        devDependencies: {
+          typescript: "^5",
+          "@types/node": "^22",
+          "@types/react": "^19",
+          "@types/react-dom": "^19",
+          postcss: "^8",
+          tailwindcss: "^3.4.1",
+          autoprefixer: "^10",
+          eslint: "^9",
+          "eslint-config-next": "^15.1.3",
+        },
+      },
+      null,
+      2
+    ),
 
-        // TypeScript configuration
-        "tsconfig.json": JSON.stringify(
+    // TypeScript configuration
+    "tsconfig.json": JSON.stringify(
+      {
+        compilerOptions: {
+          target: "ES2017",
+          lib: ["dom", "dom.iterable", "esnext"],
+          allowJs: true,
+          skipLibCheck: true,
+          strict: true,
+          noEmit: true,
+          esModuleInterop: true,
+          module: "esnext",
+          moduleResolution: "bundler",
+          resolveJsonModule: true,
+          isolatedModules: true,
+          jsx: "preserve",
+          incremental: true,
+          plugins: [
             {
-                compilerOptions: {
-                    target: "ES2017",
-                    lib: ["dom", "dom.iterable", "esnext"],
-                    allowJs: true,
-                    skipLibCheck: true,
-                    strict: true,
-                    noEmit: true,
-                    esModuleInterop: true,
-                    module: "esnext",
-                    moduleResolution: "bundler",
-                    resolveJsonModule: true,
-                    isolatedModules: true,
-                    jsx: "preserve",
-                    incremental: true,
-                    plugins: [
-                        {
-                            name: "next",
-                        },
-                    ],
-                    paths: {
-                        "@/*": ["./src/*"],
-                    },
-                },
-                include: ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-                exclude: ["node_modules"],
+              name: "next",
             },
-            null,
-            2
-        ),
+          ],
+          paths: {
+            "@/*": ["./src/*"],
+          },
+        },
+        include: ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+        exclude: ["node_modules"],
+      },
+      null,
+      2
+    ),
 
-        // Next.js configuration
-        "next.config.ts": `import type { NextConfig } from "next";
+    // Next.js configuration
+    "next.config.ts": `import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -92,8 +92,8 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 `,
 
-        // Tailwind CSS configuration
-        "tailwind.config.ts": `import type { Config } from "tailwindcss";
+    // Tailwind CSS configuration
+    "tailwind.config.ts": `import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
@@ -115,8 +115,8 @@ const config: Config = {
 export default config;
 `,
 
-        // PostCSS configuration
-        "postcss.config.mjs": `/** @type {import('postcss-load-config').Config} */
+    // PostCSS configuration
+    "postcss.config.mjs": `/** @type {import('postcss-load-config').Config} */
 const config = {
   plugins: {
     tailwindcss: {},
@@ -127,8 +127,8 @@ const config = {
 export default config;
 `,
 
-        // Root layout
-        "src/app/layout.tsx": `import type { Metadata } from "next";
+    // Root layout
+    "src/app/layout.tsx": `import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -164,8 +164,8 @@ export default function RootLayout({
 }
 `,
 
-        // Home page
-        "src/app/page.tsx": `export default function Home() {
+    // Home page
+    "src/app/page.tsx": `export default function Home() {
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
@@ -212,8 +212,8 @@ export default function RootLayout({
 }
 `,
 
-        // Global styles
-        "src/app/globals.css": `@tailwind base;
+    // Global styles
+    "src/app/globals.css": `@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -242,8 +242,8 @@ body {
 }
 `,
 
-        // README
-        "README.md": `# Craft Project
+    // README
+    "README.md": `# Craft Project
 
 This is a [Next.js](https://nextjs.org) project created with [Craft](https://craft.tech).
 
@@ -279,8 +279,8 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 `,
 
-        // .gitignore
-        ".gitignore": `# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+    // .gitignore
+    ".gitignore": `# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
 /node_modules
@@ -317,55 +317,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 `,
-    };
-}
-
-/**
- * Get a minimal Next.js template for quick testing
- */
-export function getMinimalNextJsTemplate(): ProjectFiles {
-    return {
-        "package.json": JSON.stringify(
-            {
-                name: "craft-project",
-                version: "0.1.0",
-                private: true,
-                scripts: {
-                    dev: "next dev",
-                    build: "next build",
-                    start: "next start",
-                },
-                dependencies: {
-                    react: "^19.0.0",
-                    "react-dom": "^19.0.0",
-                    next: "^15.1.3",
-                },
-            },
-            null,
-            2
-        ),
-
-        "src/app/layout.tsx": `export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
-}
-`,
-
-        "src/app/page.tsx": `export default function Home() {
-  return (
-    <div style={{ padding: "2rem", fontFamily: "system-ui" }}>
-      <h1>Welcome to Your Project</h1>
-      <p>Start building something amazing!</p>
-    </div>
-  );
-}
-`,
-    };
+  };
 }
