@@ -25,6 +25,7 @@ interface ChatSession {
 interface ChatPanelProps {
   projectId: string;
   projectDescription?: string | null;
+  projectFiles?: Record<string, string>; // Existing project files
   onFilesCreated?: (files: { path: string; content: string }[]) => void;
   showHistory?: boolean;
   onHistoryClose?: () => void;
@@ -35,6 +36,7 @@ interface ChatPanelProps {
 export default function ChatPanel({
   projectId,
   projectDescription,
+  projectFiles = {},
   onFilesCreated,
   showHistory = false,
   onHistoryClose,
@@ -243,8 +245,8 @@ export default function ChatPanel({
         // Keep code blocks without file paths (they're examples/explanations)
         return match;
       })
-      .replace(/\n{3,}/g, "\n\n")
-      .trim(); // Clean up extra newlines
+      .replace(/\n{3,}/g, "\n\n") // Clean up extra newlines
+      .trim();
   };
 
   // Function to save files to the project
@@ -311,6 +313,7 @@ export default function ChatPanel({
             content: m.content,
           })),
           taskType: "coding",
+          projectFiles, // Send existing project files for context
         }),
       });
 
@@ -331,6 +334,7 @@ export default function ChatPanel({
 
       if (reader) {
         let fullContent = "";
+        let displayContent = ""; // Content to display (without code blocks during streaming)
 
         while (true) {
           const { done, value } = await reader.read();
@@ -338,11 +342,24 @@ export default function ChatPanel({
 
           const chunk = decoder.decode(value);
           fullContent += chunk;
-          assistantMessage.content = fullContent;
+
+          // During streaming, hide code blocks and show placeholder
+          displayContent = removeCodeBlocks(fullContent);
+
+          // If we removed code blocks, add a placeholder
+          const hasCodeBlocks =
+            fullContent !== displayContent && displayContent.trim().length > 0;
+          const finalDisplayContent = hasCodeBlocks
+            ? displayContent + "\n\n*✨ Generating project files...*"
+            : fullContent;
+
+          assistantMessage.content = finalDisplayContent;
 
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantMessage.id ? { ...m, content: fullContent } : m
+              m.id === assistantMessage.id
+                ? { ...m, content: finalDisplayContent }
+                : m
             )
           );
         }
@@ -357,16 +374,20 @@ export default function ChatPanel({
 
           // Update the message to remove code blocks from display
           const contentWithoutCode = removeCodeBlocks(fullContent);
+          const finalContent =
+            contentWithoutCode.trim().length > 0
+              ? contentWithoutCode +
+                "\n\n*✅ Project files created successfully!*"
+              : "*✅ Project files created successfully!*";
+
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantMessage.id
-                ? { ...m, content: contentWithoutCode }
-                : m
+              m.id === assistantMessage.id ? { ...m, content: finalContent } : m
             )
           );
 
           // Save assistant message with cleaned content
-          await saveMessage("assistant", contentWithoutCode);
+          await saveMessage("assistant", finalContent);
         } else {
           // Save assistant message as-is
           await saveMessage("assistant", fullContent);
@@ -690,11 +711,16 @@ export default function ChatPanel({
           ))}
           {isLoading && (
             <div className="flex gap-4 justify-start">
-              <div className="px-4 py-3">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
-                  <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                  <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+              <div className="px-4 py-3 w-full">
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
+                    <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                  <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Generating code...
+                  </span>
                 </div>
               </div>
             </div>

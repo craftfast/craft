@@ -515,6 +515,7 @@ export default function CodingInterface({
               <ChatPanel
                 projectId={project.id}
                 projectDescription={project.description}
+                projectFiles={projectFiles}
                 onFilesCreated={handleFilesCreated}
                 showHistory={showChatHistory}
                 onHistoryClose={() => setShowChatHistory(false)}
