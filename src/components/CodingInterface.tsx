@@ -387,7 +387,7 @@ export default function CodingInterface({
                   <button
                     onClick={() => setShowChatHistory(!showChatHistory)}
                     className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-                    title="Chat History"
+                    title="View History"
                   >
                     <History className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
                   </button>
