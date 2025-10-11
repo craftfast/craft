@@ -145,9 +145,36 @@ export async function POST(
                             sandboxData.devServerPid = devCmd.pid;
                             console.log(`🚀 Dev server restarted on 0.0.0.0:3000 (PID: ${devCmd.pid})`);
                         }
-                    }
+                    } else {
+                        // For non-dependency updates, verify dev server is still running
+                        console.log("🔍 Verifying dev server health...");
+                        const healthCheck = await sandboxData.sandbox.commands.run(
+                            'curl -s http://0.0.0.0:3000 > /dev/null && echo "healthy" || echo "down"',
+                            { timeoutMs: 5000 }
+                        );
 
-                    console.log(`✨ Next.js will hot-reload automatically`);
+                        if (healthCheck.stdout.includes('down')) {
+                            console.warn("⚠️  Dev server appears down, restarting...");
+
+                            // Kill old process if exists
+                            if (sandboxData.devServerPid) {
+                                await sandboxData.sandbox.commands.run(
+                                    `kill ${sandboxData.devServerPid}`
+                                ).catch(() => { });
+                            }
+
+                            // Restart dev server - CRITICAL: Use -H 0.0.0.0 for network access
+                            const devCmd = await sandboxData.sandbox.commands.run(
+                                'cd /home/user && npx next dev -H 0.0.0.0 -p 3000 > /tmp/nextjs.log 2>&1 &',
+                                { background: true }
+                            );
+
+                            sandboxData.devServerPid = devCmd.pid;
+                            console.log(`🚀 Dev server restarted on 0.0.0.0:3000 (PID: ${devCmd.pid})`);
+                        } else {
+                            console.log("✅ Dev server is healthy, Next.js will hot-reload automatically");
+                        }
+                    }
 
                 } catch (error) {
                     console.error("Error updating files:", error);
@@ -173,7 +200,18 @@ export async function POST(
         console.log(`✅ Sandbox created: ${sandbox.sandboxId}`);
 
         // Prepare project files
-        const projectFiles = files && Object.keys(files).length > 0 ? files : getDefaultNextJsFiles();
+        // Priority: Files from database (template + AI edits) > Default fallback
+        const projectFiles = files && Object.keys(files).length > 0
+            ? files
+            : {};
+
+        if (Object.keys(projectFiles).length === 0) {
+            console.warn(`⚠️ No files found for project ${projectId}. Sandbox may not start correctly.`);
+            return NextResponse.json(
+                { error: "No project files available. Please generate files first using the AI chat." },
+                { status: 400 }
+            );
+        }
 
         // Write all files to sandbox filesystem
         console.log(`📝 Writing ${Object.keys(projectFiles).length} files...`);
@@ -406,116 +444,4 @@ export async function PATCH(
             { status: 500 }
         );
     }
-}
-
-/**
- * Get default Next.js project files
- */
-function getDefaultNextJsFiles(): Record<string, string> {
-    return {
-        "package.json": JSON.stringify({
-            "name": "craft-project",
-            "version": "0.1.0",
-            "private": true,
-            "scripts": {
-                "dev": "next dev",
-                "build": "next build",
-                "start": "next start",
-                "lint": "next lint"
-            },
-            "dependencies": {
-                "react": "^18.3.1",
-                "react-dom": "^18.3.1",
-                "next": "14.2.5"
-            },
-            "devDependencies": {
-                "typescript": "^5",
-                "@types/node": "^20",
-                "@types/react": "^18",
-                "@types/react-dom": "^18",
-                "postcss": "^8",
-                "tailwindcss": "^3.4.1",
-                "eslint": "^8",
-                "eslint-config-next": "14.2.5"
-            }
-        }, null, 2),
-        "tsconfig.json": JSON.stringify({
-            "compilerOptions": {
-                "lib": ["dom", "dom.iterable", "esnext"],
-                "allowJs": true,
-                "skipLibCheck": true,
-                "strict": true,
-                "noEmit": true,
-                "esModuleInterop": true,
-                "module": "esnext",
-                "moduleResolution": "bundler",
-                "resolveJsonModule": true,
-                "isolatedModules": true,
-                "jsx": "preserve",
-                "incremental": true,
-                "plugins": [{ "name": "next" }],
-                "paths": { "@/*": ["./src/*"] }
-            },
-            "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-            "exclude": ["node_modules"]
-        }, null, 2),
-        "next.config.js": `/** @type {import('next').NextConfig} */
-const nextConfig = {};
-export default nextConfig;`,
-        "tailwind.config.ts": `import type { Config } from "tailwindcss";
-
-const config: Config = {
-  content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-};
-export default config;`,
-        "postcss.config.mjs": `/** @type {import('postcss-load-config').Config} */
-const config = {
-  plugins: {
-    tailwindcss: {},
-  },
-};
-
-export default config;`,
-        "src/app/layout.tsx": `import type { Metadata } from "next";
-import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Craft Project",
-  description: "Built with Craft",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
-}`,
-        "src/app/page.tsx": `export default function Home() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500">
-      <div className="text-center text-white">
-        <h1 className="text-6xl font-bold mb-4">🚀</h1>
-        <h2 className="text-4xl font-bold mb-2">Welcome to Craft</h2>
-        <p className="text-xl opacity-90">Start building by chatting with AI</p>
-      </div>
-    </div>
-  );
-}`,
-        "src/app/globals.css": `@tailwind base;
-@tailwind components;
-@tailwind utilities;`
-    };
 }

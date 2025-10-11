@@ -58,6 +58,7 @@ export default function CodingInterface({
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
   const [showChatHistory, setShowChatHistory] = useState(false);
   const [triggerNewChat, setTriggerNewChat] = useState(0); // Counter to trigger new chat
+  const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
   const chatWidth = 30; // Fixed at 30%
 
   console.log(
@@ -518,6 +519,7 @@ export default function CodingInterface({
                 showHistory={showChatHistory}
                 onHistoryClose={() => setShowChatHistory(false)}
                 triggerNewChat={triggerNewChat}
+                onGeneratingStatusChange={setIsGeneratingFiles}
               />
             </div>
           </div>
@@ -527,12 +529,15 @@ export default function CodingInterface({
         <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-neutral-900 px-2 pb-2">
           {/* Main Panel */}
           <main className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl">
-            {activeTab === "preview" && (
+            {/* Keep PreviewPanel mounted to maintain sandbox across tab switches */}
+            <div className={activeTab === "preview" ? "h-full" : "hidden"}>
               <PreviewPanel
                 projectId={project.id}
                 projectFiles={projectFiles}
+                isGeneratingFiles={isGeneratingFiles}
               />
-            )}
+            </div>
+
             {activeTab === "code" && (
               <CodeEditor projectId={project.id} projectFiles={projectFiles} />
             )}

@@ -29,6 +29,7 @@ interface ChatPanelProps {
   showHistory?: boolean;
   onHistoryClose?: () => void;
   triggerNewChat?: number;
+  onGeneratingStatusChange?: (isGenerating: boolean) => void;
 }
 
 export default function ChatPanel({
@@ -38,6 +39,7 @@ export default function ChatPanel({
   showHistory = false,
   onHistoryClose,
   triggerNewChat = 0,
+  onGeneratingStatusChange,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -286,6 +288,9 @@ export default function ChatPanel({
     setInput("");
     setIsLoading(true);
 
+    // Notify parent that we're generating files
+    onGeneratingStatusChange?.(true);
+
     // Save user message to database
     await saveMessage("user", userMessage.content);
 
@@ -345,6 +350,9 @@ export default function ChatPanel({
         // After streaming is complete, extract and save code blocks
         const extractedFiles = extractCodeBlocks(fullContent);
         if (extractedFiles.length > 0) {
+          console.log(
+            `📝 Extracted ${extractedFiles.length} files from AI response`
+          );
           await saveFiles(extractedFiles);
 
           // Update the message to remove code blocks from display
@@ -376,6 +384,8 @@ export default function ChatPanel({
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      // Notify parent that file generation is complete
+      onGeneratingStatusChange?.(false);
     }
   };
 
