@@ -6,6 +6,8 @@ interface PreviewPanelProps {
   projectId: string;
   projectFiles?: Record<string, string>;
   isGeneratingFiles?: boolean; // New prop to indicate AI is generating files
+  generationStatus?: string; // "template" | "generating" | "ready"
+  version?: number; // Project version (0 = template, 1+ = has AI updates)
 }
 
 type SandboxStatus = "inactive" | "loading" | "running" | "error";
@@ -14,6 +16,8 @@ export default function PreviewPanel({
   projectId,
   projectFiles = {},
   isGeneratingFiles = false,
+  generationStatus = "template",
+  version = 0,
 }: PreviewPanelProps) {
   const [previewUrl, setPreviewUrl] = useState("");
   const [iframeUrl, setIframeUrl] = useState("");
@@ -37,58 +41,15 @@ export default function PreviewPanel({
             setPreviewUrl(data.url);
             setIframeUrl(data.url);
             setSandboxStatus("running");
-            return true; // Sandbox is already running
           }
         }
       } catch (error) {
         console.error("Error checking sandbox status:", error);
       }
-      return false; // No sandbox running
     };
 
     checkSandboxStatus();
   }, [projectId]);
-
-  // Auto-start sandbox when files are ready after AI generation
-  useEffect(() => {
-    let autoStartTimer: NodeJS.Timeout;
-
-    // Only auto-start if:
-    // 1. Sandbox is inactive
-    // 2. We have files (not empty project)
-    // 3. AI is NOT currently generating files (wait for generation to complete)
-    // 4. Files actually exist (prevent starting on initial empty state)
-    const hasActualFiles = Object.keys(projectFiles).length > 0;
-    const shouldAutoStart =
-      sandboxStatus === "inactive" && hasActualFiles && !isGeneratingFiles;
-
-    if (shouldAutoStart) {
-      console.log(
-        `🚀 Preview panel ready - auto-starting sandbox with ${
-          Object.keys(projectFiles).length
-        } files...`
-      );
-      // Small delay to ensure smooth transition after AI completes
-      autoStartTimer = setTimeout(() => {
-        startSandbox();
-      }, 1000); // Slightly longer delay to ensure files are fully saved
-    } else if (sandboxStatus === "inactive" && isGeneratingFiles) {
-      console.log(
-        `⏳ AI is generating code... (current: ${
-          Object.keys(projectFiles).length
-        } files)`
-      );
-    } else if (sandboxStatus === "inactive" && !hasActualFiles) {
-      console.log(`⏳ Waiting for AI to generate initial code...`);
-    }
-
-    return () => {
-      if (autoStartTimer) {
-        clearTimeout(autoStartTimer);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, projectFiles, sandboxStatus, isGeneratingFiles]);
 
   // Cleanup on unmount (when closing project)
   useEffect(() => {
@@ -101,31 +62,51 @@ export default function PreviewPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-refresh preview when project files change
+  // Handle AI generation completion - auto-start OR auto-update preview
   useEffect(() => {
-    const updatePreview = async () => {
-      if (sandboxStatus === "running" && Object.keys(projectFiles).length > 0) {
-        console.log(
-          `📝 Project files updated (${
-            Object.keys(projectFiles).length
-          } files), auto-updating preview...`
-        );
-        await updateSandboxFiles();
-      } else if (
-        sandboxStatus === "inactive" &&
-        Object.keys(projectFiles).length > 0
-      ) {
-        console.log(
-          `📝 Project has ${
-            Object.keys(projectFiles).length
-          } files, but sandbox not started yet`
-        );
-      }
-    };
-
-    updatePreview();
+    // Only auto-start when:
+    // 1. AI has finished generating (isGeneratingFiles = false)
+    // 2. Generation status is "ready" (not "template" or "generating")
+    // 3. Version > 0 (has AI updates, not just template)
+    // 4. There are files to preview
+    // 5. Sandbox is not already running
+    if (
+      !isGeneratingFiles &&
+      generationStatus === "ready" &&
+      version > 0 &&
+      Object.keys(projectFiles).length > 0 &&
+      sandboxStatus === "inactive"
+    ) {
+      // First time AI generates/modifies code - auto-start preview
+      console.log(
+        `🚀 AI finished generating (status: ${generationStatus}, version: ${version}) - auto-starting preview with ${
+          Object.keys(projectFiles).length
+        } files...`
+      );
+      setTimeout(() => startSandbox(), 800);
+    } else if (
+      !isGeneratingFiles &&
+      generationStatus === "ready" &&
+      version > 0 &&
+      sandboxStatus === "running" &&
+      Object.keys(projectFiles).length > 0
+    ) {
+      // Preview already running - just update the files
+      console.log(
+        `📝 AI finished updating (version: ${version}) - refreshing preview with ${
+          Object.keys(projectFiles).length
+        } files...`
+      );
+      setTimeout(() => updateSandboxFiles(), 500);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectFiles]);
+  }, [
+    isGeneratingFiles,
+    generationStatus,
+    version,
+    projectFiles,
+    sandboxStatus,
+  ]);
 
   const startSandbox = async () => {
     try {
@@ -399,75 +380,67 @@ export default function PreviewPanel({
       {/* Preview Frame */}
       <div className="flex-1 bg-neutral-50 dark:bg-neutral-900 overflow-auto">
         <div className="h-full flex items-center justify-center">
-          {/* Show generating state when AI is creating files */}
-          {isGeneratingFiles && sandboxStatus === "inactive" && (
+          {/* Show state when preview is not running */}
+          {sandboxStatus === "inactive" && (
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-neutral-600 dark:text-neutral-400 animate-pulse"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                AI is generating your code...
-              </h3>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                Creating project files based on your description
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-1">
-                <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
-                <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-              </div>
-            </div>
-          )}
-
-          {!isGeneratingFiles && sandboxStatus === "inactive" && (
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-neutral-400 dark:text-neutral-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
+                {isGeneratingFiles ? (
+                  <svg
+                    className="w-8 h-8 text-neutral-600 dark:text-neutral-400 animate-pulse"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-8 h-8 text-neutral-400 dark:text-neutral-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                )}
               </div>
               <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
                 {isGeneratingFiles
                   ? "AI is generating your code..."
-                  : Object.keys(projectFiles).length > 0
-                  ? "Starting Preview..."
-                  : "Waiting for code..."}
+                  : version > 0
+                  ? "Ready to preview"
+                  : "No code generated yet"}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 {isGeneratingFiles
-                  ? "Creating project files based on your description"
-                  : Object.keys(projectFiles).length > 0
-                  ? "Your Next.js preview will load automatically"
-                  : "Start chatting to generate your project files"}
+                  ? "Preview will start automatically when complete"
+                  : version > 0
+                  ? "Click 'Start Preview' to view your project"
+                  : "Start chatting to generate your project"}
               </p>
+              {isGeneratingFiles && (
+                <div className="mt-4 flex items-center justify-center gap-1">
+                  <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
+                  <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                  <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                </div>
+              )}
             </div>
           )}
 
