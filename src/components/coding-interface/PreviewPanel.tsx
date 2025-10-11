@@ -21,6 +21,10 @@ export default function PreviewPanel({
 }: PreviewPanelProps) {
   const [previewUrl, setPreviewUrl] = useState("");
   const [iframeUrl, setIframeUrl] = useState("");
+  const [currentRoute, setCurrentRoute] = useState("/");
+  const [inputRoute, setInputRoute] = useState("/");
+  const [navigationHistory, setNavigationHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sandboxStatus, setSandboxStatus] = useState<SandboxStatus>("inactive");
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +32,7 @@ export default function PreviewPanel({
     "desktop"
   );
   const [loadingMessage, setLoadingMessage] = useState("Starting preview...");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Check if sandbox is already running on mount
   useEffect(() => {
@@ -206,6 +211,10 @@ export default function PreviewPanel({
       console.log("🎉 Setting preview URL:", data.url);
       setPreviewUrl(data.url);
       setIframeUrl(data.url);
+      setCurrentRoute("/");
+      setInputRoute("/");
+      setNavigationHistory(["/"]);
+      setHistoryIndex(0);
       setSandboxStatus("running");
     } catch (error) {
       console.error("Error starting sandbox:", error);
@@ -265,7 +274,7 @@ export default function PreviewPanel({
         // Force refresh the iframe to show updated content
         setIframeUrl("");
         setTimeout(() => {
-          setIframeUrl(previewUrl);
+          setIframeUrl(previewUrl + currentRoute);
           setIsRefreshing(false);
         }, 100);
       } else {
@@ -283,9 +292,54 @@ export default function PreviewPanel({
     setIsRefreshing(true);
     setIframeUrl("");
     setTimeout(() => {
-      setIframeUrl(previewUrl);
+      setIframeUrl(previewUrl + currentRoute);
       setIsRefreshing(false);
     }, 100);
+  };
+
+  const navigateToRoute = (route: string) => {
+    if (!route.startsWith("/")) {
+      route = "/" + route;
+    }
+    const newUrl = previewUrl + route;
+    setIframeUrl(newUrl);
+    setCurrentRoute(route);
+    setInputRoute(route);
+
+    // Add to history
+    const newHistory = navigationHistory.slice(0, historyIndex + 1);
+    newHistory.push(route);
+    setNavigationHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const handleRouteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (sandboxStatus === "running" && inputRoute) {
+      navigateToRoute(inputRoute);
+    }
+  };
+
+  const handleBack = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      const route = navigationHistory[newIndex];
+      setHistoryIndex(newIndex);
+      setCurrentRoute(route);
+      setInputRoute(route);
+      setIframeUrl(previewUrl + route);
+    }
+  };
+
+  const handleForward = () => {
+    if (historyIndex < navigationHistory.length - 1) {
+      const newIndex = historyIndex + 1;
+      const route = navigationHistory[newIndex];
+      setHistoryIndex(newIndex);
+      setCurrentRoute(route);
+      setInputRoute(route);
+      setIframeUrl(previewUrl + route);
+    }
   };
 
   const getDeviceWidth = () => {
@@ -301,28 +355,63 @@ export default function PreviewPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+    <div
+      className={`h-full flex flex-col bg-white dark:bg-neutral-900 ${
+        isFullscreen ? "fixed inset-0 z-50" : ""
+      }`}
+    >
       {/* Preview Toolbar */}
       <div className="h-12 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-            <div className="w-3 h-3 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-            <div className="w-3 h-3 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-          </div>
-          <div className="ml-4 flex-1 flex items-center gap-2">
-            <input
-              type="text"
-              value={previewUrl}
-              onChange={(e) => setPreviewUrl(e.target.value)}
-              placeholder="No preview running"
-              disabled={sandboxStatus !== "running"}
-              className="px-3 py-1 text-xs bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20 w-64 disabled:opacity-50"
-            />
+        <div className="flex items-center gap-2 flex-1">
+          {/* Navigation Controls */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleBack}
+              disabled={sandboxStatus !== "running" || historyIndex <= 0}
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Go back"
+            >
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+            <button
+              onClick={handleForward}
+              disabled={
+                sandboxStatus !== "running" ||
+                historyIndex >= navigationHistory.length - 1
+              }
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Go forward"
+            >
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
             <button
               onClick={handleRefresh}
               disabled={sandboxStatus !== "running" || isRefreshing}
-              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               title="Refresh preview"
             >
               <svg
@@ -342,37 +431,143 @@ export default function PreviewPanel({
               </svg>
             </button>
           </div>
+
+          {/* URL Bar */}
+          <form
+            onSubmit={handleRouteSubmit}
+            className="flex-1 flex items-center gap-2 mx-2"
+          >
+            <input
+              type="text"
+              value={inputRoute}
+              onChange={(e) => setInputRoute(e.target.value)}
+              onBlur={() => setInputRoute(currentRoute)}
+              placeholder="Enter route (e.g., /about)"
+              disabled={sandboxStatus !== "running"}
+              className="flex-1 px-3 py-1 text-xs bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            <button
+              type="button"
+              onClick={() =>
+                previewUrl && window.open(previewUrl + currentRoute, "_blank")
+              }
+              disabled={sandboxStatus !== "running"}
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Open in new tab"
+            >
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+            </button>
+          </form>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
-            onClick={() => setDeviceMode("mobile")}
-            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              deviceMode === "mobile"
-                ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            }`}
+            onClick={() => {
+              const modes: Array<"mobile" | "tablet" | "desktop"> = [
+                "desktop",
+                "tablet",
+                "mobile",
+              ];
+              const currentIndex = modes.indexOf(deviceMode);
+              const nextIndex = (currentIndex + 1) % modes.length;
+              setDeviceMode(modes[nextIndex]);
+            }}
+            className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+            title={`Current: ${
+              deviceMode.charAt(0).toUpperCase() + deviceMode.slice(1)
+            } - Click to switch`}
           >
-            Mobile
+            {deviceMode === "mobile" && (
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                />
+              </svg>
+            )}
+            {deviceMode === "tablet" && (
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                />
+              </svg>
+            )}
+            {deviceMode === "desktop" && (
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            )}
           </button>
           <button
-            onClick={() => setDeviceMode("tablet")}
-            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              deviceMode === "tablet"
-                ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            }`}
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           >
-            Tablet
-          </button>
-          <button
-            onClick={() => setDeviceMode("desktop")}
-            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              deviceMode === "desktop"
-                ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            }`}
-          >
-            Desktop
+            {isFullscreen ? (
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9h4.5M15 9V4.5M15 9l5.25-5.25M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                />
+              </svg>
+            )}
           </button>
         </div>
       </div>
