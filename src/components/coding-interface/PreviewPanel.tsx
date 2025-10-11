@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 interface PreviewPanelProps {
   projectId: string;
   projectFiles?: Record<string, string>;
+  isGeneratingFiles?: boolean; // New prop to indicate AI is generating files
 }
 
 type SandboxStatus = "inactive" | "loading" | "running" | "error";
@@ -12,6 +13,7 @@ type SandboxStatus = "inactive" | "loading" | "running" | "error";
 export default function PreviewPanel({
   projectId,
   projectFiles = {},
+  isGeneratingFiles = false,
 }: PreviewPanelProps) {
   const [previewUrl, setPreviewUrl] = useState("");
   const [iframeUrl, setIframeUrl] = useState("");
@@ -23,7 +25,7 @@ export default function PreviewPanel({
   );
   const [loadingMessage, setLoadingMessage] = useState("Starting preview...");
 
-  // Check if sandbox is already running
+  // Check if sandbox is already running on mount
   useEffect(() => {
     const checkSandboxStatus = async () => {
       try {
@@ -31,18 +33,75 @@ export default function PreviewPanel({
         if (response.ok) {
           const data = await response.json();
           if (data.status === "running" && data.url) {
+            console.log("📌 Found existing sandbox running:", data.url);
             setPreviewUrl(data.url);
             setIframeUrl(data.url);
             setSandboxStatus("running");
+            return true; // Sandbox is already running
           }
         }
       } catch (error) {
         console.error("Error checking sandbox status:", error);
       }
+      return false; // No sandbox running
     };
 
     checkSandboxStatus();
   }, [projectId]);
+
+  // Auto-start sandbox when component mounts and files are available
+  useEffect(() => {
+    let autoStartTimer: NodeJS.Timeout;
+
+    // Only auto-start if:
+    // 1. Sandbox is inactive
+    // 2. We have files
+    // 3. AI is NOT currently generating files (wait for generation to complete)
+    const shouldAutoStart =
+      sandboxStatus === "inactive" &&
+      Object.keys(projectFiles).length > 0 &&
+      !isGeneratingFiles;
+
+    if (shouldAutoStart) {
+      console.log(
+        `🚀 Preview panel ready - auto-starting sandbox with ${
+          Object.keys(projectFiles).length
+        } files...`
+      );
+      // Small delay to ensure smooth transition
+      autoStartTimer = setTimeout(() => {
+        startSandbox();
+      }, 500);
+    } else if (sandboxStatus === "inactive" && isGeneratingFiles) {
+      console.log(
+        `⏳ Waiting for AI to finish generating files... (current: ${
+          Object.keys(projectFiles).length
+        })`
+      );
+    } else if (sandboxStatus === "inactive") {
+      console.log(
+        `⏳ Waiting for files... (current: ${Object.keys(projectFiles).length})`
+      );
+    }
+
+    return () => {
+      if (autoStartTimer) {
+        clearTimeout(autoStartTimer);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, projectFiles, sandboxStatus, isGeneratingFiles]);
+
+  // Cleanup on unmount (when closing project)
+  useEffect(() => {
+    return () => {
+      console.log("🧹 Preview panel unmounting - cleaning up sandbox...");
+      fetch(`/api/sandbox/${projectId}`, {
+        method: "DELETE",
+      }).catch((err) => console.error("Cleanup error:", err));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-refresh preview when project files change
   useEffect(() => {
@@ -240,34 +299,7 @@ export default function PreviewPanel({
     }
   };
 
-  const stopSandbox = async () => {
-    try {
-      await fetch(`/api/sandbox/${projectId}`, {
-        method: "DELETE",
-      });
-      setSandboxStatus("inactive");
-      setPreviewUrl("");
-      setIframeUrl("");
-    } catch (error) {
-      console.error("Error stopping sandbox:", error);
-    }
-  };
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    // Force iframe reload
-    if (iframeUrl) {
-      setIframeUrl("");
-      setTimeout(() => {
-        setIframeUrl(previewUrl);
-        setIsRefreshing(false);
-      }, 100);
-    } else {
-      setTimeout(() => setIsRefreshing(false), 500);
-    }
-  };
-
-  const handleUpdatePreview = async () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
     await updateSandboxFiles();
     setIsRefreshing(false);
@@ -306,9 +338,9 @@ export default function PreviewPanel({
             />
             <button
               onClick={handleRefresh}
-              disabled={sandboxStatus !== "running"}
+              disabled={sandboxStatus !== "running" || isRefreshing}
               className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh preview"
+              title="Update files and refresh preview"
             >
               <svg
                 className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 ${
@@ -325,14 +357,6 @@ export default function PreviewPanel({
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-            </button>
-            <button
-              onClick={handleUpdatePreview}
-              disabled={sandboxStatus !== "running" || isRefreshing}
-              className="px-3 py-1 text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Update preview with latest files"
-            >
-              {isRefreshing ? "Updating..." : "Update Files"}
             </button>
           </div>
         </div>
@@ -397,17 +421,11 @@ export default function PreviewPanel({
                 </svg>
               </div>
               <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                No Preview Running
+                Starting Preview...
               </h3>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
-                Start the Next.js preview to see your app live
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                Your Next.js preview will load automatically
               </p>
-              <button
-                onClick={startSandbox}
-                className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium rounded-full hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
-              >
-                Start Next.js Preview
-              </button>
             </div>
           )}
 
@@ -487,12 +505,6 @@ export default function PreviewPanel({
                     console.error("❌ Iframe error:", e);
                   }}
                 />
-                <button
-                  onClick={stopSandbox}
-                  className="absolute top-4 right-4 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-full hover:bg-red-700 transition-colors shadow-lg"
-                >
-                  Stop Preview
-                </button>
               </div>
             </div>
           )}

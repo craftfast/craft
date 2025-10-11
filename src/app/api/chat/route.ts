@@ -1,5 +1,6 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { streamText } from "ai";
+import { getSystemPrompt } from "@/lib/ai/system-prompts";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -20,43 +21,10 @@ export async function POST(req: Request) {
                 ? process.env.GROK_MODEL || "x-ai/grok-4-fast"
                 : process.env.CLAUDE_MODEL || "anthropic/claude-sonnet-4.5";
 
-        // System prompts based on task type
-        const systemPrompts = {
-            coding: `You are an expert Next.js developer assistant. You help build modern web applications using:
-- Next.js 15 with App Router
-- TypeScript for type safety
-- Tailwind CSS for styling (using ONLY neutral colors: neutral-*, stone-*, gray-*)
-- React 19
-- Prisma for database operations
+        // Get environment-aware system prompt
+        const systemPrompt = getSystemPrompt(taskType || 'coding');
 
-Design System Rules:
-- Use ONLY neutral colors (neutral-*, stone-*, gray-*)
-- All interactive elements MUST have rounded corners (rounded-full, rounded-lg, rounded-xl, rounded-2xl)
-- Support dark mode with dark: variants
-- Never use colored variants (blue, red, green, etc.)
-
-IMPORTANT: When providing code, ALWAYS use this format for files that should be created:
-\`\`\`typescript // src/components/MyComponent.tsx
-// your code here
-\`\`\`
-
-The comment after the language identifier specifies the file path. This allows the system to automatically create the file.
-
-For code examples or snippets that shouldn't be saved as files, use code blocks WITHOUT the file path comment:
-\`\`\`typescript
-// example code
-\`\`\`
-
-Provide clear, concise, and production-ready code. Focus on best practices and modern patterns. When creating components or files, explain what you're doing conversationally, then provide the code with the file path.`,
-            naming: `You are a creative assistant that helps generate concise, memorable project names. 
-Keep names short (1-3 words), lowercase, and descriptive. Suggest 3-5 options when asked.`,
-            general: `You are a helpful assistant for a Next.js development tool called Craft. 
-Provide clear, concise answers to user questions about their project.`,
-        };
-
-        const systemPrompt =
-            systemPrompts[taskType as keyof typeof systemPrompts] ||
-            systemPrompts.general;
+        console.log(`🤖 AI Chat Request - Model: ${modelName}, Task: ${taskType || 'coding'}`);
 
         const result = streamText({
             model: openrouter.chat(modelName),
