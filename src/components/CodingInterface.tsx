@@ -6,6 +6,7 @@ import { PanelLeftClose, PanelLeftOpen, Plus, History } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import ChatPanel from "./coding-interface/ChatPanel";
+import ChatHistorySidebar from "./coding-interface/ChatHistorySidebar";
 import PreviewPanel from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
 import DatabasePanel from "./coding-interface/DatabasePanel";
@@ -15,6 +16,7 @@ import LogsPanel from "./coding-interface/LogsPanel";
 import ApiPanel from "./coding-interface/ApiPanel";
 import SettingsPanel from "./coding-interface/SettingsPanel";
 import AuthPanel from "./coding-interface/AuthPanel";
+import VersionHistoryPanel from "./coding-interface/VersionHistoryPanel";
 
 type TabType =
   | "preview"
@@ -60,8 +62,12 @@ export default function CodingInterface({
   const [project, setProject] = useState(initialProject);
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
   const [showChatHistory, setShowChatHistory] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [triggerNewChat, setTriggerNewChat] = useState(0); // Counter to trigger new chat
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
+  const [currentChatSessionId, setCurrentChatSessionId] = useState<
+    string | null
+  >(null);
   const chatWidth = 30; // Fixed at 30%
 
   console.log(
@@ -442,6 +448,27 @@ export default function CodingInterface({
             {/* Spacer */}
             <div className="flex-1" />
 
+            {/* Version History Button */}
+            <button
+              onClick={() => setShowVersionHistory(!showVersionHistory)}
+              className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+              title="Version History"
+            >
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </button>
+
             {/* Share Button */}
             <button className="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg border border-neutral-300 dark:border-neutral-600 transition-colors flex items-center gap-1.5">
               <svg
@@ -489,60 +516,106 @@ export default function CodingInterface({
         {/* Chat Panel - Left Side */}
         {!isChatCollapsed && (
           <div
-            className="bg-white dark:bg-neutral-900 flex flex-col overflow-hidden"
+            className="flex overflow-hidden"
             style={{ width: `${chatWidth}%` }}
           >
+            {/* Chat History Sidebar (optional) */}
+            {showChatHistory && (
+              <div className="w-64 flex-shrink-0">
+                <ChatHistorySidebar
+                  projectId={project.id}
+                  currentSessionId={currentChatSessionId}
+                  onSessionSelect={(sessionId) => {
+                    setCurrentChatSessionId(sessionId);
+                  }}
+                  onNewChat={() => setTriggerNewChat((prev) => prev + 1)}
+                  onClose={() => setShowChatHistory(false)}
+                />
+              </div>
+            )}
+
             {/* Chat Content */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden bg-white dark:bg-neutral-900">
               <ChatPanel
                 projectId={project.id}
                 projectDescription={project.description}
                 projectFiles={projectFiles}
                 onFilesCreated={handleFilesCreated}
-                showHistory={showChatHistory}
-                onHistoryClose={() => setShowChatHistory(false)}
                 triggerNewChat={triggerNewChat}
                 onGeneratingStatusChange={setIsGeneratingFiles}
+                currentSessionId={currentChatSessionId}
+                onSessionChange={setCurrentChatSessionId}
               />
             </div>
           </div>
         )}
 
         {/* Right Side - Content Panel */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-neutral-900 px-2 pb-2">
-          {/* Main Panel */}
-          <main className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl">
-            {/* Keep PreviewPanel mounted to maintain sandbox across tab switches */}
-            <div className={activeTab === "preview" ? "h-full" : "hidden"}>
-              <PreviewPanel
-                projectId={project.id}
-                projectFiles={projectFiles}
-                isGeneratingFiles={isGeneratingFiles}
-                generationStatus={project.generationStatus}
-                version={project.version}
-              />
-            </div>
+        <div className="flex-1 flex overflow-hidden bg-white dark:bg-neutral-900 px-2 pb-2">
+          <div className="flex-1 flex overflow-hidden">
+            {/* Main Panel */}
+            <main className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl relative">
+              {/* Keep PreviewPanel mounted to maintain sandbox across tab switches */}
+              <div className={activeTab === "preview" ? "h-full" : "hidden"}>
+                <PreviewPanel
+                  projectId={project.id}
+                  projectFiles={projectFiles}
+                  isGeneratingFiles={isGeneratingFiles}
+                  generationStatus={project.generationStatus}
+                  version={project.version}
+                />
+              </div>
 
-            {activeTab === "code" && (
-              <CodeEditor projectId={project.id} projectFiles={projectFiles} />
+              {activeTab === "code" && (
+                <CodeEditor
+                  projectId={project.id}
+                  projectFiles={projectFiles}
+                />
+              )}
+              {activeTab === "database" && (
+                <DatabasePanel projectId={project.id} />
+              )}
+              {activeTab === "analytics" && (
+                <AnalyticsPanel projectId={project.id} />
+              )}
+              {activeTab === "domains" && (
+                <DomainsPanel projectId={project.id} />
+              )}
+              {activeTab === "logs" && <LogsPanel projectId={project.id} />}
+              {activeTab === "api" && <ApiPanel projectId={project.id} />}
+              {activeTab === "settings" && (
+                <SettingsPanel
+                  projectId={project.id}
+                  onProjectUpdate={refreshProject}
+                />
+              )}
+              {activeTab === "auth" && <AuthPanel projectId={project.id} />}
+            </main>
+
+            {/* Version History Sidebar */}
+            {showVersionHistory && (
+              <div className="w-80 flex-shrink-0">
+                <VersionHistoryPanel
+                  projectId={project.id}
+                  currentVersion={project.version || 0}
+                  isSidebar={true}
+                  onRestore={async () => {
+                    // Reload project files after restore
+                    const response = await fetch(
+                      `/api/files?projectId=${project.id}`
+                    );
+                    if (response.ok) {
+                      const data = await response.json();
+                      setProjectFiles(data.files || {});
+                    }
+                    // Refresh project data
+                    await refreshProject();
+                  }}
+                  onClose={() => setShowVersionHistory(false)}
+                />
+              </div>
             )}
-            {activeTab === "database" && (
-              <DatabasePanel projectId={project.id} />
-            )}
-            {activeTab === "analytics" && (
-              <AnalyticsPanel projectId={project.id} />
-            )}
-            {activeTab === "domains" && <DomainsPanel projectId={project.id} />}
-            {activeTab === "logs" && <LogsPanel projectId={project.id} />}
-            {activeTab === "api" && <ApiPanel projectId={project.id} />}
-            {activeTab === "settings" && (
-              <SettingsPanel
-                projectId={project.id}
-                onProjectUpdate={refreshProject}
-              />
-            )}
-            {activeTab === "auth" && <AuthPanel projectId={project.id} />}
-          </main>
+          </div>
         </div>
       </div>
     </div>

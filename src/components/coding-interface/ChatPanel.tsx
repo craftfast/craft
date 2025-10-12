@@ -13,24 +13,15 @@ interface Message {
   createdAt: Date;
 }
 
-interface ChatSession {
-  id: string;
-  name: string;
-  projectId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  messages: Message[];
-}
-
 interface ChatPanelProps {
   projectId: string;
   projectDescription?: string | null;
   projectFiles?: Record<string, string>; // Existing project files
   onFilesCreated?: (files: { path: string; content: string }[]) => void;
-  showHistory?: boolean;
-  onHistoryClose?: () => void;
   triggerNewChat?: number;
   onGeneratingStatusChange?: (isGenerating: boolean) => void;
+  currentSessionId?: string | null;
+  onSessionChange?: (sessionId: string) => void;
 }
 
 export default function ChatPanel({
@@ -38,16 +29,18 @@ export default function ChatPanel({
   projectDescription,
   projectFiles = {},
   onFilesCreated,
-  showHistory = false,
-  onHistoryClose,
   triggerNewChat = 0,
   onGeneratingStatusChange,
+  currentSessionId: externalSessionId = null,
+  onSessionChange,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasLoadedSessions = useRef(false); // Track if we've already loaded sessions
 
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(
+    externalSessionId
+  );
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -57,6 +50,13 @@ export default function ChatPanel({
   const [feedbackMessageId, setFeedbackMessageId] = useState<{
     [key: string]: "like" | "dislike" | null;
   }>({});
+
+  // Sync external session ID changes
+  useEffect(() => {
+    if (externalSessionId && externalSessionId !== currentSessionId) {
+      setCurrentSessionId(externalSessionId);
+    }
+  }, [externalSessionId, currentSessionId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -124,22 +124,37 @@ export default function ChatPanel({
   }, [triggerNewChat]);
 
   const loadChatSessions = async () => {
+    // Prevent duplicate loads
+    if (hasLoadedSessions.current) {
+      console.log("⏭️ Chat sessions already loaded, skipping...");
+      return;
+    }
+
     try {
       const response = await fetch(`/api/chat-sessions?projectId=${projectId}`);
       if (response.ok) {
         const data = await response.json();
-        setChatSessions(data.chatSessions);
+
+        // Mark as loaded BEFORE creating session to prevent race conditions
+        hasLoadedSessions.current = true;
 
         // If there are sessions, select the most recent one
         if (data.chatSessions.length > 0) {
-          setCurrentSessionId(data.chatSessions[0].id);
+          const sessionId = data.chatSessions[0].id;
+          setCurrentSessionId(sessionId);
+          if (onSessionChange) {
+            onSessionChange(sessionId);
+          }
+          console.log(`✅ Loaded ${data.chatSessions.length} chat session(s)`);
         } else {
-          // Create a default session if none exists
-          createNewSession();
+          // Create a default session if none exists (only on initial load)
+          console.log("📝 No chat sessions found, creating default session...");
+          await createNewSession();
         }
       }
     } catch (error) {
       console.error("Error loading chat sessions:", error);
+      hasLoadedSessions.current = false; // Reset on error so it can retry
     }
   };
 
@@ -179,10 +194,14 @@ export default function ChatPanel({
 
       if (response.ok) {
         const data = await response.json();
-        setChatSessions((prev) => [data.chatSession, ...prev]);
         setCurrentSessionId(data.chatSession.id);
         setMessages([]);
         setMessagesLoaded(true); // New session has no messages, so it's "loaded"
+
+        // Notify parent of session change
+        if (onSessionChange) {
+          onSessionChange(data.chatSession.id);
+        }
       }
     } catch (error) {
       console.error("Error creating chat session:", error);
@@ -476,94 +495,6 @@ export default function ChatPanel({
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-neutral-900 overflow-x-hidden">
-      {/* Chat History Overlay */}
-      {showHistory && (
-        <div className="absolute inset-0 bg-white dark:bg-neutral-900 z-10 flex flex-col">
-          {/* History Header */}
-          <div className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                Chat History
-              </h2>
-              <button
-                onClick={onHistoryClose}
-                className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-              >
-                <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* History List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-minimal">
-            {chatSessions.map((session) => (
-              <button
-                key={session.id}
-                onClick={() => {
-                  setCurrentSessionId(session.id);
-                  if (onHistoryClose) onHistoryClose();
-                }}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-left ${
-                  session.id === currentSessionId
-                    ? "bg-neutral-900 dark:bg-neutral-100"
-                    : "hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                }`}
-              >
-                <svg
-                  className={`w-4 h-4 flex-shrink-0 ${
-                    session.id === currentSessionId
-                      ? "text-white dark:text-neutral-900"
-                      : "text-neutral-600 dark:text-neutral-400"
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={`text-sm font-medium truncate ${
-                      session.id === currentSessionId
-                        ? "text-white dark:text-neutral-900"
-                        : "text-neutral-900 dark:text-neutral-100"
-                    }`}
-                  >
-                    {session.name}
-                  </p>
-                  <p
-                    className={`text-xs truncate ${
-                      session.id === currentSessionId
-                        ? "text-neutral-300 dark:text-neutral-600"
-                        : "text-neutral-500 dark:text-neutral-400"
-                    }`}
-                  >
-                    {new Date(session.updatedAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-minimal">
         <div className="max-w-3xl mx-auto space-y-6">

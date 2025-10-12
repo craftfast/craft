@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
         // Handle finalize generation - update status and increment version
         if (finalizeGeneration) {
-            await prisma.project.update({
+            const updatedProject = await prisma.project.update({
                 where: { id: projectId },
                 data: {
                     generationStatus: "ready",
@@ -48,11 +48,23 @@ export async function POST(req: NextRequest) {
                 },
             });
 
-            console.log(`✅ Finalized generation - incremented version for project ${projectId}`);
+            // Create a version snapshot
+            await prisma.projectVersion.create({
+                data: {
+                    projectId,
+                    version: updatedProject.version,
+                    name: `Version ${updatedProject.version}`,
+                    files: updatedProject.files as object,
+                    isBookmarked: false,
+                },
+            });
+
+            console.log(`✅ Finalized generation - incremented version to ${updatedProject.version} and created snapshot for project ${projectId}`);
 
             return NextResponse.json({
                 success: true,
                 message: "Generation finalized, version incremented",
+                version: updatedProject.version,
             });
         }
 

@@ -64,11 +64,38 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        // Update chat session's updatedAt timestamp
-        await prisma.chatSession.update({
-            where: { id: chatSessionId },
-            data: { updatedAt: new Date() },
-        });
+        // If this is the first user message in the session, auto-name the session
+        if (role === "user") {
+            const messageCount = await prisma.chatMessage.count({
+                where: { chatSessionId },
+            });
+
+            // If this is the first message (count is 1 after creation) and session has default name
+            if (messageCount === 1 && chatSession.name === "New Chat") {
+                // Generate a name from the first 50 characters of the message
+                const autoName = content.trim().slice(0, 50) + (content.length > 50 ? "..." : "");
+
+                await prisma.chatSession.update({
+                    where: { id: chatSessionId },
+                    data: {
+                        name: autoName,
+                        updatedAt: new Date()
+                    },
+                });
+            } else {
+                // Just update the timestamp
+                await prisma.chatSession.update({
+                    where: { id: chatSessionId },
+                    data: { updatedAt: new Date() },
+                });
+            }
+        } else {
+            // For assistant messages, just update the timestamp
+            await prisma.chatSession.update({
+                where: { id: chatSessionId },
+                data: { updatedAt: new Date() },
+            });
+        }
 
         return NextResponse.json({ message }, { status: 201 });
     } catch (error) {
