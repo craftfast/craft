@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -83,24 +83,29 @@ export default function ChatPanel({
   // Auto-send first message if project has description and no messages yet
   useEffect(() => {
     const sendFirstMessage = async () => {
-      // Check if we should auto-send the first message
-      // Only auto-send if messages have been loaded AND there are no messages
+      // Only auto-send if we haven't sent before and we have a description
       if (
         !hasAutoSentFirstMessage &&
-        currentSessionId &&
         messagesLoaded &&
-        messages.length === 0 &&
         projectDescription &&
         projectDescription.trim() !== "" &&
         !isLoading
       ) {
-        console.log("🚀 Auto-sending first message from project description");
-        setHasAutoSentFirstMessage(true);
+        // If no session exists, create one first
+        if (!currentSessionId) {
+          console.log("🚀 Creating session for auto-send first message");
+          await createNewSession(); // This will create a "New Chat" session
+          // Don't set hasAutoSentFirstMessage yet - wait for session to be created
+          // The effect will re-run with the new currentSessionId
+        } else if (messages.length === 0) {
+          // Session exists but no messages - auto-send
+          console.log("🚀 Auto-sending first message from project description");
+          setHasAutoSentFirstMessage(true);
 
-        // Wait a brief moment to ensure state is set
-        setTimeout(() => {
-          handleSendMessage(projectDescription);
-        }, 100);
+          setTimeout(() => {
+            handleSendMessage(projectDescription);
+          }, 100);
+        }
       }
     };
 
@@ -115,13 +120,57 @@ export default function ChatPanel({
     isLoading,
   ]);
 
+  const createNewSession = useCallback(
+    async (name?: string) => {
+      try {
+        const response = await fetch("/api/chat-sessions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            projectId,
+            name: name || "New Chat",
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentSessionId(data.chatSession.id);
+          setMessages([]);
+          setMessagesLoaded(true); // New session has no messages, so it's "loaded"
+
+          // Notify parent of session change
+          if (onSessionChange) {
+            onSessionChange(data.chatSession.id);
+          }
+        }
+      } catch (error) {
+        console.error("Error creating chat session:", error);
+      }
+    },
+    [projectId, onSessionChange]
+  );
+
+  // Handle new chat - only create a new session if current one has messages
+  const handleNewChat = useCallback(() => {
+    // If current session is empty (no messages), just stay in it
+    if (messages.length === 0) {
+      console.log("📝 Current session is empty, reusing it for new chat");
+      return;
+    }
+
+    // Current session has messages, create a new one
+    console.log("📝 Creating new chat session (current has messages)");
+    createNewSession();
+  }, [messages, createNewSession]);
+
   // Handle new chat trigger from parent
   useEffect(() => {
     if (triggerNewChat > 0) {
-      createNewSession();
+      handleNewChat();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [triggerNewChat]);
+  }, [triggerNewChat, handleNewChat]);
 
   const loadChatSessions = async () => {
     // Prevent duplicate loads
@@ -135,7 +184,7 @@ export default function ChatPanel({
       if (response.ok) {
         const data = await response.json();
 
-        // Mark as loaded BEFORE creating session to prevent race conditions
+        // Mark as loaded BEFORE any session operations to prevent race conditions
         hasLoadedSessions.current = true;
 
         // If there are sessions, select the most recent one
@@ -147,9 +196,13 @@ export default function ChatPanel({
           }
           console.log(`✅ Loaded ${data.chatSessions.length} chat session(s)`);
         } else {
-          // Create a default session if none exists (only on initial load)
-          console.log("📝 No chat sessions found, creating default session...");
-          await createNewSession();
+          // No sessions exist - don't create a default empty session
+          // If there's a project description, the auto-send effect will create a session
+          // If there's no description, user will create a session manually via "New Chat"
+          console.log(
+            "📝 No chat sessions found - waiting for user action or auto-send"
+          );
+          setMessagesLoaded(true); // Mark as loaded so auto-send can trigger
         }
       }
     } catch (error) {
@@ -176,35 +229,6 @@ export default function ChatPanel({
     } catch (error) {
       console.error("Error loading messages:", error);
       setMessagesLoaded(true); // Still mark as loaded even on error
-    }
-  };
-
-  const createNewSession = async (name?: string) => {
-    try {
-      const response = await fetch("/api/chat-sessions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          projectId,
-          name: name || "New Chat",
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentSessionId(data.chatSession.id);
-        setMessages([]);
-        setMessagesLoaded(true); // New session has no messages, so it's "loaded"
-
-        // Notify parent of session change
-        if (onSessionChange) {
-          onSessionChange(data.chatSession.id);
-        }
-      }
-    } catch (error) {
-      console.error("Error creating chat session:", error);
     }
   };
 
