@@ -389,13 +389,21 @@ export default function CodingInterface({
                     <Plus className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
                   </button>
 
-                  {/* History Button */}
+                  {/* History Button - Highlighted when active */}
                   <button
                     onClick={() => setShowChatHistory(!showChatHistory)}
-                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-                    title="View History"
+                    className={`p-2 rounded-full transition-colors ${
+                      showChatHistory
+                        ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
+                        : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
+                    }`}
+                    title={
+                      showChatHistory
+                        ? "Close Chat History"
+                        : "View Chat History"
+                    }
                   >
-                    <History className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+                    <History className="w-4 h-4" />
                   </button>
 
                   {/* Chat Toggle Button */}
@@ -516,37 +524,36 @@ export default function CodingInterface({
         {/* Chat Panel - Left Side */}
         {!isChatCollapsed && (
           <div
-            className="flex overflow-hidden"
+            className="flex overflow-hidden bg-white dark:bg-neutral-900"
             style={{ width: `${chatWidth}%` }}
           >
-            {/* Chat History Sidebar (optional) */}
-            {showChatHistory && (
-              <div className="w-64 flex-shrink-0">
+            {/* Show either Chat History or Chat Messages */}
+            {showChatHistory ? (
+              <div className="flex-1 overflow-hidden">
                 <ChatHistorySidebar
                   projectId={project.id}
                   currentSessionId={currentChatSessionId}
                   onSessionSelect={(sessionId) => {
                     setCurrentChatSessionId(sessionId);
+                    setShowChatHistory(false); // Close history after selecting
                   }}
-                  onNewChat={() => setTriggerNewChat((prev) => prev + 1)}
-                  onClose={() => setShowChatHistory(false)}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 overflow-hidden">
+                <ChatPanel
+                  projectId={project.id}
+                  projectDescription={project.description}
+                  projectVersion={project.version}
+                  projectFiles={projectFiles}
+                  onFilesCreated={handleFilesCreated}
+                  triggerNewChat={triggerNewChat}
+                  onGeneratingStatusChange={setIsGeneratingFiles}
+                  currentSessionId={currentChatSessionId}
+                  onSessionChange={setCurrentChatSessionId}
                 />
               </div>
             )}
-
-            {/* Chat Content */}
-            <div className="flex-1 overflow-hidden bg-white dark:bg-neutral-900">
-              <ChatPanel
-                projectId={project.id}
-                projectDescription={project.description}
-                projectFiles={projectFiles}
-                onFilesCreated={handleFilesCreated}
-                triggerNewChat={triggerNewChat}
-                onGeneratingStatusChange={setIsGeneratingFiles}
-                currentSessionId={currentChatSessionId}
-                onSessionChange={setCurrentChatSessionId}
-              />
-            </div>
           </div>
         )}
 
