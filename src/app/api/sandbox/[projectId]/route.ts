@@ -19,8 +19,10 @@ if (!global.activeSandboxes) {
 
 const activeSandboxes = global.activeSandboxes;
 
-// Cleanup inactive sandboxes after 15 minutes
-const SANDBOX_TIMEOUT = 15 * 60 * 1000;
+// 💰 COST OPTIMIZATION: Aggressively cleanup inactive sandboxes
+// E2B charges $0.000028/second for 2 vCPUs = $0.10/hour = $2.40/day
+// Goal: Close sandboxes within 3 minutes of inactivity to minimize costs
+const SANDBOX_TIMEOUT = 3 * 60 * 1000; // 3 minutes (reduced from 15 min)
 
 setInterval(() => {
     const now = new Date();
@@ -35,14 +37,14 @@ setInterval(() => {
             });
             activeSandboxes.delete(projectId);
             cleanedCount++;
-            console.log(`🧹 Closed inactive sandbox: ${projectId} (idle: ${Math.round(idleTime / 60000)}m)`);
+            console.log(`💰 Cost-saving: Closed idle sandbox ${projectId} (idle: ${Math.round(idleTime / 1000)}s)`);
         }
     }
 
     if (cleanedCount > 0) {
-        console.log(`✨ Cleanup complete: ${cleanedCount} sandbox(es) closed, ${activeSandboxes.size} active`);
+        console.log(`💰 Cleanup: ${cleanedCount} sandbox(es) closed, ${activeSandboxes.size} active (saved ~$${(cleanedCount * 0.10).toFixed(2)}/hr)`);
     }
-}, 5 * 60 * 1000); // Check every 5 minutes
+}, 60 * 1000); // Check every 1 minute (increased frequency for faster cleanup)
 
 /**
  * POST /api/sandbox/[projectId]
@@ -90,7 +92,7 @@ export async function POST(
         console.log(`📦 Project ${projectId}: ${Object.keys(files).length} files`);
 
         // Check if sandbox already exists
-        const sandboxData = activeSandboxes.get(projectId);
+        let sandboxData = activeSandboxes.get(projectId);
 
         if (sandboxData) {
             // Reuse existing sandbox
@@ -176,25 +178,47 @@ export async function POST(
                         }
                     }
 
-                } catch (error) {
+                } catch (error: unknown) {
                     console.error("Error updating files:", error);
+
+                    // Check if it's a timeout error (sandbox no longer exists)
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    if (errorMessage.includes('not found') || errorMessage.includes('timeout')) {
+                        console.warn("⚠️ Sandbox timed out or not found, removing from cache and recreating...");
+                        activeSandboxes.delete(projectId);
+                        sandboxData = undefined; // Force recreation below
+                    } else {
+                        // Other error, but still return the sandbox info
+                        return NextResponse.json({
+                            sandboxId: projectId,
+                            url: `https://${sandboxData.sandbox.getHost(3000)}`,
+                            status: "running",
+                            filesUpdated: false,
+                            error: "Failed to update files",
+                        });
+                    }
                 }
             }
 
-            return NextResponse.json({
-                sandboxId: projectId,
-                url: `https://${sandboxData.sandbox.getHost(3000)}`,
-                status: "running",
-                filesUpdated: files && Object.keys(files).length > 0,
-            });
+            // If we still have sandboxData at this point, return success
+            if (sandboxData) {
+                return NextResponse.json({
+                    sandboxId: projectId,
+                    url: `https://${sandboxData.sandbox.getHost(3000)}`,
+                    status: "running",
+                    filesUpdated: files && Object.keys(files).length > 0,
+                });
+            }
         }
+
+        // Create new sandbox (either first time or after timeout)
 
         // Create new sandbox
         console.log(`🚀 Creating NEW sandbox for project: ${projectId}`);
 
         const sandbox = await Sandbox.create({
             metadata: { projectId, userId: session.user.email },
-            timeoutMs: 10 * 60 * 1000, // 10 minutes (can be extended with setTimeout())
+            timeoutMs: 5 * 60 * 1000, // 💰 5 minutes E2B timeout (cost optimization)
         });
 
         console.log(`✅ Sandbox created: ${sandbox.sandboxId}`);

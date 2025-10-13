@@ -76,16 +76,10 @@ export default function PreviewPanel({
     checkSandboxStatus();
   }, [projectId]);
 
-  // Cleanup on unmount (when closing project)
-  useEffect(() => {
-    return () => {
-      console.log("🧹 Preview panel unmounting - cleaning up sandbox...");
-      fetch(`/api/sandbox/${projectId}`, {
-        method: "DELETE",
-      }).catch((err) => console.error("Cleanup error:", err));
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // 💰 COST OPTIMIZATION: No keepalive - let sandboxes timeout naturally
+  // Sandboxes will auto-timeout after 3 min of inactivity (server-side cleanup)
+  // This reduces costs by ~$0.10/hour per idle sandbox
+  // When user returns, sandbox auto-recreates on demand (see updateSandboxFiles error handling)
 
   // Handle AI generation completion - auto-start OR auto-update preview
   useEffect(() => {
@@ -298,11 +292,27 @@ export default function PreviewPanel({
           setIsRefreshing(false);
         }, 100);
       } else {
-        console.error(`❌ Failed to update files:`, await response.text());
-        setIsRefreshing(false);
+        const errorText = await response.text();
+        console.error(`❌ Failed to update files:`, errorText);
+
+        // If sandbox timed out, try to recreate it
+        if (errorText.includes("timeout") || errorText.includes("not found")) {
+          console.log("� Sandbox closed to save costs, recreating...");
+          setLoadingMessage("Restarting preview (was idle to save costs)...");
+          setSandboxStatus("inactive");
+          setIsRefreshing(false);
+          // Trigger recreation
+          setTimeout(() => startSandbox(), 1000);
+        } else {
+          setIsRefreshing(false);
+        }
       }
     } catch (error) {
       console.error("Error updating sandbox files:", error);
+      // Assume sandbox might be gone, try to recreate
+      console.log("💰 Sandbox closed to save costs, recreating...");
+      setLoadingMessage("Restarting preview (was idle to save costs)...");
+      setSandboxStatus("inactive");
       setIsRefreshing(false);
     }
   };
