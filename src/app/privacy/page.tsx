@@ -462,14 +462,19 @@ export default function PrivacyPolicy() {
             <p className="mb-3">For users on paid plans:</p>
             <ul className="space-y-2">
               <li>
-                We track credit usage for billing and service delivery purposes
+                We track token usage for billing and service delivery purposes
               </li>
               <li>
                 Usage data is retained for accounting and dispute resolution
               </li>
-              <li>Pro users: Flexible tiers from 100-10,000 AI credits</li>
-              <li>Hobby users: 20 AI credits per month</li>
-              <li>Enterprise users: Custom credit allocation</li>
+              <li>
+                Pro users: 10M AI tokens included per month + ability to
+                purchase more
+              </li>
+              <li>Hobby users: 1M AI tokens per month (hard limit)</li>
+              <li>
+                Enterprise users: Unlimited tokens with custom allocations
+              </li>
               <li>
                 Detailed usage logs are available in your account dashboard
               </li>

@@ -120,25 +120,25 @@ export default function TermsOfService() {
                 <p className="font-semibold mb-2">Hobby Plan</p>
                 <ul className="space-y-1 text-sm">
                   <li>• Free forever</li>
-                  <li>• 20 AI credits per month</li>
-                  <li>• Access to multiple AI models</li>
+                  <li>• 1M AI tokens per month (hard limit)</li>
+                  <li>• Access to lite AI models</li>
                   <li>• 500MB database storage</li>
-                  <li>• Up to 3 projects</li>
+                  <li>• Up to 20 projects</li>
                   <li>• Community support</li>
-                  <li>• No credit rollover</li>
+                  <li>• Cannot purchase additional usage</li>
                 </ul>
               </div>
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
                 <p className="font-semibold mb-2">Pro Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• Starting at $25/month (100 credits)</li>
-                  <li>• $250/year (100 credits, save ~17%)</li>
-                  <li>• Flexible: 100-10,000 credits</li>
+                  <li>• $25/month</li>
+                  <li>• 10M AI tokens included per month</li>
+                  <li>• Purchase additional tokens as needed</li>
                   <li>• 5GB database storage</li>
                   <li>• Unlimited projects</li>
                   <li>• Priority support</li>
                   <li>• Custom domains</li>
-                  <li>• Credits roll over</li>
+                  <li>• Pay-as-you-go for infrastructure overages</li>
                 </ul>
               </div>
 
@@ -366,19 +366,20 @@ export default function TermsOfService() {
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              6.2 Credit Limits and Fair Use
+              6.2 Token Limits and Fair Use
             </h3>
             <ul className="space-y-2">
               <li>
-                <strong>Hobby Users:</strong> 20 AI credits per month
+                <strong>Hobby Users:</strong> 1M AI tokens per month (hard
+                limit, cannot purchase more)
               </li>
               <li>
-                <strong>Pro Users:</strong> 100-10,000 AI credits based on
-                selected tier
+                <strong>Pro Users:</strong> 10M AI tokens included per month,
+                with ability to purchase additional tokens as needed
               </li>
               <li>
-                <strong>Enterprise Users:</strong> Custom credit allocation
-                based on agreement
+                <strong>Enterprise Users:</strong> Unlimited tokens with custom
+                allocations based on agreement
               </li>
               <li>
                 We reserve the right to implement rate limits to ensure fair use

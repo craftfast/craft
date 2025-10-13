@@ -175,21 +175,23 @@ model TeamMember {
 // ============================================================================
 
 model Plan {
-  id              String             @id @default(cuid())
-  name            String             @unique // "HOBBY", "PRO", "ENTERPRISE"
-  displayName     String // "Hobby", "Pro", "Enterprise"
-  description     String? // Plan description
-  priceMonthlyUsd Float // Monthly price in USD (0 for Hobby, 25 for Pro)
-  priceMonthlyInr Float // Monthly price in INR
-  features        Json // JSON array of plan features
-  maxProjects     Int? // Max projects allowed (1000 soft limit = unlimited)
-  databaseSizeGb  Float // Database storage in GB
-  storageSizeGb   Float // File storage in GB
-  isActive        Boolean            @default(true)
-  sortOrder       Int                @default(0)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  subscriptions   TeamSubscription[]
+  id                String             @id @default(cuid())
+  name              String             @unique // "HOBBY", "PRO", "ENTERPRISE"
+  displayName       String // "Hobby", "Pro", "Enterprise"
+  description       String? // Plan description
+  priceMonthlyUsd   Float // Monthly price in USD (0 for Hobby, 25 for Pro)
+  priceMonthlyInr   Float // Monthly price in INR
+  features          Json // JSON array of plan features
+  maxProjects       Int? // Max projects allowed (1000 soft limit = unlimited)
+  databaseSizeGb    Float // Database storage in GB
+  storageSizeGb     Float // File storage in GB
+  monthlyTokenLimit Int? // Monthly AI token limit (1M for Hobby, 10M for Pro, null for Enterprise = unlimited)
+  canPurchaseTokens Boolean            @default(false) // Can purchase additional tokens beyond limit
+  isActive          Boolean            @default(true)
+  sortOrder         Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  subscriptions     TeamSubscription[]
 
   @@index([name])
   @@index([isActive])

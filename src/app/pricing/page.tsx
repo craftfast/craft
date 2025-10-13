@@ -301,10 +301,10 @@ export default function PricingPage() {
               Detailed Usage Limits & Costs
             </h2>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mb-4 max-w-3xl mx-auto">
-              All plans include generous free tiers for integrated services.{" "}
-              <strong>Hobby users cannot exceed free limits</strong> — upgrade
-              to Pro to access more usage and enable payments for usage beyond
-              free tiers. Usage resets monthly.
+              <strong>Hobby:</strong> 1M tokens/month with hard limits on
+              infrastructure (no pay-as-you-go). <strong>Pro:</strong> 10M
+              tokens included + pay-as-you-go for tokens and infrastructure
+              beyond generous free tiers. Usage resets monthly.
             </p>
             <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden">
               <table className="w-full">
@@ -375,12 +375,12 @@ export default function PricingPage() {
                         AI Token Usage
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Pricing as per original provider
+                        Monthly token allocation
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        10M tokens free
+                        1M tokens/month
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
                         <span className="inline-block px-2 py-0.5 bg-neutral-200 dark:bg-neutral-700 rounded text-xs font-medium">
@@ -390,7 +390,7 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        10M tokens free
+                        10M tokens included
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
                         Purchase additional tokens as needed
@@ -398,10 +398,10 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        Custom token limits
+                        Unlimited tokens
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
-                        Volume discounts available
+                        Custom allocations & volume discounts
                       </div>
                     </td>
                   </tr>
@@ -1117,10 +1117,11 @@ export default function PricingPage() {
                     How does billing work?
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    <strong>Hobby:</strong> Free tier with hard limits. Upgrade
-                    to Pro to access more usage and enable payments.{" "}
-                    <strong>Pro:</strong> $25/month per user, then pay-as-you-go
-                    for usage beyond generous free limits.
+                    <strong>Hobby:</strong> Free with hard limits (1M
+                    tokens/month, 500MB database). No pay-as-you-go - upgrade to
+                    Pro for more. <strong>Pro:</strong> $25/month includes 10M
+                    tokens + generous infrastructure limits, then pay-as-you-go
+                    for additional usage.
                   </p>
                 </div>
 
