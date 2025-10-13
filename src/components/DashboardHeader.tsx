@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import UserMenu from "./UserMenu";
+import ThemeToggle from "./ThemeToggle";
 
 interface DashboardHeaderProps {
   title?: string;
@@ -18,10 +19,39 @@ export default function DashboardHeader({
 
   return (
     <>
-      {/* Page Title - Desktop */}
-      <h1 className="hidden sm:block text-md md:text-lg font-semibold text-neutral-900 dark:text-neutral-100 ml-4">
-        {title}
-      </h1>
+      {/* Team Name with Switcher - Visible on all screen sizes */}
+      <div className="flex items-center ml-4 border-neutral-200 dark:border-neutral-700">
+        <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
+        {/* Team Name Link */}
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="ml-2 px-2 py-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100 cursor-pointer rounded-full transition-colors"
+        >
+          {title}
+        </button>
+        {/* Team Switcher Dropdown Button */}
+        <button
+          onClick={() => {
+            // TODO: Implement team switcher functionality
+          }}
+          className="p-1.5 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+          aria-label="Switch team"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 9l4-4 4 4m0 6l-4 4-4-4"
+            />
+          </svg>
+        </button>
+      </div>
 
       {/* Desktop User Menu */}
       <div className="hidden sm:flex items-center gap-2 ml-auto">
@@ -71,6 +101,9 @@ export default function DashboardHeader({
           </svg>
           <span>New Project</span>
         </button>
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {session?.user && (
           <UserMenu user={session.user} showDashboardLink={false} />
@@ -139,6 +172,14 @@ export default function DashboardHeader({
                 >
                   Upgrade Plan
                 </button>
+                <div className="border-t border-neutral-200 dark:border-neutral-800 my-2" />
+                {/* Theme Toggle in Mobile Menu */}
+                <div className="flex items-center justify-between px-4 py-2">
+                  <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                    Theme
+                  </span>
+                  <ThemeToggle />
+                </div>
                 <div className="border-t border-neutral-200 dark:border-neutral-800 my-2" />
                 <button
                   onClick={async () => {

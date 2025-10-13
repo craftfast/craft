@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Logo from "@/components/Logo";
 import DashboardHeader from "@/components/DashboardHeader";
 import Projects from "@/components/Projects";
+import { getUserPersonalTeam } from "@/lib/team";
 import type { Session } from "next-auth";
 
 export default async function ProjectsPage() {
@@ -13,6 +14,9 @@ export default async function ProjectsPage() {
   if (!session) {
     redirect("/home");
   }
+
+  // Fetch the user's personal team
+  const team = await getUserPersonalTeam(session.user.id);
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
@@ -28,7 +32,7 @@ export default async function ProjectsPage() {
               iconClassName="text-white dark:text-white"
               href="/dashboard"
             />
-            <DashboardHeader title="Projects" />
+            <DashboardHeader title={team?.name} />
           </div>
         </div>
       </header>
