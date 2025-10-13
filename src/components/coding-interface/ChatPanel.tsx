@@ -5,12 +5,19 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
+import { getModelsForPlan, getDefaultModel, AI_MODELS } from "@/lib/ai-models";
+import type { PlanName } from "@/lib/ai-models";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   createdAt: Date;
+  tokenCount?: {
+    input: number;
+    output: number;
+    cost: number;
+  };
 }
 
 interface ChatPanelProps {
@@ -52,6 +59,19 @@ export default function ChatPanel({
   const [feedbackMessageId, setFeedbackMessageId] = useState<{
     [key: string]: "like" | "dislike" | null;
   }>({});
+
+  // Model selection and token tracking
+  const [selectedModel, setSelectedModel] =
+    useState<string>("grok-code-fast-1");
+  const [userPlan, setUserPlan] = useState<PlanName>("HOBBY");
+  const [availableModels, setAvailableModels] = useState(
+    getModelsForPlan("HOBBY")
+  );
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [sessionTokenCount, setSessionTokenCount] = useState<{
+    totalTokens: number;
+    totalCost: number;
+  }>({ totalTokens: 0, totalCost: 0 });
 
   // Define loadMessages callback before any useEffect that uses it
   const loadMessages = useCallback(async (sessionId: string) => {
@@ -194,6 +214,55 @@ export default function ChatPanel({
     sendFirstMessage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectVersion, projectDescription, messagesLoaded, isLoading]);
+
+  // Fetch user's plan and set available models with correct defaults
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      try {
+        const response = await fetch("/api/user/plan");
+        if (response.ok) {
+          const data = await response.json();
+          const plan: PlanName = data.plan || "HOBBY";
+
+          console.log(`🎯 User plan: ${plan}`);
+
+          setUserPlan(plan);
+          setAvailableModels(getModelsForPlan(plan));
+
+          // Set default model based on plan
+          // Hobby: grok-code-fast-1 (fastest, cheapest)
+          // Pro: claude-sonnet-4.5 (best quality)
+          // Enterprise: claude-opus-4 (maximum capability)
+          const defaultModel = getDefaultModel(plan);
+          setSelectedModel(defaultModel);
+
+          console.log(`🤖 Default model for ${plan}: ${defaultModel}`);
+        }
+      } catch (error) {
+        console.error("Error fetching user plan:", error);
+        // Default to HOBBY plan on error
+        setUserPlan("HOBBY");
+        setAvailableModels(getModelsForPlan("HOBBY"));
+        setSelectedModel(getDefaultModel("HOBBY"));
+      }
+    };
+
+    fetchUserPlan();
+  }, [projectId]);
+
+  // Calculate session token usage from messages
+  useEffect(() => {
+    const totalTokens = messages.reduce(
+      (sum, msg) =>
+        sum + (msg.tokenCount?.input || 0) + (msg.tokenCount?.output || 0),
+      0
+    );
+    const totalCost = messages.reduce(
+      (sum, msg) => sum + (msg.tokenCount?.cost || 0),
+      0
+    );
+    setSessionTokenCount({ totalTokens, totalCost });
+  }, [messages]);
 
   const createNewSession = useCallback(
     async (name?: string): Promise<string | null> => {
@@ -442,6 +511,8 @@ export default function ChatPanel({
           })),
           taskType: "coding",
           projectFiles, // Send existing project files for context
+          selectedModel, // Send selected AI model
+          teamId: projectId, // For plan verification
         }),
       });
 
@@ -772,6 +843,149 @@ export default function ChatPanel({
       {/* Input Area */}
       <div className="border-neutral-200 dark:border-neutral-800 p-2 pl-4">
         <div className="max-w-3xl mx-auto">
+          {/* Model Selector & Token Counter */}
+          <div className="flex items-center justify-between mb-2 px-2">
+            <div className="relative">
+              <button
+                onClick={() => setShowModelSelector(!showModelSelector)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-sm"
+              >
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                  {AI_MODELS[selectedModel]?.name || "Select Model"}
+                </span>
+                <svg
+                  className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 transition-transform ${
+                    showModelSelector ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {showModelSelector && (
+                <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900">
+                    <h3 className="font-semibold text-sm text-neutral-900 dark:text-neutral-100">
+                      Select AI Model
+                    </h3>
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
+                      {userPlan === "HOBBY"
+                        ? "Lite models (upgrade for premium)"
+                        : userPlan === "PRO"
+                        ? "Lite & Premium models"
+                        : "All models available"}
+                    </p>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {availableModels.map((model) => (
+                      <button
+                        key={model.id}
+                        onClick={() => {
+                          setSelectedModel(
+                            Object.keys(AI_MODELS).find(
+                              (key) => AI_MODELS[key].id === model.id
+                            ) || "grok-code-fast-1"
+                          );
+                          setShowModelSelector(false);
+                        }}
+                        className={`w-full px-4 py-3 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors border-b border-neutral-100 dark:border-neutral-800 ${
+                          selectedModel ===
+                          Object.keys(AI_MODELS).find(
+                            (key) => AI_MODELS[key].id === model.id
+                          )
+                            ? "bg-neutral-50 dark:bg-neutral-900"
+                            : ""
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm text-neutral-900 dark:text-neutral-100">
+                                {model.name}
+                              </span>
+                              {model.tier === "premium" && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full">
+                                  Pro
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
+                              {model.description}
+                            </p>
+                            <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
+                              {model.provider} • ${model.pricingPer1M.input}/
+                              {model.pricingPer1M.output} per 1M tokens
+                            </p>
+                          </div>
+                          {selectedModel ===
+                            Object.keys(AI_MODELS).find(
+                              (key) => AI_MODELS[key].id === model.id
+                            ) && (
+                            <svg
+                              className="w-5 h-5 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Token Counter */}
+            <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
+              </svg>
+              <span>
+                {sessionTokenCount.totalTokens.toLocaleString()} tokens
+              </span>
+              <span className="text-neutral-400 dark:text-neutral-600">•</span>
+              <span>${sessionTokenCount.totalCost.toFixed(4)}</span>
+            </div>
+          </div>
+
           <div className="rounded-2xl px-2 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm hover:shadow-md focus-within:shadow-lg transition-shadow">
             <div className="relative">
               <textarea

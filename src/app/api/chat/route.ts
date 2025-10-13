@@ -1,6 +1,11 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { streamText } from "ai";
 import { getSystemPrompt } from "@/lib/ai/system-prompts";
+import { AI_MODELS } from "@/lib/ai-models";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { canUseModel } from "@/lib/ai-usage";
+import { prisma } from "@/lib/db";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -12,14 +17,50 @@ const openrouter = createOpenRouter({
 
 export async function POST(req: Request) {
     try {
-        const { messages, taskType, projectFiles } = await req.json();
+        const { messages, taskType, projectFiles, selectedModel, teamId } = await req.json();
 
-        // Determine which model to use based on task type
-        // taskType can be: 'coding', 'naming', 'general'
-        const modelName =
-            taskType === "naming" || taskType === "general"
-                ? process.env.GROK_MODEL || "x-ai/grok-4-fast"
-                : process.env.CLAUDE_MODEL || "anthropic/claude-sonnet-4.5";
+        // Get user session for plan verification
+        const session = await getServerSession(authOptions);
+
+        // Determine which model to use
+        let modelName: string;
+
+        if (selectedModel) {
+            // User explicitly selected a model - verify they have access
+            if (teamId && session?.user?.email) {
+                const user = await prisma.user.findUnique({
+                    where: { email: session.user.email },
+                });
+
+                if (user) {
+                    // Check if user can access this model
+                    const hasAccess = await canUseModel(teamId, selectedModel);
+
+                    if (!hasAccess) {
+                        return new Response(
+                            JSON.stringify({
+                                error: "Model not available",
+                                message: "Upgrade your plan to access this model",
+                            }),
+                            {
+                                status: 403,
+                                headers: { "Content-Type": "application/json" },
+                            }
+                        );
+                    }
+                }
+            }
+
+            // Use the selected model
+            const modelInfo = AI_MODELS[selectedModel];
+            modelName = modelInfo?.id || selectedModel;
+        } else {
+            // Fallback: Use legacy task-based model selection
+            modelName =
+                taskType === "naming" || taskType === "general"
+                    ? process.env.GROK_MODEL || "x-ai/grok-4-fast"
+                    : process.env.CLAUDE_MODEL || "anthropic/claude-sonnet-4.5";
+        }
 
         // Get environment-aware system prompt
         const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles);

@@ -6,6 +6,7 @@
 import { prisma } from "@/lib/db";
 
 // AI Model pricing per 1M tokens (in USD)
+// Updated from OpenRouter pricing (October 14, 2025)
 const MODEL_PRICING = {
     // Claude models
     "claude-sonnet-4.5": { input: 3.0, output: 15.0 },
@@ -14,16 +15,16 @@ const MODEL_PRICING = {
 
     // GPT models
     "gpt-5": { input: 10.0, output: 30.0 },
-    "gpt-5-mini": { input: 0.3, output: 1.2 },
-    "gpt-5-codex": { input: 5.0, output: 15.0 },
+    "gpt-5-mini": { input: 0.25, output: 2.0 },
+    "gpt-5-codex": { input: 1.25, output: 10.0 },
     "gpt-4-turbo": { input: 10.0, output: 30.0 },
 
     // Gemini models
-    "gemini-2.5-pro": { input: 7.0, output: 21.0 },
-    "gemini-2.5-flash": { input: 0.5, output: 1.5 },
+    "gemini-2.5-pro": { input: 1.25, output: 10.0 },
+    "gemini-2.5-flash": { input: 0.3, output: 2.5 },
 
     // Grok models
-    "grok-code-fast-1": { input: 0.2, output: 0.6 },
+    "grok-code-fast-1": { input: 0.2, output: 1.5 },
     "grok-2": { input: 2.0, output: 6.0 },
 
     // Default fallback
