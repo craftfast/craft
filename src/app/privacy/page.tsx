@@ -56,7 +56,7 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Payment Information:</strong> Billing details, payment
-                card information (processed securely through Razorpay), and
+                card information (processed securely through Polar.sh), and
                 transaction history for Pro, Business, and Enterprise
                 subscriptions.
               </li>
@@ -189,7 +189,7 @@ export default function PrivacyPolicy() {
             </h3>
             <ul className="space-y-2">
               <li>
-                <strong>Payment Processors:</strong> Razorpay for payment
+                <strong>Payment Processors:</strong> Polar.sh for payment
                 processing (they have their own privacy policies).
               </li>
               <li>
@@ -559,12 +559,12 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <a
-                  href="https://www.razorpay.com/privacy/"
+                  href="https://polar.sh/legal/privacy"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  Razorpay Privacy Policy
+                  Polar.sh Privacy Policy
                 </a>
               </li>
               <li>

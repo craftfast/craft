@@ -138,15 +138,16 @@ model ProjectVersion {
 }
 
 model Team {
-  id         String       @id @default(cuid())
-  name       String
-  slug       String       @unique // URL-friendly identifier
-  ownerId    String
-  isPersonal Boolean      @default(false) // True if this is the user's default personal team
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  owner      User         @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members    TeamMember[]
+  id           String            @id @default(cuid())
+  name         String
+  slug         String            @unique // URL-friendly identifier
+  ownerId      String
+  isPersonal   Boolean           @default(false) // True if this is the user's default personal team
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  owner        User              @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      TeamMember[]
+  subscription TeamSubscription?
 
   @@index([ownerId])
   @@index([isPersonal])
@@ -167,4 +168,192 @@ model TeamMember {
   @@index([userId])
   @@index([teamId])
   @@map("team_members")
+}
+
+// ============================================================================
+// SUBSCRIPTION & BILLING MODELS
+// ============================================================================
+
+model Plan {
+  id              String             @id @default(cuid())
+  name            String             @unique // "HOBBY", "PRO", "ENTERPRISE"
+  displayName     String // "Hobby", "Pro", "Enterprise"
+  description     String? // Plan description
+  priceMonthlyUsd Float // Monthly price in USD (0 for Hobby, 25 for Pro)
+  priceMonthlyInr Float // Monthly price in INR
+  features        Json // JSON array of plan features
+  maxProjects     Int? // Max projects allowed (1000 soft limit = unlimited)
+  databaseSizeGb  Float // Database storage in GB
+  storageSizeGb   Float // File storage in GB
+  isActive        Boolean            @default(true)
+  sortOrder       Int                @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  subscriptions   TeamSubscription[]
+
+  @@index([name])
+  @@index([isActive])
+  @@map("plans")
+}
+
+model TeamSubscription {
+  id                 String        @id @default(cuid())
+  teamId             String
+  planId             String
+  status             String        @default("active") // "active", "cancelled", "expired", "past_due"
+  currentPeriodStart DateTime      @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean       @default(false)
+  cancelledAt        DateTime?
+  polarCheckoutId    String? // Last Polar checkout ID
+  polarPaymentId     String? // Last Polar payment ID
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  team               Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  plan               Plan          @relation(fields: [planId], references: [id])
+  usageRecords       UsageRecord[]
+  invoices           Invoice[]
+
+  @@unique([teamId]) // One active subscription per team
+  @@index([teamId])
+  @@index([planId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("team_subscriptions")
+}
+
+// ============================================================================
+// AI TOKEN USAGE TRACKING
+// ============================================================================
+
+model AITokenUsage {
+  id           String   @id @default(cuid())
+  teamId       String
+  userId       String
+  projectId    String
+  model        String // "claude-sonnet-4.5", "gpt-5", "gemini-2.5-pro", etc.
+  inputTokens  Int // Tokens in the prompt/input
+  outputTokens Int // Tokens in the response/output
+  totalTokens  Int // inputTokens + outputTokens
+  costUsd      Float // Cost in USD for this usage
+  endpoint     String? // "chat", "code-generation", "image-analysis", etc.
+  createdAt    DateTime @default(now())
+
+  @@index([teamId, createdAt])
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([model, createdAt])
+  @@index([createdAt]) // For billing period queries
+  @@map("ai_token_usage")
+}
+
+// ============================================================================
+// INFRASTRUCTURE USAGE TRACKING
+// ============================================================================
+
+model UsageRecord {
+  id                      String           @id @default(cuid())
+  teamId                  String
+  subscriptionId          String
+  billingPeriodStart      DateTime
+  billingPeriodEnd        DateTime
+  // AI Usage
+  aiTokensUsed            Int              @default(0)
+  aiCostUsd               Float            @default(0)
+  // Database Usage
+  databaseSizeGb          Float            @default(0)
+  databaseCostUsd         Float            @default(0)
+  // Storage Usage
+  storageSizeGb           Float            @default(0)
+  storageCostUsd          Float            @default(0)
+  // Bandwidth Usage
+  bandwidthGb             Float            @default(0)
+  bandwidthCostUsd        Float            @default(0)
+  // Auth Usage (MAU - Monthly Active Users)
+  authMau                 Int              @default(0)
+  authCostUsd             Float            @default(0)
+  // Edge Function Invocations
+  edgeFunctionInvocations Int              @default(0)
+  edgeFunctionCostUsd     Float            @default(0)
+  // Total
+  totalCostUsd            Float            @default(0)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  subscription            TeamSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, billingPeriodStart]) // One record per billing period
+  @@index([teamId, billingPeriodStart])
+  @@index([billingPeriodEnd])
+  @@map("usage_records")
+}
+
+// ============================================================================
+// INVOICING & PAYMENT TRACKING
+// ============================================================================
+
+model Invoice {
+  id                  String           @id @default(cuid())
+  teamId              String
+  subscriptionId      String
+  invoiceNumber       String           @unique // e.g., "INV-2025-001"
+  status              String           @default("draft") // "draft", "issued", "paid", "failed", "refunded"
+  billingPeriodStart  DateTime
+  billingPeriodEnd    DateTime
+  // Line Items
+  subscriptionFeeUsd  Float            @default(0) // Base plan fee
+  aiUsageCostUsd      Float            @default(0)
+  databaseCostUsd     Float            @default(0)
+  storageCostUsd      Float            @default(0)
+  bandwidthCostUsd    Float            @default(0)
+  authCostUsd         Float            @default(0)
+  edgeFunctionCostUsd Float            @default(0)
+  // Totals
+  subtotalUsd         Float            @default(0)
+  taxUsd              Float            @default(0)
+  totalUsd            Float            @default(0)
+  currency            String           @default("USD") // "USD" or "EUR"
+  // Payment Details
+  polarCheckoutId     String?
+  polarPaymentId      String?
+  paidAt              DateTime?
+  dueDate             DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  subscription        TeamSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([billingPeriodStart])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+// ============================================================================
+// PAYMENT TRANSACTIONS
+// ============================================================================
+
+model PaymentTransaction {
+  id              String   @id @default(cuid())
+  teamId          String
+  invoiceId       String?
+  amount          Float
+  currency        String   @default("USD")
+  status          String // "pending", "completed", "failed", "refunded"
+  paymentMethod   String   @default("polar") // "polar", "stripe", etc.
+  polarCheckoutId String?
+  polarPaymentId  String?
+  polarSignature  String?
+  failureReason   String?
+  metadata        Json? // Additional payment metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([teamId])
+  @@index([invoiceId])
+  @@index([status])
+  @@index([polarCheckoutId])
+  @@index([polarPaymentId])
+  @@index([createdAt])
+  @@map("payment_transactions")
 }

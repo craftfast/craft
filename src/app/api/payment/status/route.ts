@@ -1,17 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Polar } from "@polar-sh/sdk";
 
-export async function POST(request: NextRequest) {
+// Initialize Polar instance
+function getPolarInstance() {
+    const accessToken = process.env.POLAR_ACCESS_TOKEN;
+    if (!accessToken) {
+        throw new Error("POLAR_ACCESS_TOKEN environment variable is not set");
+    }
+
+    const server = process.env.POLAR_SERVER as "sandbox" | "production" | undefined;
+
+    return new Polar({
+        accessToken,
+        server: server || "sandbox", // Default to sandbox for safety
+    });
+}
+
+export async function GET(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { checkoutId, paymentId, signature } = body;
+        const searchParams = request.nextUrl.searchParams;
+        const checkoutId = searchParams.get("checkoutId");
 
         // Validate input
-        if (!checkoutId || !paymentId || !signature) {
+        if (!checkoutId) {
             return NextResponse.json(
                 {
-                    error: "Missing required fields",
-                    message: "Payment verification data is incomplete. Please contact support."
+                    error: "Missing required field",
+                    message: "Checkout ID is required"
                 },
                 { status: 400 }
             );
@@ -24,43 +39,31 @@ export async function POST(request: NextRequest) {
                 {
                     verified: false,
                     error: "Payment verification configuration error",
-                    message: "Unable to verify payment. Please contact support at support@craft.tech with your payment ID: " + paymentId
+                    message: "Unable to verify payment. Please contact support at support@craft.tech"
                 },
                 { status: 503 }
             );
         }
 
-        // Verify payment with Polar
-        const server = process.env.POLAR_SERVER as "sandbox" | "production" | undefined;
-        const polar = new Polar({
-            accessToken: process.env.POLAR_ACCESS_TOKEN!,
-            server: server || "sandbox", // Default to sandbox for safety
-        });
-
+        // Get checkout status from Polar
+        const polar = getPolarInstance();
         const checkout = await polar.checkouts.get({ id: checkoutId });
-        // Verify checkout exists
+
+        // Check if checkout exists - presence indicates payment initiated
         const isVerified = checkout.id === checkoutId;
 
         if (isVerified) {
             // Payment verified successfully
-            // Here you would:
-            // 1. Update user's subscription status in database
-            // 2. Send confirmation email
-            // 3. Grant access to premium features
-
             return NextResponse.json({
                 verified: true,
+                checkoutId: checkout.id,
                 message: "Payment verified successfully",
             });
         } else {
-            return NextResponse.json(
-                {
-                    verified: false,
-                    error: "Invalid signature",
-                    message: "Payment verification failed. Your payment may still be processing. Please contact support at support@craft.tech if you were charged."
-                },
-                { status: 400 }
-            );
+            return NextResponse.json({
+                verified: false,
+                message: "Checkout not found",
+            });
         }
     } catch (error) {
         console.error("Error verifying payment:", error);

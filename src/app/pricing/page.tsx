@@ -5,11 +5,7 @@ import { useSession } from "next-auth/react";
 import Logo from "@/components/Logo";
 import HeaderNav from "@/components/HeaderNav";
 import Footer from "@/components/Footer";
-import {
-  initiateRazorpayPayment,
-  verifyPayment,
-  convertToSmallestUnit,
-} from "@/lib/razorpay";
+import { initiatePolarPayment, toSmallestUnit } from "@/lib/polar";
 
 interface PlanFeature {
   text: string;
@@ -41,32 +37,47 @@ export default function PricingPage() {
   const handleProPayment = async () => {
     const amount = 25; // $25/month for Pro
 
-    await initiateRazorpayPayment({
-      amount: convertToSmallestUnit(amount),
-      currency: "USD",
-      name: "Craft Pro",
-      description: "Pro Plan (Monthly)",
-      planName: "Pro",
-      onSuccess: async (response) => {
-        // Verify payment
-        const isVerified = await verifyPayment(
-          response.razorpay_order_id,
-          response.razorpay_payment_id,
-          response.razorpay_signature
-        );
+    try {
+      // Initiate Polar payment (this will redirect to Polar checkout)
+      await initiatePolarPayment({
+        amount: toSmallestUnit(amount),
+        currency: "USD",
+        productName: "Craft Pro",
+        productDescription:
+          "Pro Plan - Monthly Subscription with unlimited projects and advanced features",
+        email: session?.user?.email || undefined,
+        successUrl: `${window.location.origin}/dashboard?payment=success&plan=pro`,
+        onFailure: (error) => {
+          console.error("Payment failed:", error);
+          const errorMsg =
+            typeof error === "object" && "error" in error
+              ? error.error
+              : "An unexpected error occurred";
 
-        if (isVerified) {
-          alert("Payment successful! Welcome to Pro 🎉");
-          router.push("/dashboard");
-        } else {
-          alert("Payment verification failed. Please contact support.");
-        }
-      },
-      onFailure: (error) => {
-        console.error("Payment failed:", error);
-        alert("Payment failed. Please try again or contact support.");
-      },
-    });
+          // Show detailed error message
+          alert(
+            "❌ Payment Failed\n\n" +
+              errorMsg +
+              "\n\n" +
+              "What to do:\n" +
+              "• Try again in a few minutes\n" +
+              "• Check your internet connection\n" +
+              "• If the issue persists, contact support:\n\n" +
+              "📧 Email: support@craft.tech\n" +
+              "💬 We typically respond within 24 hours"
+          );
+        },
+      });
+    } catch (error) {
+      console.error("Unexpected payment error:", error);
+      alert(
+        "⚠️ Unexpected Error\n\n" +
+          "Something went wrong while initiating payment.\n\n" +
+          "Please try again later or contact support:\n" +
+          "📧 support@craft.tech\n\n" +
+          "We apologize for the inconvenience."
+      );
+    }
   };
 
   const plans: PricingPlan[] = [
@@ -410,7 +421,7 @@ export default function PricingPage() {
                         Database Storage
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                       PostgreSQL database storage
+                        PostgreSQL database storage
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">

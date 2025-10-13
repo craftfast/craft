@@ -6,10 +6,10 @@ declare module "*.module.css" {
   export default classes;
 }
 
-// Razorpay type
+// Polar.sh type
 interface Window {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Razorpay: any;
+  Polar: any;
 }
 
 // NextAuth type extensions
