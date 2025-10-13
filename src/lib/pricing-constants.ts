@@ -1,6 +1,7 @@
 /**
  * Pricing Constants
  * Centralized pricing information for the Craft platform
+ * Usage-based pricing model - pay only for what you use
  */
 
 export const PRICING = {
@@ -10,9 +11,6 @@ export const PRICING = {
         priceYearly: 0,
         displayPriceMonthly: "$0",
         displayPriceYearly: "$0",
-        creditsPerMonth: 20,
-        dailyCreditLimit: 5, // Max 5 credits per day to prevent abuse
-        creditRollover: false,
         databaseStorageGB: 0.5,
         maxProjects: 3,
         features: {
@@ -38,16 +36,6 @@ export const PRICING = {
         priceYearly: 250, // ~17% discount (10 months price)
         displayPriceMonthly: "$25",
         displayPriceYearly: "$250",
-        creditsPerMonth: 100, // Base tier: 100 credits
-        baseCredits: 100, // Base credit amount
-        basePriceMonthly: 25, // Base price for 100 credits
-        basePriceYearly: 250, // Base yearly price for 100 credits
-        pricePerCreditMonthly: 0.25, // $25 / 100 credits = $0.25 per credit
-        pricePerCreditYearly: 2.50, // $250 / 100 credits = $2.50 per credit per year
-        minCredits: 100,
-        maxCredits: 10000,
-        dailyCreditLimit: null, // No daily limit
-        creditRollover: true,
         databaseStorageGB: 5,
         maxProjects: null, // Unlimited
         features: {
@@ -73,16 +61,6 @@ export const PRICING = {
         priceYearly: 500, // ~17% discount (10 months price)
         displayPriceMonthly: "$50",
         displayPriceYearly: "$500",
-        creditsPerMonth: 100, // Base tier: 100 credits
-        baseCredits: 100, // Base credit amount
-        basePriceMonthly: 50, // Base price for 100 credits
-        basePriceYearly: 500, // Base yearly price for 100 credits
-        pricePerCreditMonthly: 0.50, // $50 / 100 credits = $0.50 per credit
-        pricePerCreditYearly: 5.00, // $500 / 100 credits = $5.00 per credit per year
-        minCredits: 100,
-        maxCredits: 10000,
-        dailyCreditLimit: null, // No daily limit
-        creditRollover: true,
         databaseStorageGB: 20,
         maxProjects: null, // Unlimited
         features: {
@@ -108,9 +86,6 @@ export const PRICING = {
         priceYearly: null, // Contact sales
         displayPriceMonthly: "Custom",
         displayPriceYearly: "Custom",
-        creditsPerMonth: null, // Custom/Unlimited
-        dailyCreditLimit: null, // No daily limit
-        creditRollover: true,
         databaseStorageGB: null, // Unlimited
         maxProjects: null, // Unlimited
         features: {
@@ -201,83 +176,4 @@ export function hasFeatureAccess(
 ): boolean {
     const plan = PRICING[planName];
     return !!(plan.features as Record<string, unknown>)[featureName];
-}
-
-/**
- * Get monthly credits for a plan
- */
-export function getMonthlyCredits(planName: PlanName): number | null {
-    return PRICING[planName].creditsPerMonth;
-}
-
-/**
- * Get daily credit limit for a plan (only applies to Free plan)
- */
-export function getDailyCreditLimit(planName: PlanName): number | null {
-    return PRICING[planName].dailyCreditLimit;
-}
-
-/**
- * Check if plan has daily credit limits
- */
-export function hasDailyCreditLimit(planName: PlanName): boolean {
-    return PRICING[planName].dailyCreditLimit !== null;
-}
-
-/**
- * Calculate price for a given number of credits (for tiered plans)
- * Only applies to PRO and BUSINESS plans
- */
-export function calculateTierPrice(
-    planName: "PRO" | "BUSINESS",
-    credits: number,
-    billingPeriod: BillingPeriod
-): number {
-    const plan = PRICING[planName];
-
-    // Ensure credits are within allowed range
-    const minCredits = plan.minCredits ?? 100;
-    const maxCredits = plan.maxCredits ?? 10000;
-    const clampedCredits = Math.max(minCredits, Math.min(maxCredits, credits));
-
-    if (billingPeriod === "YEARLY") {
-        return Math.round(clampedCredits * (plan.pricePerCreditYearly ?? 0));
-    }
-    return clampedCredits * (plan.pricePerCreditMonthly ?? 0);
-}
-
-/**
- * Get display price for a given number of credits
- */
-export function getTierDisplayPrice(
-    planName: "PRO" | "BUSINESS",
-    credits: number,
-    billingPeriod: BillingPeriod
-): string {
-    const price = calculateTierPrice(planName, credits, billingPeriod);
-
-    if (billingPeriod === "YEARLY") {
-        return `$${price.toLocaleString('en-US')}`;
-    }
-    return `$${price.toLocaleString('en-US')}`;
-}
-
-/**
- * Get suggested credit tiers for display
- */
-export function getCreditTiers(): number[] {
-    return [100, 200, 500, 1000, 2000, 5000, 10000];
-}
-
-/**
- * Validate if credits are within allowed range for a plan
- */
-export function isValidCreditAmount(
-    planName: "PRO" | "BUSINESS",
-    credits: number
-): boolean {
-    const plan = PRICING[planName];
-    const minCredits = plan.minCredits ?? 100;
-    const maxCredits = plan.maxCredits ?? 10000;
-    return credits >= minCredits && credits <= maxCredits && credits % 100 === 0;
 }

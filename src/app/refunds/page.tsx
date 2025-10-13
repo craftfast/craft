@@ -64,21 +64,12 @@ export default function RefundPolicy() {
               <li>Monthly or yearly subscription billed in advance</li>
               <li>Pricing: Starting at $25/month (100 credits) or $250/year</li>
               <li>Flexible tiers from 100-10,000 credits</li>
+              <li>14-day free trial available (no credit card required)</li>
               <li>Automatically renews each period unless cancelled</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              1.3 Business Plan
-            </h3>
-            <ul className="space-y-2">
-              <li>Monthly or yearly subscription billed in advance</li>
-              <li>Pricing: Starting at $50/month (100 credits) or $500/year</li>
-              <li>Flexible tiers from 100-10,000 credits</li>
-              <li>Automatically renews each period unless cancelled</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold mb-3 mt-6">
-              1.4 Enterprise Plan
+              1.3 Enterprise Plan
             </h3>
             <ul className="space-y-2">
               <li>Custom pricing and terms</li>
