@@ -843,149 +843,6 @@ export default function ChatPanel({
       {/* Input Area */}
       <div className="border-neutral-200 dark:border-neutral-800 p-2 pl-4">
         <div className="max-w-3xl mx-auto">
-          {/* Model Selector & Token Counter */}
-          <div className="flex items-center justify-between mb-2 px-2">
-            <div className="relative">
-              <button
-                onClick={() => setShowModelSelector(!showModelSelector)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-sm"
-              >
-                <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-                <span className="font-medium text-neutral-700 dark:text-neutral-300">
-                  {AI_MODELS[selectedModel]?.name || "Select Model"}
-                </span>
-                <svg
-                  className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 transition-transform ${
-                    showModelSelector ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-
-              {/* Dropdown Menu */}
-              {showModelSelector && (
-                <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900">
-                    <h3 className="font-semibold text-sm text-neutral-900 dark:text-neutral-100">
-                      Select AI Model
-                    </h3>
-                    <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
-                      {userPlan === "HOBBY"
-                        ? "Lite models (upgrade for premium)"
-                        : userPlan === "PRO"
-                        ? "Lite & Premium models"
-                        : "All models available"}
-                    </p>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {availableModels.map((model) => (
-                      <button
-                        key={model.id}
-                        onClick={() => {
-                          setSelectedModel(
-                            Object.keys(AI_MODELS).find(
-                              (key) => AI_MODELS[key].id === model.id
-                            ) || "grok-code-fast-1"
-                          );
-                          setShowModelSelector(false);
-                        }}
-                        className={`w-full px-4 py-3 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors border-b border-neutral-100 dark:border-neutral-800 ${
-                          selectedModel ===
-                          Object.keys(AI_MODELS).find(
-                            (key) => AI_MODELS[key].id === model.id
-                          )
-                            ? "bg-neutral-50 dark:bg-neutral-900"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm text-neutral-900 dark:text-neutral-100">
-                                {model.name}
-                              </span>
-                              {model.tier === "premium" && (
-                                <span className="px-2 py-0.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full">
-                                  Pro
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
-                              {model.description}
-                            </p>
-                            <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
-                              {model.provider} • ${model.pricingPer1M.input}/
-                              {model.pricingPer1M.output} per 1M tokens
-                            </p>
-                          </div>
-                          {selectedModel ===
-                            Object.keys(AI_MODELS).find(
-                              (key) => AI_MODELS[key].id === model.id
-                            ) && (
-                            <svg
-                              className="w-5 h-5 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Token Counter */}
-            <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
-              <span>
-                {sessionTokenCount.totalTokens.toLocaleString()} tokens
-              </span>
-              <span className="text-neutral-400 dark:text-neutral-600">•</span>
-              <span>${sessionTokenCount.totalCost.toFixed(4)}</span>
-            </div>
-          </div>
-
           <div className="rounded-2xl px-2 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm hover:shadow-md focus-within:shadow-lg transition-shadow">
             <div className="relative">
               <textarea
@@ -1005,26 +862,180 @@ export default function ChatPanel({
 
             {/* Controls Row */}
             <div className="flex items-center justify-between px-1 pt-2">
-              <button
-                onClick={() => console.log("Attach file")}
-                className="p-2 rounded-full border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-500 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
-                aria-label="Attach files"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => console.log("Attach file")}
+                  className="p-2 rounded-full border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-500 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+                  aria-label="Attach files"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </button>
+
+                {/* Model Selector */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowModelSelector(!showModelSelector)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-full bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors text-xs"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                      {AI_MODELS[selectedModel]?.name || "Select Model"}
+                    </span>
+                    <svg
+                      className={`w-3 h-3 text-neutral-600 dark:text-neutral-400 transition-transform ${
+                        showModelSelector ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showModelSelector && (
+                    <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden z-50">
+                      <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900">
+                        <h3 className="font-semibold text-sm text-neutral-900 dark:text-neutral-100">
+                          Select AI Model
+                        </h3>
+                        <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
+                          {userPlan === "HOBBY"
+                            ? "Lite models (upgrade for premium)"
+                            : userPlan === "PRO"
+                            ? "Lite & Premium models"
+                            : "All models available"}
+                        </p>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto">
+                        {availableModels.map((model) => (
+                          <button
+                            key={model.id}
+                            onClick={() => {
+                              setSelectedModel(
+                                Object.keys(AI_MODELS).find(
+                                  (key) => AI_MODELS[key].id === model.id
+                                ) || "grok-code-fast-1"
+                              );
+                              setShowModelSelector(false);
+                            }}
+                            className={`w-full px-4 py-3 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors border-b border-neutral-100 dark:border-neutral-800 ${
+                              selectedModel ===
+                              Object.keys(AI_MODELS).find(
+                                (key) => AI_MODELS[key].id === model.id
+                              )
+                                ? "bg-neutral-50 dark:bg-neutral-900"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-medium text-sm text-neutral-900 dark:text-neutral-100">
+                                    {model.name}
+                                  </span>
+                                  <span
+                                    className={`text-xs px-1.5 py-0.5 rounded ${
+                                      model.tier === "lite"
+                                        ? "bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300"
+                                        : model.tier === "premium"
+                                        ? "bg-neutral-300 dark:bg-neutral-600 text-neutral-800 dark:text-neutral-200"
+                                        : "bg-neutral-400 dark:bg-neutral-500 text-neutral-900 dark:text-neutral-100"
+                                    }`}
+                                  >
+                                    {model.tier.toUpperCase()}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-1">
+                                  {model.description}
+                                </p>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-500">
+                                  ${model.pricingPer1M.input.toFixed(2)}/$
+                                  {model.pricingPer1M.output.toFixed(2)} per 1M
+                                  tokens
+                                </p>
+                              </div>
+                              {selectedModel ===
+                                Object.keys(AI_MODELS).find(
+                                  (key) => AI_MODELS[key].id === model.id
+                                ) && (
+                                <svg
+                                  className="w-5 h-5 text-neutral-700 dark:text-neutral-300 flex-shrink-0"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Token Counter */}
+                <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400 px-2">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                    />
+                  </svg>
+                  <span>
+                    {sessionTokenCount.totalTokens.toLocaleString()} tokens
+                  </span>
+                  <span className="text-neutral-400 dark:text-neutral-600">
+                    •
+                  </span>
+                  <span>${sessionTokenCount.totalCost.toFixed(4)}</span>
+                </div>
+              </div>
 
               <button
                 onClick={handleFormSubmit}

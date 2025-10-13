@@ -240,7 +240,7 @@ export default function CraftInput() {
             <div className="relative">
               <button
                 onClick={() => setShowModelSelector(!showModelSelector)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors text-xs"
+                className="flex items-center gap-2 px-3 py-2 rounded-full bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors text-xs"
               >
                 <svg
                   className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400"
