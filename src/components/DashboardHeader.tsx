@@ -4,15 +4,25 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import UserMenu from "./UserMenu";
+import TeamSwitcher from "./TeamSwitcher";
 
 interface DashboardHeaderProps {
   title?: string;
   planName?: string;
+  teamId?: string;
+  teamSubscription?: {
+    plan: {
+      name: string;
+      displayName: string;
+    };
+  } | null;
 }
 
 export default function DashboardHeader({
   title = "Dashboard",
   planName,
+  teamId,
+  teamSubscription,
 }: DashboardHeaderProps) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -39,28 +49,16 @@ export default function DashboardHeader({
             {planName === "HOBBY" ? "Hobby" : "Pro"}
           </span>
         )}
-        {/* Team Switcher Dropdown Button */}
-        <button
-          onClick={() => {
-            // TODO: Implement team switcher functionality
-          }}
-          className="p-1.5 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-          aria-label="Switch team"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 9l4-4 4 4m0 6l-4 4-4-4"
-            />
-          </svg>
-        </button>
+        {/* Team Switcher */}
+        {teamId && (
+          <TeamSwitcher
+            currentTeam={{
+              id: teamId,
+              name: title,
+              subscription: teamSubscription || null,
+            }}
+          />
+        )}
       </div>
 
       {/* Upgrade CTA - Center of Header (only for Hobby plan) */}
