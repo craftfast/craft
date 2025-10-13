@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { assignPlanToTeam } from "@/lib/subscription";
 
 /**
  * Create a default personal team for a new user
@@ -51,6 +52,15 @@ export async function createDefaultPersonalTeam(
 
     console.log(`✅ Created personal team "${teamName}" for user ${userId}`);
 
+    // Assign HOBBY plan to new team by default
+    try {
+        await assignPlanToTeam(team.id, "HOBBY");
+        console.log(`✅ Assigned HOBBY plan to team ${team.id}`);
+    } catch (error) {
+        console.error(`❌ Failed to assign HOBBY plan to team ${team.id}:`, error);
+        // Don't throw error - team creation should succeed even if plan assignment fails
+    }
+
     return team;
 }
 
@@ -85,6 +95,16 @@ export async function getUserPersonalTeam(userId: string) {
             id: true,
             name: true,
             slug: true,
+            subscription: {
+                select: {
+                    plan: {
+                        select: {
+                            name: true,
+                            displayName: true,
+                        },
+                    },
+                },
+            },
         },
     });
 

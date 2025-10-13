@@ -344,27 +344,27 @@ async function handleSubscriptionExpired(data: PolarWebhookEvent["data"]) {
 
         if (!team) return;
 
-        // Get the FREE plan
-        const freePlan = await prisma.plan.findUnique({
-            where: { name: "FREE" },
+        // Get the HOBBY plan (free plan)
+        const hobbyPlan = await prisma.plan.findUnique({
+            where: { name: "HOBBY" },
         });
 
-        if (!freePlan) {
-            console.error("FREE plan not found in database");
+        if (!hobbyPlan) {
+            console.error("HOBBY plan not found in database");
             return;
         }
 
-        // Update subscription to expired and downgrade to free plan
+        // Update subscription to expired and downgrade to hobby plan
         await prisma.teamSubscription.update({
             where: { teamId: team.id },
             data: {
                 status: "expired",
-                planId: freePlan.id,
+                planId: hobbyPlan.id,
                 updatedAt: new Date(),
             },
         });
 
-        console.log(`Subscription expired for team ${team.id} - downgraded to FREE`);
+        console.log(`Subscription expired for team ${team.id} - downgraded to HOBBY`);
     } catch (error) {
         console.error("Error handling subscription expired:", error);
         throw error;
