@@ -8,7 +8,7 @@ interface LogoIconProps {
 }
 
 /**
- * 3D Cube Logo Icon Component
+ * Rotated Rectangle Logo Icon Component
  * Can be used standalone or with the full logo
  */
 export function LogoIcon({
@@ -20,38 +20,12 @@ export function LogoIcon({
     <svg
       width={width}
       height={height}
-      viewBox="0 0 20 22"
+      viewBox="0 0 60 70"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M10 1L1 6L10 11L19 6L10 1Z"
-        fill="currentColor"
-        opacity="0.9"
-      />
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M1 6L10 11V21L1 16V6Z"
-        fill="currentColor"
-        opacity="0.7"
-      />
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M19 6L10 11V21L19 16V6Z"
-        fill="currentColor"
-        opacity="0.5"
-      />
-      <path
-        d="M1 6L10 1L19 6M1 6V16L10 21M1 6L10 11M10 21L19 16V6M10 21V11M19 6L10 11"
-        stroke="currentColor"
-        strokeWidth="0.5"
-        opacity="0.4"
-      />
+      <path d="M0 35L60 0.358978V69.641L0 35Z" fill="currentColor" />
     </svg>
   );
 }
@@ -68,16 +42,16 @@ interface LogoProps {
 }
 
 const iconSizes = {
-  sm: { width: 20, height: 22 },
-  md: { width: 24, height: 26 },
-  lg: { width: 32, height: 35 },
+  sm: { width: 12, height: 14 },
+  md: { width: 16, height: 19 },
+  lg: { width: 20, height: 23 },
 };
 
 const textSizes = {
-  sm: "text-base sm:text-lg",
-  md: "text-xl sm:text-2xl",
-  lg: "text-2xl sm:text-3xl",
-  xl: "text-3xl sm:text-4xl",
+  sm: "text-xs sm:text-sm",
+  md: "text-base sm:text-lg",
+  lg: "text-lg sm:text-xl",
+  xl: "text-xl sm:text-2xl",
 };
 
 /**
@@ -88,7 +62,7 @@ export default function Logo({
   showIcon = true,
   showText = true,
   iconSize = "lg",
-  textSize = "md",
+  textSize = "xl",
   className = "",
   iconClassName = "",
   textClassName = "",
@@ -97,7 +71,7 @@ export default function Logo({
   const size = iconSizes[iconSize];
 
   const logoContent = (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center justify-center gap-2 ${className}`}>
       {showIcon && (
         <LogoIcon
           width={size.width}
@@ -107,7 +81,7 @@ export default function Logo({
       )}
       {showText && (
         <span
-          className={`font-medium text-foreground tracking-wide ${textSizes[textSize]} ${textClassName}`}
+          className={`font-medium text-foreground tracking-wide leading-relaxed align-middle flex items-center ${textSizes[textSize]} ${textClassName}`}
         >
           Craft
         </span>

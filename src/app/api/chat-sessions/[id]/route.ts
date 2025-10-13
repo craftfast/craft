@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 // GET /api/chat-sessions/[id] - Get a single chat session with messages
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions);
@@ -14,8 +14,10 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const { id } = await params;
+
         const chatSession = await prisma.chatSession.findUnique({
-            where: { id: params.id },
+            where: { id },
             include: {
                 messages: {
                     orderBy: { createdAt: "asc" },
@@ -60,7 +62,7 @@ export async function GET(
 // PATCH /api/chat-sessions/[id] - Update chat session (e.g., rename)
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions);
@@ -68,10 +70,11 @@ export async function PATCH(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const { id } = await params;
         const { name } = await req.json();
 
         const chatSession = await prisma.chatSession.findUnique({
-            where: { id: params.id },
+            where: { id },
             include: {
                 project: {
                     select: {
@@ -99,7 +102,7 @@ export async function PATCH(
 
         // Update chat session
         const updatedSession = await prisma.chatSession.update({
-            where: { id: params.id },
+            where: { id },
             data: { name },
             include: {
                 messages: {
@@ -124,7 +127,7 @@ export async function PATCH(
 // DELETE /api/chat-sessions/[id] - Delete a chat session
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions);
@@ -132,8 +135,10 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const { id } = await params;
+
         const chatSession = await prisma.chatSession.findUnique({
-            where: { id: params.id },
+            where: { id },
             include: {
                 project: {
                     select: {
@@ -161,7 +166,7 @@ export async function DELETE(
 
         // Delete chat session (messages will be cascade deleted)
         await prisma.chatSession.delete({
-            where: { id: params.id },
+            where: { id },
         });
 
         return NextResponse.json({ success: true });

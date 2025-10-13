@@ -23,12 +23,14 @@ interface ChatHistorySidebarProps {
   projectId: string;
   currentSessionId: string | null;
   onSessionSelect: (sessionId: string) => void;
+  onRefresh?: () => void; // Optional callback to trigger session list refresh
 }
 
 export default function ChatHistorySidebar({
   projectId,
   currentSessionId,
   onSessionSelect,
+  onRefresh,
 }: ChatHistorySidebarProps) {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,13 +40,33 @@ export default function ChatHistorySidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
+  // Reload sessions when opened
+  useEffect(() => {
+    loadChatSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadChatSessions = async () => {
     try {
       setIsLoading(true);
+      console.log("🔄 Loading chat sessions for sidebar...");
       const response = await fetch(`/api/chat-sessions?projectId=${projectId}`);
       if (response.ok) {
         const data = await response.json();
-        setChatSessions(data.chatSessions);
+        // Filter out any sessions with no messages (empty sessions)
+        const sessionsWithMessages = data.chatSessions.filter(
+          (session: ChatSession) =>
+            session.messages && session.messages.length > 0
+        );
+        console.log(
+          `✅ Loaded ${sessionsWithMessages.length} sessions with messages`
+        );
+        setChatSessions(sessionsWithMessages);
+
+        // Notify parent if needed
+        if (onRefresh) {
+          onRefresh();
+        }
       }
     } catch (error) {
       console.error("Error loading chat sessions:", error);
@@ -92,7 +114,8 @@ export default function ChatHistorySidebar({
           <div className="p-4">
             <div className="grid grid-cols-1 gap-3">
               {chatSessions.map((session) => {
-                const isActive = session.id === currentSessionId;
+                const isActive =
+                  session.id === currentSessionId && currentSessionId !== "new";
                 const messageCount = session.messages?.length || 0;
                 const lastMessage =
                   session.messages?.[session.messages.length - 1];
