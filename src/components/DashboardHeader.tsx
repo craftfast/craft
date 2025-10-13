@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import UserMenu from "./UserMenu";
-import ThemeToggle from "./ThemeToggle";
 
 interface DashboardHeaderProps {
   title?: string;
@@ -102,9 +101,6 @@ export default function DashboardHeader({
           <span>New Project</span>
         </button>
 
-        {/* Theme Toggle */}
-        <ThemeToggle />
-
         {session?.user && (
           <UserMenu user={session.user} showDashboardLink={false} />
         )}
@@ -172,14 +168,6 @@ export default function DashboardHeader({
                 >
                   Upgrade Plan
                 </button>
-                <div className="border-t border-neutral-200 dark:border-neutral-800 my-2" />
-                {/* Theme Toggle in Mobile Menu */}
-                <div className="flex items-center justify-between px-4 py-2">
-                  <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                    Theme
-                  </span>
-                  <ThemeToggle />
-                </div>
                 <div className="border-t border-neutral-200 dark:border-neutral-800 my-2" />
                 <button
                   onClick={async () => {
