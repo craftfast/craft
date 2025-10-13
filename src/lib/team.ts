@@ -110,3 +110,90 @@ export async function getUserPersonalTeam(userId: string) {
 
     return personalTeam;
 }
+
+/**
+ * Get all teams a user is a member of
+ * @param userId - The user's ID
+ * @returns Array of teams the user belongs to
+ */
+export async function getUserTeams(userId: string) {
+    const teamMemberships = await prisma.teamMember.findMany({
+        where: {
+            userId: userId,
+        },
+        include: {
+            team: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    isPersonal: true,
+                    ownerId: true,
+                    subscription: {
+                        select: {
+                            plan: {
+                                select: {
+                                    name: true,
+                                    displayName: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        orderBy: {
+            team: {
+                isPersonal: 'desc', // Personal team first
+            },
+        },
+    });
+
+    return teamMemberships.map((membership) => ({
+        ...membership.team,
+        role: membership.role,
+    }));
+}
+
+/**
+ * Get a specific team by ID (if user is a member)
+ * @param teamId - The team's ID
+ * @param userId - The user's ID
+ * @returns The team or null if not found or user is not a member
+ */
+export async function getTeamById(teamId: string, userId: string) {
+    const teamMembership = await prisma.teamMember.findFirst({
+        where: {
+            teamId: teamId,
+            userId: userId,
+        },
+        include: {
+            team: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    isPersonal: true,
+                    ownerId: true,
+                    subscription: {
+                        select: {
+                            plan: {
+                                select: {
+                                    name: true,
+                                    displayName: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!teamMembership) return null;
+
+    return {
+        ...teamMembership.team,
+        role: teamMembership.role,
+    };
+}

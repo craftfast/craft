@@ -1,10 +1,11 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import Logo from "@/components/Logo";
 import DashboardHeader from "@/components/DashboardHeader";
 import Projects from "@/components/Projects";
-import { getUserPersonalTeam } from "@/lib/team";
+import { getUserPersonalTeam, getTeamById } from "@/lib/team";
 import type { Session } from "next-auth";
 
 export default async function ProjectsPage() {
@@ -15,8 +16,19 @@ export default async function ProjectsPage() {
     redirect("/home");
   }
 
-  // Fetch the user's personal team
-  const team = await getUserPersonalTeam(session.user.id);
+  // Try to get selected team from cookie, otherwise use personal team
+  const cookieStore = await cookies();
+  const selectedTeamId = cookieStore.get("selectedTeamId")?.value;
+
+  let team;
+  if (selectedTeamId) {
+    team = await getTeamById(selectedTeamId, session.user.id);
+  }
+
+  // Fallback to personal team if no selected team or team not found
+  if (!team) {
+    team = await getUserPersonalTeam(session.user.id);
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
@@ -35,6 +47,8 @@ export default async function ProjectsPage() {
             <DashboardHeader
               title={team?.name}
               planName={team?.subscription?.plan?.name}
+              teamId={team?.id}
+              teamSubscription={team?.subscription}
             />
           </div>
         </div>
