@@ -53,12 +53,94 @@ export default function ChatPanel({
     [key: string]: "like" | "dislike" | null;
   }>({});
 
-  // Sync external session ID changes
+  // Define loadMessages callback before any useEffect that uses it
+  const loadMessages = useCallback(async (sessionId: string) => {
+    try {
+      console.log(`📨 Loading messages for session: ${sessionId}`);
+      const response = await fetch(`/api/chat-sessions/${sessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const loadedMessages = data.chatSession.messages.map(
+          (m: Message & { createdAt: string }) => ({
+            ...m,
+            createdAt: new Date(m.createdAt),
+          })
+        );
+        console.log(
+          `✅ Loaded ${loadedMessages.length} messages for session ${sessionId}`
+        );
+        setMessages(loadedMessages);
+        setMessagesLoaded(true);
+      } else {
+        console.error(`❌ Failed to load messages for session ${sessionId}`);
+        setMessagesLoaded(true);
+      }
+    } catch (error) {
+      console.error("Error loading messages:", error);
+      setMessagesLoaded(true); // Still mark as loaded even on error
+    }
+  }, []);
+
+  const loadChatSessions = useCallback(async () => {
+    // Prevent duplicate loads
+    if (hasLoadedSessions.current) {
+      console.log("⏭️ Chat sessions already loaded, skipping...");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/chat-sessions?projectId=${projectId}`);
+      if (response.ok) {
+        const data = await response.json();
+
+        // Mark as loaded BEFORE any session operations to prevent race conditions
+        hasLoadedSessions.current = true;
+
+        // If there are sessions, select the most recent one
+        if (data.chatSessions.length > 0) {
+          const sessionId = data.chatSessions[0].id;
+          setCurrentSessionId(sessionId);
+          if (onSessionChange) {
+            onSessionChange(sessionId);
+          }
+          console.log(
+            `✅ Loaded ${data.chatSessions.length} chat session(s), selected: ${sessionId}`
+          );
+        } else {
+          // No sessions exist - create a temporary 'new' session in frontend only
+          console.log(
+            "📝 No chat sessions found - creating temporary 'new' session (frontend only)"
+          );
+          setCurrentSessionId("new");
+          setMessages([]);
+          setMessagesLoaded(true);
+          if (onSessionChange) {
+            onSessionChange("new");
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading chat sessions:", error);
+      hasLoadedSessions.current = false; // Reset on error so it can retry
+    }
+  }, [projectId, onSessionChange]);
+
+  // Sync external session ID changes and load messages
   useEffect(() => {
     if (externalSessionId && externalSessionId !== currentSessionId) {
+      console.log(`🔄 External session changed to: ${externalSessionId}`);
       setCurrentSessionId(externalSessionId);
+      // If it's not a temporary 'new' session, load messages
+      if (externalSessionId !== "new") {
+        setMessagesLoaded(false);
+        loadMessages(externalSessionId);
+      } else {
+        // For new session, clear messages
+        setMessages([]);
+        setMessagesLoaded(true);
+      }
     }
-  }, [externalSessionId, currentSessionId]);
+  }, [externalSessionId, currentSessionId, loadMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -74,13 +156,13 @@ export default function ChatPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  // Load messages when session changes
+  // Auto-focus textarea when a new session is created or switched to
   useEffect(() => {
-    if (currentSessionId) {
-      setMessagesLoaded(false);
-      loadMessages(currentSessionId);
+    if (messagesLoaded && textareaRef.current) {
+      // Focus the textarea after messages are loaded
+      textareaRef.current.focus();
     }
-  }, [currentSessionId]);
+  }, [messagesLoaded, currentSessionId]);
 
   // Simplified auto-send: Only trigger if project version is 0
   useEffect(() => {
@@ -116,6 +198,7 @@ export default function ChatPanel({
   const createNewSession = useCallback(
     async (name?: string): Promise<string | null> => {
       try {
+        console.log(`📝 Creating new chat session in database...`);
         const response = await fetch("/api/chat-sessions", {
           method: "POST",
           headers: {
@@ -129,9 +212,10 @@ export default function ChatPanel({
 
         if (response.ok) {
           const data = await response.json();
+          console.log(`✅ Session created with ID: ${data.chatSession.id}`);
           setCurrentSessionId(data.chatSession.id);
           setMessages([]);
-          setMessagesLoaded(true); // New session has no messages, so it's "loaded"
+          setMessagesLoaded(true);
 
           // Notify parent of session change
           if (onSessionChange) {
@@ -149,59 +233,21 @@ export default function ChatPanel({
     [projectId, onSessionChange]
   );
 
-  // Handle new chat - only create a new session if there are no empty sessions
-  const handleNewChat = useCallback(async () => {
-    // First, check if current session is empty
-    if (currentSessionId && messages.length === 0) {
-      console.log("📝 Current session is empty, reusing it for new chat");
-      return;
+  // Handle new chat - creates a temporary 'new' session in frontend only
+  const handleNewChat = useCallback(() => {
+    console.log(
+      "📝 Starting new chat (frontend only, no database session yet)"
+    );
+
+    // Set a temporary 'new' session ID
+    setCurrentSessionId("new");
+    setMessages([]);
+    setMessagesLoaded(true);
+
+    if (onSessionChange) {
+      onSessionChange("new");
     }
-
-    // Check if there are any other empty sessions
-    try {
-      const response = await fetch(`/api/chat-sessions?projectId=${projectId}`);
-      if (response.ok) {
-        const data = await response.json();
-
-        // Find any empty session (session with no messages)
-        for (const session of data.chatSessions) {
-          // Fetch messages for this session to check if it's empty
-          const messagesResponse = await fetch(
-            `/api/chat-sessions/${session.id}`
-          );
-          if (messagesResponse.ok) {
-            const messagesData = await messagesResponse.json();
-            if (messagesData.chatSession.messages.length === 0) {
-              // Found an empty session, switch to it instead of creating new one
-              console.log(
-                `📝 Found empty session (${session.id}), switching to it instead of creating new one`
-              );
-              setCurrentSessionId(session.id);
-              setMessages([]);
-              setMessagesLoaded(true);
-
-              if (onSessionChange) {
-                onSessionChange(session.id);
-              }
-              return;
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error checking for empty sessions:", error);
-    }
-
-    // No empty sessions found, create a new one
-    console.log("📝 No empty sessions found, creating new chat session");
-    await createNewSession();
-  }, [
-    currentSessionId,
-    messages,
-    createNewSession,
-    projectId,
-    onSessionChange,
-  ]);
+  }, [onSessionChange]);
 
   // Handle new chat trigger from parent
   useEffect(() => {
@@ -209,64 +255,6 @@ export default function ChatPanel({
       handleNewChat();
     }
   }, [triggerNewChat, handleNewChat]);
-
-  const loadChatSessions = async () => {
-    // Prevent duplicate loads
-    if (hasLoadedSessions.current) {
-      console.log("⏭️ Chat sessions already loaded, skipping...");
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/chat-sessions?projectId=${projectId}`);
-      if (response.ok) {
-        const data = await response.json();
-
-        // Mark as loaded BEFORE any session operations to prevent race conditions
-        hasLoadedSessions.current = true;
-
-        // If there are sessions, select the most recent one
-        if (data.chatSessions.length > 0) {
-          const sessionId = data.chatSessions[0].id;
-          setCurrentSessionId(sessionId);
-          if (onSessionChange) {
-            onSessionChange(sessionId);
-          }
-          console.log(`✅ Loaded ${data.chatSessions.length} chat session(s)`);
-        } else {
-          // No sessions exist - don't create one, let user send first message
-          console.log(
-            "📝 No chat sessions found - waiting for user to send first message"
-          );
-          setMessagesLoaded(true); // Mark as loaded even though no session exists
-        }
-      }
-    } catch (error) {
-      console.error("Error loading chat sessions:", error);
-      hasLoadedSessions.current = false; // Reset on error so it can retry
-    }
-  };
-
-  const loadMessages = async (sessionId: string) => {
-    try {
-      const response = await fetch(`/api/chat-sessions/${sessionId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMessages(
-          data.chatSession.messages.map(
-            (m: Message & { createdAt: string }) => ({
-              ...m,
-              createdAt: new Date(m.createdAt),
-            })
-          )
-        );
-        setMessagesLoaded(true);
-      }
-    } catch (error) {
-      console.error("Error loading messages:", error);
-      setMessagesLoaded(true); // Still mark as loaded even on error
-    }
-  };
 
   const saveMessage = async (
     role: "user" | "assistant",
@@ -399,10 +387,10 @@ export default function ChatPanel({
     const contentToSend = messageContent || input;
     if (!contentToSend.trim() || isLoading) return;
 
-    // If no session exists, create one first
+    // If no session exists or it's a temporary 'new' session, create one first
     let sessionIdToUse = currentSessionId;
-    if (!sessionIdToUse) {
-      console.log("📝 No session exists, creating one for first message");
+    if (!sessionIdToUse || sessionIdToUse === "new") {
+      console.log("📝 Creating session in database (first message being sent)");
       sessionIdToUse = await createNewSession("New Chat");
 
       // If still no session after creation, something went wrong
