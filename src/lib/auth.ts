@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
+import { createDefaultPersonalTeam, hasPersonalTeam } from "@/lib/team";
 import bcrypt from "bcryptjs";
 
 export const authOptions = {
@@ -81,6 +82,19 @@ export const authOptions = {
                 session.user.id = token.id as string;
             }
             return session;
+        },
+    },
+    events: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async createUser({ user }: any) {
+            // Create a default personal team for new users (OAuth signups)
+            // For email/password signups, the team is created in the registration endpoint
+            if (user.id && user.email) {
+                const hasTeam = await hasPersonalTeam(user.id);
+                if (!hasTeam) {
+                    await createDefaultPersonalTeam(user.id, user.name, user.email);
+                }
+            }
         },
     },
     debug: process.env.NODE_ENV === "development",

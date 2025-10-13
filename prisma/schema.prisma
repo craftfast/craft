@@ -17,17 +17,19 @@ model WaitlistEntry {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String       @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String       @unique
   emailVerified DateTime?
   image         String?
   password      String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   accounts      Account[]
   projects      Project[]
   sessions      Session[]
+  teamMembers   TeamMember[]
+  ownedTeams    Team[]       @relation("TeamOwner")
 
   @@map("users")
 }
@@ -133,4 +135,36 @@ model ProjectVersion {
   @@index([projectId, isBookmarked])
   @@index([projectId, isPublished])
   @@map("project_versions")
+}
+
+model Team {
+  id         String       @id @default(cuid())
+  name       String
+  slug       String       @unique // URL-friendly identifier
+  ownerId    String
+  isPersonal Boolean      @default(false) // True if this is the user's default personal team
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  owner      User         @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members    TeamMember[]
+
+  @@index([ownerId])
+  @@index([isPersonal])
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("member") // "owner", "admin", "member"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId]) // User can only be a member once per team
+  @@index([userId])
+  @@index([teamId])
+  @@map("team_members")
 }

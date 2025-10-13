@@ -5,6 +5,7 @@ import Logo from "@/components/Logo";
 import DashboardHeader from "@/components/DashboardHeader";
 import CraftInput from "@/components/CraftInput";
 import RecentProjects from "@/components/RecentProjects";
+import { getUserPersonalTeam } from "@/lib/team";
 import type { Session } from "next-auth";
 
 export default async function DashboardPage() {
@@ -14,6 +15,9 @@ export default async function DashboardPage() {
   if (!session) {
     redirect("/home");
   }
+
+  // Fetch the user's personal team
+  const team = await getUserPersonalTeam(session.user.id);
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
@@ -29,7 +33,7 @@ export default async function DashboardPage() {
               iconClassName="text-white dark:text-white"
               href="/dashboard"
             />
-            <DashboardHeader />
+            <DashboardHeader title={team?.name} />
           </div>
         </div>
       </header>

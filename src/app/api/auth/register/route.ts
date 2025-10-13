@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { createDefaultPersonalTeam } from "@/lib/team";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
@@ -37,6 +38,9 @@ export async function POST(request: NextRequest) {
                 password: hashedPassword,
             },
         });
+
+        // Create default personal team for the new user
+        await createDefaultPersonalTeam(user.id, user.name, user.email);
 
         return NextResponse.json(
             {
