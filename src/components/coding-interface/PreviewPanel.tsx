@@ -54,32 +54,26 @@ export default function PreviewPanel({
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Check if sandbox is already running on mount
+  // 🧹 CLEANUP ON UNMOUNT: Delete sandbox when component unmounts (user leaves/closes page)
+  // This ensures fresh sandbox on every mount and prevents stale sandboxes
   useEffect(() => {
-    const checkSandboxStatus = async () => {
-      try {
-        const response = await fetch(`/api/sandbox/${projectId}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.status === "running" && data.url) {
-            console.log("📌 Found existing sandbox running:", data.url);
-            setPreviewUrl(data.url);
-            setIframeUrl(data.url);
-            setSandboxStatus("running");
-          }
+    // Cleanup function runs when component unmounts
+    return () => {
+      const deleteSandbox = async () => {
+        try {
+          console.log("🧹 Component unmounting - deleting sandbox...");
+          await fetch(`/api/sandbox/${projectId}`, {
+            method: "DELETE",
+          });
+          console.log("✅ Sandbox deleted on unmount");
+        } catch (error) {
+          console.error("Error deleting sandbox on unmount:", error);
         }
-      } catch (error) {
-        console.error("Error checking sandbox status:", error);
-      }
+      };
+
+      deleteSandbox();
     };
-
-    checkSandboxStatus();
   }, [projectId]);
-
-  // 💰 COST OPTIMIZATION: No keepalive - let sandboxes timeout naturally
-  // Sandboxes will auto-timeout after 3 min of inactivity (server-side cleanup)
-  // This reduces costs by ~$0.10/hour per idle sandbox
-  // When user returns, sandbox auto-recreates on demand (see updateSandboxFiles error handling)
 
   // Handle AI generation completion - auto-start OR auto-update preview
   useEffect(() => {
@@ -282,15 +276,11 @@ export default function PreviewPanel({
         const data = await response.json();
         console.log(`✅ Files updated successfully`, data);
 
-        // Wait a moment for files to be written
+        // Wait a moment for files to be written and HMR to pick up changes
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        // Force refresh the iframe to show updated content
-        setIframeUrl("");
-        setTimeout(() => {
-          setIframeUrl(previewUrl + currentRoute);
-          setIsRefreshing(false);
-        }, 100);
+        // Next.js HMR will automatically refresh the preview
+        setIsRefreshing(false);
       } else {
         const errorText = await response.text();
         console.error(`❌ Failed to update files:`, errorText);
