@@ -117,17 +117,17 @@ export default function TermsOfService() {
             <h3 className="text-xl font-semibold mb-3">3.1 Plan Types</h3>
             <div className="space-y-4">
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
-                <p className="font-semibold mb-2">Free Plan</p>
+                <p className="font-semibold mb-2">Hobby Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• No monthly fee</li>
-                  <li>• 20 credits per month (max 5 credits per day)</li>
-                  <li>• 0.5GB database storage</li>
+                  <li>• Free forever</li>
+                  <li>• 20 AI credits per month</li>
+                  <li>• Access to multiple AI models</li>
+                  <li>• 500MB database storage</li>
                   <li>• Up to 3 projects</li>
                   <li>• Community support</li>
                   <li>• No credit rollover</li>
                 </ul>
               </div>
-
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
                 <p className="font-semibold mb-2">Pro Plan</p>
                 <ul className="space-y-1 text-sm">
@@ -143,31 +143,18 @@ export default function TermsOfService() {
               </div>
 
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
-                <p className="font-semibold mb-2">Business Plan</p>
-                <ul className="space-y-1 text-sm">
-                  <li>• Starting at $50/month (100 credits)</li>
-                  <li>• $500/year (100 credits, save ~17%)</li>
-                  <li>• Flexible: 100-10,000 credits</li>
-                  <li>• 20GB database storage</li>
-                  <li>• Unlimited projects</li>
-                  <li>• Priority support</li>
-                  <li>• Training opt-out</li>
-                  <li>• SSO support</li>
-                  <li>• Credits roll over</li>
-                </ul>
-              </div>
-
-              <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
                 <p className="font-semibold mb-2">Enterprise Plan</p>
                 <ul className="space-y-1 text-sm">
                   <li>• Custom pricing</li>
-                  <li>• Unlimited credits and storage</li>
-                  <li>• Dedicated support</li>
-                  <li>• SAML SSO</li>
+                  <li>• Custom credit allocation</li>
+                  <li>• Unlimited projects and storage</li>
+                  <li>• Dedicated AI model instances</li>
+                  <li>• Priority support (24/7)</li>
+                  <li>• SSO & SAML authentication</li>
                   <li>• Training opt-out</li>
                   <li>• Custom integrations</li>
-                  <li>• SLA guarantees</li>
-                  <li>• Advanced analytics</li>
+                  <li>• 99.9% uptime SLA</li>
+                  <li>• Advanced security & compliance</li>
                 </ul>
               </div>
             </div>
@@ -181,13 +168,13 @@ export default function TermsOfService() {
                 securely through Razorpay
               </li>
               <li>
-                <strong>Subscription Renewals:</strong> Pro and Business
+                <strong>Subscription Renewals:</strong> Pro and Enterprise
                 subscriptions auto-renew monthly or yearly unless cancelled
               </li>
               <li>
                 <strong>Credit Usage:</strong> Credits are used for AI
-                interactions and features. Unused credits roll over for Pro and
-                Business plans.
+                interactions and features. Unused credits roll over for Pro
+                plans.
               </li>
               <li>
                 <strong>Payment Methods:</strong> We accept credit cards, debit
@@ -383,19 +370,14 @@ export default function TermsOfService() {
             </h3>
             <ul className="space-y-2">
               <li>
-                <strong>Free Users:</strong> 20 credits per month (max 5 credits
-                per day)
+                <strong>Hobby Users:</strong> 20 AI credits per month
               </li>
               <li>
-                <strong>Pro Users:</strong> 100-10,000 credits based on selected
-                tier
-              </li>
-              <li>
-                <strong>Business Users:</strong> 100-10,000 credits based on
+                <strong>Pro Users:</strong> 100-10,000 AI credits based on
                 selected tier
               </li>
               <li>
-                <strong>Enterprise Users:</strong> Custom/unlimited credits
+                <strong>Enterprise Users:</strong> Custom credit allocation
                 based on agreement
               </li>
               <li>
@@ -410,12 +392,11 @@ export default function TermsOfService() {
             <h3 className="text-xl font-semibold mb-3 mt-6">6.3 AI Training</h3>
             <ul className="space-y-2">
               <li>
-                <strong>Free and Pro:</strong> Your prompts may be used to
-                improve AI models
+                <strong>Hobby and Pro:</strong> Your prompts may be used to
+                improve AI models with privacy-preserving techniques
               </li>
               <li>
-                <strong>Business and Enterprise:</strong> Can opt out of AI
-                training
+                <strong>Enterprise:</strong> Can opt out of AI training entirely
               </li>
               <li>
                 We implement privacy-preserving techniques when training models

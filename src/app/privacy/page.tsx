@@ -143,9 +143,9 @@ export default function PrivacyPolicy() {
                 based on your usage patterns and preferences.
               </li>
               <li>
-                <strong>AI Training:</strong> For Free and Pro users, we may use
-                your prompts and interactions to improve our AI models. Business
-                and Enterprise users can opt out of AI training.
+                <strong>AI Training:</strong> For Hobby and Pro users, we may
+                use your prompts and interactions to improve our AI models.
+                Enterprise users can opt out of AI training.
               </li>
               <li>
                 <strong>User Memory:</strong> Store context and preferences to
@@ -337,12 +337,12 @@ export default function PrivacyPolicy() {
                 cookies, though this may limit functionality.
               </li>
               <li>
-                <strong>Analytics:</strong> Pro and Business users can request
+                <strong>Analytics:</strong> Pro and Enterprise users can request
                 to opt out of certain analytics.
               </li>
               <li>
-                <strong>AI Training:</strong> Business and Enterprise users can
-                opt out of having their data used for AI model training.
+                <strong>AI Training:</strong> Enterprise users can opt out of
+                having their data used for AI model training.
               </li>
             </ul>
 
@@ -421,7 +421,7 @@ export default function PrivacyPolicy() {
             </h3>
             <ul className="space-y-2">
               <li>
-                <strong>Free Users:</strong> Your prompts and interactions may
+                <strong>Hobby Users:</strong> Your prompts and interactions may
                 be used to improve AI models.
               </li>
               <li>
@@ -429,8 +429,8 @@ export default function PrivacyPolicy() {
                 improvement with enhanced privacy controls.
               </li>
               <li>
-                <strong>Business and Enterprise Users:</strong> Can opt out of
-                AI training entirely.
+                <strong>Enterprise Users:</strong> Can opt out of AI training
+                entirely.
               </li>
             </ul>
 
@@ -467,9 +467,9 @@ export default function PrivacyPolicy() {
               <li>
                 Usage data is retained for accounting and dispute resolution
               </li>
-              <li>Pro users: Flexible tiers from 100-10,000 credits</li>
-              <li>Business users: Flexible tiers from 100-10,000 credits</li>
-              <li>Free users: 20 credits per month (max 5 per day)</li>
+              <li>Pro users: Flexible tiers from 100-10,000 AI credits</li>
+              <li>Hobby users: 20 AI credits per month</li>
+              <li>Enterprise users: Custom credit allocation</li>
               <li>
                 Detailed usage logs are available in your account dashboard
               </li>
