@@ -230,7 +230,7 @@ export default function RefundPolicy() {
 
             <h3 className="text-xl font-semibold mb-3">4.1 Payment Gateway</h3>
             <p className="mb-3">
-              All payments are securely processed through Razorpay. We do not
+              All payments are securely processed through Polar.sh. We do not
               store your complete payment information on our servers.
             </p>
 
@@ -371,10 +371,8 @@ export default function RefundPolicy() {
             <ul className="space-y-2">
               <li>Consumer Protection Act, 2019</li>
               <li>Information Technology Act, 2000</li>
-              <li>
-                RBI (Reserve Bank of India) guidelines for digital payments
-              </li>
-              <li>Razorpay payment gateway compliance requirements</li>
+              <li>Financial regulatory guidelines for digital payments</li>
+              <li>Polar.sh payment gateway compliance requirements</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">

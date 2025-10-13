@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate Polar credentials
-        if (!process.env.POLAR_ACCESS_TOKEN || !process.env.POLAR_ORGANIZATION_ID) {
+        const priceId = process.env.POLAR_PRO_PRICE_ID || process.env.POLAR_PRODUCT_PRICE_ID;
+
+        if (!process.env.POLAR_ACCESS_TOKEN || !priceId) {
             console.error("Polar credentials not configured");
             return NextResponse.json(
                 {
@@ -44,17 +46,19 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create Polar checkout using custom checkout
+        // Create Polar checkout
         const polar = getPolarInstance();
 
         const checkout = await polar.checkouts.custom.create({
             paymentProcessor: "stripe",
-            productPriceId: process.env.POLAR_PRODUCT_PRICE_ID!,
-            successUrl: successUrl || `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+            productPriceId: priceId,
+            successUrl: successUrl || `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard?payment=success`,
             customerEmail: email,
             metadata: {
                 productName,
                 productDescription,
+                amount: amount.toString(),
+                currency,
                 timestamp: new Date().toISOString(),
             },
         });
@@ -75,7 +79,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
             {
-                error: "Failed to create order",
+                error: "Failed to create checkout",
                 message: errorMessage
             },
             { status: 500 }
