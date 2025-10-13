@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface PreviewPanelProps {
   projectId: string;
@@ -8,9 +8,21 @@ interface PreviewPanelProps {
   isGeneratingFiles?: boolean; // New prop to indicate AI is generating files
   generationStatus?: string; // "template" | "generating" | "ready"
   version?: number; // Project version (0 = template, 1+ = has AI updates)
+  onRefreshProject?: () => Promise<void>; // Callback to refresh project after version restore
 }
 
 type SandboxStatus = "inactive" | "loading" | "running" | "error";
+
+interface ProjectVersion {
+  id: string;
+  version: number;
+  name: string | null;
+  files: Record<string, string>;
+  chatMessageId: string | null;
+  isBookmarked: boolean;
+  isPublished: boolean;
+  createdAt: string;
+}
 
 export default function PreviewPanel({
   projectId,
@@ -18,6 +30,7 @@ export default function PreviewPanel({
   isGeneratingFiles = false,
   generationStatus = "template",
   version = 0,
+  onRefreshProject,
 }: PreviewPanelProps) {
   const [previewUrl, setPreviewUrl] = useState("");
   const [iframeUrl, setIframeUrl] = useState("");
@@ -33,6 +46,13 @@ export default function PreviewPanel({
   );
   const [loadingMessage, setLoadingMessage] = useState("Starting preview...");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false);
+  const [versions, setVersions] = useState<ProjectVersion[]>([]);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [restoringVersionId, setRestoringVersionId] = useState<string | null>(
+    null
+  );
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Check if sandbox is already running on mount
   useEffect(() => {
@@ -354,6 +374,95 @@ export default function PreviewPanel({
     }
   };
 
+  // Load versions when dropdown is opened
+  const loadVersions = useCallback(async () => {
+    if (versions.length > 0) return; // Already loaded
+    try {
+      setIsLoadingVersions(true);
+      const response = await fetch(`/api/projects/${projectId}/versions`);
+      if (response.ok) {
+        const data = await response.json();
+        setVersions(data.versions);
+      }
+    } catch (error) {
+      console.error("Error loading versions:", error);
+    } finally {
+      setIsLoadingVersions(false);
+    }
+  }, [projectId, versions.length]);
+
+  // Handle version dropdown toggle
+  const handleVersionDropdownToggle = () => {
+    if (!showVersionDropdown) {
+      loadVersions();
+    }
+    setShowVersionDropdown(!showVersionDropdown);
+  };
+
+  // Handle version restore
+  const handleRestoreVersion = async (
+    versionId: string,
+    versionNumber: number
+  ) => {
+    if (
+      !confirm(
+        `Restore to Version ${versionNumber}? Your current work will be saved as a new version before restoring.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setRestoringVersionId(versionId);
+      const response = await fetch(
+        `/api/projects/${projectId}/versions/${versionId}/restore`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (response.ok) {
+        console.log(`✅ Successfully restored to version ${versionNumber}`);
+        // Reload versions
+        setVersions([]);
+        await loadVersions();
+        // Refresh project files
+        if (onRefreshProject) {
+          await onRefreshProject();
+        }
+        // Close dropdown
+        setShowVersionDropdown(false);
+      } else {
+        alert("Failed to restore version. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error restoring version:", error);
+      alert("Failed to restore version. Please try again.");
+    } finally {
+      setRestoringVersionId(null);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowVersionDropdown(false);
+      }
+    };
+
+    if (showVersionDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showVersionDropdown]);
+
   return (
     <div
       className={`h-full flex flex-col bg-white dark:bg-neutral-900 ${
@@ -472,6 +581,136 @@ export default function PreviewPanel({
           </form>
         </div>
         <div className="flex items-center gap-1">
+          {/* Version History Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={handleVersionDropdownToggle}
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+              title="Version History"
+            >
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </button>
+
+            {/* Dropdown Menu */}
+            {showVersionDropdown && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
+                <div className="p-3 border-b border-neutral-200 dark:border-neutral-700">
+                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                    Version History
+                  </h3>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                    Current: v{version}
+                  </p>
+                </div>
+
+                <div className="overflow-y-auto flex-1">
+                  {isLoadingVersions ? (
+                    <div className="p-6 text-center">
+                      <div className="inline-block w-6 h-6 border-2 border-neutral-300 dark:border-neutral-600 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin"></div>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+                        Loading versions...
+                      </p>
+                    </div>
+                  ) : versions.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        No version history yet
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                      {versions.map((v) => (
+                        <div
+                          key={v.id}
+                          className="p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
+                                  v{v.version}
+                                </span>
+                                {v.version === version && (
+                                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded">
+                                    Current
+                                  </span>
+                                )}
+                                {v.isBookmarked && (
+                                  <svg
+                                    className="w-3 h-3 text-amber-500 fill-current"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+                                  </svg>
+                                )}
+                              </div>
+                              {v.name && (
+                                <p className="text-xs text-neutral-700 dark:text-neutral-300 mt-1 truncate">
+                                  {v.name}
+                                </p>
+                              )}
+                              <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">
+                                {new Date(v.createdAt).toLocaleString()}
+                              </p>
+                              <p className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-0.5">
+                                {Object.keys(v.files).length} files
+                              </p>
+                            </div>
+                            {v.version !== version && (
+                              <button
+                                onClick={() =>
+                                  handleRestoreVersion(v.id, v.version)
+                                }
+                                disabled={restoringVersionId === v.id}
+                                className="px-2 py-1 text-[10px] font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg border border-neutral-300 dark:border-neutral-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 flex-shrink-0"
+                              >
+                                {restoringVersionId === v.id ? (
+                                  <>
+                                    <div className="w-3 h-3 border border-neutral-400 border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Restoring...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                      />
+                                    </svg>
+                                    <span>Restore</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => {
               const modes: Array<"mobile" | "tablet" | "desktop"> = [

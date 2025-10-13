@@ -15,7 +15,6 @@ import LogsPanel from "./coding-interface/LogsPanel";
 import ApiPanel from "./coding-interface/ApiPanel";
 import SettingsPanel from "./coding-interface/SettingsPanel";
 import AuthPanel from "./coding-interface/AuthPanel";
-import VersionHistoryPanel from "./coding-interface/VersionHistoryPanel";
 
 type TabType =
   | "preview"
@@ -60,7 +59,6 @@ export default function CodingInterface({
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [project, setProject] = useState(initialProject);
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
-  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [triggerNewChat, setTriggerNewChat] = useState(0); // Counter to trigger new chat
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
   const chatWidth = 30; // Fixed at 30%
@@ -434,27 +432,6 @@ export default function CodingInterface({
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* Version History Button */}
-            <button
-              onClick={() => setShowVersionHistory(!showVersionHistory)}
-              className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-              title="Version History"
-            >
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </button>
-
             {/* Share Button */}
             <button className="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg border border-neutral-300 dark:border-neutral-600 transition-colors flex items-center gap-1.5">
               <svg
@@ -533,6 +510,18 @@ export default function CodingInterface({
                   isGeneratingFiles={isGeneratingFiles}
                   generationStatus={project.generationStatus}
                   version={project.version}
+                  onRefreshProject={async () => {
+                    // Reload project files after restore
+                    const response = await fetch(
+                      `/api/files?projectId=${project.id}`
+                    );
+                    if (response.ok) {
+                      const data = await response.json();
+                      setProjectFiles(data.files || {});
+                    }
+                    // Refresh project data
+                    await refreshProject();
+                  }}
                 />
               </div>
 
@@ -561,30 +550,6 @@ export default function CodingInterface({
               )}
               {activeTab === "auth" && <AuthPanel projectId={project.id} />}
             </main>
-
-            {/* Version History Sidebar */}
-            {showVersionHistory && (
-              <div className="w-80 flex-shrink-0">
-                <VersionHistoryPanel
-                  projectId={project.id}
-                  currentVersion={project.version || 0}
-                  isSidebar={true}
-                  onRestore={async () => {
-                    // Reload project files after restore
-                    const response = await fetch(
-                      `/api/files?projectId=${project.id}`
-                    );
-                    if (response.ok) {
-                      const data = await response.json();
-                      setProjectFiles(data.files || {});
-                    }
-                    // Refresh project data
-                    await refreshProject();
-                  }}
-                  onClose={() => setShowVersionHistory(false)}
-                />
-              </div>
-            )}
           </div>
         </div>
       </div>
