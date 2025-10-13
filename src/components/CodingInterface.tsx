@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen, Plus, History } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import ChatPanel from "./coding-interface/ChatPanel";
-import ChatHistorySidebar from "./coding-interface/ChatHistorySidebar";
 import PreviewPanel from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
 import DatabasePanel from "./coding-interface/DatabasePanel";
@@ -61,13 +60,9 @@ export default function CodingInterface({
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [project, setProject] = useState(initialProject);
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
-  const [showChatHistory, setShowChatHistory] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [triggerNewChat, setTriggerNewChat] = useState(0); // Counter to trigger new chat
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
-  const [currentChatSessionId, setCurrentChatSessionId] = useState<
-    string | null
-  >(null);
   const chatWidth = 30; // Fixed at 30%
 
   console.log(
@@ -389,23 +384,6 @@ export default function CodingInterface({
                     <Plus className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
                   </button>
 
-                  {/* History Button - Highlighted when active */}
-                  <button
-                    onClick={() => setShowChatHistory(!showChatHistory)}
-                    className={`p-2 rounded-full transition-colors ${
-                      showChatHistory
-                        ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                        : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
-                    }`}
-                    title={
-                      showChatHistory
-                        ? "Close Chat History"
-                        : "View Chat History"
-                    }
-                  >
-                    <History className="w-4 h-4" />
-                  </button>
-
                   {/* Chat Toggle Button */}
                   <button
                     onClick={() => setIsChatCollapsed(!isChatCollapsed)}
@@ -527,33 +505,18 @@ export default function CodingInterface({
             className="flex overflow-hidden bg-white dark:bg-neutral-900"
             style={{ width: `${chatWidth}%` }}
           >
-            {/* Show either Chat History or Chat Messages */}
-            {showChatHistory ? (
-              <div className="flex-1 overflow-hidden">
-                <ChatHistorySidebar
-                  projectId={project.id}
-                  currentSessionId={currentChatSessionId}
-                  onSessionSelect={(sessionId) => {
-                    setCurrentChatSessionId(sessionId);
-                    setShowChatHistory(false); // Close history after selecting
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="flex-1 overflow-hidden">
-                <ChatPanel
-                  projectId={project.id}
-                  projectDescription={project.description}
-                  projectVersion={project.version}
-                  projectFiles={projectFiles}
-                  onFilesCreated={handleFilesCreated}
-                  triggerNewChat={triggerNewChat}
-                  onGeneratingStatusChange={setIsGeneratingFiles}
-                  currentSessionId={currentChatSessionId}
-                  onSessionChange={setCurrentChatSessionId}
-                />
-              </div>
-            )}
+            {/* Chat Panel - Always Mounted */}
+            <div className="flex-1 overflow-hidden">
+              <ChatPanel
+                projectId={project.id}
+                projectDescription={project.description}
+                projectVersion={project.version}
+                projectFiles={projectFiles}
+                onFilesCreated={handleFilesCreated}
+                triggerNewChat={triggerNewChat}
+                onGeneratingStatusChange={setIsGeneratingFiles}
+              />
+            </div>
           </div>
         )}
 

@@ -23,28 +23,23 @@ interface ChatHistorySidebarProps {
   projectId: string;
   currentSessionId: string | null;
   onSessionSelect: (sessionId: string) => void;
-  onRefresh?: () => void; // Optional callback to trigger session list refresh
+  onClose?: () => void; // Optional callback to close the sidebar
 }
 
 export default function ChatHistorySidebar({
   projectId,
   currentSessionId,
   onSessionSelect,
-  onRefresh,
+  onClose,
 }: ChatHistorySidebarProps) {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load sessions only once when component mounts
   useEffect(() => {
     loadChatSessions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
-
-  // Reload sessions when opened
-  useEffect(() => {
-    loadChatSessions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const loadChatSessions = async () => {
     try {
@@ -62,11 +57,6 @@ export default function ChatHistorySidebar({
           `✅ Loaded ${sessionsWithMessages.length} sessions with messages`
         );
         setChatSessions(sessionsWithMessages);
-
-        // Notify parent if needed
-        if (onRefresh) {
-          onRefresh();
-        }
       }
     } catch (error) {
       console.error("Error loading chat sessions:", error);
@@ -94,6 +84,34 @@ export default function ChatHistorySidebar({
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800">
+        <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+          Chat History
+        </h2>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+            aria-label="Close history"
+          >
+            <svg
+              className="w-5 h-5 text-neutral-600 dark:text-neutral-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
+      </div>
+
       {/* Sessions List - Grid Layout */}
       <div className="flex-1 overflow-y-auto scrollbar-minimal">
         {isLoading ? (

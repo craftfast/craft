@@ -28,8 +28,6 @@ interface ChatPanelProps {
   onFilesCreated?: (files: { path: string; content: string }[]) => void;
   triggerNewChat?: number;
   onGeneratingStatusChange?: (isGenerating: boolean) => void;
-  currentSessionId?: string | null;
-  onSessionChange?: (sessionId: string) => void;
 }
 
 export default function ChatPanel({
@@ -40,17 +38,12 @@ export default function ChatPanel({
   onFilesCreated,
   triggerNewChat = 0,
   onGeneratingStatusChange,
-  currentSessionId: externalSessionId = null,
-  onSessionChange,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const hasLoadedSessions = useRef(false); // Track if we've already loaded sessions
+  const hasLoadedMessages = useRef(false); // Track if we've already loaded messages
   const hasTriggeredAutoSend = useRef(false); // Track if we've triggered auto-send
 
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(
-    externalSessionId
-  );
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -73,94 +66,41 @@ export default function ChatPanel({
     totalCost: number;
   }>({ totalTokens: 0, totalCost: 0 });
 
-  // Define loadMessages callback before any useEffect that uses it
-  const loadMessages = useCallback(async (sessionId: string) => {
+  // Load messages for the project
+  const loadMessages = useCallback(async () => {
+    // Prevent duplicate loads
+    if (hasLoadedMessages.current) {
+      console.log("⏭️ Messages already loaded, skipping...");
+      return;
+    }
+
+    hasLoadedMessages.current = true;
+
     try {
-      console.log(`📨 Loading messages for session: ${sessionId}`);
-      const response = await fetch(`/api/chat-sessions/${sessionId}`);
+      console.log(`� Loading messages for project: ${projectId}`);
+      const response = await fetch(`/api/chat-messages?projectId=${projectId}`);
+
       if (response.ok) {
         const data = await response.json();
-        const loadedMessages = data.chatSession.messages.map(
+        const loadedMessages = data.messages.map(
           (m: Message & { createdAt: string }) => ({
             ...m,
             createdAt: new Date(m.createdAt),
           })
         );
-        console.log(
-          `✅ Loaded ${loadedMessages.length} messages for session ${sessionId}`
-        );
+        console.log(`✅ Loaded ${loadedMessages.length} messages`);
         setMessages(loadedMessages);
         setMessagesLoaded(true);
       } else {
-        console.error(`❌ Failed to load messages for session ${sessionId}`);
+        console.error(`❌ Failed to load messages`);
         setMessagesLoaded(true);
       }
     } catch (error) {
       console.error("Error loading messages:", error);
-      setMessagesLoaded(true); // Still mark as loaded even on error
+      hasLoadedMessages.current = false; // Reset on error so it can retry
+      setMessagesLoaded(true);
     }
-  }, []);
-
-  const loadChatSessions = useCallback(async () => {
-    // Prevent duplicate loads
-    if (hasLoadedSessions.current) {
-      console.log("⏭️ Chat sessions already loaded, skipping...");
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/chat-sessions?projectId=${projectId}`);
-      if (response.ok) {
-        const data = await response.json();
-
-        // Mark as loaded BEFORE any session operations to prevent race conditions
-        hasLoadedSessions.current = true;
-
-        // If there are sessions, select the most recent one
-        if (data.chatSessions.length > 0) {
-          const sessionId = data.chatSessions[0].id;
-          setCurrentSessionId(sessionId);
-          if (onSessionChange) {
-            onSessionChange(sessionId);
-          }
-          console.log(
-            `✅ Loaded ${data.chatSessions.length} chat session(s), selected: ${sessionId}`
-          );
-        } else {
-          // No sessions exist - create a temporary 'new' session in frontend only
-          console.log(
-            "📝 No chat sessions found - creating temporary 'new' session (frontend only)"
-          );
-          setCurrentSessionId("new");
-          setMessages([]);
-          setMessagesLoaded(true);
-          if (onSessionChange) {
-            onSessionChange("new");
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error loading chat sessions:", error);
-      hasLoadedSessions.current = false; // Reset on error so it can retry
-    }
-  }, [projectId, onSessionChange]);
-
-  // Sync external session ID changes and load messages
-  useEffect(() => {
-    if (externalSessionId && externalSessionId !== currentSessionId) {
-      console.log(`🔄 External session changed to: ${externalSessionId}`);
-      setCurrentSessionId(externalSessionId);
-      // If it's not a temporary 'new' session, load messages
-      if (externalSessionId !== "new") {
-        setMessagesLoaded(false);
-        loadMessages(externalSessionId);
-      } else {
-        // For new session, clear messages
-        setMessages([]);
-        setMessagesLoaded(true);
-      }
-    }
-  }, [externalSessionId, currentSessionId, loadMessages]);
+  }, [projectId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -170,19 +110,17 @@ export default function ChatPanel({
     scrollToBottom();
   }, [messages]);
 
-  // Load chat sessions on mount
+  // Load messages on mount
   useEffect(() => {
-    loadChatSessions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+    loadMessages();
+  }, [loadMessages]);
 
-  // Auto-focus textarea when a new session is created or switched to
+  // Auto-focus textarea when messages are loaded
   useEffect(() => {
     if (messagesLoaded && textareaRef.current) {
-      // Focus the textarea after messages are loaded
       textareaRef.current.focus();
     }
-  }, [messagesLoaded, currentSessionId]);
+  }, [messagesLoaded]);
 
   // Simplified auto-send: Only trigger if project version is 0
   useEffect(() => {
@@ -264,59 +202,12 @@ export default function ChatPanel({
     setSessionTokenCount({ totalTokens, totalCost });
   }, [messages]);
 
-  const createNewSession = useCallback(
-    async (name?: string): Promise<string | null> => {
-      try {
-        console.log(`📝 Creating new chat session in database...`);
-        const response = await fetch("/api/chat-sessions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId,
-            name: name || "New Chat",
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`✅ Session created with ID: ${data.chatSession.id}`);
-          setCurrentSessionId(data.chatSession.id);
-          setMessages([]);
-          setMessagesLoaded(true);
-
-          // Notify parent of session change
-          if (onSessionChange) {
-            onSessionChange(data.chatSession.id);
-          }
-
-          return data.chatSession.id;
-        }
-        return null;
-      } catch (error) {
-        console.error("Error creating chat session:", error);
-        return null;
-      }
-    },
-    [projectId, onSessionChange]
-  );
-
-  // Handle new chat - creates a temporary 'new' session in frontend only
+  // Handle new chat - just clear messages
   const handleNewChat = useCallback(() => {
-    console.log(
-      "📝 Starting new chat (frontend only, no database session yet)"
-    );
-
-    // Set a temporary 'new' session ID
-    setCurrentSessionId("new");
+    console.log("📝 Starting new chat - clearing messages");
     setMessages([]);
-    setMessagesLoaded(true);
-
-    if (onSessionChange) {
-      onSessionChange("new");
-    }
-  }, [onSessionChange]);
+    setInput("");
+  }, []);
 
   // Handle new chat trigger from parent
   useEffect(() => {
@@ -325,31 +216,16 @@ export default function ChatPanel({
     }
   }, [triggerNewChat, handleNewChat]);
 
-  const saveMessage = async (
-    role: "user" | "assistant",
-    content: string,
-    sessionId?: string
-  ) => {
-    const sessionToUse = sessionId || currentSessionId;
-    if (!sessionToUse) {
-      console.error("❌ Cannot save message: No session ID available");
-      return;
-    }
-
+  const saveMessage = async (role: "user" | "assistant", content: string) => {
     try {
-      console.log(
-        `💾 Saving ${role} message to session ${sessionToUse.substring(
-          0,
-          8
-        )}...`
-      );
+      console.log(`💾 Saving ${role} message to project ${projectId}...`);
       const response = await fetch("/api/chat-messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          chatSessionId: sessionToUse,
+          projectId,
           role,
           content,
         }),
@@ -456,19 +332,6 @@ export default function ChatPanel({
     const contentToSend = messageContent || input;
     if (!contentToSend.trim() || isLoading) return;
 
-    // If no session exists or it's a temporary 'new' session, create one first
-    let sessionIdToUse = currentSessionId;
-    if (!sessionIdToUse || sessionIdToUse === "new") {
-      console.log("📝 Creating session in database (first message being sent)");
-      sessionIdToUse = await createNewSession("New Chat");
-
-      // If still no session after creation, something went wrong
-      if (!sessionIdToUse) {
-        console.error("Failed to create session");
-        return;
-      }
-    }
-
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: "user",
@@ -491,7 +354,7 @@ export default function ChatPanel({
     });
 
     // Save user message to database
-    await saveMessage("user", userMessage.content, sessionIdToUse);
+    await saveMessage("user", userMessage.content);
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -586,10 +449,10 @@ export default function ChatPanel({
           );
 
           // Save assistant message with cleaned content
-          await saveMessage("assistant", finalContent, sessionIdToUse);
+          await saveMessage("assistant", finalContent);
         } else {
           // Save assistant message as-is
-          await saveMessage("assistant", fullContent, sessionIdToUse);
+          await saveMessage("assistant", fullContent);
         }
       }
     } catch (error) {
