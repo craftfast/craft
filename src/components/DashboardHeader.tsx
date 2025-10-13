@@ -7,14 +7,19 @@ import UserMenu from "./UserMenu";
 
 interface DashboardHeaderProps {
   title?: string;
+  planName?: string;
 }
 
 export default function DashboardHeader({
   title = "Dashboard",
+  planName,
 }: DashboardHeaderProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Only show plan badge for Hobby or Pro plans
+  const showPlanBadge = planName === "HOBBY" || planName === "PRO";
 
   return (
     <>
@@ -28,6 +33,12 @@ export default function DashboardHeader({
         >
           {title}
         </button>
+        {/* Plan Badge */}
+        {showPlanBadge && (
+          <span className="mr-2 px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
+            {planName === "HOBBY" ? "Hobby" : "Pro"}
+          </span>
+        )}
         {/* Team Switcher Dropdown Button */}
         <button
           onClick={() => {
@@ -52,6 +63,31 @@ export default function DashboardHeader({
         </button>
       </div>
 
+      {/* Upgrade CTA - Center of Header (only for Hobby plan) */}
+      {planName === "HOBBY" && (
+        <div className="hidden sm:flex items-center justify-center flex-1">
+          <button
+            onClick={() => router.push("/pricing")}
+            className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+            <span>Upgrade to Pro</span>
+          </button>
+        </div>
+      )}
+
       {/* Desktop User Menu */}
       <div className="hidden sm:flex items-center gap-2 ml-auto">
         {/* Search Button */}
@@ -59,7 +95,7 @@ export default function DashboardHeader({
           onClick={() => {
             // TODO: Implement search functionality
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full border border-neutral-300 dark:border-neutral-600 transition-colors"
+          className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full border border-neutral-300 dark:border-neutral-600 transition-colors"
           aria-label="Search"
         >
           <svg
@@ -83,7 +119,7 @@ export default function DashboardHeader({
           onClick={() => {
             // TODO: Implement new item functionality
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors"
+          className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors"
         >
           <svg
             className="w-3.5 h-3.5"

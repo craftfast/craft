@@ -33,7 +33,10 @@ export default async function DashboardPage() {
               iconClassName="text-white dark:text-white"
               href="/dashboard"
             />
-            <DashboardHeader title={team?.name} />
+            <DashboardHeader
+              title={team?.name}
+              planName={team?.subscription?.plan?.name}
+            />
           </div>
         </div>
       </header>
