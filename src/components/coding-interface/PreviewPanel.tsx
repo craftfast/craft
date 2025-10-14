@@ -54,6 +54,27 @@ export default function PreviewPanel({
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Utility function to format relative time
+  const getRelativeTime = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSeconds < 60) {
+      return diffSeconds === 1 ? "1 second ago" : `${diffSeconds} seconds ago`;
+    } else if (diffMinutes < 60) {
+      return diffMinutes === 1 ? "1 minute ago" : `${diffMinutes} minutes ago`;
+    } else if (diffHours < 24) {
+      return diffHours === 1 ? "1 hour ago" : `${diffHours} hours ago`;
+    } else {
+      return diffDays === 1 ? "1 day ago" : `${diffDays} days ago`;
+    }
+  };
+
   // 🧹 CLEANUP ON UNMOUNT: Delete sandbox when component unmounts (user leaves/closes page)
   // This ensures fresh sandbox on every mount and prevents stale sandboxes
   useEffect(() => {
@@ -605,104 +626,63 @@ export default function PreviewPanel({
 
             {/* Dropdown Menu */}
             {showVersionDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
-                <div className="p-3 border-b border-neutral-200 dark:border-neutral-700">
-                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                    Version History
-                  </h3>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                    Current: v{version}
-                  </p>
-                </div>
-
+              <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
                 <div className="overflow-y-auto flex-1">
                   {isLoadingVersions ? (
                     <div className="p-6 text-center">
-                      <div className="inline-block w-6 h-6 border-2 border-neutral-300 dark:border-neutral-600 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin"></div>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
-                        Loading versions...
-                      </p>
+                      <div className="inline-block w-5 h-5 border-2 border-neutral-300 dark:border-neutral-600 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin"></div>
                     </div>
                   ) : versions.length === 0 ? (
                     <div className="p-6 text-center">
                       <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                        No version history yet
+                        No versions yet
                       </p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                    <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                       {versions.map((v) => (
-                        <div
+                        <button
                           key={v.id}
-                          className="p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
+                          onClick={() => {
+                            if (v.version !== version) {
+                              handleRestoreVersion(v.id, v.version);
+                            }
+                          }}
+                          disabled={
+                            restoringVersionId === v.id || v.version === version
+                          }
+                          className={`w-full p-3 text-left transition-colors disabled:cursor-default ${
+                            v.version === version
+                              ? "bg-neutral-100 dark:bg-neutral-800"
+                              : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+                          }`}
                         >
-                          <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
-                                  v{v.version}
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                  Version {v.version}
                                 </span>
                                 {v.version === version && (
-                                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded">
+                                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full">
                                     Current
                                   </span>
                                 )}
-                                {v.isBookmarked && (
-                                  <svg
-                                    className="w-3 h-3 text-amber-500 fill-current"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-                                  </svg>
+                                {v.isPublished && (
+                                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-700 dark:bg-neutral-300 text-white dark:text-neutral-900 rounded-full">
+                                    Published
+                                  </span>
                                 )}
                               </div>
-                              {v.name && (
-                                <p className="text-xs text-neutral-700 dark:text-neutral-300 mt-1 truncate">
-                                  {v.name}
-                                </p>
-                              )}
-                              <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">
-                                {new Date(v.createdAt).toLocaleString()}
-                              </p>
-                              <p className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-0.5">
-                                {Object.keys(v.files).length} files
+                              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                {getRelativeTime(v.createdAt)}
                               </p>
                             </div>
-                            {v.version !== version && (
-                              <button
-                                onClick={() =>
-                                  handleRestoreVersion(v.id, v.version)
-                                }
-                                disabled={restoringVersionId === v.id}
-                                className="px-2 py-1 text-[10px] font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg border border-neutral-300 dark:border-neutral-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 flex-shrink-0"
-                              >
-                                {restoringVersionId === v.id ? (
-                                  <>
-                                    <div className="w-3 h-3 border border-neutral-400 border-t-transparent rounded-full animate-spin"></div>
-                                    <span>Restoring...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg
-                                      className="w-3 h-3"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                      />
-                                    </svg>
-                                    <span>Restore</span>
-                                  </>
-                                )}
-                              </button>
+                            {restoringVersionId === v.id && (
+                              <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
                             )}
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
