@@ -57,8 +57,7 @@ export default function PrivacyPolicy() {
               <li>
                 <strong>Payment Information:</strong> Billing details, payment
                 card information (processed securely through Polar.sh), and
-                transaction history for Pro, Business, and Enterprise
-                subscriptions.
+                transaction history for Pro and Enterprise subscriptions.
               </li>
               <li>
                 <strong>Profile Information:</strong> Optional information such
@@ -117,8 +116,8 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Database Content:</strong> Data stored in your Craft
-                databases (0.5GB for Free, 5GB for Pro, 20GB for Business,
-                unlimited for Enterprise).
+                databases (0.5GB for Free, 5GB for Pro, unlimited for
+                Enterprise).
               </li>
               <li>
                 <strong>Integrations:</strong> Data from connected services like
@@ -153,8 +152,7 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Process Payments:</strong> Handle billing,
-                subscriptions, and credit usage for Pro, Business, and
-                Enterprise plans.
+                subscriptions, and token usage for Pro and Enterprise plans.
               </li>
               <li>
                 <strong>Communication:</strong> Send service updates, security
@@ -257,8 +255,8 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>AI Conversations:</strong> May be retained for up to 30
-                days (Free), 90 days (Pro and Business), or as configured for
-                Enterprise users.
+                days (Free), 90 days (Pro), or as configured for Enterprise
+                users.
               </li>
               <li>
                 <strong>Payment Records:</strong> Retained for 7 years for

@@ -11,7 +11,6 @@ export interface PlanDetails {
     displayName: string;
     description: string | null;
     priceMonthlyUsd: number;
-    priceMonthlyInr: number;
     maxProjects: number | null;
     databaseSizeGb: number;
     storageSizeGb: number;
@@ -60,29 +59,27 @@ export async function getPlanByName(
 }
 
 /**
- * Get monthly plan price
+ * Get monthly plan price in USD
  */
 export async function getPlanMonthlyPrice(
-    planName: string,
-    currency: "USD" | "INR"
+    planName: string
 ): Promise<number | null> {
     const plan = await getPlanByName(planName);
     if (!plan) return null;
 
-    return currency === "USD" ? plan.priceMonthlyUsd : plan.priceMonthlyInr;
+    return plan.priceMonthlyUsd;
 }
 
 /**
- * Get plan price in smallest currency unit (cents/paise) for payment processing
+ * Get plan price in smallest currency unit (cents) for payment processing
  */
 export async function getPlanPriceInSmallestUnit(
-    planName: string,
-    currency: "USD" | "INR"
+    planName: string
 ): Promise<number | null> {
-    const price = await getPlanMonthlyPrice(planName, currency);
+    const price = await getPlanMonthlyPrice(planName);
     if (price === null) return null;
 
-    // Convert to smallest unit (multiply by 100 for cents/paise)
+    // Convert to cents (multiply by 100)
     return Math.round(price * 100);
 }
 
@@ -126,7 +123,7 @@ export async function comparePlans(
 ): Promise<{
     plan1: PlanDetails;
     plan2: PlanDetails;
-    priceDifference: { usd: number; inr: number };
+    priceDifference: number;
     uniqueFeatures1: string[];
     uniqueFeatures2: string[];
 } | null> {
@@ -135,9 +132,8 @@ export async function comparePlans(
 
     if (!plan1 || !plan2) return null;
 
-    // Calculate monthly price difference
+    // Calculate monthly price difference in USD
     const usdDiff = Math.abs(plan1.priceMonthlyUsd - plan2.priceMonthlyUsd);
-    const inrDiff = Math.abs(plan1.priceMonthlyInr - plan2.priceMonthlyInr);
 
     // Find unique features
     const uniqueFeatures1 = plan1.features.filter(
@@ -150,7 +146,7 @@ export async function comparePlans(
     return {
         plan1,
         plan2,
-        priceDifference: { usd: usdDiff, inr: inrDiff },
+        priceDifference: usdDiff,
         uniqueFeatures1,
         uniqueFeatures2,
     };

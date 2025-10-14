@@ -54,18 +54,19 @@ export default function RefundPolicy() {
               <li>
                 Can be cancelled at any time without any refund implications
               </li>
-              <li>
-                20 credits per month (max 5 per day) - no purchases required
-              </li>
+              <li>1M AI tokens per month (hard limit) - no top-up available</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">1.2 Pro Plan</h3>
             <ul className="space-y-2">
-              <li>Monthly or yearly subscription billed in advance</li>
-              <li>Pricing: Starting at $25/month (100 credits) or $250/year</li>
-              <li>Flexible tiers from 100-10,000 credits</li>
+              <li>Monthly subscription billed in advance</li>
+              <li>Pricing: $150/month</li>
+              <li>Includes 10M AI tokens per month</li>
+              <li>
+                Can purchase additional tokens as needed ($20 per 1M tokens)
+              </li>
               <li>14-day free trial available (no credit card required)</li>
-              <li>Automatically renews each period unless cancelled</li>
+              <li>Automatically renews monthly unless cancelled</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
@@ -110,12 +111,10 @@ export default function RefundPolicy() {
                 period
               </li>
               <li>
-                You will retain access to Pro or Business features until the end
-                of the paid period
+                You will retain access to Pro features until the end of the paid
+                period
               </li>
-              <li>
-                No partial refunds are provided for unused time or credits
-              </li>
+              <li>No partial refunds are provided for unused time or tokens</li>
               <li>
                 Your account will automatically downgrade to the Free plan
               </li>
@@ -126,9 +125,9 @@ export default function RefundPolicy() {
             </h3>
             <ul className="space-y-2">
               <li>Your projects and data remain accessible</li>
-              <li>Pro or Business features are disabled</li>
+              <li>Pro features are disabled</li>
               <li>
-                Usage is subject to Free plan limitations (20 credits/month, 3
+                Usage is subject to Free plan limitations (1M tokens/month, 20
                 projects max)
               </li>
               <li>You can resubscribe at any time</li>
@@ -190,7 +189,8 @@ export default function RefundPolicy() {
             </h3>
             <ul className="space-y-2">
               <li>Partial period subscriptions</li>
-              <li>Unused credits from any plan</li>
+              <li>Unused tokens from any plan</li>
+              <li>Token top-up purchases</li>
               <li>Subscription fees after the 7-day refund request window</li>
               <li>
                 Any fees if service termination was due to Terms of Service
@@ -313,10 +313,9 @@ export default function RefundPolicy() {
             <h3 className="text-xl font-semibold mb-3">6.1 Auto-Renewal</h3>
             <ul className="space-y-2">
               <li>
-                Pro and Business subscriptions automatically renew monthly or
-                yearly unless cancelled
+                Pro subscriptions automatically renew monthly unless cancelled
               </li>
-              <li>You will be charged on the same day each period</li>
+              <li>You will be charged on the same day each month</li>
               <li>Payment method on file will be charged automatically</li>
               <li>You can cancel auto-renewal at any time</li>
             </ul>

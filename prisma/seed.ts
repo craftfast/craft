@@ -15,7 +15,6 @@ async function main() {
             displayName: "Hobby",
             description: "The perfect starting place for your next project.",
             priceMonthlyUsd: 0,
-            priceMonthlyInr: 0,
             maxProjects: 20,
             databaseSizeGb: 0.5,
             storageSizeGb: 1,
@@ -43,8 +42,7 @@ async function main() {
             name: "PRO",
             displayName: "Pro",
             description: "Everything you need to build and scale your app.",
-            priceMonthlyUsd: 25,
-            priceMonthlyInr: 2075,
+            priceMonthlyUsd: 150,
             maxProjects: 999999, // Virtually unlimited
             databaseSizeGb: 5,
             storageSizeGb: 10,
@@ -73,7 +71,6 @@ async function main() {
             displayName: "Enterprise",
             description: "Security, performance, and dedicated support.",
             priceMonthlyUsd: 0, // Custom pricing
-            priceMonthlyInr: 0, // Custom pricing
             maxProjects: null, // Unlimited
             databaseSizeGb: 999999, // Virtually unlimited
             storageSizeGb: 999999, // Virtually unlimited
@@ -111,7 +108,7 @@ async function main() {
     console.log("\n🎉 Database seeding completed successfully!");
     console.log("\nPlan Summary:");
     console.log("- HOBBY: Free forever, 1M tokens/month (hard limit)");
-    console.log("- PRO: $25/month, 10M tokens included + purchase more");
+    console.log("- PRO: $150/month, 10M tokens included + purchase more");
     console.log("- ENTERPRISE: Custom pricing, unlimited tokens");
 }
 

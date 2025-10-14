@@ -131,7 +131,7 @@ export default function TermsOfService() {
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
                 <p className="font-semibold mb-2">Pro Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• $25/month</li>
+                  <li>• $150/month</li>
                   <li>• 10M AI tokens included per month</li>
                   <li>• Purchase additional tokens as needed</li>
                   <li>• 5GB database storage</li>
@@ -146,7 +146,7 @@ export default function TermsOfService() {
                 <p className="font-semibold mb-2">Enterprise Plan</p>
                 <ul className="space-y-1 text-sm">
                   <li>• Custom pricing</li>
-                  <li>• Custom credit allocation</li>
+                  <li>• Custom token allocation</li>
                   <li>• Unlimited projects and storage</li>
                   <li>• Dedicated AI model instances</li>
                   <li>• Priority support (24/7)</li>
@@ -169,12 +169,12 @@ export default function TermsOfService() {
               </li>
               <li>
                 <strong>Subscription Renewals:</strong> Pro and Enterprise
-                subscriptions auto-renew monthly or yearly unless cancelled
+                subscriptions auto-renew monthly unless cancelled
               </li>
               <li>
-                <strong>Credit Usage:</strong> Credits are used for AI
-                interactions and features. Unused credits roll over for Pro
-                plans.
+                <strong>Token Usage:</strong> AI tokens are used for AI
+                interactions and features. Pro plan includes 10M tokens/month
+                with option to purchase additional tokens as needed.
               </li>
               <li>
                 <strong>Payment Methods:</strong> We accept credit cards, debit
@@ -201,7 +201,7 @@ export default function TermsOfService() {
               </li>
               <li>
                 <strong>Refunds:</strong> We do not offer refunds for partial
-                periods or unused credits.
+                periods or unused tokens.
               </li>
               <li>
                 <strong>Downgrades:</strong> Plan downgrades take effect at the
@@ -418,10 +418,6 @@ export default function TermsOfService() {
                 <strong>Pro:</strong> 5GB database storage, unlimited projects
               </li>
               <li>
-                <strong>Business:</strong> 20GB database storage, unlimited
-                projects
-              </li>
-              <li>
                 <strong>Enterprise:</strong> Unlimited storage and projects
               </li>
               <li>
@@ -440,9 +436,7 @@ export default function TermsOfService() {
               <li>
                 We perform regular backups but do not guarantee data recovery
               </li>
-              <li>
-                Pro, Business, and Enterprise users have enhanced backup options
-              </li>
+              <li>Pro and Enterprise users have enhanced backup options</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
@@ -524,8 +518,8 @@ export default function TermsOfService() {
                 documentation
               </li>
               <li>
-                <strong>Pro and Business:</strong> Priority email support with
-                24-hour response time
+                <strong>Pro:</strong> Priority email support with 24-hour
+                response time
               </li>
               <li>
                 <strong>Enterprise:</strong> Dedicated support with custom SLA

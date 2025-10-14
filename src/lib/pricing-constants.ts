@@ -1,18 +1,17 @@
 /**
  * Pricing Constants
  * Centralized pricing information for the Craft platform
- * Usage-based pricing model - pay only for what you use
+ * Token-based pricing model - Pro plan includes 10M tokens/month with top-up option
  */
 
 export const PRICING = {
     FREE: {
         name: "Free",
         priceMonthly: 0,
-        priceYearly: 0,
         displayPriceMonthly: "$0",
-        displayPriceYearly: "$0",
         databaseStorageGB: 0.5,
         maxProjects: 3,
+        monthlyTokens: 1000000, // 1M tokens/month (hard limit)
         features: {
             aiChat: true,
             unlimitedProjects: false,
@@ -28,16 +27,16 @@ export const PRICING = {
             trainingOptOut: false,
             sso: false,
             dedicatedSupport: false,
+            canPurchaseTokens: false,
         },
     },
     PRO: {
         name: "Pro",
-        priceMonthly: 25,
-        priceYearly: 250, // ~17% discount (10 months price)
-        displayPriceMonthly: "$25",
-        displayPriceYearly: "$250",
+        priceMonthly: 150,
+        displayPriceMonthly: "$150",
         databaseStorageGB: 5,
         maxProjects: null, // Unlimited
+        monthlyTokens: 10000000, // 10M tokens/month included
         features: {
             aiChat: true,
             unlimitedProjects: true,
@@ -53,41 +52,16 @@ export const PRICING = {
             trainingOptOut: false,
             sso: false,
             dedicatedSupport: false,
-        },
-    },
-    BUSINESS: {
-        name: "Business",
-        priceMonthly: 50,
-        priceYearly: 500, // ~17% discount (10 months price)
-        displayPriceMonthly: "$50",
-        displayPriceYearly: "$500",
-        databaseStorageGB: 20,
-        maxProjects: null, // Unlimited
-        features: {
-            aiChat: true,
-            unlimitedProjects: true,
-            vercelDeployment: true,
-            figmaImport: true,
-            githubSync: true,
-            databaseAccess: "full",
-            customDomain: true,
-            privateProjects: true,
-            support: "priority",
-            prioritySupport: true,
-            removeBranding: true,
-            trainingOptOut: true,
-            sso: true,
-            dedicatedSupport: false,
+            canPurchaseTokens: true, // Can top-up tokens as needed
         },
     },
     ENTERPRISE: {
         name: "Enterprise",
         priceMonthly: null, // Contact sales
-        priceYearly: null, // Contact sales
         displayPriceMonthly: "Custom",
-        displayPriceYearly: "Custom",
         databaseStorageGB: null, // Unlimited
         maxProjects: null, // Unlimited
+        monthlyTokens: null, // Unlimited
         features: {
             aiChat: true,
             unlimitedProjects: true,
@@ -111,59 +85,33 @@ export const PRICING = {
             customConnections: true,
             groupBasedAccess: true,
             customDesignSystems: true,
+            canPurchaseTokens: true,
         },
     },
 } as const;
 
-export const BILLING_PERIOD = {
-    MONTHLY: {
-        id: "MONTHLY",
-        name: "Monthly",
-        label: "Monthly",
-    },
-    YEARLY: {
-        id: "YEARLY",
-        name: "Yearly",
-        label: "Yearly",
-        discount: "Save ~17%",
-    },
-} as const;
-
 export const TOKEN_PRICING = {
-    PAY_AS_YOU_GO: 20, // $20 per 1M tokens
+    PAY_AS_YOU_GO: 20, // $20 per 1M tokens for top-up
 } as const;
 
 export const SUPPORT_EMAIL = "support@craft.tech";
 export const SALES_EMAIL = "sales@craft.tech";
 
 export type PlanName = keyof typeof PRICING;
-export type BillingPeriod = keyof typeof BILLING_PERIOD;
 
 /**
- * Get plan price by plan name and billing period
+ * Get plan monthly price
  */
-export function getPlanPrice(
-    planName: PlanName,
-    billingPeriod: BillingPeriod
-): number {
+export function getPlanPrice(planName: PlanName): number {
     const plan = PRICING[planName];
-    if (billingPeriod === "YEARLY") {
-        return plan.priceYearly ?? 0;
-    }
     return plan.priceMonthly ?? 0;
 }
 
 /**
- * Get display price by plan name and billing period
+ * Get display price
  */
-export function getDisplayPrice(
-    planName: PlanName,
-    billingPeriod: BillingPeriod
-): string {
+export function getDisplayPrice(planName: PlanName): string {
     const plan = PRICING[planName];
-    if (billingPeriod === "YEARLY") {
-        return plan.displayPriceYearly;
-    }
     return plan.displayPriceMonthly;
 }
 

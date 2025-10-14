@@ -35,7 +35,7 @@ export default function PricingPage() {
     : null;
 
   const handleProPayment = async () => {
-    const amount = 25; // $25/month for Pro
+    const amount = 150; // $150/month for Pro
 
     try {
       // Initiate Polar payment (this will redirect to Polar checkout)
@@ -105,7 +105,7 @@ export default function PricingPage() {
     },
     {
       name: "Pro",
-      price: "$25/mo",
+      price: "$150/mo",
       description: "Everything you need to build and scale your app.",
       cta: !session
         ? "Start a free trial"
@@ -1119,7 +1119,7 @@ export default function PricingPage() {
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     <strong>Hobby:</strong> Free with hard limits (1M
                     tokens/month, 500MB database). No pay-as-you-go - upgrade to
-                    Pro for more. <strong>Pro:</strong> $25/month includes 10M
+                    Pro for more. <strong>Pro:</strong> $150/month includes 10M
                     tokens + generous infrastructure limits, then pay-as-you-go
                     for additional usage.
                   </p>

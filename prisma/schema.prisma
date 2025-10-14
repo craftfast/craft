@@ -166,8 +166,7 @@ model Plan {
   name              String             @unique // "HOBBY", "PRO", "ENTERPRISE"
   displayName       String // "Hobby", "Pro", "Enterprise"
   description       String? // Plan description
-  priceMonthlyUsd   Float // Monthly price in USD (0 for Hobby, 25 for Pro)
-  priceMonthlyInr   Float // Monthly price in INR
+  priceMonthlyUsd   Float // Monthly price in USD (0 for Hobby, 150 for Pro)
   features          Json // JSON array of plan features
   maxProjects       Int? // Max projects allowed (1000 soft limit = unlimited)
   databaseSizeGb    Float // Database storage in GB
