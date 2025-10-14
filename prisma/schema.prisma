@@ -83,6 +83,7 @@ model Project {
   version          Int              @default(0) // v0 = template, v1+ = AI updates (for billing & history)
   generationStatus String           @default("template") // "template" | "generating" | "ready"
   lastCodeUpdateAt DateTime? // When code was last updated by AI
+  aiModel          String? // Selected AI model for this project (e.g., "x-ai/grok-code-fast-1")
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)

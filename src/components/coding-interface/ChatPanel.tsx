@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
-import { getModelsForPlan, getDefaultModel } from "@/lib/ai-models";
+import { getModelsForPlan, getDefaultModel, AI_MODELS } from "@/lib/ai-models";
 import type { PlanName } from "@/lib/ai-models";
 import ModelSelector from "../ModelSelector";
 
@@ -49,21 +49,18 @@ export default function ChatPanel({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
+  const [modelLoaded, setModelLoaded] = useState(false); // Track if model has been loaded
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [feedbackMessageId, setFeedbackMessageId] = useState<{
     [key: string]: "like" | "dislike" | null;
   }>({});
 
-  // Model selection and token tracking
+  // Model selection
   const [selectedModel, setSelectedModel] =
     useState<string>("grok-code-fast-1");
   const [availableModels, setAvailableModels] = useState(
     getModelsForPlan("HOBBY")
   );
-  const [sessionTokenCount, setSessionTokenCount] = useState<{
-    totalTokens: number;
-    totalCost: number;
-  }>({ totalTokens: 0, totalCost: 0 });
 
   // Load messages for the project
   const loadMessages = useCallback(async () => {
@@ -121,7 +118,7 @@ export default function ChatPanel({
     }
   }, [messagesLoaded]);
 
-  // Simplified auto-send: Only trigger if project version is 0
+  // Simplified auto-send: Only trigger if project version is 0 AND model is loaded
   useEffect(() => {
     const sendFirstMessage = async () => {
       // Only auto-send if:
@@ -129,16 +126,20 @@ export default function ChatPanel({
       // 2. We haven't triggered auto-send yet
       // 3. We have a description
       // 4. Messages are loaded
-      // 5. Not currently loading
+      // 5. Model is loaded (ensures we use the correct saved model)
+      // 6. Not currently loading
       if (
         projectVersion === 0 &&
         !hasTriggeredAutoSend.current &&
         projectDescription &&
         projectDescription.trim() !== "" &&
         messagesLoaded &&
+        modelLoaded &&
         !isLoading
       ) {
-        console.log("🚀 Auto-sending first message (project version 0)");
+        console.log(
+          `🚀 Auto-sending first message with model: ${selectedModel}`
+        );
         hasTriggeredAutoSend.current = true;
 
         // Auto-send after a short delay (session will be created automatically)
@@ -150,53 +151,84 @@ export default function ChatPanel({
 
     sendFirstMessage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectVersion, projectDescription, messagesLoaded, isLoading]);
+  }, [
+    projectVersion,
+    projectDescription,
+    messagesLoaded,
+    modelLoaded,
+    isLoading,
+  ]);
 
-  // Fetch user's plan and set available models with correct defaults
+  // Fetch user's plan and project's saved model
   useEffect(() => {
-    const fetchUserPlan = async () => {
+    const fetchUserPlanAndProjectModel = async () => {
       try {
-        const response = await fetch("/api/user/plan");
-        if (response.ok) {
-          const data = await response.json();
-          const plan: PlanName = data.plan || "HOBBY";
+        // Fetch user plan
+        const planResponse = await fetch("/api/user/plan");
+        if (planResponse.ok) {
+          const planData = await planResponse.json();
+          const plan: PlanName = planData.plan || "HOBBY";
 
           console.log(`🎯 User plan: ${plan}`);
 
           setAvailableModels(getModelsForPlan(plan));
 
-          // Set default model based on plan
-          // Hobby: grok-code-fast-1 (fastest, cheapest)
-          // Pro/Enterprise: claude-sonnet-4.5 (best quality)
-          const defaultModel = getDefaultModel(plan);
-          setSelectedModel(defaultModel);
+          // Fetch project to get saved aiModel
+          const projectResponse = await fetch(`/api/projects/${projectId}`);
+          if (projectResponse.ok) {
+            const projectData = await projectResponse.json();
+            const savedAiModel = projectData.project?.aiModel;
 
-          console.log(`🤖 Default model for ${plan}: ${defaultModel}`);
+            if (savedAiModel) {
+              // Find the model key from the model ID
+              const modelKey = Object.keys(AI_MODELS).find(
+                (key) => AI_MODELS[key].id === savedAiModel
+              );
+
+              if (modelKey) {
+                setSelectedModel(modelKey);
+                console.log(
+                  `🤖 Using saved model from project: ${savedAiModel}`
+                );
+              } else {
+                // If saved model not found, use default for plan
+                const defaultModel = getDefaultModel(plan);
+                setSelectedModel(defaultModel);
+                console.log(
+                  `🤖 Saved model not found, using default for ${plan}: ${defaultModel}`
+                );
+              }
+            } else {
+              // No saved model, use default for plan
+              const defaultModel = getDefaultModel(plan);
+              setSelectedModel(defaultModel);
+              console.log(
+                `🤖 No saved model, using default for ${plan}: ${defaultModel}`
+              );
+            }
+          } else {
+            // Failed to fetch project, use default for plan
+            const defaultModel = getDefaultModel(plan);
+            setSelectedModel(defaultModel);
+            console.log(
+              `🤖 Failed to fetch project, using default for ${plan}: ${defaultModel}`
+            );
+          }
+
+          // Mark model as loaded
+          setModelLoaded(true);
         }
       } catch (error) {
-        console.error("Error fetching user plan:", error);
+        console.error("Error fetching user plan or project:", error);
         // Default to HOBBY plan on error
         setAvailableModels(getModelsForPlan("HOBBY"));
         setSelectedModel(getDefaultModel("HOBBY"));
+        setModelLoaded(true); // Still mark as loaded even on error
       }
     };
 
-    fetchUserPlan();
+    fetchUserPlanAndProjectModel();
   }, [projectId]);
-
-  // Calculate session token usage from messages
-  useEffect(() => {
-    const totalTokens = messages.reduce(
-      (sum, msg) =>
-        sum + (msg.tokenCount?.input || 0) + (msg.tokenCount?.output || 0),
-      0
-    );
-    const totalCost = messages.reduce(
-      (sum, msg) => sum + (msg.tokenCount?.cost || 0),
-      0
-    );
-    setSessionTokenCount({ totalTokens, totalCost });
-  }, [messages]);
 
   // Handle new chat - just clear messages
   const handleNewChat = useCallback(() => {
@@ -749,30 +781,6 @@ export default function ChatPanel({
                   availableModels={availableModels}
                   onModelChange={setSelectedModel}
                 />
-
-                {/* Token Counter */}
-                <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400 px-2">
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                    />
-                  </svg>
-                  <span>
-                    {sessionTokenCount.totalTokens.toLocaleString()} tokens
-                  </span>
-                  <span className="text-neutral-400 dark:text-neutral-600">
-                    •
-                  </span>
-                  <span>${sessionTokenCount.totalCost.toFixed(4)}</span>
-                </div>
               </div>
 
               <button

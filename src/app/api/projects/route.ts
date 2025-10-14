@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { name, description } = body;
+        const { name, description, aiModel } = body;
 
         if (!name || name.trim() === "") {
             return NextResponse.json(
@@ -140,11 +140,15 @@ export async function POST(req: NextRequest) {
                 description: description?.trim() || null,
                 userId: user.id,
                 files: baseTemplate as object, // Base template - AI will modify/extend
+                aiModel: aiModel || null, // Save the selected AI model
             },
         });
 
         console.log(`🎉 Project created with ID: ${project.id}`);
         console.log(`📁 Base template saved - AI will customize based on description...`);
+        if (aiModel) {
+            console.log(`🤖 AI Model saved: ${aiModel}`);
+        }
 
         return NextResponse.json({ project }, { status: 201 });
     } catch (error) {
