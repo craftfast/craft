@@ -5,8 +5,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
-import { getModelsForPlan, getDefaultModel, AI_MODELS } from "@/lib/ai-models";
+import { getModelsForPlan, getDefaultModel } from "@/lib/ai-models";
 import type { PlanName } from "@/lib/ai-models";
+import ModelSelector from "../ModelSelector";
 
 interface Message {
   id: string;
@@ -56,11 +57,9 @@ export default function ChatPanel({
   // Model selection and token tracking
   const [selectedModel, setSelectedModel] =
     useState<string>("grok-code-fast-1");
-  const [userPlan, setUserPlan] = useState<PlanName>("HOBBY");
   const [availableModels, setAvailableModels] = useState(
     getModelsForPlan("HOBBY")
   );
-  const [showModelSelector, setShowModelSelector] = useState(false);
   const [sessionTokenCount, setSessionTokenCount] = useState<{
     totalTokens: number;
     totalCost: number;
@@ -164,7 +163,6 @@ export default function ChatPanel({
 
           console.log(`🎯 User plan: ${plan}`);
 
-          setUserPlan(plan);
           setAvailableModels(getModelsForPlan(plan));
 
           // Set default model based on plan
@@ -179,7 +177,6 @@ export default function ChatPanel({
       } catch (error) {
         console.error("Error fetching user plan:", error);
         // Default to HOBBY plan on error
-        setUserPlan("HOBBY");
         setAvailableModels(getModelsForPlan("HOBBY"));
         setSelectedModel(getDefaultModel("HOBBY"));
       }
@@ -748,132 +745,11 @@ export default function ChatPanel({
                 </button>
 
                 {/* Model Selector */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowModelSelector(!showModelSelector)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-full bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors text-xs"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
-                      {AI_MODELS[selectedModel]?.name || "Select Model"}
-                    </span>
-                    <svg
-                      className={`w-3 h-3 text-neutral-600 dark:text-neutral-400 transition-transform ${
-                        showModelSelector ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {showModelSelector && (
-                    <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden z-50">
-                      <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900">
-                        <h3 className="font-semibold text-sm text-neutral-900 dark:text-neutral-100">
-                          Select AI Model
-                        </h3>
-                        <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
-                          {userPlan === "HOBBY"
-                            ? "Lite models (upgrade for premium)"
-                            : userPlan === "PRO"
-                            ? "Lite & Premium models"
-                            : "All models available"}
-                        </p>
-                      </div>
-                      <div className="max-h-96 overflow-y-auto">
-                        {availableModels.map((model) => (
-                          <button
-                            key={model.id}
-                            onClick={() => {
-                              setSelectedModel(
-                                Object.keys(AI_MODELS).find(
-                                  (key) => AI_MODELS[key].id === model.id
-                                ) || "grok-code-fast-1"
-                              );
-                              setShowModelSelector(false);
-                            }}
-                            className={`w-full px-4 py-3 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors border-b border-neutral-100 dark:border-neutral-800 ${
-                              selectedModel ===
-                              Object.keys(AI_MODELS).find(
-                                (key) => AI_MODELS[key].id === model.id
-                              )
-                                ? "bg-neutral-50 dark:bg-neutral-900"
-                                : ""
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="font-medium text-sm text-neutral-900 dark:text-neutral-100">
-                                    {model.name}
-                                  </span>
-                                  <span
-                                    className={`text-xs px-1.5 py-0.5 rounded ${
-                                      model.tier === "lite"
-                                        ? "bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300"
-                                        : model.tier === "premium"
-                                        ? "bg-neutral-300 dark:bg-neutral-600 text-neutral-800 dark:text-neutral-200"
-                                        : "bg-neutral-400 dark:bg-neutral-500 text-neutral-900 dark:text-neutral-100"
-                                    }`}
-                                  >
-                                    {model.tier.toUpperCase()}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-1">
-                                  {model.description}
-                                </p>
-                                <p className="text-xs text-neutral-500 dark:text-neutral-500">
-                                  ${model.pricingPer1M.input.toFixed(2)}/$
-                                  {model.pricingPer1M.output.toFixed(2)} per 1M
-                                  tokens
-                                </p>
-                              </div>
-                              {selectedModel ===
-                                Object.keys(AI_MODELS).find(
-                                  (key) => AI_MODELS[key].id === model.id
-                                ) && (
-                                <svg
-                                  className="w-5 h-5 text-neutral-700 dark:text-neutral-300 flex-shrink-0"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <ModelSelector
+                  selectedModel={selectedModel}
+                  availableModels={availableModels}
+                  onModelChange={setSelectedModel}
+                />
 
                 {/* Token Counter */}
                 <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400 px-2">
