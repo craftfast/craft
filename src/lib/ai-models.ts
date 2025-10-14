@@ -76,17 +76,6 @@ export const AI_MODELS: Record<string, AIModel> = {
         minPlan: "PRO",
         pricingPer1M: { input: 1.25, output: 10.0 },
     },
-
-    // ========== ENTERPRISE MODELS ==========
-    "claude-opus-4": {
-        id: "anthropic/claude-opus-4",
-        name: "Claude Opus 4",
-        provider: "Anthropic",
-        description: "Maximum capability for complex enterprise tasks",
-        tier: "enterprise",
-        minPlan: "ENTERPRISE",
-        pricingPer1M: { input: 15.0, output: 75.0 },
-    },
 };
 
 /**
@@ -129,7 +118,7 @@ export function canAccessModel(plan: PlanName, modelKey: string): boolean {
 export function getDefaultModel(plan: PlanName): string {
     if (plan === "HOBBY") return "grok-code-fast-1";
     if (plan === "PRO") return "claude-sonnet-4.5";
-    return "claude-opus-4";
+    return "claude-sonnet-4.5";
 }
 
 /**

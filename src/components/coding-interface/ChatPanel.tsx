@@ -167,8 +167,7 @@ export default function ChatPanel({
 
           // Set default model based on plan
           // Hobby: grok-code-fast-1 (fastest, cheapest)
-          // Pro: claude-sonnet-4.5 (best quality)
-          // Enterprise: claude-opus-4 (maximum capability)
+          // Pro/Enterprise: claude-sonnet-4.5 (best quality)
           const defaultModel = getDefaultModel(plan);
           setSelectedModel(defaultModel);
 

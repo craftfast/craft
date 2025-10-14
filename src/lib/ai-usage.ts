@@ -11,7 +11,6 @@ const MODEL_PRICING = {
     // Claude models
     "claude-sonnet-4.5": { input: 3.0, output: 15.0 },
     "claude-sonnet-3.5": { input: 3.0, output: 15.0 },
-    "claude-opus-4": { input: 15.0, output: 75.0 },
 
     // GPT models
     "gpt-5": { input: 10.0, output: 30.0 },
