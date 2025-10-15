@@ -530,8 +530,8 @@ export default function ChatPanel({
     }
   };
 
-  // Function to extract code blocks from markdown
-  const extractCodeBlocks = (content: string) => {
+  // Function to extract code blocks from markdown (including incomplete ones during streaming)
+  const extractCodeBlocks = (content: string, includePartial = false) => {
     // Enhanced regex to support multiple file path formats:
     // 1. ```language // path/to/file.ext
     // 2. ```language /* path/to/file.ext */
@@ -582,6 +582,48 @@ export default function ChatPanel({
       }
     }
 
+    // If includePartial is true, also extract incomplete code blocks (for streaming)
+    if (includePartial) {
+      const partialRegex = /```([^\s\n]*)\s*([^\n]*?)\n([\s\S]+?)$/;
+      const partialMatch = partialRegex.exec(content);
+
+      if (partialMatch) {
+        let language = partialMatch[1] || "text";
+        const filePathLine = partialMatch[2]?.trim() || "";
+        const code = partialMatch[3];
+
+        let filePath = "";
+
+        if (filePathLine.startsWith("//")) {
+          filePath = filePathLine.replace(/^\/\/\s*/, "").trim();
+        } else if (filePathLine.startsWith("/*")) {
+          filePath = filePathLine
+            .replace(/^\/\*\s*/, "")
+            .replace(/\s*\*\/\s*$/, "")
+            .trim();
+        } else if (filePathLine && /\.\w+/.test(filePathLine)) {
+          filePath = filePathLine.trim();
+        } else if (
+          language &&
+          language.includes("/") &&
+          /\.\w+/.test(language)
+        ) {
+          filePath = language;
+          const ext = filePath.split(".").pop()?.toLowerCase();
+          language = ext || "text";
+        }
+
+        // Only add if we haven't already added this complete file
+        if (filePath && code && !files.some((f) => f.path === filePath)) {
+          files.push({
+            path: filePath,
+            content: code, // Don't trim for partial blocks
+            language,
+          });
+        }
+      }
+    }
+
     console.log(`📦 Total files extracted: ${files.length}`);
     return files;
   };
@@ -592,7 +634,11 @@ export default function ChatPanel({
     return content
       .replace(
         /```[^\s\n]*\s*[^\n]*?\n[\s\S]+?```/g,
-        "" // Remove ALL code blocks - code should only appear in the editor
+        "" // Remove complete code blocks
+      )
+      .replace(
+        /```[^\s\n]*\s*[^\n]*?\n[\s\S]+?$/,
+        "" // Remove incomplete/streaming code blocks (no closing ```)
       )
       .replace(/\n{3,}/g, "\n\n") // Clean up extra newlines
       .trim();
@@ -771,15 +817,8 @@ export default function ChatPanel({
           const chunk = decoder.decode(value);
           fullContent += chunk;
 
-          // Extract files during streaming to show in file changes card
-          const streamingFiles = extractCodeBlocks(fullContent);
-          const streamingFileChanges: FileChange[] = streamingFiles.map(
-            (f) => ({
-              path: f.path,
-              type: projectFiles && projectFiles[f.path] ? "modified" : "added",
-              language: f.language,
-            })
-          );
+          // Extract files during streaming (including partial ones) to stream to code editor
+          const streamingFiles = extractCodeBlocks(fullContent, true);
 
           // Send streaming files to parent for live code view (no database save yet)
           if (onStreamingFiles && streamingFiles.length > 0) {
@@ -789,6 +828,14 @@ export default function ChatPanel({
             });
             onStreamingFiles(filesMap);
           }
+
+          // Extract complete code blocks for file changes card
+          const completeFiles = extractCodeBlocks(fullContent, false);
+          const streamingFileChanges: FileChange[] = completeFiles.map((f) => ({
+            path: f.path,
+            type: projectFiles && projectFiles[f.path] ? "modified" : "added",
+            language: f.language,
+          }));
 
           // During streaming, hide code blocks from text content
           const displayContent = removeCodeBlocks(fullContent);
