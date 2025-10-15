@@ -1015,43 +1015,26 @@ export default function ChatPanel({
       <div className="border-neutral-200 dark:border-neutral-800 p-2 pl-4">
         <div className="max-w-3xl mx-auto">
           <div className="rounded-2xl px-2 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm hover:shadow-md focus-within:shadow-lg transition-shadow">
-            {/* Textarea - Main prompt area */}
-            <div className="relative">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  handleInput(e);
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="Describe what you want to build or modify..."
-                rows={1}
-                className="w-full p-2 bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-neutral-500 dark:placeholder:text-neutral-400 overflow-y-auto scrollbar-minimal"
-                style={{ minHeight: "3.5rem", maxHeight: "288px" }}
-              />
-            </div>
-
-            {/* Image Attachments - Below the textarea */}
+            {/* Image Attachments - Above the textarea */}
             {selectedImages.length > 0 && (
-              <div className="flex flex-wrap gap-2 px-2 pt-2 pb-1">
+              <div className="flex flex-wrap gap-2 pb-2">
                 {selectedImages.map((image) => (
                   <div
                     key={image.id}
-                    className="relative group rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900"
+                    className="relative group rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-600"
                   >
                     <Image
                       src={image.url}
                       alt={image.name}
-                      width={64}
-                      height={64}
-                      className="w-16 h-16 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                      width={80}
+                      height={80}
+                      className="w-20 h-20 object-cover cursor-pointer hover:opacity-80 transition-opacity"
                       unoptimized
                       onClick={() => setPreviewImage(image)}
                     />
                     <button
                       onClick={() => handleRemoveImage(image.id)}
-                      className="absolute -top-1.5 -right-1.5 p-1 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full shadow-md hover:scale-110 transition-transform"
+                      className="absolute top-1 right-1 p-1 bg-neutral-900/80 dark:bg-neutral-100/80 text-white dark:text-neutral-900 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label="Remove image"
                     >
                       <svg
@@ -1072,6 +1055,23 @@ export default function ChatPanel({
                 ))}
               </div>
             )}
+
+            {/* Textarea - Main prompt area */}
+            <div className="relative">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  handleInput(e);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Describe what you want to build or modify..."
+                rows={1}
+                className="w-full p-2 bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-neutral-500 dark:placeholder:text-neutral-400 overflow-y-auto scrollbar-minimal"
+                style={{ minHeight: "3.5rem", maxHeight: "288px" }}
+              />
+            </div>
 
             {/* Controls Row */}
             <div className="flex items-center justify-between px-1 pt-2">
