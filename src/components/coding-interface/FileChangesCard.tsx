@@ -37,33 +37,33 @@ export default function FileChangesCard({
       { color: string; bgColor: string; label: string }
     > = {
       tsx: {
-        color: "text-blue-600 dark:text-blue-400",
-        bgColor: "bg-blue-50 dark:bg-blue-900/20",
+        color: "text-neutral-700 dark:text-neutral-300",
+        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
         label: "React",
       },
       jsx: {
-        color: "text-blue-500 dark:text-blue-400",
-        bgColor: "bg-blue-50 dark:bg-blue-900/20",
+        color: "text-neutral-700 dark:text-neutral-300",
+        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
         label: "React",
       },
       ts: {
-        color: "text-blue-700 dark:text-blue-500",
-        bgColor: "bg-blue-50 dark:bg-blue-900/20",
+        color: "text-neutral-700 dark:text-neutral-300",
+        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
         label: "TS",
       },
       js: {
-        color: "text-yellow-600 dark:text-yellow-400",
-        bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+        color: "text-neutral-600 dark:text-neutral-400",
+        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
         label: "JS",
       },
       css: {
-        color: "text-purple-600 dark:text-purple-400",
-        bgColor: "bg-purple-50 dark:bg-purple-900/20",
+        color: "text-neutral-600 dark:text-neutral-400",
+        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
         label: "CSS",
       },
       json: {
-        color: "text-yellow-700 dark:text-yellow-500",
-        bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+        color: "text-neutral-600 dark:text-neutral-400",
+        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
         label: "JSON",
       },
       md: {
@@ -72,8 +72,8 @@ export default function FileChangesCard({
         label: "MD",
       },
       html: {
-        color: "text-orange-600 dark:text-orange-400",
-        bgColor: "bg-orange-50 dark:bg-orange-900/20",
+        color: "text-neutral-600 dark:text-neutral-400",
+        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
         label: "HTML",
       },
     };
@@ -94,20 +94,20 @@ export default function FileChangesCard({
     const config = {
       added: {
         icon: FilePlus,
-        color: "text-green-600 dark:text-green-400",
-        bgColor: "bg-green-50 dark:bg-green-900/20",
+        color: "text-neutral-700 dark:text-neutral-300",
+        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
         label: "Added",
       },
       modified: {
         icon: FileEdit,
-        color: "text-amber-600 dark:text-amber-400",
-        bgColor: "bg-amber-50 dark:bg-amber-900/20",
+        color: "text-neutral-600 dark:text-neutral-400",
+        bgColor: "bg-neutral-50 dark:bg-neutral-900/30",
         label: "Modified",
       },
       deleted: {
         icon: FileX,
-        color: "text-red-600 dark:text-red-400",
-        bgColor: "bg-red-50 dark:bg-red-900/20",
+        color: "text-neutral-500 dark:text-neutral-500",
+        bgColor: "bg-neutral-50 dark:bg-neutral-900/30",
         label: "Deleted",
       },
     }[type];
@@ -170,23 +170,23 @@ export default function FileChangesCard({
   const totalFiles = files.length;
 
   return (
-    <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden bg-gradient-to-br from-white to-neutral-50 dark:from-neutral-900 dark:to-neutral-900/50 shadow-sm">
+    <div className="border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden bg-gradient-to-br from-white to-neutral-50/30 dark:from-neutral-900 dark:to-neutral-950/50 shadow-sm">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3.5 flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors border-b border-neutral-200 dark:border-neutral-800"
+        className="w-full px-4 py-3.5 flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors border-b border-neutral-200 dark:border-neutral-800"
       >
         <div
-          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
             isStreaming
-              ? "bg-gradient-to-br from-green-500 to-emerald-600 dark:from-green-600 dark:to-emerald-700"
-              : "bg-gradient-to-br from-neutral-800 to-neutral-900 dark:from-neutral-100 dark:to-neutral-200"
+              ? "bg-gradient-to-br from-neutral-700 to-neutral-800 dark:from-neutral-600 dark:to-neutral-700 shadow-lg shadow-neutral-500/20"
+              : "bg-gradient-to-br from-neutral-800 to-neutral-900 dark:from-neutral-200 dark:to-neutral-300"
           }`}
         >
           {isStreaming ? (
             <div className="flex gap-0.5">
-              <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" />
-              <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.15s]" />
-              <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.3s]" />
+              <span className="w-1.5 h-1.5 bg-white dark:bg-neutral-900 rounded-full animate-bounce" />
+              <span className="w-1.5 h-1.5 bg-white dark:bg-neutral-900 rounded-full animate-bounce [animation-delay:0.15s]" />
+              <span className="w-1.5 h-1.5 bg-white dark:bg-neutral-900 rounded-full animate-bounce [animation-delay:0.3s]" />
             </div>
           ) : (
             <svg
@@ -210,7 +210,7 @@ export default function FileChangesCard({
               {title}
             </h3>
             {isStreaming && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500 text-white font-bold animate-pulse">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-700 dark:bg-neutral-300 text-white dark:text-neutral-900 font-bold animate-pulse">
                 LIVE
               </span>
             )}

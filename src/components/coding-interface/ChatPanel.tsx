@@ -69,7 +69,7 @@ interface Message {
     output: number;
     cost: number;
   };
-  fileChanges?: FileChange[]; // Track file changes for v0-style display
+  fileChanges?: FileChange[]; // Track file changes in assistant responses
 }
 
 interface ChatPanelProps {
@@ -81,7 +81,7 @@ interface ChatPanelProps {
   onStreamingFiles?: (files: Record<string, string>) => void; // Real-time streaming files
   triggerNewChat?: number;
   onGeneratingStatusChange?: (isGenerating: boolean) => void;
-  onFileClick?: (path: string) => void; // Handle file clicks from FileChangesCard
+  onFileClick?: (path: string) => void; // Handle file clicks from file changes card
 }
 
 export default function ChatPanel({
@@ -174,6 +174,8 @@ export default function ChatPanel({
                     })
                   )
                 : undefined,
+            // fileChanges is already in the correct format from database
+            fileChanges: m.fileChanges || undefined,
             // Remove files property as we've transformed it to images
             files: undefined,
           })
@@ -494,7 +496,8 @@ export default function ChatPanel({
   const saveMessage = async (
     role: "user" | "assistant",
     content: string,
-    fileIds?: string[]
+    fileIds?: string[],
+    fileChanges?: FileChange[]
   ) => {
     try {
       console.log(`💾 Saving ${role} message to project ${projectId}...`);
@@ -509,6 +512,8 @@ export default function ChatPanel({
           role,
           content,
           fileIds: fileIds && fileIds.length > 0 ? fileIds : undefined,
+          fileChanges:
+            fileChanges && fileChanges.length > 0 ? fileChanges : undefined,
         }),
       });
 
@@ -774,7 +779,7 @@ export default function ChatPanel({
           const chunk = decoder.decode(value);
           fullContent += chunk;
 
-          // Extract files during streaming to show in FileChangesCard
+          // Extract files during streaming to show in file changes card
           const streamingFiles = extractCodeBlocks(fullContent);
           const streamingFileChanges: FileChange[] = streamingFiles.map(
             (f) => ({
@@ -841,8 +846,8 @@ export default function ChatPanel({
             )
           );
 
-          // Save assistant message with cleaned content
-          await saveMessage("assistant", finalContent);
+          // Save assistant message with cleaned content and file changes
+          await saveMessage("assistant", finalContent, undefined, fileChanges);
         } else {
           // Save assistant message as-is
           await saveMessage("assistant", fullContent);
@@ -1016,7 +1021,7 @@ export default function ChatPanel({
               >
                 {message.role === "assistant" ? (
                   <>
-                    {/* File Changes Card - v0 style */}
+                    {/* File Changes Card */}
                     {message.fileChanges && message.fileChanges.length > 0 && (
                       <div className="mb-4">
                         <FileChangesCard

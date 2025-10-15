@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { projectId, role, content, fileIds } = await req.json();
+        const { projectId, role, content, fileIds, fileChanges } = await req.json();
 
         if (!projectId || !role || !content) {
             return NextResponse.json(
@@ -118,6 +118,7 @@ export async function POST(req: NextRequest) {
                 projectId,
                 role,
                 content,
+                fileChanges: fileChanges || undefined,
             },
         });
 

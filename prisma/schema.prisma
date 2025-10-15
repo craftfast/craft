@@ -133,13 +133,14 @@ model File {
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
-  projectId String
-  role      String // "user" or "assistant"
-  content   String   @db.Text
-  createdAt DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  files     File[] // Files attached to this message
+  id          String   @id @default(cuid())
+  projectId   String
+  role        String // "user" or "assistant"
+  content     String   @db.Text
+  fileChanges Json? // Array of file changes (path, type, language) for assistant messages
+  createdAt   DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  files       File[] // Files attached to this message
 
   @@index([projectId])
   @@index([projectId, createdAt]) // For querying messages by project and time
