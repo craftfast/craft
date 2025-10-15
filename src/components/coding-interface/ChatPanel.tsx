@@ -10,6 +10,40 @@ import { getModelsForPlan, getDefaultModel, AI_MODELS } from "@/lib/ai-models";
 import type { PlanName } from "@/lib/ai-models";
 import ModelSelector from "../ModelSelector";
 
+// Speech Recognition types
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message?: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onstart: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onresult:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void)
+    | null;
+  onerror:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => void)
+    | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 interface ImageAttachment {
   id: string;
   name: string;
@@ -68,6 +102,9 @@ export default function ChatPanel({
   const [feedbackMessageId, setFeedbackMessageId] = useState<{
     [key: string]: "like" | "dislike" | null;
   }>({});
+  const [isRecording, setIsRecording] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Close preview modal on Escape key
   useEffect(() => {
@@ -312,6 +349,86 @@ export default function ChatPanel({
       handleNewChat();
     }
   }, [triggerNewChat, handleNewChat]);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Check if browser supports speech recognition
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-US";
+
+        recognition.onstart = () => {
+          console.log("🎤 Voice recognition started");
+        };
+
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          console.log("📝 Voice recognition result received");
+          let interimText = "";
+          let finalText = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            console.log(
+              `Result ${i}: "${transcript}" (final: ${event.results[i].isFinal})`
+            );
+            if (event.results[i].isFinal) {
+              finalText += transcript + " ";
+            } else {
+              interimText += transcript;
+            }
+          }
+
+          // Update interim transcript for real-time display
+          if (interimText) {
+            console.log("Setting interim:", interimText);
+            setInterimTranscript(interimText);
+          }
+
+          // Add final transcript to the input
+          if (finalText) {
+            console.log("Setting final:", finalText);
+            setInput((prev) => prev + finalText);
+            setInterimTranscript(""); // Clear interim when we get final
+          }
+        };
+
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+          console.error("❌ Speech recognition error:", event.error);
+          setIsRecording(false);
+          setInterimTranscript(""); // Clear interim on error
+        };
+
+        recognition.onend = () => {
+          console.log("🛑 Voice recognition ended");
+          setIsRecording(false);
+          setInterimTranscript(""); // Clear interim when recognition ends
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []); // Only initialize once!
+
+  // Auto-resize textarea when voice input changes
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height =
+        Math.min(textareaRef.current.scrollHeight, 288) + "px";
+    }
+  }, [input, interimTranscript]);
 
   // Helper function to upload images to R2 and return file data
   const uploadImagesToR2 = async (
@@ -712,6 +829,32 @@ export default function ChatPanel({
     fileInputRef.current?.click();
   };
 
+  // Voice input handlers
+  const toggleVoiceInput = () => {
+    if (!recognitionRef.current) {
+      console.error("❌ Recognition not available");
+      alert(
+        "Speech recognition is not supported in your browser. Please try Chrome, Edge, or Safari."
+      );
+      return;
+    }
+
+    if (isRecording) {
+      console.log("⏹️ Stopping voice input");
+      recognitionRef.current.stop();
+      setIsRecording(false);
+      setInterimTranscript(""); // Clear interim transcript on stop
+    } else {
+      console.log("▶️ Starting voice input");
+      try {
+        recognitionRef.current.start();
+        setIsRecording(true);
+      } catch (error) {
+        console.error("Error starting recognition:", error);
+      }
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -1060,10 +1203,13 @@ export default function ChatPanel({
             <div className="relative">
               <textarea
                 ref={textareaRef}
-                value={input}
+                value={input + interimTranscript}
                 onChange={(e) => {
-                  setInput(e.target.value);
-                  handleInput(e);
+                  // Only update input if not recording or if user is typing
+                  if (!isRecording) {
+                    setInput(e.target.value);
+                    handleInput(e);
+                  }
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Describe what you want to build or modify..."
@@ -1071,6 +1217,15 @@ export default function ChatPanel({
                 className="w-full p-2 bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-neutral-500 dark:placeholder:text-neutral-400 overflow-y-auto scrollbar-minimal"
                 style={{ minHeight: "3.5rem", maxHeight: "288px" }}
               />
+              {/* Show interim transcript indicator */}
+              {interimTranscript && (
+                <div className="absolute bottom-1 right-2 pointer-events-none">
+                  <span className="text-xs text-neutral-400 dark:text-neutral-500 italic flex items-center gap-1">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500 animate-pulse"></span>
+                    transcribing...
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Controls Row */}
@@ -1117,49 +1272,91 @@ export default function ChatPanel({
                 />
               </div>
 
-              <button
-                onClick={handleFormSubmit}
-                disabled={!input.trim() || isLoading}
-                className="p-2 rounded-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Submit"
-              >
-                {isLoading ? (
-                  <svg
-                    className="w-4 h-4 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
+              <div className="flex items-center gap-2">
+                {/* Voice input button */}
+                <button
+                  onClick={toggleVoiceInput}
+                  className={`p-2 rounded-full border transition-all ${
+                    isRecording
+                      ? "border-neutral-500 dark:border-neutral-400 bg-neutral-100 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 animate-pulse"
+                      : "border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-500 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                  }`}
+                  aria-label={
+                    isRecording ? "Stop recording" : "Start voice input"
+                  }
+                  title={isRecording ? "Stop recording" : "Start voice input"}
+                >
+                  {isRecording ? (
+                    <svg
+                      className="w-4 h-4"
                       fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 10l7-7m0 0l7 7m-7-7v18"
-                    />
-                  </svg>
-                )}
-              </button>
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                      />
+                    </svg>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleFormSubmit}
+                  disabled={!input.trim() || isLoading}
+                  className="p-2 rounded-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Submit"
+                >
+                  {isLoading ? (
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 10l7-7m0 0l7 7m-7-7v18"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
