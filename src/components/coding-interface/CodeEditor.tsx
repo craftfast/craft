@@ -388,7 +388,7 @@ export default function CodeEditor({
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-minimal">
               {fileTree.length > 0 ? (
                 renderFileTree(fileTree)
               ) : (
@@ -464,7 +464,7 @@ export default function CodeEditor({
             {selectedFile ? (
               <div
                 ref={scrollContainerRef}
-                className="w-full h-full overflow-auto"
+                className="w-full h-full overflow-auto scrollbar-minimal"
               >
                 <CodeMirror
                   value={code}
