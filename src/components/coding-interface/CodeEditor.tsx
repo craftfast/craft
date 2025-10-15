@@ -8,6 +8,15 @@ import {
   Folder,
   FolderOpen,
 } from "lucide-react";
+import CodeMirror from "@uiw/react-codemirror";
+import { javascript } from "@codemirror/lang-javascript";
+import { css } from "@codemirror/lang-css";
+import { html } from "@codemirror/lang-html";
+import { json } from "@codemirror/lang-json";
+import { markdown } from "@codemirror/lang-markdown";
+import { githubDark } from "@uiw/codemirror-theme-github";
+import { EditorView } from "@codemirror/view";
+import type { Extension } from "@codemirror/state";
 
 interface CodeEditorProps {
   projectId: string;
@@ -46,7 +55,29 @@ export default function CodeEditor({
   >(null);
   const [changeCount, setChangeCount] = useState(0);
   const [newFileCount, setNewFileCount] = useState(0);
-  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to get language extension based on file type
+  const getLanguageExtension = (filename: string): Extension[] => {
+    const ext = filename.split(".").pop()?.toLowerCase();
+    switch (ext) {
+      case "js":
+      case "jsx":
+      case "ts":
+      case "tsx":
+        return [javascript({ jsx: true, typescript: true })];
+      case "css":
+        return [css()];
+      case "html":
+        return [html()];
+      case "json":
+        return [json()];
+      case "md":
+        return [markdown()];
+      default:
+        return [];
+    }
+  };
 
   // Track which file is currently being streamed (most recent)
   useEffect(() => {
@@ -134,8 +165,9 @@ export default function CodeEditor({
         // Auto-scroll to bottom during streaming
         if (isGenerating && selectedFile === currentStreamingFile) {
           setTimeout(() => {
-            if (editorRef.current) {
-              editorRef.current.scrollTop = editorRef.current.scrollHeight;
+            if (scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop =
+                scrollContainerRef.current.scrollHeight;
             }
           }, 50);
         }
@@ -428,22 +460,64 @@ export default function CodeEditor({
           </div>
 
           {/* Code Editor */}
-          <div className="flex-1 overflow-hidden relative">
+          <div className="flex-1 overflow-hidden relative bg-white dark:bg-black">
             {selectedFile ? (
-              <textarea
-                ref={editorRef}
-                value={code}
-                placeholder="// Code will appear here..."
-                readOnly
-                className="w-full h-full p-4 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-mono text-sm leading-relaxed focus:outline-none resize-none cursor-default"
-                style={{
-                  tabSize: 2,
-                  lineHeight: "1.6",
-                }}
-                spellCheck={false}
-              />
+              <div
+                ref={scrollContainerRef}
+                className="w-full h-full overflow-auto"
+              >
+                <CodeMirror
+                  value={code}
+                  height="100%"
+                  theme={githubDark}
+                  extensions={[
+                    ...getLanguageExtension(selectedFile),
+                    EditorView.lineWrapping,
+                    EditorView.theme({
+                      "&": {
+                        backgroundColor: "#000000",
+                      },
+                      ".cm-gutters": {
+                        backgroundColor: "#000000",
+                        borderRight: "1px solid #404040",
+                      },
+                      ".cm-content": {
+                        backgroundColor: "#000000",
+                      },
+                      ".cm-scroller": {
+                        backgroundColor: "#000000",
+                      },
+                    }),
+                  ]}
+                  readOnly
+                  basicSetup={{
+                    lineNumbers: true,
+                    highlightActiveLineGutter: false,
+                    highlightActiveLine: false,
+                    foldGutter: true,
+                    dropCursor: false,
+                    indentOnInput: false,
+                    syntaxHighlighting: true,
+                    bracketMatching: true,
+                    closeBrackets: false,
+                    autocompletion: false,
+                    rectangularSelection: false,
+                    crosshairCursor: false,
+                    highlightSelectionMatches: false,
+                    closeBracketsKeymap: false,
+                    searchKeymap: false,
+                    foldKeymap: true,
+                    completionKeymap: false,
+                    lintKeymap: false,
+                  }}
+                  style={{
+                    fontSize: "0.875rem",
+                    height: "100%",
+                  }}
+                />
+              </div>
             ) : (
-              <div className="h-full flex items-center justify-center">
+              <div className="h-full flex items-center justify-center bg-white dark:bg-black">
                 <div className="text-center max-w-sm">
                   <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 flex items-center justify-center">
                     <FileCode className="w-10 h-10 text-neutral-400 dark:text-neutral-600" />
