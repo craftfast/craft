@@ -49,6 +49,9 @@ export async function GET(req: NextRequest) {
         const messages = await prisma.chatMessage.findMany({
             where: { projectId },
             orderBy: { createdAt: "asc" },
+            include: {
+                files: true, // Include associated files
+            },
         });
 
         return NextResponse.json({ messages }, { status: 200 });
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { projectId, role, content } = await req.json();
+        const { projectId, role, content, fileIds } = await req.json();
 
         if (!projectId || !role || !content) {
             return NextResponse.json(
@@ -117,6 +120,21 @@ export async function POST(req: NextRequest) {
                 content,
             },
         });
+
+        // Link files to the message if fileIds provided
+        if (fileIds && Array.isArray(fileIds) && fileIds.length > 0) {
+            await prisma.file.updateMany({
+                where: {
+                    id: { in: fileIds },
+                    userId: user.id, // Ensure user owns the files
+                },
+                data: {
+                    chatMessageId: message.id,
+                },
+            });
+
+            console.log(`✅ Linked ${fileIds.length} files to message ${message.id}`);
+        }
 
         return NextResponse.json({ message }, { status: 201 });
     } catch (error) {

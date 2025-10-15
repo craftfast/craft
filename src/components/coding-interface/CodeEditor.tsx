@@ -30,7 +30,7 @@ export default function CodeEditor({
         const response = await fetch(`/api/files?projectId=${projectId}`);
         if (response.ok) {
           const data = await response.json();
-          setFiles(data.files || {});
+          setFiles(data.codeFiles || data.files || {});
         }
       } catch (error) {
         console.error("Error loading files:", error);

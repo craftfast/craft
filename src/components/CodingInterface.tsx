@@ -74,7 +74,7 @@ export default function CodingInterface({
         const response = await fetch(`/api/files?projectId=${project.id}`);
         if (response.ok) {
           const data = await response.json();
-          const loadedFiles = data.files || {};
+          const loadedFiles = data.codeFiles || data.files || {};
           setProjectFiles(loadedFiles);
           console.log(
             `📁 Loaded ${Object.keys(loadedFiles).length} files for project`
@@ -517,7 +517,7 @@ export default function CodingInterface({
                     );
                     if (response.ok) {
                       const data = await response.json();
-                      setProjectFiles(data.files || {});
+                      setProjectFiles(data.codeFiles || data.files || {});
                     }
                     // Refresh project data
                     await refreshProject();

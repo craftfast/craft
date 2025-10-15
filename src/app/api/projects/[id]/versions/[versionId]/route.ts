@@ -60,7 +60,7 @@ export async function POST(
                     projectId,
                     version: project.version,
                     name: `Auto-saved before restore to v${versionToRestore.version}`,
-                    files: project.files as object,
+                    codeFiles: project.codeFiles as object,
                     isBookmarked: false,
                 },
             });
@@ -72,7 +72,7 @@ export async function POST(
                 id: projectId,
             },
             data: {
-                files: versionToRestore.files as object,
+                codeFiles: versionToRestore.codeFiles as object,
                 version: { increment: 1 }, // Increment version after restore
                 generationStatus: "ready",
                 lastCodeUpdateAt: new Date(),

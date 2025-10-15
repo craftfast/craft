@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { getModelsForPlan, getDefaultModel, AI_MODELS } from "@/lib/ai-models";
 import type { PlanName } from "@/lib/ai-models";
 import ModelSelector from "./ModelSelector";
+
+interface ImageAttachment {
+  id: string;
+  name: string;
+  url: string; // base64 data URL
+  type: string;
+}
 
 // Example prompts to cycle through
 const examplePrompts = [
@@ -24,9 +32,25 @@ const examplePrompts = [
 
 export default function CraftInput() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [input, setInput] = useState("");
   const [placeholderText, setPlaceholderText] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<ImageAttachment[]>([]);
+  const [previewImage, setPreviewImage] = useState<ImageAttachment | null>(
+    null
+  );
+
+  // Close preview modal on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && previewImage) {
+        setPreviewImage(null);
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [previewImage]);
 
   // Model selection
   const [selectedModel, setSelectedModel] =
@@ -155,6 +179,15 @@ export default function CraftInput() {
       if (response.ok) {
         const data = await response.json();
         console.log("Project created:", data);
+
+        // Store images in sessionStorage if any were selected
+        if (selectedImages.length > 0 && data.project?.id) {
+          sessionStorage.setItem(
+            `project-${data.project.id}-images`,
+            JSON.stringify(selectedImages)
+          );
+        }
+
         // Redirect to the coding interface
         if (data.project && data.project.id) {
           router.push(`/chat/${data.project.id}`);
@@ -177,14 +210,118 @@ export default function CraftInput() {
     setInput(option);
   };
 
+  const handleImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    const validFiles = fileArray.filter((file) => {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        console.error(`File ${file.name} is not an image`);
+        return false;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        console.error(`File ${file.name} is too large (max 5MB)`);
+        return false;
+      }
+
+      return true;
+    });
+
+    // Limit to 5 images total (including already selected)
+    const availableSlots = 5 - selectedImages.length;
+    const filesToProcess = validFiles.slice(0, availableSlots);
+
+    // Convert all files to base64 using Promise.all
+    const imagePromises = filesToProcess.map((file, index) => {
+      return new Promise<ImageAttachment>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string;
+          resolve({
+            id: `${Date.now()}-${index}`,
+            name: file.name,
+            url: dataUrl,
+            type: file.type,
+          });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    });
+
+    try {
+      const newImages = await Promise.all(imagePromises);
+      setSelectedImages((prev) => [...prev, ...newImages].slice(0, 5));
+    } catch (error) {
+      console.error("Error processing images:", error);
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveImage = (imageId: string) => {
+    setSelectedImages((prev) => prev.filter((img) => img.id !== imageId));
+  };
+
   const handleFileAttachment = () => {
-    // TODO: Handle file attachment
-    console.log("Attach file");
+    handleImageUpload();
   };
 
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="rounded-3xl px-2 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm hover:shadow-md focus-within:shadow-lg">
+        {/* Image Previews */}
+        {selectedImages.length > 0 && (
+          <div className="flex flex-wrap gap-2 pb-2">
+            {selectedImages.map((image) => (
+              <div
+                key={image.id}
+                className="relative group rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-600"
+              >
+                <Image
+                  src={image.url}
+                  alt={image.name}
+                  width={80}
+                  height={80}
+                  className="w-20 h-20 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                  unoptimized
+                  onClick={() => setPreviewImage(image)}
+                />
+                <button
+                  onClick={() => handleRemoveImage(image.id)}
+                  className="absolute top-1 right-1 p-1 bg-neutral-900/80 dark:bg-neutral-100/80 text-white dark:text-neutral-900 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove image"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* First row - Input */}
         <div className="relative">
           <textarea
@@ -213,10 +350,22 @@ export default function CraftInput() {
         {/* Second row - Controls */}
         <div className="flex items-center justify-between px-1 pt-2">
           <div className="flex items-center gap-2">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {/* Image upload button */}
             <button
               onClick={handleFileAttachment}
               className="p-2 rounded-full border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-500 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
-              aria-label="Attach files"
+              aria-label="Attach images"
+              title="Upload images (max 5, 5MB each)"
             >
               <svg
                 className="w-4 h-4"
@@ -324,6 +473,58 @@ export default function CraftInput() {
           GitHub
         </button>
       </div>
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-12 right-0 p-2 text-white hover:text-neutral-300 transition-colors"
+              aria-label="Close preview"
+            >
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            {/* Image */}
+            <div className="relative bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden shadow-2xl">
+              <Image
+                src={previewImage.url}
+                alt={previewImage.name}
+                width={1200}
+                height={800}
+                className="w-full h-auto max-h-[80vh] object-contain"
+                unoptimized
+              />
+              {/* Image name */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                <p className="text-white text-sm font-medium">
+                  {previewImage.name}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

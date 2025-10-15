@@ -156,7 +156,7 @@ export default function PreviewPanel({
 
       if (filesResponse.ok) {
         const filesData = await filesResponse.json();
-        filesToSend = filesData.files || {};
+        filesToSend = filesData.codeFiles || filesData.files || {};
         console.log(
           `📁 Loaded ${Object.keys(filesToSend).length} files from API`
         );
@@ -265,7 +265,7 @@ export default function PreviewPanel({
 
       if (filesResponse.ok) {
         const filesData = await filesResponse.json();
-        filesToUpdate = filesData.files || projectFiles;
+        filesToUpdate = filesData.codeFiles || filesData.files || projectFiles;
         console.log(
           `📁 Fetched ${Object.keys(filesToUpdate).length} files from database`
         );

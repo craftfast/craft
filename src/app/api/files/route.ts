@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
                 id: projectId,
                 user: { email: session.user.email },
             },
+            select: {
+                id: true,
+                codeFiles: true,
+            },
         });
 
         if (!project) {
@@ -46,6 +50,10 @@ export async function POST(req: NextRequest) {
                     version: { increment: 1 },
                     lastCodeUpdateAt: new Date(),
                 },
+                select: {
+                    version: true,
+                    codeFiles: true,
+                },
             });
 
             // Create a version snapshot
@@ -54,7 +62,7 @@ export async function POST(req: NextRequest) {
                     projectId,
                     version: updatedProject.version,
                     name: `Version ${updatedProject.version}`,
-                    files: updatedProject.files as object,
+                    codeFiles: updatedProject.codeFiles as object,
                     isBookmarked: false,
                 },
             });
@@ -68,7 +76,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        const currentFiles = (project.files as Record<string, string>) || {};
+        const currentFiles = (project.codeFiles as Record<string, string>) || {};
 
         // Batch update: { projectId, files: { "path1": "content1", "path2": "content2" } }
         if (batchFiles && typeof batchFiles === 'object') {
@@ -77,7 +85,7 @@ export async function POST(req: NextRequest) {
             await prisma.project.update({
                 where: { id: projectId },
                 data: {
-                    files: updatedFiles,
+                    codeFiles: updatedFiles,
                     generationStatus: "ready",
                     version: { increment: 1 },
                     lastCodeUpdateAt: new Date(),
@@ -99,9 +107,9 @@ export async function POST(req: NextRequest) {
 
             // Prepare update data - conditionally include generation status
             const updateData: {
-                files: Record<string, string>;
+                codeFiles: Record<string, string>;
                 generationStatus?: string;
-            } = { files: currentFiles };
+            } = { codeFiles: currentFiles };
 
             // Only update generation status if not skipped
             if (!skipGenerationTracking) {
@@ -160,6 +168,10 @@ export async function GET(req: NextRequest) {
                 id: projectId,
                 user: { email: session.user.email },
             },
+            select: {
+                id: true,
+                codeFiles: true,
+            },
         });
 
         if (!project) {
@@ -169,9 +181,9 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        const files = (project.files as Record<string, string>) || {};
+        const files = (project.codeFiles as Record<string, string>) || {};
 
-        return NextResponse.json({ files });
+        return NextResponse.json({ codeFiles: files, files }); // Return both for backward compatibility
     } catch (error) {
         console.error("Files fetch error:", error);
         return NextResponse.json(

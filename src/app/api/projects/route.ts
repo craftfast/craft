@@ -134,13 +134,17 @@ export async function POST(req: NextRequest) {
         const baseTemplate = getNextJsTemplate();
         console.log(`✅ Generated ${Object.keys(baseTemplate).length} template files`);
 
+        // Create the project with template files stored in the codeFiles JSON field
+        // This allows the files API and sandbox to access them directly
         const project = await prisma.project.create({
             data: {
                 name: projectName,
                 description: description?.trim() || null,
                 userId: user.id,
-                files: baseTemplate as object, // Base template - AI will modify/extend
                 aiModel: aiModel || null, // Save the selected AI model
+                codeFiles: baseTemplate, // Store template files directly in JSON field
+                version: 0, // New project starts at version 0
+                generationStatus: "template", // Status: template (not AI-generated yet)
             },
         });
 

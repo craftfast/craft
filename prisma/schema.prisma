@@ -30,6 +30,7 @@ model User {
   sessions      Session[]
   teamMembers   TeamMember[]
   ownedTeams    Team[]       @relation("TeamOwner")
+  files         File[] // All files uploaded by this user
 
   @@map("users")
 }
@@ -79,18 +80,56 @@ model Project {
   type             String           @default("document")
   status           String           @default("active")
   userId           String
-  files            Json             @default("{}")
   version          Int              @default(0) // v0 = template, v1+ = AI updates (for billing & history)
   generationStatus String           @default("template") // "template" | "generating" | "ready"
   lastCodeUpdateAt DateTime? // When code was last updated by AI
   aiModel          String? // Selected AI model for this project (e.g., "x-ai/grok-code-fast-1")
+  codeFiles        Json             @default("{}") // Current project files as JSON { "path": "content" }
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   versions         ProjectVersion[]
   chatMessages     ChatMessage[]
+  fileRecords      File[]           @relation("ProjectFiles") // File records for R2 storage (separate from files JSON)
 
   @@map("projects")
+}
+
+// ============================================================================
+// FILE STORAGE MODEL (R2/S3-backed, flexible & future-proof)
+// ============================================================================
+
+model File {
+  id            String       @id @default(cuid())
+  userId        String // Always required: Who uploaded/owns the file
+  projectId     String? // Optional: Associated project (if any)
+  chatMessageId String? // Optional: Chat message this file was uploaded with
+  teamId        String? // Optional: Team this file belongs to (for team logos, etc.)
+  path          String? // File path in project (e.g., "src/app/page.tsx") - null for non-code files
+  r2Key         String       @unique // R2/S3 object key (e.g., "files/abc123/xyz789")
+  r2Url         String // CDN URL for accessing the file
+  fileName      String // Original filename
+  mimeType      String? // MIME type (e.g., "image/png", "text/typescript")
+  size          Int // File size in bytes
+  purpose       String       @default("upload") // "source" | "image" | "asset" | "upload" | "profile" | "team-logo"
+  version       Int          @default(1) // File version number
+  isDeleted     Boolean      @default(false) // Soft delete flag
+  metadata      Json? // Flexible metadata (dimensions, alt text, etc.)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project       Project?     @relation("ProjectFiles", fields: [projectId], references: [id], onDelete: SetNull)
+  chatMessage   ChatMessage? @relation(fields: [chatMessageId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([chatMessageId])
+  @@index([teamId])
+  @@index([r2Key])
+  @@index([purpose])
+  @@index([projectId, path]) // Fast lookup for project files by path
+  @@index([chatMessageId, createdAt]) // Files for a chat message
+  @@map("files")
 }
 
 model ChatMessage {
@@ -100,6 +139,7 @@ model ChatMessage {
   content   String   @db.Text
   createdAt DateTime @default(now())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  files     File[] // Files attached to this message
 
   @@index([projectId])
   @@index([projectId, createdAt]) // For querying messages by project and time
@@ -111,7 +151,7 @@ model ProjectVersion {
   projectId     String
   version       Int // Version number (1, 2, 3, etc.)
   name          String? // Optional name/description for this version
-  files         Json // Snapshot of all project files at this version
+  codeFiles     Json // Snapshot of all project files at this version
   chatMessageId String? // The chat message that triggered this version (if any)
   isBookmarked  Boolean  @default(false) // User can bookmark important versions
   isPublished   Boolean  @default(false) // Whether this version is published/live

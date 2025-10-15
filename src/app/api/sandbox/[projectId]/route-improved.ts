@@ -71,7 +71,7 @@ export async function POST(
             },
             select: {
                 id: true,
-                files: true,
+                codeFiles: true,
             },
         });
 
@@ -85,7 +85,7 @@ export async function POST(
         // Priority: request files > database files
         const files = requestFiles && Object.keys(requestFiles).length > 0
             ? requestFiles
-            : (project.files as Record<string, string> || {});
+            : (project.codeFiles as Record<string, string> || {});
 
         console.log(`📦 Project ${projectId}: ${Object.keys(files).length} files`);
 
