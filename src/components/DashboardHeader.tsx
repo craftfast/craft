@@ -43,7 +43,7 @@ export default function DashboardHeader({
             {title}
           </button>
           {showPlanBadge && (
-            <span className="ml-2 px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
+            <span className="px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
               {planName === "HOBBY" ? "Hobby" : "Pro"}
             </span>
           )}
