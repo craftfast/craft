@@ -98,6 +98,14 @@ export default function PreviewPanel({
 
   // Handle AI generation completion - auto-start OR auto-update preview
   useEffect(() => {
+    console.log(`🔍 PreviewPanel effect triggered:`, {
+      isGeneratingFiles,
+      generationStatus,
+      version,
+      fileCount: Object.keys(projectFiles).length,
+      sandboxStatus,
+    });
+
     // Only auto-start when:
     // 1. AI has finished generating (isGeneratingFiles = false)
     // 2. Generation status is "ready" (not "template" or "generating")
@@ -132,6 +140,8 @@ export default function PreviewPanel({
         } files...`
       );
       setTimeout(() => updateSandboxFiles(), 500);
+    } else {
+      console.log(`⏭️  Skipping preview update - conditions not met`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -203,15 +213,15 @@ export default function PreviewPanel({
       console.log("🔗 Preview URL:", data.url);
 
       // The server is already running thanks to the API!
-      // Just give it a moment to be fully ready
+      // OPTIMIZATION: Reduce wait time - optimized API handles compilation better
       setLoadingMessage("Verifying server is ready...");
 
-      // Wait a bit for the server to be accessible
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Shorter initial wait - API already waited for compilation
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Reduced from 2000ms
 
       // Try to access the URL to verify it's ready
       let retries = 0;
-      const maxRetries = 5;
+      const maxRetries = 8; // Increased attempts but faster intervals
       let isReady = false;
 
       setLoadingMessage("Connecting to preview...");
@@ -227,7 +237,8 @@ export default function PreviewPanel({
         } catch (err) {
           console.warn(`⚠️  Attempt ${retries + 1} failed:`, err);
           retries++;
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          // OPTIMIZATION: Faster retry interval - 800ms instead of 1500ms
+          await new Promise((resolve) => setTimeout(resolve, 800));
           setLoadingMessage(`Waiting for server... (${retries}/${maxRetries})`);
         }
       }
@@ -298,10 +309,16 @@ export default function PreviewPanel({
         console.log(`✅ Files updated successfully`, data);
 
         // Wait a moment for files to be written and HMR to pick up changes
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 800));
 
-        // Next.js HMR will automatically refresh the preview
-        setIsRefreshing(false);
+        // Force iframe reload to ensure changes are visible
+        console.log(`🔄 Forcing iframe reload to show updated code...`);
+        const currentUrl = iframeUrl;
+        setIframeUrl("");
+        setTimeout(() => {
+          setIframeUrl(currentUrl);
+          setIsRefreshing(false);
+        }, 100);
       } else {
         const errorText = await response.text();
         console.error(`❌ Failed to update files:`, errorText);
