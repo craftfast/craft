@@ -62,12 +62,12 @@ export default function RecentProjects() {
   return (
     <div className="mt-12">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg sm:text-xl font-semibold text-foreground">
+        <h2 className="text-sm sm:text-lg font-semibold text-foreground">
           Recent Projects
         </h2>
         <Link
           href="/projects"
-          className="px-4 py-2 text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-neutral-100 transition-colors text-sm font-medium"
+          className="px-4 py-2 text-neutral-800 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-neutral-100 transition-colors text-sm font-medium"
         >
           View all →
         </Link>
@@ -109,7 +109,7 @@ export default function RecentProjects() {
 
       {/* Recent Projects Grid - Show only 4 most recent */}
       {!loading && projects.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {projects.map((project) => (
             <Link
               key={project.id}

@@ -28,48 +28,65 @@ export default function DashboardHeader({
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Only show plan badge for Hobby or Pro plans
   const showPlanBadge = planName === "HOBBY" || planName === "PRO";
 
   return (
     <>
-      {/* Team Name with Switcher - Visible on all screen sizes */}
-      <div className="flex items-center ml-4 border-neutral-200 dark:border-neutral-700">
-        <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
-        {/* Team Name Link */}
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="ml-2 px-2 py-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100 cursor-pointer rounded-full transition-colors"
-        >
-          {title}
-        </button>
-        {/* Plan Badge */}
-        {showPlanBadge && (
-          <span className="mr-2 px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
-            {planName === "HOBBY" ? "Hobby" : "Pro"}
-          </span>
-        )}
-        {/* Team Switcher */}
-        {teamId && (
-          <TeamSwitcher
-            currentTeam={{
-              id: teamId,
-              name: title,
-              subscription: teamSubscription || null,
-            }}
-          />
-        )}
-      </div>
-
-      {/* Upgrade CTA - Center of Header (only for Hobby plan) */}
-      {planName === "HOBBY" && (
-        <div className="hidden sm:flex items-center justify-center flex-1">
+      <div className="hidden sm:grid sm:grid-cols-3 sm:gap-4 sm:items-center w-full">
+        <div className="flex items-center justify-start ml-4 border-neutral-200 dark:border-neutral-700">
+          <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
           <button
-            onClick={() => router.push("/pricing")}
-            className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
+            onClick={() => router.push("/dashboard")}
+            className="ml-2 px-2 py-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100 cursor-pointer rounded-full transition-colors"
+          >
+            {title}
+          </button>
+          {showPlanBadge && (
+            <span className="mr-2 px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
+              {planName === "HOBBY" ? "Hobby" : "Pro"}
+            </span>
+          )}
+          {teamId && (
+            <TeamSwitcher
+              currentTeam={{
+                id: teamId,
+                name: title,
+                subscription: teamSubscription || null,
+              }}
+            />
+          )}
+        </div>
+        <div className="flex items-center justify-center">
+          {planName === "HOBBY" && (
+            <button
+              onClick={() => router.push("/pricing")}
+              className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              <span>Upgrade to Pro</span>
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2 justify-end">
+          <button
+            onClick={() => {}}
+            className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full border border-neutral-300 dark:border-neutral-600 transition-colors"
+            aria-label="Search"
           >
             <svg
-              className="w-4 h-4"
+              className="w-3.5 h-3.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -78,69 +95,35 @@ export default function DashboardHeader({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M13 10V3L4 14h7v7l9-11h-7z"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <span>Upgrade to Pro</span>
+            <span>Search</span>
           </button>
+          <button
+            onClick={() => {}}
+            className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors"
+          >
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span>New Project</span>
+          </button>
+          {session?.user && (
+            <UserMenu user={session.user} showDashboardLink={false} />
+          )}
         </div>
-      )}
-
-      {/* Desktop User Menu */}
-      <div className="hidden sm:flex items-center gap-2 ml-auto">
-        {/* Search Button */}
-        <button
-          onClick={() => {
-            // TODO: Implement search functionality
-          }}
-          className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full border border-neutral-300 dark:border-neutral-600 transition-colors"
-          aria-label="Search"
-        >
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <span>Search</span>
-        </button>
-
-        {/* New Button */}
-        <button
-          onClick={() => {
-            // TODO: Implement new item functionality
-          }}
-          className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors"
-        >
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          <span>New Project</span>
-        </button>
-
-        {session?.user && (
-          <UserMenu user={session.user} showDashboardLink={false} />
-        )}
       </div>
-
-      {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         className="sm:hidden p-2 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors ml-auto"
@@ -169,8 +152,6 @@ export default function DashboardHeader({
           )}
         </svg>
       </button>
-
-      {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="sm:hidden absolute top-12 left-0 right-0 rounded-3xl bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 shadow-lg">
           <nav className="flex flex-col p-4 space-y-2">

@@ -56,9 +56,9 @@ export default async function DashboardPage() {
       </header>
 
       {/* Main Content with padding to account for fixed header */}
-      <main className="relative flex-1 min-h-0 py-8 sm:py-12 md:py-16 pt-20 sm:pt-24">
+      <main className="relative flex-1 flex flex-col justify-center gap-2 px-4 sm:px-6 md:px-8 py-8">
         {/* Chat Input Section */}
-        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8 mb-16 mt-[10%]">
+        <div className="w-full max-w-3xl mx-auto mt-[10%]">
           {/* Centered Greeting with Personalization */}
           <div className="text-center mb-8">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-foreground mb-2">
@@ -71,7 +71,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Recent Projects Section - Full Width */}
-        <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
+        <div className="w-full max-w-6xl mx-auto">
           <RecentProjects />
         </div>
       </main>
