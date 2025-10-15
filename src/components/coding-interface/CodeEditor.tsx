@@ -44,6 +44,8 @@ export default function CodeEditor({
   const [currentStreamingFile, setCurrentStreamingFile] = useState<
     string | null
   >(null);
+  const [changeCount, setChangeCount] = useState(0);
+  const [newFileCount, setNewFileCount] = useState(0);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
   // Track which file is currently being streamed (most recent)
@@ -56,6 +58,21 @@ export default function CodeEditor({
       setCurrentStreamingFile(null);
     }
   }, [streamingFiles, isGenerating]);
+
+  // Track changes and new files
+  useEffect(() => {
+    if (isGenerating) {
+      const streamingKeys = Object.keys(streamingFiles);
+      const newFiles = streamingKeys.filter(
+        (path) => !projectFiles[path]
+      ).length;
+      setNewFileCount(newFiles);
+      setChangeCount(streamingKeys.length);
+    } else {
+      setChangeCount(0);
+      setNewFileCount(0);
+    }
+  }, [streamingFiles, projectFiles, isGenerating]);
 
   // Load files from API on mount
   useEffect(() => {
@@ -260,12 +277,7 @@ export default function CodeEditor({
                   ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
                   : "text-neutral-700 dark:text-neutral-300"
               }
-              ${
-                node.isNew
-                  ? "bg-green-50 dark:bg-green-900/20 border-l-2 border-green-500"
-                  : ""
-              }
-              ${node.isStreaming ? "animate-pulse" : ""}
+              ${node.isNew ? "bg-neutral-50 dark:bg-neutral-800/50" : ""}
             `}
             style={{ paddingLeft: `${level * 12 + 8}px` }}
           >
@@ -290,16 +302,12 @@ export default function CodeEditor({
             )}
             <span className="truncate flex-1 text-left">{node.name}</span>
             {node.isNew && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500 text-white font-medium">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-medium">
                 NEW
               </span>
             )}
             {node.isStreaming && (
-              <span className="flex gap-0.5">
-                <span className="w-1 h-1 bg-green-500 rounded-full animate-bounce" />
-                <span className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.1s]" />
-                <span className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-              </span>
+              <span className="w-1.5 h-1.5 bg-neutral-400 dark:bg-neutral-500 rounded-full animate-pulse" />
             )}
           </button>
           {node.type === "folder" &&
@@ -317,51 +325,8 @@ export default function CodeEditor({
   );
   const fileTree = buildFileTree(allFilePaths);
 
-  const handleSave = async () => {
-    if (!selectedFile) return;
-
-    try {
-      const response = await fetch("/api/files", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          projectId,
-          filePath: selectedFile,
-          content: code,
-        }),
-      });
-
-      if (response.ok) {
-        setFiles((prev) => ({ ...prev, [selectedFile]: code }));
-      }
-    } catch (error) {
-      console.error("Error saving file:", error);
-    }
-  };
-
   return (
     <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
-      {/* Generation Status Banner */}
-      {isGenerating && currentStreamingFile && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-b border-green-200 dark:border-green-800 px-4 py-2.5 flex items-center gap-3">
-          <div className="flex gap-1">
-            <span className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full animate-bounce" />
-            <span className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full animate-bounce [animation-delay:0.15s]" />
-            <span className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full animate-bounce [animation-delay:0.3s]" />
-          </div>
-          <div className="flex-1">
-            <span className="text-sm font-semibold text-green-900 dark:text-green-100">
-              Generating code
-            </span>
-            <span className="text-xs text-green-700 dark:text-green-300 ml-2">
-              {currentStreamingFile}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Main Editor Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* File Tree Sidebar */}
@@ -438,22 +403,27 @@ export default function CodeEditor({
                     {selectedFile}
                   </span>
                   {currentStreamingFile === selectedFile && (
-                    <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-green-500 text-white font-medium">
-                      <span className="w-1 h-1 bg-white rounded-full animate-ping" />
-                      LIVE
-                    </span>
+                    <span className="w-1.5 h-1.5 bg-neutral-400 dark:bg-neutral-500 rounded-full animate-pulse" />
                   )}
                 </div>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleSave}
-                disabled={!selectedFile}
-                className="px-3 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Save
-              </button>
+              {isGenerating && (
+                <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+                  {changeCount > 0 && (
+                    <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+                      {changeCount} {changeCount === 1 ? "change" : "changes"}
+                    </span>
+                  )}
+                  {newFileCount > 0 && (
+                    <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+                      {newFileCount}{" "}
+                      {newFileCount === 1 ? "new file" : "new files"}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -463,10 +433,9 @@ export default function CodeEditor({
               <textarea
                 ref={editorRef}
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="// Start coding..."
-                readOnly={isGenerating && selectedFile === currentStreamingFile}
-                className="w-full h-full p-4 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-mono text-sm leading-relaxed focus:outline-none resize-none"
+                placeholder="// Code will appear here..."
+                readOnly
+                className="w-full h-full p-4 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-mono text-sm leading-relaxed focus:outline-none resize-none cursor-default"
                 style={{
                   tabSize: 2,
                   lineHeight: "1.6",

@@ -739,8 +739,8 @@ export default function ChatPanel({
     setSelectedImages([]); // Clear selected images after sending
     setIsLoading(true);
 
-    // Notify parent that we're generating files
-    onGeneratingStatusChange?.(true);
+    // DON'T notify parent yet - wait until we detect file generation
+    // onGeneratingStatusChange?.(true); // Moved to when we detect files
 
     // Set project status to "generating"
     await fetch(`/api/projects/${projectId}`, {
@@ -809,6 +809,7 @@ export default function ChatPanel({
 
       if (reader) {
         let fullContent = "";
+        let hasNotifiedFileGeneration = false; // Track if we've notified about file generation
 
         while (true) {
           const { done, value } = await reader.read();
@@ -819,6 +820,12 @@ export default function ChatPanel({
 
           // Extract files during streaming (including partial ones) to stream to code editor
           const streamingFiles = extractCodeBlocks(fullContent, true);
+
+          // Notify parent when we first detect file generation
+          if (!hasNotifiedFileGeneration && streamingFiles.length > 0) {
+            onGeneratingStatusChange?.(true);
+            hasNotifiedFileGeneration = true;
+          }
 
           // Send streaming files to parent for live code view (no database save yet)
           if (onStreamingFiles && streamingFiles.length > 0) {

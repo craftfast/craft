@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileCode, FilePlus, FileEdit, FileX, ChevronDown } from "lucide-react";
 
 interface FileChange {
@@ -24,7 +24,23 @@ export default function FileChangesCard({
   isStreaming = false,
   onFileClick,
 }: FileChangesCardProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [wasStreaming, setWasStreaming] = useState(isStreaming);
+
+  // Control expansion based on streaming state
+  useEffect(() => {
+    // If currently streaming, expand this card
+    if (isStreaming) {
+      setIsExpanded(true);
+    }
+    // If streaming just stopped (transition from true to false), keep expanded
+    else if (wasStreaming && !isStreaming && files.length > 0) {
+      // Generation just completed - keep expanded
+      setIsExpanded(true);
+    }
+
+    setWasStreaming(isStreaming);
+  }, [isStreaming, files.length, wasStreaming]);
 
   const addedFiles = files.filter((f) => f.type === "added");
   const modifiedFiles = files.filter((f) => f.type === "modified");
