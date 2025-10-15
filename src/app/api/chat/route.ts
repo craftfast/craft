@@ -129,6 +129,7 @@ export async function POST(req: Request) {
             messages: formattedMessages,
         });
 
+        // Use the official AI SDK method for streaming responses
         return result.toTextStreamResponse();
     } catch (error) {
         console.error("AI Chat Error:", error);

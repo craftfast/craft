@@ -597,7 +597,6 @@ export default function ChatPanel({
       .replace(/\n{3,}/g, "\n\n") // Clean up extra newlines
       .trim();
   };
-
   // Function to save files to the project
   const saveFiles = async (
     files: { path: string; content: string; language: string }[]
@@ -606,6 +605,7 @@ export default function ChatPanel({
       const fileChanges: FileChange[] = [];
 
       // Determine if files are new or modified
+      const batchFiles: Record<string, string> = {};
       for (const file of files) {
         const isExisting = projectFiles && projectFiles[file.path];
         fileChanges.push({
@@ -613,22 +613,13 @@ export default function ChatPanel({
           type: isExisting ? "modified" : "added",
           language: file.language,
         });
-
-        await fetch("/api/files", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId,
-            filePath: file.path,
-            content: file.content,
-            skipGenerationTracking: true, // Don't update tracking on each file
-          }),
-        });
+        batchFiles[file.path] = file.content;
       }
 
-      // After all files saved, update generation tracking ONCE
+      // Save all files in a SINGLE batch request
+      console.log(
+        `🚀 BATCH SAVE: Saving ${files.length} files in one request...`
+      );
       await fetch("/api/files", {
         method: "POST",
         headers: {
@@ -636,12 +627,12 @@ export default function ChatPanel({
         },
         body: JSON.stringify({
           projectId,
-          finalizeGeneration: true, // Signal to update generation tracking
+          files: batchFiles, // Use batch endpoint
         }),
       });
 
       console.log(
-        `📦 Saved ${files.length} files and updated generation tracking`
+        `✅ BATCH SAVE COMPLETE: Saved ${files.length} files in single batch request`
       );
 
       // Notify parent component about new files
@@ -758,6 +749,7 @@ export default function ChatPanel({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Read the standard text stream from AI SDK
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       const assistantMessage: Message = {
@@ -789,15 +781,12 @@ export default function ChatPanel({
             })
           );
 
-          // Send streaming files to parent for live code view
+          // Send streaming files to parent for live code view (no database save yet)
           if (onStreamingFiles && streamingFiles.length > 0) {
             const filesMap: Record<string, string> = {};
             streamingFiles.forEach((f) => {
               filesMap[f.path] = f.content;
             });
-            console.log(
-              `📤 Streaming ${streamingFiles.length} files to Code Explorer`
-            );
             onStreamingFiles(filesMap);
           }
 

@@ -89,6 +89,7 @@ export default function CodeEditor({
   useEffect(() => {
     if (isGenerating && currentStreamingFile) {
       setSelectedFile(currentStreamingFile);
+      // Merge streaming files into files state for immediate display
       setFiles((prev) => ({ ...prev, ...streamingFiles }));
 
       // Auto-expand folders for streaming file
@@ -103,19 +104,27 @@ export default function CodeEditor({
 
   // Update code when selected file or files change
   useEffect(() => {
-    if (selectedFile && files[selectedFile] !== undefined) {
-      setCode(files[selectedFile]);
-      
-      // Auto-scroll to bottom during streaming
-      if (isGenerating && selectedFile === currentStreamingFile) {
-        setTimeout(() => {
-          if (editorRef.current) {
-            editorRef.current.scrollTop = editorRef.current.scrollHeight;
-          }
-        }, 50);
+    if (selectedFile) {
+      // During streaming, prioritize streamingFiles for real-time updates
+      const content =
+        isGenerating && streamingFiles[selectedFile] !== undefined
+          ? streamingFiles[selectedFile]
+          : files[selectedFile];
+
+      if (content !== undefined) {
+        setCode(content);
+
+        // Auto-scroll to bottom during streaming
+        if (isGenerating && selectedFile === currentStreamingFile) {
+          setTimeout(() => {
+            if (editorRef.current) {
+              editorRef.current.scrollTop = editorRef.current.scrollHeight;
+            }
+          }, 50);
+        }
       }
     }
-  }, [selectedFile, files, isGenerating, currentStreamingFile]);
+  }, [selectedFile, files, streamingFiles, isGenerating, currentStreamingFile]);
 
   // Update files when projectFiles prop changes
   useEffect(() => {
@@ -246,8 +255,16 @@ export default function CodeEditor({
             className={`
               w-full flex items-center gap-1.5 px-2 py-1 text-sm transition-colors
               hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg
-              ${isSelected ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100" : "text-neutral-700 dark:text-neutral-300"}
-              ${node.isNew ? "bg-green-50 dark:bg-green-900/20 border-l-2 border-green-500" : ""}
+              ${
+                isSelected
+                  ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                  : "text-neutral-700 dark:text-neutral-300"
+              }
+              ${
+                node.isNew
+                  ? "bg-green-50 dark:bg-green-900/20 border-l-2 border-green-500"
+                  : ""
+              }
               ${node.isStreaming ? "animate-pulse" : ""}
             `}
             style={{ paddingLeft: `${level * 12 + 8}px` }}
@@ -294,7 +311,11 @@ export default function CodeEditor({
     });
   };
 
-  const fileTree = buildFileTree(Object.keys(files));
+  // Build file tree with both saved and streaming files
+  const allFilePaths = Array.from(
+    new Set([...Object.keys(files), ...Object.keys(streamingFiles)])
+  );
+  const fileTree = buildFileTree(allFilePaths);
 
   const handleSave = async () => {
     if (!selectedFile) return;
