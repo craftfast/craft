@@ -114,7 +114,7 @@ export default function RecentProjects() {
             <Link
               key={project.id}
               href={`/chat/${project.id}`}
-              className="group p-6 bg-white dark:bg-neutral-800 rounded-2xl border border-stone-200 dark:border-neutral-700 hover:border-stone-300 dark:hover:border-neutral-600 transition-all cursor-pointer"
+              className="group p-6 bg-transparent rounded-2xl border border-stone-200 dark:border-neutral-700 hover:border-stone-300 dark:hover:border-neutral-600 transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-neutral-700 flex items-center justify-center">
