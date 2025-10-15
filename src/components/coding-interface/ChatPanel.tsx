@@ -515,7 +515,9 @@ export default function ChatPanel({
 
   // Function to extract code blocks from markdown
   const extractCodeBlocks = (content: string) => {
-    const codeBlockRegex = /```(\w+)?\s*(?:\/\/\s*(.+?)\s*)?\n([\s\S]+?)```/g;
+    // Updated regex to support both // and /* */ style comments for file paths
+    const codeBlockRegex =
+      /```(\w+)?\s*(?:(?:\/\/|\/\*)\s*(.+?)\s*(?:\*\/)?\s*)?\n([\s\S]+?)```/g;
     const files: { path: string; content: string; language: string }[] = [];
     let match;
 
@@ -539,16 +541,20 @@ export default function ChatPanel({
   // Function to remove code blocks from content for display
   const removeCodeBlocks = (content: string) => {
     return content
-      .replace(/```(\w+)?\s*(?:\/\/\s*.+?\s*)?\n[\s\S]+?```/g, (match) => {
-        // Check if this code block has a file path comment
-        const hasFilePath = /```\w+\s*\/\/\s*.+?\s*\n/.test(match);
-        if (hasFilePath) {
-          // Remove the entire block if it has a file path (it's a file to be created)
-          return "";
+      .replace(
+        /```(\w+)?\s*(?:(?:\/\/|\/\*)\s*.+?\s*(?:\*\/)?\s*)?\n[\s\S]+?```/g,
+        (match) => {
+          // Check if this code block has a file path comment (supports both // and /* */ styles)
+          const hasFilePath =
+            /```\w+\s*(?:\/\/|\/\*)\s*.+?\s*(?:\*\/)?\s*\n/.test(match);
+          if (hasFilePath) {
+            // Remove the entire block if it has a file path (it's a file to be created)
+            return "";
+          }
+          // Keep code blocks without file paths (they're examples/explanations)
+          return match;
         }
-        // Keep code blocks without file paths (they're examples/explanations)
-        return match;
-      })
+      )
       .replace(/\n{3,}/g, "\n\n") // Clean up extra newlines
       .trim();
   };

@@ -40,8 +40,17 @@ export default function Home() {
 }
 \`\`\`
 
+\`\`\`css /* src/app/globals.css */
+@import "tailwindcss";
+
+body {
+  background: #ffffff;
+}
+\`\`\`
+
 **Important:**
 - Code blocks with file paths → saved to project
+- Use \`//\` comments for JS/TS files, \`/* */\` comments for CSS/JSON files
 - When updating existing files → provide COMPLETE file content (not partial updates)
 - Preserve essential Next.js configs (package.json, next.config.ts, etc.)
 - **Don't accidentally delete E2B/Next.js essentials** - keep configs intact unless specifically modifying them
