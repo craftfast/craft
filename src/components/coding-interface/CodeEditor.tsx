@@ -7,6 +7,9 @@ import {
   FileCode,
   Folder,
   FolderOpen,
+  Copy,
+  Download,
+  Check,
 } from "lucide-react";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
@@ -55,7 +58,36 @@ export default function CodeEditor({
   >(null);
   const [changeCount, setChangeCount] = useState(0);
   const [newFileCount, setNewFileCount] = useState(0);
+  const [isCopied, setIsCopied] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to copy code to clipboard
+  const handleCopyCode = async () => {
+    if (code) {
+      try {
+        await navigator.clipboard.writeText(code);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (error) {
+        console.error("Failed to copy code:", error);
+      }
+    }
+  };
+
+  // Helper function to download file
+  const handleDownloadFile = () => {
+    if (selectedFile && code) {
+      const blob = new Blob([code], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = selectedFile.split("/").pop() || "file.txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
 
   // Helper function to get language extension based on file type
   const getLanguageExtension = (filename: string): Extension[] => {
@@ -455,6 +487,28 @@ export default function CodeEditor({
                     </span>
                   )}
                 </div>
+              )}
+              {selectedFile && code && (
+                <>
+                  <button
+                    onClick={handleCopyCode}
+                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors group"
+                    title="Copy code"
+                  >
+                    {isCopied ? (
+                      <Check className="w-4 h-4 text-green-600 dark:text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
+                    )}
+                  </button>
+                  <button
+                    onClick={handleDownloadFile}
+                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors group"
+                    title="Download file"
+                  >
+                    <Download className="w-4 h-4 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
+                  </button>
+                </>
               )}
             </div>
           </div>
