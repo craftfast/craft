@@ -1004,104 +1004,143 @@ export default function ChatPanel({
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-minimal">
         <div className="max-w-3xl mx-auto space-y-6">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {messages.map((message: any) => (
-            <div
-              key={message.id}
-              className={`flex flex-col gap-2 ${
-                message.role === "user" ? "items-end" : "items-start"
-              }`}
-            >
+          {messages.map((message: Message, index: number) => {
+            // Calculate version number based on how many messages with file changes
+            // up to and including this message (for chronological tracking)
+            const messageVersionNumber = messages
+              .slice(0, index + 1)
+              .filter(
+                (m: Message) => m.fileChanges && m.fileChanges.length > 0
+              ).length;
+
+            return (
               <div
-                className={`px-4 py-3 ${
-                  message.role === "user"
-                    ? "max-w-[80%] bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-2xl"
-                    : "w-full text-neutral-900 dark:text-neutral-100"
+                key={message.id}
+                className={`flex flex-col gap-2 ${
+                  message.role === "user" ? "items-end" : "items-start"
                 }`}
               >
-                {message.role === "assistant" ? (
-                  <>
-                    {/* File Changes Card */}
-                    {message.fileChanges && message.fileChanges.length > 0 && (
-                      <div className="mb-4">
-                        <FileChangesCard
-                          title={`Updated project files`}
-                          version={`v${projectVersion + 1}`}
-                          files={message.fileChanges}
-                          isStreaming={
-                            isLoading &&
-                            messages[messages.length - 1]?.id === message.id
-                          }
-                          onFileClick={onFileClick}
-                        />
-                      </div>
-                    )}
+                <div
+                  className={`px-4 py-3 ${
+                    message.role === "user"
+                      ? "max-w-[80%] bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-2xl"
+                      : "w-full text-neutral-900 dark:text-neutral-100"
+                  }`}
+                >
+                  {message.role === "assistant" ? (
+                    <>
+                      {/* File Changes Card */}
+                      {message.fileChanges &&
+                        message.fileChanges.length > 0 && (
+                          <div className="mb-4">
+                            <FileChangesCard
+                              title={`Updated project files`}
+                              version={`v${messageVersionNumber}`}
+                              files={message.fileChanges}
+                              isStreaming={
+                                isLoading &&
+                                messages[messages.length - 1]?.id === message.id
+                              }
+                              onFileClick={onFileClick}
+                            />
+                          </div>
+                        )}
 
-                    {/* Message content - only show if there's text */}
-                    {message.content.trim() && (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[rehypeHighlight]}
-                          components={{
-                            code: ({ className, children, ...props }) => {
-                              const match = /language-(\w+)/.exec(
-                                className || ""
-                              );
-                              const isInline = !match;
-                              return isInline ? (
-                                <code
-                                  className="bg-neutral-200 dark:bg-neutral-700 px-1 py-0.5 rounded text-xs"
-                                  {...props}
-                                >
-                                  {children}
-                                </code>
-                              ) : (
-                                <code className={className} {...props}>
-                                  {children}
-                                </code>
-                              );
-                            },
-                          }}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs opacity-60">
-                        {message.createdAt
-                          ? new Date(message.createdAt).toLocaleTimeString()
-                          : new Date().toLocaleTimeString()}
-                      </span>
-                      <div className="flex items-center gap-1 ml-auto">
-                        {/* Copy Button */}
-                        <button
-                          onClick={() =>
-                            handleCopyMessage(message.content, message.id)
-                          }
-                          className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
-                          aria-label="Copy response"
-                          title="Copy"
-                        >
-                          {copiedMessageId === message.id ? (
-                            <svg
-                              className="w-4 h-4 text-green-600 dark:text-green-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          ) : (
+                      {/* Message content - only show if there's text */}
+                      {message.content.trim() && (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeHighlight]}
+                            components={{
+                              code: ({ className, children, ...props }) => {
+                                const match = /language-(\w+)/.exec(
+                                  className || ""
+                                );
+                                const isInline = !match;
+                                return isInline ? (
+                                  <code
+                                    className="bg-neutral-200 dark:bg-neutral-700 px-1 py-0.5 rounded text-xs"
+                                    {...props}
+                                  >
+                                    {children}
+                                  </code>
+                                ) : (
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                );
+                              },
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs opacity-60">
+                          {message.createdAt
+                            ? new Date(message.createdAt).toLocaleTimeString()
+                            : new Date().toLocaleTimeString()}
+                        </span>
+                        <div className="flex items-center gap-1 ml-auto">
+                          {/* Copy Button */}
+                          <button
+                            onClick={() =>
+                              handleCopyMessage(message.content, message.id)
+                            }
+                            className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+                            aria-label="Copy response"
+                            title="Copy"
+                          >
+                            {copiedMessageId === message.id ? (
+                              <svg
+                                className="w-4 h-4 text-green-600 dark:text-green-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                          {/* Like Button */}
+                          <button
+                            onClick={() => handleFeedback(message.id, "like")}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              feedbackMessageId[message.id] === "like"
+                                ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                                : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                            }`}
+                            aria-label="Good response"
+                            title="Good response"
+                          >
                             <svg
                               className="w-4 h-4"
-                              fill="none"
+                              fill={
+                                feedbackMessageId[message.id] === "like"
+                                  ? "currentColor"
+                                  : "none"
+                              }
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
@@ -1109,112 +1148,30 @@ export default function ChatPanel({
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
                               />
                             </svg>
-                          )}
-                        </button>
-                        {/* Like Button */}
-                        <button
-                          onClick={() => handleFeedback(message.id, "like")}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            feedbackMessageId[message.id] === "like"
-                              ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
-                              : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
-                          }`}
-                          aria-label="Good response"
-                          title="Good response"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill={
-                              feedbackMessageId[message.id] === "like"
-                                ? "currentColor"
-                                : "none"
+                          </button>
+                          {/* Dislike Button */}
+                          <button
+                            onClick={() =>
+                              handleFeedback(message.id, "dislike")
                             }
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
-                            />
-                          </svg>
-                        </button>
-                        {/* Dislike Button */}
-                        <button
-                          onClick={() => handleFeedback(message.id, "dislike")}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            feedbackMessageId[message.id] === "dislike"
-                              ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
-                              : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
-                          }`}
-                          aria-label="Bad response"
-                          title="Bad response"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill={
+                            className={`p-1.5 rounded-lg transition-colors ${
                               feedbackMessageId[message.id] === "dislike"
-                                ? "currentColor"
-                                : "none"
-                            }
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                                ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                                : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                            }`}
+                            aria-label="Bad response"
+                            title="Bad response"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm whitespace-pre-wrap">
-                    {message.content}
-                  </p>
-                )}
-              </div>
-              {/* User message images - displayed as small thumbnails outside the text box */}
-              {message.role === "user" &&
-                message.images &&
-                message.images.length > 0 && (
-                  <div className="flex flex-wrap gap-2 max-w-[80%]">
-                    {message.images.map((image: ImageAttachment) => (
-                      <div
-                        key={image.id}
-                        className="flex flex-col gap-1 cursor-pointer group"
-                        onClick={() => setPreviewImage(image)}
-                      >
-                        <div className="rounded-lg overflow-hidden bg-neutral-800 dark:bg-neutral-700 border border-neutral-700 dark:border-neutral-600 hover:opacity-80 transition-opacity shadow-sm p-2 flex items-center gap-2">
-                          {/* Image preview with fallback to icon */}
-                          <div className="w-4 h-4 flex-shrink-0 relative">
-                            <Image
-                              src={image.url}
-                              alt={image.name}
-                              width={16}
-                              height={16}
-                              className="w-4 h-4 object-cover rounded"
-                              unoptimized
-                              onError={(e) => {
-                                // Show SVG fallback on error
-                                const target = e.target as HTMLElement;
-                                target.style.display = "none";
-                                const svg = target.nextElementSibling;
-                                if (svg) {
-                                  (svg as HTMLElement).style.display = "block";
-                                }
-                              }}
-                            />
                             <svg
-                              className="w-4 h-4 text-neutral-400 flex-shrink-0 hidden"
-                              fill="none"
+                              className="w-4 h-4"
+                              fill={
+                                feedbackMessageId[message.id] === "dislike"
+                                  ? "currentColor"
+                                  : "none"
+                              }
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
@@ -1222,21 +1179,77 @@ export default function ChatPanel({
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"
                               />
                             </svg>
-                          </div>
-                          {/* Filename */}
-                          <span className="text-xs text-neutral-300 dark:text-neutral-400 truncate max-w-[100px]">
-                            {image.name}
-                          </span>
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-            </div>
-          ))}
+                    </>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                  )}
+                </div>
+                {/* User message images - displayed as small thumbnails outside the text box */}
+                {message.role === "user" &&
+                  message.images &&
+                  message.images.length > 0 && (
+                    <div className="flex flex-wrap gap-2 max-w-[80%]">
+                      {message.images.map((image: ImageAttachment) => (
+                        <div
+                          key={image.id}
+                          className="flex flex-col gap-1 cursor-pointer group"
+                          onClick={() => setPreviewImage(image)}
+                        >
+                          <div className="rounded-lg overflow-hidden bg-neutral-800 dark:bg-neutral-700 border border-neutral-700 dark:border-neutral-600 hover:opacity-80 transition-opacity shadow-sm p-2 flex items-center gap-2">
+                            {/* Image preview with fallback to icon */}
+                            <div className="w-4 h-4 flex-shrink-0 relative">
+                              <Image
+                                src={image.url}
+                                alt={image.name}
+                                width={16}
+                                height={16}
+                                className="w-4 h-4 object-cover rounded"
+                                unoptimized
+                                onError={(e) => {
+                                  // Show SVG fallback on error
+                                  const target = e.target as HTMLElement;
+                                  target.style.display = "none";
+                                  const svg = target.nextElementSibling;
+                                  if (svg) {
+                                    (svg as HTMLElement).style.display =
+                                      "block";
+                                  }
+                                }}
+                              />
+                              <svg
+                                className="w-4 h-4 text-neutral-400 flex-shrink-0 hidden"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
+                              </svg>
+                            </div>
+                            {/* Filename */}
+                            <span className="text-xs text-neutral-300 dark:text-neutral-400 truncate max-w-[100px]">
+                              {image.name}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+              </div>
+            );
+          })}
           {isLoading && (
             <div className="flex gap-4 justify-start">
               <div className="px-4 py-3 w-full">
