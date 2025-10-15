@@ -9,6 +9,7 @@ import "highlight.js/styles/github-dark.css";
 import { getModelsForPlan, getDefaultModel, AI_MODELS } from "@/lib/ai-models";
 import type { PlanName } from "@/lib/ai-models";
 import ModelSelector from "../ModelSelector";
+import FileChangesCard from "./FileChangesCard";
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -51,6 +52,12 @@ interface ImageAttachment {
   type: string;
 }
 
+interface FileChange {
+  path: string;
+  type: "added" | "modified" | "deleted";
+  language?: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -62,6 +69,7 @@ interface Message {
     output: number;
     cost: number;
   };
+  fileChanges?: FileChange[]; // Track file changes for v0-style display
 }
 
 interface ChatPanelProps {
@@ -70,8 +78,10 @@ interface ChatPanelProps {
   projectVersion?: number; // Project version (0 = new project, 1+ = has updates)
   projectFiles?: Record<string, string>; // Existing project files
   onFilesCreated?: (files: { path: string; content: string }[]) => void;
+  onStreamingFiles?: (files: Record<string, string>) => void; // Real-time streaming files
   triggerNewChat?: number;
   onGeneratingStatusChange?: (isGenerating: boolean) => void;
+  onFileClick?: (path: string) => void; // Handle file clicks from FileChangesCard
 }
 
 export default function ChatPanel({
@@ -80,8 +90,10 @@ export default function ChatPanel({
   projectVersion = 0,
   projectFiles = {},
   onFilesCreated,
+  onStreamingFiles,
   triggerNewChat = 0,
   onGeneratingStatusChange,
+  onFileClick,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -515,18 +527,48 @@ export default function ChatPanel({
 
   // Function to extract code blocks from markdown
   const extractCodeBlocks = (content: string) => {
-    // Updated regex to support both // and /* */ style comments for file paths
-    const codeBlockRegex =
-      /```(\w+)?\s*(?:(?:\/\/|\/\*)\s*(.+?)\s*(?:\*\/)?\s*)?\n([\s\S]+?)```/g;
+    // Enhanced regex to support multiple file path formats:
+    // 1. ```language // path/to/file.ext
+    // 2. ```language /* path/to/file.ext */
+    // 3. ```language path/to/file.ext (no comment)
+    // 4. ```path/to/file.ext (language inferred from extension)
+    const codeBlockRegex = /```([^\s\n]*)\s*([^\n]*?)\n([\s\S]+?)```/g;
     const files: { path: string; content: string; language: string }[] = [];
     let match;
 
     while ((match = codeBlockRegex.exec(content)) !== null) {
-      const language = match[1] || "text";
-      const filePath = match[2]?.trim();
+      let language = match[1] || "text";
+      const filePathLine = match[2]?.trim() || "";
       const code = match[3];
 
+      // Extract file path from comment or direct path
+      let filePath = "";
+
+      // Check for // comment style
+      if (filePathLine.startsWith("//")) {
+        filePath = filePathLine.replace(/^\/\/\s*/, "").trim();
+      }
+      // Check for /* */ comment style
+      else if (filePathLine.startsWith("/*")) {
+        filePath = filePathLine
+          .replace(/^\/\*\s*/, "")
+          .replace(/\s*\*\/\s*$/, "")
+          .trim();
+      }
+      // Check if first line contains a file path (has extension)
+      else if (filePathLine && /\.\w+/.test(filePathLine)) {
+        filePath = filePathLine.trim();
+      }
+      // Check if language looks like a file path (e.g., src/app/page.tsx)
+      else if (language && language.includes("/") && /\.\w+/.test(language)) {
+        filePath = language;
+        // Infer language from extension
+        const ext = filePath.split(".").pop()?.toLowerCase();
+        language = ext || "text";
+      }
+
       if (filePath && code) {
+        console.log(`🔍 Extracted file: ${filePath} (${language})`);
         files.push({
           path: filePath,
           content: code.trim(),
@@ -535,35 +577,38 @@ export default function ChatPanel({
       }
     }
 
+    console.log(`📦 Total files extracted: ${files.length}`);
     return files;
   };
 
   // Function to remove code blocks from content for display
+  // Always removes ALL code blocks to keep chat clean like v0
   const removeCodeBlocks = (content: string) => {
     return content
       .replace(
-        /```(\w+)?\s*(?:(?:\/\/|\/\*)\s*.+?\s*(?:\*\/)?\s*)?\n[\s\S]+?```/g,
-        (match) => {
-          // Check if this code block has a file path comment (supports both // and /* */ styles)
-          const hasFilePath =
-            /```\w+\s*(?:\/\/|\/\*)\s*.+?\s*(?:\*\/)?\s*\n/.test(match);
-          if (hasFilePath) {
-            // Remove the entire block if it has a file path (it's a file to be created)
-            return "";
-          }
-          // Keep code blocks without file paths (they're examples/explanations)
-          return match;
-        }
+        /```[^\s\n]*\s*[^\n]*?\n[\s\S]+?```/g,
+        "" // Remove ALL code blocks - code should only appear in the editor
       )
       .replace(/\n{3,}/g, "\n\n") // Clean up extra newlines
       .trim();
   };
 
   // Function to save files to the project
-  const saveFiles = async (files: { path: string; content: string }[]) => {
+  const saveFiles = async (
+    files: { path: string; content: string; language: string }[]
+  ): Promise<FileChange[]> => {
     try {
-      // Save files one by one for better error handling
+      const fileChanges: FileChange[] = [];
+
+      // Determine if files are new or modified
       for (const file of files) {
+        const isExisting = projectFiles && projectFiles[file.path];
+        fileChanges.push({
+          path: file.path,
+          type: isExisting ? "modified" : "added",
+          language: file.language,
+        });
+
         await fetch("/api/files", {
           method: "POST",
           headers: {
@@ -596,10 +641,15 @@ export default function ChatPanel({
 
       // Notify parent component about new files
       if (onFilesCreated) {
-        onFilesCreated(files);
+        onFilesCreated(
+          files.map((f) => ({ path: f.path, content: f.content }))
+        );
       }
+
+      return fileChanges;
     } catch (error) {
       console.error("Error saving files:", error);
+      return [];
     }
   };
 
@@ -716,7 +766,6 @@ export default function ChatPanel({
 
       if (reader) {
         let fullContent = "";
-        let displayContent = ""; // Content to display (without code blocks during streaming)
 
         while (true) {
           const { done, value } = await reader.read();
@@ -725,22 +774,45 @@ export default function ChatPanel({
           const chunk = decoder.decode(value);
           fullContent += chunk;
 
-          // During streaming, hide code blocks and show placeholder
-          displayContent = removeCodeBlocks(fullContent);
+          // Extract files during streaming to show in FileChangesCard
+          const streamingFiles = extractCodeBlocks(fullContent);
+          const streamingFileChanges: FileChange[] = streamingFiles.map(
+            (f) => ({
+              path: f.path,
+              type: projectFiles && projectFiles[f.path] ? "modified" : "added",
+              language: f.language,
+            })
+          );
 
-          // If we removed code blocks, add a placeholder
-          const hasCodeBlocks =
-            fullContent !== displayContent && displayContent.trim().length > 0;
-          const finalDisplayContent = hasCodeBlocks
-            ? displayContent + "\n\n*✨ Generating project files...*"
-            : fullContent;
+          // Send streaming files to parent for live code view
+          if (onStreamingFiles && streamingFiles.length > 0) {
+            const filesMap: Record<string, string> = {};
+            streamingFiles.forEach((f) => {
+              filesMap[f.path] = f.content;
+            });
+            console.log(
+              `📤 Streaming ${streamingFiles.length} files to Code Explorer`
+            );
+            onStreamingFiles(filesMap);
+          }
 
-          assistantMessage.content = finalDisplayContent;
+          // During streaming, hide code blocks from text content
+          const displayContent = removeCodeBlocks(fullContent);
+
+          // Update message with file changes (shown in card) and cleaned content
+          assistantMessage.content = displayContent.trim();
 
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMessage.id
-                ? { ...m, content: finalDisplayContent }
+                ? {
+                    ...m,
+                    content: displayContent.trim(),
+                    fileChanges:
+                      streamingFileChanges.length > 0
+                        ? streamingFileChanges
+                        : undefined,
+                  }
                 : m
             )
           );
@@ -752,19 +824,20 @@ export default function ChatPanel({
           console.log(
             `📝 Extracted ${extractedFiles.length} files from AI response`
           );
-          await saveFiles(extractedFiles);
+          const fileChanges = await saveFiles(extractedFiles);
 
-          // Update the message to remove code blocks from display
+          // Update the message to remove code blocks from display and add file changes
           const contentWithoutCode = removeCodeBlocks(fullContent);
           const finalContent =
             contentWithoutCode.trim().length > 0
-              ? contentWithoutCode +
-                "\n\n*✅ Project files created successfully!*"
-              : "*✅ Project files created successfully!*";
+              ? contentWithoutCode
+              : "Created project files";
 
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantMessage.id ? { ...m, content: finalContent } : m
+              m.id === assistantMessage.id
+                ? { ...m, content: finalContent, fileChanges }
+                : m
             )
           );
 
@@ -943,34 +1016,53 @@ export default function ChatPanel({
               >
                 {message.role === "assistant" ? (
                   <>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeHighlight]}
-                        components={{
-                          code: ({ className, children, ...props }) => {
-                            const match = /language-(\w+)/.exec(
-                              className || ""
-                            );
-                            const isInline = !match;
-                            return isInline ? (
-                              <code
-                                className="bg-neutral-200 dark:bg-neutral-700 px-1 py-0.5 rounded text-xs"
-                                {...props}
-                              >
-                                {children}
-                              </code>
-                            ) : (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
+                    {/* File Changes Card - v0 style */}
+                    {message.fileChanges && message.fileChanges.length > 0 && (
+                      <div className="mb-4">
+                        <FileChangesCard
+                          title={`Updated project files`}
+                          version={`v${projectVersion + 1}`}
+                          files={message.fileChanges}
+                          isStreaming={
+                            isLoading &&
+                            messages[messages.length - 1]?.id === message.id
+                          }
+                          onFileClick={onFileClick}
+                        />
+                      </div>
+                    )}
+
+                    {/* Message content - only show if there's text */}
+                    {message.content.trim() && (
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeHighlight]}
+                          components={{
+                            code: ({ className, children, ...props }) => {
+                              const match = /language-(\w+)/.exec(
+                                className || ""
+                              );
+                              const isInline = !match;
+                              return isInline ? (
+                                <code
+                                  className="bg-neutral-200 dark:bg-neutral-700 px-1 py-0.5 rounded text-xs"
+                                  {...props}
+                                >
+                                  {children}
+                                </code>
+                              ) : (
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              );
+                            },
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 mt-2">
                       <span className="text-xs opacity-60">
                         {message.createdAt

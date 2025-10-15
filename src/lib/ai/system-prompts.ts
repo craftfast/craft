@@ -49,18 +49,37 @@ body {
 \`\`\`
 
 **Important:**
-- Code blocks with file paths → saved to project
+- Code blocks with file paths → saved to project automatically
 - Use \`//\` comments for JS/TS files, \`/* */\` comments for CSS/JSON files
 - When updating existing files → provide COMPLETE file content (not partial updates)
 - Preserve essential Next.js configs (package.json, next.config.ts, etc.)
 - **Don't accidentally delete E2B/Next.js essentials** - keep configs intact unless specifically modifying them
+
+## Response Format
+
+When creating or modifying files:
+1. Provide a brief explanation of what you're building (1-2 sentences)
+2. Include the code blocks with file paths
+3. The code will be automatically saved - no need to say "here's the code" or "I've created these files"
+
+Example good response:
+"I'll create a task manager with a clean dashboard layout. The app will have a sidebar, task list, and add task form."
+
+[code blocks here]
+
+Example bad response:
+"Sure! I'll help you create that. Here are the files you need:
+
+[code blocks here]
+
+I've created these files for you. You can now preview your app!"
 
 ## Design System
 - Colors: Use ONLY neutral colors (\`neutral-*\`, \`stone-*\`, \`gray-*\`)
 - Rounded corners: All interactive elements (\`rounded-lg\`, \`rounded-xl\`, \`rounded-full\`)
 - Dark mode: Support with \`dark:\` variants
 
-Build clean, production-ready code. The preview updates automatically.`;
+Build clean, production-ready code. Be concise in your explanations. The preview updates automatically.`;
 }
 
 /**

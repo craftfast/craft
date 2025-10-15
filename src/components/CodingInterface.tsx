@@ -61,7 +61,17 @@ export default function CodingInterface({
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
   const [triggerNewChat, setTriggerNewChat] = useState(0); // Counter to trigger new chat
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
+  const [streamingFiles, setStreamingFiles] = useState<Record<string, string>>(
+    {}
+  ); // Files being generated in real-time
   const chatWidth = 30; // Fixed at 30%
+
+  // Auto-switch to code tab when AI starts generating files
+  useEffect(() => {
+    if (isGeneratingFiles) {
+      setActiveTab("code");
+    }
+  }, [isGeneratingFiles]);
 
   console.log(
     `🎯 CodingInterface mounted with project: "${project.name}" (ID: ${project.id})`
@@ -119,6 +129,9 @@ export default function CodingInterface({
     });
     setProjectFiles(newFiles);
 
+    // Clear streaming files after they're saved
+    setStreamingFiles({});
+
     console.log(`📋 Total files in state:`, Object.keys(newFiles).length);
 
     // Refresh project to get updated generationStatus from database
@@ -132,6 +145,17 @@ export default function CodingInterface({
 
     // Switch to preview tab to show the new files
     setActiveTab("preview");
+  };
+
+  // Function to handle streaming files (files being generated in real-time)
+  const handleStreamingFiles = (files: Record<string, string>) => {
+    setStreamingFiles(files);
+  };
+
+  // Function to handle file clicks from FileChangesCard
+  const handleFileClick = () => {
+    // Switch to code tab - file selection happens automatically through streaming
+    setActiveTab("code");
   };
 
   const tabs = [
@@ -490,8 +514,10 @@ export default function CodingInterface({
                 projectVersion={project.version}
                 projectFiles={projectFiles}
                 onFilesCreated={handleFilesCreated}
+                onStreamingFiles={handleStreamingFiles}
                 triggerNewChat={triggerNewChat}
                 onGeneratingStatusChange={setIsGeneratingFiles}
+                onFileClick={handleFileClick}
               />
             </div>
           </div>
@@ -529,6 +555,9 @@ export default function CodingInterface({
                 <CodeEditor
                   projectId={project.id}
                   projectFiles={projectFiles}
+                  streamingFiles={streamingFiles}
+                  isGenerating={isGeneratingFiles}
+                  onFileClick={handleFileClick}
                 />
               )}
               {activeTab === "database" && (
