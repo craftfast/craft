@@ -348,7 +348,7 @@ export default function PricingPage() {
                         Lite AI models only
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400 space-y-1">
-                        <div>• Grok Code Fast 1</div>
+                        <div>• Claude Haiku 4.5</div>
                         <div>• GPT-5 mini</div>
                         <div>• Gemini 2.5 Flash</div>
                       </div>
@@ -359,7 +359,7 @@ export default function PricingPage() {
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400 space-y-1">
                         <div>• Claude Sonnet 4.5</div>
-                        <div>• GPT-5 Codex</div>
+                        <div>• GPT-5</div>
                         <div>• Gemini 2.5 Pro</div>
                       </div>
                     </td>
@@ -1130,11 +1130,10 @@ export default function PricingPage() {
                     Which AI models can I use?
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    <strong>Hobby:</strong> Free coding models including Grok
-                    Code Fast 1, GPT-5 mini, and Gemini 2.5 Flash.{" "}
+                    <strong>Hobby:</strong> Free coding models including Claude
+                    Haiku 4.5, GPT-5 mini, and Gemini 2.5 Flash.{" "}
                     <strong>Pro:</strong> Premium models including Claude Sonnet
-                    4.5, GPT-5 Codex, and Gemini 2.5 Pro with priority
-                    processing.
+                    4.5, GPT-5, and Gemini 2.5 Pro with priority processing.
                   </p>
                 </div>
 

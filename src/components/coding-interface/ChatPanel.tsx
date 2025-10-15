@@ -131,7 +131,7 @@ export default function ChatPanel({
 
   // Model selection
   const [selectedModel, setSelectedModel] =
-    useState<string>("grok-code-fast-1");
+    useState<string>("claude-haiku-4.5");
   const [availableModels, setAvailableModels] = useState(
     getModelsForPlan("HOBBY")
   );

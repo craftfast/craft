@@ -20,14 +20,14 @@ export interface AIModel {
 
 export const AI_MODELS: Record<string, AIModel> = {
     // ========== LITE MODELS (Hobby+) ==========
-    "grok-code-fast-1": {
-        id: "x-ai/grok-code-fast-1",
-        name: "Grok Code Fast 1",
-        provider: "xAI",
-        description: "Lightning-fast code generation for rapid prototyping",
+    "claude-haiku-4.5": {
+        id: "anthropic/claude-haiku-4.5",
+        name: "Claude Haiku 4.5",
+        provider: "Anthropic",
+        description: "Fast and efficient AI model for quick iterations",
         tier: "lite",
         minPlan: "HOBBY",
-        pricingPer1M: { input: 0.2, output: 1.5 },
+        pricingPer1M: { input: 1.0, output: 5.0 },
     },
     "gpt-5-mini": {
         id: "openai/gpt-5-mini",
@@ -58,11 +58,11 @@ export const AI_MODELS: Record<string, AIModel> = {
         minPlan: "PRO",
         pricingPer1M: { input: 3.0, output: 15.0 },
     },
-    "gpt-5-codex": {
-        id: "openai/gpt-5-codex",
-        name: "GPT-5 Codex",
+    "gpt-5": {
+        id: "openai/gpt-5",
+        name: "GPT-5",
         provider: "OpenAI",
-        description: "Specialized for code understanding and generation",
+        description: "Advanced reasoning and code generation",
         tier: "premium",
         minPlan: "PRO",
         pricingPer1M: { input: 1.25, output: 10.0 },
@@ -116,7 +116,7 @@ export function canAccessModel(plan: PlanName, modelKey: string): boolean {
  * Get default model for a plan
  */
 export function getDefaultModel(plan: PlanName): string {
-    if (plan === "HOBBY") return "grok-code-fast-1";
+    if (plan === "HOBBY") return "claude-haiku-4.5";
     if (plan === "PRO") return "claude-sonnet-4.5";
     return "claude-sonnet-4.5";
 }
