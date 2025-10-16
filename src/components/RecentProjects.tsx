@@ -98,10 +98,10 @@ export default function RecentProjects() {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+          <h3 className="text-md font-semibold text-neutral-900 dark:text-neutral-100 pb-1">
             No projects yet
           </h3>
-          <p className="text-neutral-600 dark:text-neutral-400">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
             Create your first project to get started
           </p>
         </div>
