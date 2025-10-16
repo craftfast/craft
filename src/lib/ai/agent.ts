@@ -147,6 +147,7 @@ export function analyzeComplexity(
 }
 
 // ============================================================================
+// ============================================================================
 // CODING AGENT (Smart Routing: Haiku for general, Sonnet for complex)
 // ============================================================================
 
@@ -155,6 +156,12 @@ interface CodingStreamOptions {
     systemPrompt: string;
     projectFiles?: Record<string, string>;
     conversationHistory?: Array<{ role: string; content: string }>;
+    onFinish?: (params: {
+        model: string;
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number;
+    }) => void | Promise<void>;
 }
 
 /**
@@ -162,7 +169,7 @@ interface CodingStreamOptions {
  * Automatically uses Haiku for simple tasks, Sonnet for complex ones
  */
 export function streamCodingResponse(options: CodingStreamOptions) {
-    const { messages, systemPrompt, projectFiles = {}, conversationHistory = [] } = options;
+    const { messages, systemPrompt, projectFiles = {}, conversationHistory = [], onFinish } = options;
 
     // Get the last user message for analysis
     const lastUserMessage = messages
@@ -193,12 +200,30 @@ export function streamCodingResponse(options: CodingStreamOptions) {
         console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
     }
 
-    // Stream the response
-    return streamText({
+    // Stream the response with usage tracking
+    const result = streamText({
         model: openrouter.chat(model),
         system: systemPrompt,
         messages: messages as never, // AI SDK will handle the validation
+        onFinish: async ({ usage }) => {
+            if (usage && onFinish) {
+                // AI SDK v5 uses different property names
+                const inputTokens = (usage as { promptTokens?: number }).promptTokens || 0;
+                const outputTokens = (usage as { completionTokens?: number }).completionTokens || 0;
+                const totalTokens = usage.totalTokens || inputTokens + outputTokens;
+
+                console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
+                await onFinish({
+                    model,
+                    inputTokens,
+                    outputTokens,
+                    totalTokens,
+                });
+            }
+        },
     });
+
+    return result;
 }
 
 // ============================================================================

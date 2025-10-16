@@ -1,5 +1,9 @@
 import { getSystemPrompt } from "@/lib/ai/system-prompts";
 import { streamCodingResponse } from "@/lib/ai/agent";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { checkTeamTokenAvailability, processAIUsage } from "@/lib/ai-usage";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -19,7 +23,70 @@ type MessageContent = string | (TextContent | ImageUrlContent)[];
 
 export async function POST(req: Request) {
     try {
-        const { messages, taskType, projectFiles } = await req.json();
+        // Get authenticated session
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return new Response(
+                JSON.stringify({ error: "Unauthorized" }),
+                { status: 401, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Get user from database
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            include: {
+                teamMembers: {
+                    include: { team: true }
+                }
+            }
+        });
+
+        if (!user) {
+            return new Response(
+                JSON.stringify({ error: "User not found" }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Get user's team (first team for now)
+        const teamId = user.teamMembers[0]?.teamId;
+        if (!teamId) {
+            return new Response(
+                JSON.stringify({ error: "No team found" }),
+                { status: 403, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        const { messages, taskType, projectFiles, projectId } = await req.json();
+
+        // Validate projectId
+        if (!projectId) {
+            return new Response(
+                JSON.stringify({ error: "Project ID is required" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Check if team has available tokens before processing
+        const tokenAvailability = await checkTeamTokenAvailability(teamId);
+
+        if (!tokenAvailability.allowed) {
+            console.warn(`🚫 Token limit reached for team ${teamId}`);
+            return new Response(
+                JSON.stringify({
+                    error: "Token limit reached",
+                    message: tokenAvailability.reason || "Monthly token limit exceeded. Please upgrade your plan or purchase additional tokens.",
+                    subscriptionTokensUsed: tokenAvailability.subscriptionTokensUsed,
+                    subscriptionTokenLimit: tokenAvailability.subscriptionTokenLimit,
+                    purchasedTokensRemaining: tokenAvailability.purchasedTokensRemaining,
+                }),
+                { status: 429, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Log token availability
+        console.log(`💰 Token Availability - Used: ${tokenAvailability.subscriptionTokensUsed}/${tokenAvailability.subscriptionTokenLimit || 'unlimited'}, Purchased: ${tokenAvailability.purchasedTokensRemaining}`);
 
         // Get environment-aware system prompt
         const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles);
@@ -75,6 +142,24 @@ export async function POST(req: Request) {
             systemPrompt,
             projectFiles: projectFiles || {},
             conversationHistory: messages.slice(0, -1),
+            // Track usage after stream completes
+            onFinish: async (usageData) => {
+                try {
+                    await processAIUsage({
+                        teamId,
+                        userId: user.id,
+                        projectId,
+                        model: usageData.model,
+                        inputTokens: usageData.inputTokens,
+                        outputTokens: usageData.outputTokens,
+                        endpoint: '/api/chat',
+                    });
+                    console.log(`✅ Usage tracked - Team: ${teamId}, Tokens: ${usageData.totalTokens}`);
+                } catch (trackingError) {
+                    console.error('❌ Failed to track usage:', trackingError);
+                    // Don't fail the request if tracking fails
+                }
+            },
         });
 
         // Use the official AI SDK method for streaming responses

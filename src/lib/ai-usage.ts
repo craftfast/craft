@@ -368,3 +368,143 @@ export async function getTeamTokenPurchases(
         status: p.status,
     }));
 }
+
+// ============================================================================
+// TOKEN LIMIT CHECKING
+// ============================================================================
+
+/**
+ * Check if team can use AI based on subscription limits and purchased tokens
+ */
+export async function checkTeamTokenAvailability(
+    teamId: string
+): Promise<{
+    allowed: boolean;
+    reason?: string;
+    subscriptionTokensUsed: number;
+    subscriptionTokenLimit: number | null;
+    purchasedTokensRemaining: number;
+    totalAvailable: number;
+}> {
+    // Get team's subscription with plan details
+    const subscription = await prisma.teamSubscription.findUnique({
+        where: { teamId },
+        include: { plan: true },
+    });
+
+    // Get current period usage
+    const currentUsage = await getCurrentPeriodAIUsage(teamId);
+
+    // Get purchased token balance
+    const purchasedBalance = await getTeamTokenBalance(teamId);
+
+    // Determine subscription token limit from plan
+    let subscriptionLimit: number | null = null;
+
+    if (subscription?.plan) {
+        subscriptionLimit = subscription.plan.monthlyTokenLimit;
+    } else {
+        // No subscription = free tier limits (1M tokens)
+        subscriptionLimit = 1000000;
+    }
+
+    // Calculate available tokens
+    const subscriptionTokensUsed = currentUsage.totalTokens;
+    const subscriptionTokensRemaining = subscriptionLimit !== null
+        ? Math.max(0, subscriptionLimit - subscriptionTokensUsed)
+        : Infinity;
+
+    const totalAvailable = subscriptionTokensRemaining === Infinity
+        ? Infinity
+        : subscriptionTokensRemaining + purchasedBalance.remaining;
+
+    // Check if usage is allowed
+    let allowed = true;
+    let reason: string | undefined;
+
+    if (subscriptionLimit !== null && subscriptionTokensUsed >= subscriptionLimit) {
+        // Subscription limit reached, check purchased tokens
+        if (purchasedBalance.remaining <= 0) {
+            allowed = false;
+            reason = "Monthly token limit reached. Purchase additional tokens to continue.";
+        }
+    }
+
+    return {
+        allowed,
+        reason,
+        subscriptionTokensUsed,
+        subscriptionTokenLimit: subscriptionLimit,
+        purchasedTokensRemaining: purchasedBalance.remaining,
+        totalAvailable: totalAvailable === Infinity ? -1 : totalAvailable,
+    };
+}
+
+/**
+ * Process AI usage: track it and deduct from appropriate balance
+ */
+export async function processAIUsage(params: {
+    teamId: string;
+    userId: string;
+    projectId: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    endpoint?: string;
+}): Promise<{
+    success: boolean;
+    usageId: string;
+    costUsd: number;
+    deductedFromPurchased: number;
+}> {
+    // Track the usage
+    const usage = await trackAIUsage(params);
+
+    // Get team's subscription with plan details
+    const subscription = await prisma.teamSubscription.findUnique({
+        where: { teamId: params.teamId },
+        include: { plan: true },
+    });
+
+    // Determine subscription token limit from plan
+    let subscriptionLimit: number | null = null;
+    if (subscription?.plan) {
+        subscriptionLimit = subscription.plan.monthlyTokenLimit;
+    } else {
+        subscriptionLimit = 1000000; // Default to free tier (1M tokens)
+    }
+
+    // Get current period usage (before this request)
+    const currentUsage = await getCurrentPeriodAIUsage(params.teamId);
+
+    const totalTokens = params.inputTokens + params.outputTokens;
+    const newTotalUsage = currentUsage.totalTokens + totalTokens;
+
+    // Determine how many tokens to deduct from purchased balance
+    let tokensToDeductFromPurchased = 0;
+
+    if (subscriptionLimit !== null && newTotalUsage > subscriptionLimit) {
+        // Exceeded subscription limit, deduct overage from purchased tokens
+        tokensToDeductFromPurchased = totalTokens;
+
+        // If previous usage already exceeded limit, deduct all
+        // Otherwise, only deduct the overage
+        if (currentUsage.totalTokens < subscriptionLimit) {
+            tokensToDeductFromPurchased = newTotalUsage - subscriptionLimit;
+        }
+    }
+
+    // Deduct from purchased balance if needed
+    let deductedFromPurchased = 0;
+    if (tokensToDeductFromPurchased > 0) {
+        const result = await deductPurchasedTokens(params.teamId, tokensToDeductFromPurchased);
+        deductedFromPurchased = result.success ? tokensToDeductFromPurchased : 0;
+    }
+
+    return {
+        success: true,
+        usageId: usage.id,
+        costUsd: usage.costUsd,
+        deductedFromPurchased,
+    };
+}
