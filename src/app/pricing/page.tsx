@@ -489,7 +489,7 @@ export default function PricingPage() {
                         <span className="font-semibold">$5 / 1M tokens</span>
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400 mb-2">
-                        Tokens never expire
+                        Starting from
                       </div>
                       <button
                         onClick={() => handleTokenPurchase(1)}
@@ -504,7 +504,7 @@ export default function PricingPage() {
                         <span className="font-semibold">$5 / 1M tokens</span>
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400 mb-2">
-                        Tokens never expire
+                        Starting from
                       </div>
                       <button
                         onClick={() => handleTokenPurchase(5)}
