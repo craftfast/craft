@@ -191,7 +191,7 @@ export default function PricingPage() {
               Find a plan to craft your apps
             </h1>
             <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
-              Simple, transparent pricing for individual developers.
+              Simple, transparent pricing for builder.
             </p>
           </div>
 
@@ -338,11 +338,7 @@ export default function PricingPage() {
               Detailed Usage Limits & Costs
             </h2>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mb-4 max-w-3xl mx-auto">
-              <strong>Hobby:</strong> Limited to 3 projects, 100k AI
-              tokens/month (fixed), no imports, includes branding.
-              <strong>Pro:</strong> Unlimited projects, 10M AI tokens/month,
-              Figma/GitHub imports, purchase additional credits, and
-              pay-as-you-go infrastructure. Usage resets monthly.
+              Compare features, limits, and pricing across all plans.
             </p>
             <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden">
               <table className="w-full">
