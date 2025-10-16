@@ -695,6 +695,7 @@ export default function ChatPanel({
           }),
           taskType: "coding",
           projectFiles, // Send existing project files for context
+          projectId, // Required for AI usage tracking
         }),
       });
 
@@ -805,11 +806,30 @@ export default function ChatPanel({
       }
     } catch (error) {
       console.error("Error sending message:", error);
+
+      // Provide more specific error message
+      let errorContent =
+        "Sorry, I encountered an error processing your request.";
+      if (error instanceof Error) {
+        if (error.message.includes("401")) {
+          errorContent =
+            "Authentication error. Please make sure you're logged in.";
+        } else if (error.message.includes("400")) {
+          errorContent =
+            "Invalid request. Please try again or refresh the page.";
+        } else if (error.message.includes("429")) {
+          errorContent =
+            "Token limit reached. Please upgrade your plan or purchase additional tokens.";
+        } else if (error.message.includes("500")) {
+          errorContent =
+            "Server error. Please check your OpenRouter API key in the .env file and restart the server.";
+        }
+      }
+
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: "assistant",
-        content:
-          "Sorry, I encountered an error. Please make sure you have set up your OpenRouter API key in the .env.local file.",
+        content: errorContent,
         createdAt: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -973,7 +993,7 @@ export default function ChatPanel({
                 <div
                   className={`px-4 py-3 ${
                     message.role === "user"
-                      ? "max-w-[80%] bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-2xl"
+                      ? "max-w-[80%] bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-2xl"
                       : "w-full text-neutral-900 dark:text-neutral-100"
                   }`}
                 >
