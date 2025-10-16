@@ -68,7 +68,6 @@ CREATE TABLE "projects" (
     "version" INTEGER NOT NULL DEFAULT 0,
     "generationStatus" TEXT NOT NULL DEFAULT 'template',
     "lastCodeUpdateAt" TIMESTAMP(3),
-    "aiModel" TEXT,
     "codeFiles" JSONB NOT NULL DEFAULT '{}',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -82,7 +81,6 @@ CREATE TABLE "files" (
     "userId" TEXT NOT NULL,
     "projectId" TEXT,
     "chatMessageId" TEXT,
-    "teamId" TEXT,
     "path" TEXT,
     "r2Key" TEXT NOT NULL,
     "r2Url" TEXT NOT NULL,
@@ -155,31 +153,6 @@ CREATE TABLE "neon_databases" (
 );
 
 -- CreateTable
-CREATE TABLE "teams" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "slug" TEXT NOT NULL,
-    "ownerId" TEXT NOT NULL,
-    "isPersonal" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "teams_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "team_members" (
-    "id" TEXT NOT NULL,
-    "teamId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "role" TEXT NOT NULL DEFAULT 'member',
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "team_members_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "plans" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -201,9 +174,9 @@ CREATE TABLE "plans" (
 );
 
 -- CreateTable
-CREATE TABLE "team_subscriptions" (
+CREATE TABLE "user_subscriptions" (
     "id" TEXT NOT NULL,
-    "teamId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
     "planId" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'active',
     "currentPeriodStart" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -215,13 +188,12 @@ CREATE TABLE "team_subscriptions" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "team_subscriptions_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_subscriptions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ai_token_usage" (
     "id" TEXT NOT NULL,
-    "teamId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "model" TEXT NOT NULL,
@@ -238,7 +210,7 @@ CREATE TABLE "ai_token_usage" (
 -- CreateTable
 CREATE TABLE "usage_records" (
     "id" TEXT NOT NULL,
-    "teamId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
     "subscriptionId" TEXT NOT NULL,
     "billingPeriodStart" TIMESTAMP(3) NOT NULL,
     "billingPeriodEnd" TIMESTAMP(3) NOT NULL,
@@ -264,7 +236,7 @@ CREATE TABLE "usage_records" (
 -- CreateTable
 CREATE TABLE "invoices" (
     "id" TEXT NOT NULL,
-    "teamId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
     "subscriptionId" TEXT NOT NULL,
     "invoiceNumber" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'draft',
@@ -294,7 +266,7 @@ CREATE TABLE "invoices" (
 -- CreateTable
 CREATE TABLE "payment_transactions" (
     "id" TEXT NOT NULL,
-    "teamId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
     "invoiceId" TEXT,
     "amount" DOUBLE PRECISION NOT NULL,
     "currency" TEXT NOT NULL DEFAULT 'USD',
@@ -309,6 +281,27 @@ CREATE TABLE "payment_transactions" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "payment_transactions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "token_purchases" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "tokenAmount" INTEGER NOT NULL,
+    "priceUsd" DOUBLE PRECISION NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "polarCheckoutId" TEXT,
+    "polarPaymentId" TEXT,
+    "purchasedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3),
+    "tokensRemaining" INTEGER NOT NULL,
+    "transactionId" TEXT,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "token_purchases_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -340,9 +333,6 @@ CREATE INDEX "files_projectId_idx" ON "files"("projectId");
 
 -- CreateIndex
 CREATE INDEX "files_chatMessageId_idx" ON "files"("chatMessageId");
-
--- CreateIndex
-CREATE INDEX "files_teamId_idx" ON "files"("teamId");
 
 -- CreateIndex
 CREATE INDEX "files_r2Key_idx" ON "files"("r2Key");
@@ -396,24 +386,6 @@ CREATE INDEX "neon_databases_transferExpiresAt_idx" ON "neon_databases"("transfe
 CREATE INDEX "neon_databases_autoDeleteAt_idx" ON "neon_databases"("autoDeleteAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "teams_slug_key" ON "teams"("slug");
-
--- CreateIndex
-CREATE INDEX "teams_ownerId_idx" ON "teams"("ownerId");
-
--- CreateIndex
-CREATE INDEX "teams_isPersonal_idx" ON "teams"("isPersonal");
-
--- CreateIndex
-CREATE INDEX "team_members_userId_idx" ON "team_members"("userId");
-
--- CreateIndex
-CREATE INDEX "team_members_teamId_idx" ON "team_members"("teamId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "team_members_teamId_userId_key" ON "team_members"("teamId", "userId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "plans_name_key" ON "plans"("name");
 
 -- CreateIndex
@@ -423,22 +395,19 @@ CREATE INDEX "plans_name_idx" ON "plans"("name");
 CREATE INDEX "plans_isActive_idx" ON "plans"("isActive");
 
 -- CreateIndex
-CREATE INDEX "team_subscriptions_teamId_idx" ON "team_subscriptions"("teamId");
+CREATE UNIQUE INDEX "user_subscriptions_userId_key" ON "user_subscriptions"("userId");
 
 -- CreateIndex
-CREATE INDEX "team_subscriptions_planId_idx" ON "team_subscriptions"("planId");
+CREATE INDEX "user_subscriptions_userId_idx" ON "user_subscriptions"("userId");
 
 -- CreateIndex
-CREATE INDEX "team_subscriptions_status_idx" ON "team_subscriptions"("status");
+CREATE INDEX "user_subscriptions_planId_idx" ON "user_subscriptions"("planId");
 
 -- CreateIndex
-CREATE INDEX "team_subscriptions_currentPeriodEnd_idx" ON "team_subscriptions"("currentPeriodEnd");
+CREATE INDEX "user_subscriptions_status_idx" ON "user_subscriptions"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "team_subscriptions_teamId_key" ON "team_subscriptions"("teamId");
-
--- CreateIndex
-CREATE INDEX "ai_token_usage_teamId_createdAt_idx" ON "ai_token_usage"("teamId", "createdAt");
+CREATE INDEX "user_subscriptions_currentPeriodEnd_idx" ON "user_subscriptions"("currentPeriodEnd");
 
 -- CreateIndex
 CREATE INDEX "ai_token_usage_userId_createdAt_idx" ON "ai_token_usage"("userId", "createdAt");
@@ -453,7 +422,7 @@ CREATE INDEX "ai_token_usage_model_createdAt_idx" ON "ai_token_usage"("model", "
 CREATE INDEX "ai_token_usage_createdAt_idx" ON "ai_token_usage"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "usage_records_teamId_billingPeriodStart_idx" ON "usage_records"("teamId", "billingPeriodStart");
+CREATE INDEX "usage_records_userId_billingPeriodStart_idx" ON "usage_records"("userId", "billingPeriodStart");
 
 -- CreateIndex
 CREATE INDEX "usage_records_billingPeriodEnd_idx" ON "usage_records"("billingPeriodEnd");
@@ -465,7 +434,7 @@ CREATE UNIQUE INDEX "usage_records_subscriptionId_billingPeriodStart_key" ON "us
 CREATE UNIQUE INDEX "invoices_invoiceNumber_key" ON "invoices"("invoiceNumber");
 
 -- CreateIndex
-CREATE INDEX "invoices_teamId_idx" ON "invoices"("teamId");
+CREATE INDEX "invoices_userId_idx" ON "invoices"("userId");
 
 -- CreateIndex
 CREATE INDEX "invoices_subscriptionId_idx" ON "invoices"("subscriptionId");
@@ -480,7 +449,7 @@ CREATE INDEX "invoices_billingPeriodStart_idx" ON "invoices"("billingPeriodStart
 CREATE INDEX "invoices_dueDate_idx" ON "invoices"("dueDate");
 
 -- CreateIndex
-CREATE INDEX "payment_transactions_teamId_idx" ON "payment_transactions"("teamId");
+CREATE INDEX "payment_transactions_userId_idx" ON "payment_transactions"("userId");
 
 -- CreateIndex
 CREATE INDEX "payment_transactions_invoiceId_idx" ON "payment_transactions"("invoiceId");
@@ -496,6 +465,21 @@ CREATE INDEX "payment_transactions_polarPaymentId_idx" ON "payment_transactions"
 
 -- CreateIndex
 CREATE INDEX "payment_transactions_createdAt_idx" ON "payment_transactions"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "token_purchases_userId_idx" ON "token_purchases"("userId");
+
+-- CreateIndex
+CREATE INDEX "token_purchases_status_idx" ON "token_purchases"("status");
+
+-- CreateIndex
+CREATE INDEX "token_purchases_polarCheckoutId_idx" ON "token_purchases"("polarCheckoutId");
+
+-- CreateIndex
+CREATE INDEX "token_purchases_polarPaymentId_idx" ON "token_purchases"("polarPaymentId");
+
+-- CreateIndex
+CREATE INDEX "token_purchases_purchasedAt_idx" ON "token_purchases"("purchasedAt");
 
 -- AddForeignKey
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -525,22 +509,13 @@ ALTER TABLE "project_versions" ADD CONSTRAINT "project_versions_projectId_fkey" 
 ALTER TABLE "neon_databases" ADD CONSTRAINT "neon_databases_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "teams" ADD CONSTRAINT "teams_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "user_subscriptions" ADD CONSTRAINT "user_subscriptions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "team_members" ADD CONSTRAINT "team_members_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "user_subscriptions" ADD CONSTRAINT "user_subscriptions_planId_fkey" FOREIGN KEY ("planId") REFERENCES "plans"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "team_members" ADD CONSTRAINT "team_members_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "usage_records" ADD CONSTRAINT "usage_records_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "user_subscriptions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "team_subscriptions" ADD CONSTRAINT "team_subscriptions_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "team_subscriptions" ADD CONSTRAINT "team_subscriptions_planId_fkey" FOREIGN KEY ("planId") REFERENCES "plans"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "usage_records" ADD CONSTRAINT "usage_records_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "team_subscriptions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "invoices" ADD CONSTRAINT "invoices_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "team_subscriptions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "invoices" ADD CONSTRAINT "invoices_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "user_subscriptions"("id") ON DELETE CASCADE ON UPDATE CASCADE;

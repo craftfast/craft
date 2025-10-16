@@ -104,6 +104,33 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Check project limit based on user's plan
+        const subscription = await prisma.userSubscription.findUnique({
+            where: { userId: user.id },
+            include: { plan: true },
+        });
+
+        // Get user's current project count
+        const projectCount = await prisma.project.count({
+            where: { userId: user.id },
+        });
+
+        // Determine max projects based on plan (default to Hobby: 3 projects)
+        const maxProjects = subscription?.plan?.maxProjects ?? 3;
+
+        // Check if user has reached their project limit
+        if (maxProjects !== null && maxProjects < 1000 && projectCount >= maxProjects) {
+            return NextResponse.json(
+                {
+                    error: `Project limit reached. You can create up to ${maxProjects} projects on your current plan. Upgrade to Pro for unlimited projects.`,
+                    code: "PROJECT_LIMIT_REACHED",
+                    maxProjects,
+                    currentCount: projectCount,
+                },
+                { status: 403 }
+            );
+        }
+
         let projectName = name.trim();
 
         // If name is "New Project" and we have a description, generate a better name synchronously

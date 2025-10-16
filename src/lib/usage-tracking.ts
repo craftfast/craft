@@ -26,17 +26,17 @@ const INFRASTRUCTURE_PRICING = {
 // Free tier limits by plan
 const FREE_TIERS = {
     HOBBY: {
-        databaseGb: 0.5,
-        storageGb: 1,
+        databaseGb: 0.05, // 50 MB
+        storageGb: 0.1, // 100 MB
         bandwidthGb: 100,
-        authMau: 1000,
+        authMau: 999999, // Unlimited
         edgeFunctionInvocations: 100000, // 100k
     },
     PRO: {
-        databaseGb: 5,
-        storageGb: 10,
+        databaseGb: 0.5, // 500 MB
+        storageGb: 1, // 1 GB
         bandwidthGb: 500,
-        authMau: 10000,
+        authMau: 999999, // Unlimited
         edgeFunctionInvocations: 1000000, // 1M
     },
     ENTERPRISE: {

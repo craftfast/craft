@@ -13,59 +13,45 @@ async function main() {
         {
             name: "HOBBY",
             displayName: "Hobby",
-            description: "The perfect starting place for your next project.",
+            description: "Try Craft with basic features. Limited to 3 projects.",
             priceMonthlyUsd: 0,
-            maxProjects: 999999, // Unlimited projects
-            databaseSizeGb: 0.5,
-            storageSizeGb: 1,
-            monthlyTokenLimit: 100000, // 100k tokens included per month
-            canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
+            maxProjects: 3, // Limited to 3 projects
+            databaseSizeGb: 0.05, // 50 MB
+            storageSizeGb: 0.1, // 100 MB
+            monthlyTokenLimit: 100000, // 100k tokens per month
+            canPurchaseTokens: false, // Cannot purchase additional tokens on Hobby
             sortOrder: 0,
             features: [
-                "Import from Figma & GitHub",
+                "100k AI tokens per month",
+                "Up to 3 projects",
                 "AI-powered chat interface",
                 "Live preview environment",
-                "Unlimited projects",
                 "Integrated database & storage",
                 "Authentication",
+                "Craft branding on projects",
                 "Community support",
-                "100k AI tokens included per month",
-                "Purchase additional AI tokens ($5/1M)",
-                "Pay-as-you-go for infrastructure overages",
-                "Access to lite AI models",
-                "500MB database storage",
-                "1GB file storage",
-                "1,000 MAU auth free",
-                "100GB bandwidth free",
-                "$0.10/GB database overage",
-                "$0.05/GB storage overage",
             ],
         },
         {
             name: "PRO",
             displayName: "Pro",
             description: "Everything you need to build and scale your app.",
-            priceMonthlyUsd: 150,
-            maxProjects: 999999, // Virtually unlimited
-            databaseSizeGb: 5,
-            storageSizeGb: 10,
-            monthlyTokenLimit: 10000000, // 10M tokens included
-            canPurchaseTokens: true, // Can purchase additional tokens
+            priceMonthlyUsd: 25,
+            maxProjects: 999, // Unlimited projects
+            databaseSizeGb: 0.5, // 500 MB free
+            storageSizeGb: 1, // 1 GB free
+            monthlyTokenLimit: 10000000, // 10M tokens per month
+            canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
             sortOrder: 1,
             features: [
-                "All Hobby features, plus:",
-                "10M AI tokens included per month",
-                "Purchase additional AI tokens",
+                "Everything in hobby, plus:",
+                "10M AI tokens per month",
                 "Unlimited projects",
-                "Priority AI processing",
-                "Advanced code generation",
+                "Purchase additional AI credits at $5 per million tokens",
+                "Import from Figma & GitHub",
                 "Remove Craft branding",
-                "Email support",
-                "5GB database storage",
-                "10GB file storage free",
-                "10,000 MAU auth free",
-                "500GB bandwidth free",
-                "Usage-based billing for overages",
+                "Pay-as-you-go for infrastructure",
+                "Priority email support",
             ],
         },
         {
@@ -73,7 +59,7 @@ async function main() {
             displayName: "Enterprise",
             description: "Security, performance, and dedicated support.",
             priceMonthlyUsd: 0, // Custom pricing
-            maxProjects: null, // Unlimited
+            maxProjects: 999999, // Unlimited
             databaseSizeGb: 999999, // Virtually unlimited
             storageSizeGb: 999999, // Virtually unlimited
             monthlyTokenLimit: null, // Unlimited tokens
@@ -81,8 +67,6 @@ async function main() {
             sortOrder: 2,
             features: [
                 "All Pro features, plus:",
-                "Unlimited AI tokens",
-                "Custom token allocations",
                 "SSO & SAML authentication",
                 "Advanced security controls",
                 "Audit logs & compliance",
@@ -90,9 +74,6 @@ async function main() {
                 "99.9% uptime SLA",
                 "Dedicated account manager",
                 "24/7 priority support",
-                "Custom AI model allocations",
-                "Custom integrations",
-                "Volume discounts",
             ],
         },
     ];
@@ -108,8 +89,8 @@ async function main() {
 
     console.log("\n🎉 Database seeding completed successfully!");
     console.log("\nPlan Summary:");
-    console.log("- HOBBY: Free forever, 100k tokens/month + pay-as-you-go ($5/1M)");
-    console.log("- PRO: $150/month, 10M tokens included + purchase more");
+    console.log("- HOBBY: Free forever, 100k tokens/month, up to 3 projects");
+    console.log("- PRO: $25/month, 10M tokens/month, unlimited projects, purchase more at $5/1M");
     console.log("- ENTERPRISE: Custom pricing, unlimited tokens");
 }
 

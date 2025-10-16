@@ -211,13 +211,13 @@ model Plan {
   name              String             @unique // "HOBBY", "PRO", "ENTERPRISE"
   displayName       String // "Hobby", "Pro", "Enterprise"
   description       String? // Plan description
-  priceMonthlyUsd   Float // Monthly price in USD (0 for Hobby, 150 for Pro)
+  priceMonthlyUsd   Float // Monthly price in USD (0 for Hobby, 25 for Pro)
   features          Json // JSON array of plan features
-  maxProjects       Int? // Max projects allowed (1000 soft limit = unlimited)
-  databaseSizeGb    Float // Database storage in GB
-  storageSizeGb     Float // File storage in GB
-  monthlyTokenLimit Int? // Monthly AI token limit (1M for Hobby, 10M for Pro, null for Enterprise = unlimited)
-  canPurchaseTokens Boolean            @default(false) // Can purchase additional tokens beyond limit
+  maxProjects       Int? // Max projects allowed (3 for Hobby, unlimited for Pro/Enterprise)
+  databaseSizeGb    Float // Database storage in GB (50MB for Hobby, 500MB for Pro)
+  storageSizeGb     Float // File storage in GB (100MB for Hobby, 1GB for Pro)
+  monthlyTokenLimit Int? // Monthly AI token limit (100k for Hobby, 10M for Pro, null for Enterprise = unlimited)
+  canPurchaseTokens Boolean            @default(false) // Can purchase additional tokens beyond limit (Pro & Enterprise only)
   isActive          Boolean            @default(true)
   sortOrder         Int                @default(0)
   createdAt         DateTime           @default(now())

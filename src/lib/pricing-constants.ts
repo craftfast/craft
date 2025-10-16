@@ -5,20 +5,21 @@
  */
 
 export const PRICING = {
-    FREE: {
-        name: "Free",
+    HOBBY: {
+        name: "Hobby",
         priceMonthly: 0,
-        displayPriceMonthly: "$0",
-        databaseStorageGB: 0.5,
-        maxProjects: null, // Unlimited
-        monthlyTokens: 100000, // 100k tokens/month included
+        displayPriceMonthly: "Free",
+        databaseStorageGB: 0.05, // 50 MB
+        fileStorageGB: 0.1, // 100 MB
+        maxProjects: 3, // Limited to 3 projects
+        monthlyTokens: 100000, // 100k tokens/month
         features: {
             aiChat: true,
-            unlimitedProjects: true,
-            figmaImport: true,
-            githubSync: true,
+            unlimitedProjects: false,
+            figmaImport: false,
+            githubSync: false,
             databaseAccess: "limited",
-            customDomain: false, // Not implemented yet
+            customDomain: false,
             privateProjects: false,
             support: "community",
             prioritySupport: false,
@@ -26,17 +27,19 @@ export const PRICING = {
             trainingOptOut: false,
             sso: false,
             dedicatedSupport: false,
-            canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
-            payAsYouGo: true, // Pay-as-you-go for infrastructure overages
+            canPurchaseTokens: false, // Cannot purchase tokens on Hobby
+            payAsYouGo: false,
+            craftBranding: true, // Craft branding on projects
         },
     },
     PRO: {
         name: "Pro",
-        priceMonthly: 4995,
-        displayPriceMonthly: "$4,995",
-        databaseStorageGB: 5,
-        maxProjects: null, // Unlimited
-        monthlyTokens: null, // Generous AI allocation - code without anxiety
+        priceMonthly: 25,
+        displayPriceMonthly: "$25/mo",
+        databaseStorageGB: 0.5, // 500 MB free
+        fileStorageGB: 1, // 1 GB free
+        maxProjects: 999, // Unlimited
+        monthlyTokens: 10000000, // 10M tokens/month
         features: {
             aiChat: true,
             unlimitedProjects: true,
@@ -52,7 +55,7 @@ export const PRICING = {
             sso: false,
             dedicatedSupport: false,
             canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
-            unlimitedAI: true, // Extended AI LLM access with generous allocation
+            payAsYouGo: true, // Pay-as-you-go for infrastructure
         },
     },
     ENTERPRISE: {
@@ -73,7 +76,7 @@ export const PRICING = {
             support: "dedicated",
             prioritySupport: true,
             removeBranding: true,
-            trainingOptOut: true,
+            trainingOptOut: false,
             sso: true,
             dedicatedSupport: true,
             customSecurity: true,
@@ -85,6 +88,10 @@ export const PRICING = {
             groupBasedAccess: true,
             customDesignSystems: true,
             canPurchaseTokens: true,
+            auditLogs: true,
+            compliance: true,
+            customLimits: true,
+            accountManager: true,
         },
     },
 } as const;
