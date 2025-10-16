@@ -123,7 +123,7 @@ export async function POST(req: Request) {
         }
 
         // Use the centralized AI agent for smart routing and streaming
-        const result = streamCodingResponse({
+        const result = await streamCodingResponse({
             messages: formattedMessages,
             systemPrompt,
             projectFiles: projectFiles || {},
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
             },
         });
 
-        // Use the official AI SDK method for streaming responses
+        // AI SDK v5: Use toTextStreamResponse() for streaming responses
         return result.toTextStreamResponse();
     } catch (error) {
         console.error("AI Chat Error:", error);

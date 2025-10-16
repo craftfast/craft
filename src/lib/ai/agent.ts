@@ -3,11 +3,13 @@
  * 
  * This is the single source of truth for all AI operations in Craft.
  * 
- * Models used:
- * - Claude Haiku 4.5: Fast, efficient coding for general tasks
- * - Claude Sonnet 4.5: Complex planning, architecture, and advanced tasks
+ * Intelligent Model Routing:
+ * - Grok 4 Fast analyzes each request to determine complexity
+ * - Claude Haiku 4.5: Used for 90%+ of tasks (fast, cost-efficient)
+ * - Claude Sonnet 4.5: Reserved for complex planning & architecture only
  * - Grok 4 Fast: Project naming and creative text generation
  * 
+ * The system is optimized to minimize costs while maintaining quality.
  * Future expansion: Add more specialized agents here (image generation, code review, etc.)
  */
 
@@ -33,116 +35,90 @@ const MODELS = {
 } as const;
 
 // ============================================================================
-// MESSAGE COMPLEXITY ANALYSIS
+// INTELLIGENT MODEL SELECTION (Using Grok 4 Fast)
 // ============================================================================
 
-interface ComplexityAnalysis {
-    complexity: 'simple' | 'moderate' | 'complex';
+interface ModelSelection {
     useHaiku: boolean;
     reasoning: string;
 }
 
 /**
- * Analyze message complexity to determine which coding model to use
+ * Use Grok 4 Fast to intelligently determine which model to use
+ * Optimized for 90%+ Haiku usage, only Sonnet for complex planning
  */
-export function analyzeComplexity(
+async function selectModelWithGrok(
     message: string,
     projectFiles: Record<string, string> = {},
     conversationHistory: Array<{ role: string; content: string }> = []
-): ComplexityAnalysis {
-    const lowerMessage = message.toLowerCase();
+): Promise<ModelSelection> {
     const fileCount = Object.keys(projectFiles).length;
-    const hasMultipleFiles = fileCount > 3;
+    const conversationLength = conversationHistory.length;
 
-    // Complex indicators (use Sonnet 4.5)
-    const complexIndicators = [
-        // Architecture and design
-        /architect|design pattern|system design|scalab/i,
-        /refactor|restructure|reorganize/i,
-        /microservice|api design|database schema/i,
+    const systemPrompt = `You are a model selection assistant. Your job is to determine if a user's coding request requires Claude Sonnet 4.5 (complex planning) or Claude Haiku 4.5 (all other tasks).
 
-        // Advanced features
-        /authentication|authorization|security/i,
-        /websocket|real-time|streaming/i,
-        /state management|redux|context api/i,
-        /optimization|performance|caching/i,
+CRITICAL RULES:
+1. Default to "haiku" for 90%+ of tasks
+2. Only use "sonnet" for truly complex planning, architecture, or system design
+3. Your response MUST be EXACTLY one word: "haiku" or "sonnet"
+4. NO explanations, NO markdown, NO extra text
 
-        // Complex coding tasks
-        /algorithm|complex logic|advanced/i,
-        /integration|third-party|external api/i,
-        /testing|unit test|e2e test/i,
+USE HAIKU FOR:
+- All UI changes (styling, colors, layouts, components)
+- Bug fixes and code corrections
+- Adding features to existing code
+- Refactoring existing functions
+- Simple questions and explanations
+- API integrations
+- Database queries
+- Form handling
+- Most coding tasks
 
-        // Multi-file operations
-        /create.*components?.*and.*pages?/i,
-        /build.*full.*app|complete.*application/i,
-        /multiple.*files?/i,
-    ];
+USE SONNET ONLY FOR:
+- Designing entire system architectures from scratch
+- Multi-service distributed system planning
+- Complex algorithm design requiring deep analysis
+- Security architecture planning
+- Performance optimization strategies for large systems
 
-    // Simple indicators (use Haiku 4.5)
-    const simpleIndicators = [
-        // Basic changes
-        /change.*color|update.*style|modify.*css/i,
-        /fix.*typo|correct.*spelling/i,
-        /add.*button|create.*link/i,
-        /update.*text|change.*wording/i,
+Context:
+- Project has ${fileCount} files
+- Conversation has ${conversationLength} messages
 
-        // Simple UI updates
-        /make.*bigger|make.*smaller/i,
-        /center|align|padding|margin/i,
-        /show|hide|toggle|display/i,
+User's request: "${message}"
 
-        // Basic explanations
-        /what.*is|explain.*this|how.*does/i,
-        /show.*me|give.*example/i,
-    ];
+Respond with ONLY: haiku or sonnet`;
 
-    const hasComplexIndicator = complexIndicators.some(pattern => pattern.test(lowerMessage));
-    const hasSimpleIndicator = simpleIndicators.some(pattern => pattern.test(lowerMessage));
+    try {
+        const result = await generateText({
+            model: openrouter.chat(MODELS.NAMING), // Grok 4 Fast
+            system: systemPrompt,
+            prompt: message,
+            temperature: 0.3, // Low temperature for consistent decisions
+        });
 
-    // Analyze message characteristics
-    const isLongMessage = message.length > 500;
-    const hasCodeSnippets = /```|`.*`/.test(message);
-    const hasMultipleRequests = (message.match(/and|also|additionally/gi) || []).length > 2;
-    const isQuestion = /^(what|how|why|when|where|can|could|would)/i.test(lowerMessage);
+        const decision = result.text.trim().toLowerCase();
 
-    // Decision logic
-    let complexity: 'simple' | 'moderate' | 'complex';
-    let useHaiku: boolean;
-    let reasoning: string;
-
-    if (hasComplexIndicator) {
-        complexity = 'complex';
-        useHaiku = false;
-        reasoning = 'Complex task detected (architecture, advanced features, or multi-step operations)';
-    } else if (hasSimpleIndicator && !hasMultipleFiles) {
-        complexity = 'simple';
-        useHaiku = true;
-        reasoning = 'Simple task detected (styling, basic changes, or questions)';
-    } else if (isLongMessage || hasCodeSnippets || hasMultipleRequests) {
-        complexity = 'complex';
-        useHaiku = false;
-        reasoning = 'Complex due to message length, code snippets, or multiple requests';
-    } else if (hasMultipleFiles) {
-        complexity = 'complex';
-        useHaiku = false;
-        reasoning = `Complex due to existing project context (${fileCount} files)`;
-    } else if (isQuestion && !hasMultipleRequests) {
-        complexity = 'simple';
-        useHaiku = true;
-        reasoning = 'Simple question or clarification';
-    } else {
-        // Default to moderate - use Haiku for cost efficiency
-        complexity = 'moderate';
-        useHaiku = true;
-        reasoning = 'Moderate complexity - using Haiku for cost efficiency';
+        if (decision === 'sonnet') {
+            return {
+                useHaiku: false,
+                reasoning: 'Grok determined: Complex planning/architecture task',
+            };
+        } else {
+            // Default to Haiku for any non-sonnet response
+            return {
+                useHaiku: true,
+                reasoning: 'Grok determined: General coding task',
+            };
+        }
+    } catch (error) {
+        console.error('⚠️ Grok model selection failed, defaulting to Haiku:', error);
+        // Fallback: Always use Haiku if Grok fails
+        return {
+            useHaiku: true,
+            reasoning: 'Fallback to Haiku (Grok unavailable)',
+        };
     }
-
-    // Override: If conversation history shows complexity, use Sonnet
-    if (conversationHistory.length > 5 && !useHaiku) {
-        reasoning += ' (multi-turn conversation with complex context)';
-    }
-
-    return { complexity, useHaiku, reasoning };
 }
 
 // ============================================================================
@@ -164,10 +140,10 @@ interface CodingStreamOptions {
 }
 
 /**
- * Stream coding responses with smart model routing
- * Automatically uses Haiku for simple tasks, Sonnet for complex ones
+ * Stream coding responses with Grok-powered intelligent model routing
+ * Uses Grok 4 Fast to decide between Haiku (90%+) and Sonnet (complex planning only)
  */
-export function streamCodingResponse(options: CodingStreamOptions) {
+export async function streamCodingResponse(options: CodingStreamOptions) {
     const { messages, systemPrompt, projectFiles = {}, conversationHistory = [], onFinish } = options;
 
     // Get the last user message for analysis
@@ -183,16 +159,15 @@ export function streamCodingResponse(options: CodingStreamOptions) {
             ? (lastUserMessage.content.find((c: { type: string }) => c.type === 'text') as { text?: string })?.text || ''
             : '';
 
-    // Analyze complexity and select model
-    const analysis = analyzeComplexity(userMessageText, projectFiles, conversationHistory);
-    const model = analysis.useHaiku ? MODELS.HAIKU : MODELS.SONNET;
-    const modelName = analysis.useHaiku ? 'Claude Haiku 4.5' : 'Claude Sonnet 4.5';
+    // Use Grok to intelligently select model
+    const selection = await selectModelWithGrok(userMessageText, projectFiles, conversationHistory);
+    const model = selection.useHaiku ? MODELS.HAIKU : MODELS.SONNET;
+    const modelName = selection.useHaiku ? 'Claude Haiku 4.5' : 'Claude Sonnet 4.5';
 
     // Log the routing decision
-    const emoji = analysis.useHaiku ? '⚡' : '🧠';
+    const emoji = selection.useHaiku ? '⚡' : '🧠';
     console.log(`${emoji} AI Agent: Using ${modelName}`);
-    console.log(`   Complexity: ${analysis.complexity}`);
-    console.log(`   Reason: ${analysis.reasoning}`);
+    console.log(`   Decision: ${selection.reasoning}`);
     console.log(`   Message: "${userMessageText.substring(0, 60)}..."`);
 
     if (Object.keys(projectFiles).length > 0) {
