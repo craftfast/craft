@@ -29,12 +29,11 @@ export default async function DashboardPage() {
         <div className="px-3 sm:px-4 py-2">
           <div className="relative flex items-center justify-between">
             <Logo
-              showText={false}
+              showText={true}
               iconClassName="text-white dark:text-white"
               href="/dashboard"
             />
             <DashboardHeader
-              title={session.user.name || "My Workspace"}
               planName={subscription?.plan?.name}
               userId={session.user.id}
               userSubscription={subscription}

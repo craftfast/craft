@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { assignPlanToUser } from "@/lib/subscription";
 
 export async function POST(request: NextRequest) {
     try {
@@ -39,6 +40,16 @@ export async function POST(request: NextRequest) {
         });
 
         console.log(`✅ User created: ${user.email}`);
+
+        // Assign default Hobby plan to new user
+        try {
+            await assignPlanToUser(user.id, "HOBBY");
+            console.log(`✅ Hobby plan assigned to user: ${user.email}`);
+        } catch (planError) {
+            console.error("Error assigning Hobby plan:", planError);
+            // Don't fail the registration if plan assignment fails
+            // The user can still use the app with default limits
+        }
 
         return NextResponse.json(
             {

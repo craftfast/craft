@@ -4,6 +4,7 @@ import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { assignPlanToUser } from "@/lib/subscription";
 
 export const authOptions = {
     adapter: PrismaAdapter(prisma),
@@ -66,6 +67,20 @@ export const authOptions = {
     pages: {
         signIn: "/auth/signin",
         error: "/auth/error",
+    },
+    events: {
+        // Assign Hobby plan when a new user is created via OAuth (Google/GitHub)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async createUser(message: any) {
+            const userId = message.user.id;
+            try {
+                await assignPlanToUser(userId, "HOBBY");
+                console.log(`✅ Hobby plan assigned to new OAuth user: ${message.user.email}`);
+            } catch (error) {
+                console.error("Error assigning Hobby plan to OAuth user:", error);
+                // Don't fail the signup if plan assignment fails
+            }
+        },
     },
     callbacks: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

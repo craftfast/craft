@@ -33,7 +33,6 @@ export default async function ProjectsPage() {
               href="/dashboard"
             />
             <DashboardHeader
-              title={session.user.name || "My Workspace"}
               planName={subscription?.plan?.name}
               userId={session.user.id}
               userSubscription={subscription}

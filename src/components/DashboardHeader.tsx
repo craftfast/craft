@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import UserMenu from "./UserMenu";
 
 interface DashboardHeaderProps {
-  title?: string;
   planName?: string;
   userId?: string;
   userSubscription?: {
@@ -17,10 +16,7 @@ interface DashboardHeaderProps {
   } | null;
 }
 
-export default function DashboardHeader({
-  title = "Dashboard",
-  planName,
-}: DashboardHeaderProps) {
+export default function DashboardHeader({ planName }: DashboardHeaderProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -32,15 +28,8 @@ export default function DashboardHeader({
       {/* Desktop Header */}
       <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4 lg:items-center w-full">
         <div className="flex items-center justify-start ml-4 border-neutral-200 dark:border-neutral-700">
-          <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="ml-2 px-2 py-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100 cursor-pointer rounded-full transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          >
-            {title}
-          </button>
           {showPlanBadge && (
-            <span className="px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
+            <span className="ml-2 px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
               {planName === "HOBBY" ? "Hobby" : "Pro"}
             </span>
           )}
@@ -118,12 +107,6 @@ export default function DashboardHeader({
       <div className="hidden md:flex lg:hidden items-center justify-between w-full">
         <div className="flex items-center gap-3">
           <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="px-2 py-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100 cursor-pointer rounded-full transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          >
-            {title}
-          </button>
           {showPlanBadge && (
             <span className="px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
               {planName === "HOBBY" ? "Hobby" : "Pro"}
@@ -200,12 +183,6 @@ export default function DashboardHeader({
       <div className="md:hidden flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
           <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="px-2 py-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100 cursor-pointer rounded-full transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          >
-            {title}
-          </button>
           {showPlanBadge && (
             <span className="px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
               {planName === "HOBBY" ? "Hobby" : "Pro"}
