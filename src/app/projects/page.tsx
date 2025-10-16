@@ -29,15 +29,15 @@ export default async function ProjectsPage() {
             planName={subscription?.plan?.name}
             userId={session.user.id}
             userSubscription={subscription}
-            showLogoText={false}
+            showLogoText={true}
           />
         </div>
       </header>
 
       {/* Main Content with padding to account for fixed header */}
-      <main className="relative flex-1 min-h-0 mt-18">
-        {/* Projects Section - Full Width */}
-        <div className="w-full mx-auto px-4">
+      <main className="relative flex-1 min-h-0 mt-14 px-2 pb-2 flex flex-col">
+        {/* Projects Section - Full Width with Border */}
+        <div className="flex-1 border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden">
           <Projects />
         </div>
       </main>

@@ -81,7 +81,7 @@ export default function Logo({
       )}
       {showText && (
         <span
-          className={`font-medium text-foreground tracking-wide leading-relaxed align-middle flex items-center ${textSizes[textSize]} ${textClassName}`}
+          className={`font-medium text-foreground tracking-wide leading-tight align-middle flex items-center ${textSizes[textSize]} ${textClassName}`}
         >
           Craft
         </span>

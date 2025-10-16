@@ -82,8 +82,34 @@ export default function Projects() {
 
   return (
     <div>
+      {/* Title Bar */}
+      <div className="flex items-center justify-between px-4 py-2 mb-4 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 rounded-t-xl">
+        <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">
+          Projects
+        </h1>
+        <Link
+          href="/new-project"
+          className="px-4 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-all flex items-center gap-2 shadow-sm border border-neutral-200 dark:border-neutral-700"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          New Project
+        </Link>
+      </div>
+
       {/* Search and Filter Bar */}
-      <div className="mb-6 space-y-4">
+      <div className="mb-6 space-y-4 px-2">
         {/* Search Input with View Toggle */}
         <div className="flex flex-row gap-3">
           {/* Search Input */}
@@ -93,7 +119,7 @@ export default function Projects() {
               placeholder="Search projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 pl-11 bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 transition-all"
+              className="w-full px-4 py-3 pl-11 bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 transition-all"
             />
             <svg
               className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 dark:text-neutral-400"
@@ -135,7 +161,7 @@ export default function Projects() {
             {/* Filter Button */}
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`px-4 py-3 rounded-lg border transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl border transition-all flex items-center gap-2 ${
                 isFilterOpen
                   ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-100"
                   : "bg-transparent text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
@@ -160,10 +186,10 @@ export default function Projects() {
             </button>
 
             {/* View Toggle */}
-            <div className="flex bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-lg p-1">
+            <div className="flex bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-xl p-2">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-2 rounded-lg transition-all ${
+                className={`p-2 rounded-full transition-all ${
                   viewMode === "grid"
                     ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
                     : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
@@ -186,7 +212,7 @@ export default function Projects() {
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-2 rounded-lg transition-all ${
+                className={`p-2 rounded-full transition-all ${
                   viewMode === "list"
                     ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
                     : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
@@ -213,7 +239,7 @@ export default function Projects() {
 
         {/* Filter Options Dropdown */}
         {isFilterOpen && (
-          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
