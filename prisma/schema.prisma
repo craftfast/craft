@@ -91,6 +91,7 @@ model Project {
   versions         ProjectVersion[]
   chatMessages     ChatMessage[]
   fileRecords      File[]           @relation("ProjectFiles") // File records for R2 storage (separate from files JSON)
+  neonDatabase     NeonDatabase? // One Neon database per project
 
   @@map("projects")
 }
@@ -164,6 +165,45 @@ model ProjectVersion {
   @@index([projectId, isBookmarked])
   @@index([projectId, isPublished])
   @@map("project_versions")
+}
+
+// ============================================================================
+// NEON DATABASE INTEGRATION
+// ============================================================================
+
+model NeonDatabase {
+  id                String    @id @default(cuid())
+  projectId         String    @unique // One database per project
+  neonProjectId     String    @unique // Neon's project ID
+  neonBranchId      String? // Main branch ID (for versioning)
+  connectionUri     String // PostgreSQL connection string
+  host              String // Database host
+  database          String // Database name
+  user              String // Database user/role
+  password          String // Database password (encrypted in production)
+  region            String    @default("aws-us-east-2") // AWS region
+  pgVersion         Int       @default(17) // PostgreSQL version
+  status            String    @default("active") // "provisioning", "active", "claimed", "suspended", "deleted"
+  // Transfer/Claim Details
+  transferRequestId String? // Transfer request ID (if claimable)
+  claimUrl          String? // URL for user to claim ownership
+  transferExpiresAt DateTime? // When transfer request expires
+  claimedAt         DateTime? // When user claimed the database
+  claimedByEmail    String? // Email of user who claimed it
+  // Metadata
+  isClaimable       Boolean   @default(true) // Whether user can claim ownership
+  autoDeleteAt      DateTime? // Auto-delete unclaimed databases after X days
+  metadata          Json? // Additional metadata (config, settings, etc.)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([neonProjectId])
+  @@index([status])
+  @@index([transferExpiresAt])
+  @@index([autoDeleteAt])
+  @@map("neon_databases")
 }
 
 model Team {
