@@ -106,8 +106,7 @@ export default function PricingPage() {
     {
       name: "Pro",
       price: "$4,995/mo",
-      description:
-        "Everything you need to build and scale your app.",
+      description: "Everything you need to build and scale your app.",
       cta: !session
         ? "Start a free trial"
         : userPlan === "pro"
@@ -130,7 +129,6 @@ export default function PricingPage() {
         { text: "Custom domains", included: true },
         { text: "Priority AI processing", included: true },
         { text: "Advanced code generation", included: true },
-        { text: "Remove Craft branding", included: true },
         { text: "Priority email support", included: true },
       ],
     },
