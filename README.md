@@ -53,14 +53,10 @@ git clone https://github.com/craftdottech/craft.git
 cd craft
 
 # Install dependencies
-npm install
-# or
 pnpm install
 
 # Start the development server
-npm run dev
-# or
-pnpm dev
+pnpm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to see craft.tech in action! 🎉
@@ -69,16 +65,16 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see craft
 
 ```bash
 # Development server with Turbopack
-npm run dev
+pnpm run dev
 
 # Production build
-npm run build
+pnpm run build
 
 # Start production server
-npm run start
+pnpm run start
 
 # Run ESLint
-npm run lint
+pnpm run lint
 ```
 
 ---
