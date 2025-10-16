@@ -3,7 +3,7 @@ import { streamCodingResponse } from "@/lib/ai/agent";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { checkTeamTokenAvailability, processAIUsage } from "@/lib/ai-usage";
+import { checkUserTokenAvailability, processAIUsage } from "@/lib/ai-usage";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -35,26 +35,12 @@ export async function POST(req: Request) {
         // Get user from database
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
-            include: {
-                teamMembers: {
-                    include: { team: true }
-                }
-            }
         });
 
         if (!user) {
             return new Response(
                 JSON.stringify({ error: "User not found" }),
                 { status: 404, headers: { "Content-Type": "application/json" } }
-            );
-        }
-
-        // Get user's team (first team for now)
-        const teamId = user.teamMembers[0]?.teamId;
-        if (!teamId) {
-            return new Response(
-                JSON.stringify({ error: "No team found" }),
-                { status: 403, headers: { "Content-Type": "application/json" } }
             );
         }
 
@@ -68,11 +54,11 @@ export async function POST(req: Request) {
             );
         }
 
-        // Check if team has available tokens before processing
-        const tokenAvailability = await checkTeamTokenAvailability(teamId);
+        // Check if user has available tokens before processing
+        const tokenAvailability = await checkUserTokenAvailability(user.id);
 
         if (!tokenAvailability.allowed) {
-            console.warn(`🚫 Token limit reached for team ${teamId}`);
+            console.warn(`🚫 Token limit reached for user ${user.id}`);
             return new Response(
                 JSON.stringify({
                     error: "Token limit reached",
@@ -146,7 +132,6 @@ export async function POST(req: Request) {
             onFinish: async (usageData) => {
                 try {
                     await processAIUsage({
-                        teamId,
                         userId: user.id,
                         projectId,
                         model: usageData.model,
@@ -154,7 +139,7 @@ export async function POST(req: Request) {
                         outputTokens: usageData.outputTokens,
                         endpoint: '/api/chat',
                     });
-                    console.log(`✅ Usage tracked - Team: ${teamId}, Tokens: ${usageData.totalTokens}`);
+                    console.log(`✅ Usage tracked - User: ${user.id}, Tokens: ${usageData.totalTokens}`);
                 } catch (trackingError) {
                     console.error('❌ Failed to track usage:', trackingError);
                     // Don't fail the request if tracking fails

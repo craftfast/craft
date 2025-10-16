@@ -112,20 +112,6 @@ async function handleCheckoutCompleted(data: PolarWebhookEvent["data"]) {
             return;
         }
 
-        // Get team (assuming user has a team)
-        const team = await prisma.team.findFirst({
-            where: {
-                members: {
-                    some: { userId: user.id },
-                },
-            },
-        });
-
-        if (!team) {
-            console.warn(`No team found for user: ${user.id}`);
-            return;
-        }
-
         // Determine plan name from product/metadata
         const planName = metadata?.planName || "PRO";
 
@@ -145,9 +131,9 @@ async function handleCheckoutCompleted(data: PolarWebhookEvent["data"]) {
             periodEnd.getDate() + (metadata?.billingPeriod === "YEARLY" ? 365 : 30)
         );
 
-        // Update or create subscription
-        await prisma.teamSubscription.upsert({
-            where: { teamId: team.id },
+        // Update or create user subscription
+        await prisma.userSubscription.upsert({
+            where: { userId: user.id },
             update: {
                 planId: plan.id,
                 status: "active",
@@ -156,7 +142,7 @@ async function handleCheckoutCompleted(data: PolarWebhookEvent["data"]) {
                 updatedAt: new Date(),
             },
             create: {
-                teamId: team.id,
+                userId: user.id,
                 planId: plan.id,
                 status: "active",
                 polarCheckoutId: checkoutId,
@@ -166,7 +152,7 @@ async function handleCheckoutCompleted(data: PolarWebhookEvent["data"]) {
         });
 
         console.log(
-            `Subscription activated for team ${team.id} - ${planName}`
+            `Subscription activated for user ${user.id} - ${planName}`
         );
     } catch (error) {
         console.error("Error handling checkout completed:", error);
@@ -190,20 +176,10 @@ async function handleCheckoutFailed(data: PolarWebhookEvent["data"]) {
 
         if (!user) return;
 
-        const team = await prisma.team.findFirst({
-            where: {
-                members: {
-                    some: { userId: user.id },
-                },
-            },
-        });
-
-        if (!team) return;
-
         // Log the failed payment
         await prisma.paymentTransaction.create({
             data: {
-                teamId: team.id,
+                userId: user.id,
                 amount: 0, // Amount not available in failed checkout
                 currency: "USD",
                 status: "failed",
@@ -212,7 +188,7 @@ async function handleCheckoutFailed(data: PolarWebhookEvent["data"]) {
             },
         });
 
-        console.log(`Checkout failed recorded for team ${team.id}`);
+        console.log(`Checkout failed recorded for user ${user.id}`);
     } catch (error) {
         console.error("Error handling checkout failed:", error);
         throw error;
@@ -249,26 +225,16 @@ async function handleSubscriptionUpdated(data: PolarWebhookEvent["data"]) {
 
         if (!user) return;
 
-        const team = await prisma.team.findFirst({
-            where: {
-                members: {
-                    some: { userId: user.id },
-                },
-            },
-        });
-
-        if (!team) return;
-
-        // Update subscription status
-        await prisma.teamSubscription.update({
-            where: { teamId: team.id },
+        // Update user subscription status
+        await prisma.userSubscription.update({
+            where: { userId: user.id },
             data: {
                 status: status === "active" ? "active" : "past_due",
                 updatedAt: new Date(),
             },
         });
 
-        console.log(`Subscription updated for team ${team.id} - status: ${status}`);
+        console.log(`Subscription updated for user ${user.id} - status: ${status}`);
     } catch (error) {
         console.error("Error handling subscription updated:", error);
         throw error;
@@ -290,19 +256,9 @@ async function handleSubscriptionCancelled(data: PolarWebhookEvent["data"]) {
 
         if (!user) return;
 
-        const team = await prisma.team.findFirst({
-            where: {
-                members: {
-                    some: { userId: user.id },
-                },
-            },
-        });
-
-        if (!team) return;
-
-        // Update subscription to cancelled
-        await prisma.teamSubscription.update({
-            where: { teamId: team.id },
+        // Update user subscription to cancelled
+        await prisma.userSubscription.update({
+            where: { userId: user.id },
             data: {
                 status: cancel_at_period_end ? "active" : "cancelled",
                 cancelAtPeriodEnd: cancel_at_period_end,
@@ -311,7 +267,7 @@ async function handleSubscriptionCancelled(data: PolarWebhookEvent["data"]) {
         });
 
         console.log(
-            `Subscription cancelled for team ${team.id} - cancel at period end: ${cancel_at_period_end}`
+            `Subscription cancelled for user ${user.id} - cancel at period end: ${cancel_at_period_end}`
         );
     } catch (error) {
         console.error("Error handling subscription cancelled:", error);
@@ -334,16 +290,6 @@ async function handleSubscriptionExpired(data: PolarWebhookEvent["data"]) {
 
         if (!user) return;
 
-        const team = await prisma.team.findFirst({
-            where: {
-                members: {
-                    some: { userId: user.id },
-                },
-            },
-        });
-
-        if (!team) return;
-
         // Get the HOBBY plan (free plan)
         const hobbyPlan = await prisma.plan.findUnique({
             where: { name: "HOBBY" },
@@ -354,9 +300,9 @@ async function handleSubscriptionExpired(data: PolarWebhookEvent["data"]) {
             return;
         }
 
-        // Update subscription to expired and downgrade to hobby plan
-        await prisma.teamSubscription.update({
-            where: { teamId: team.id },
+        // Update user subscription to expired and downgrade to hobby plan
+        await prisma.userSubscription.update({
+            where: { userId: user.id },
             data: {
                 status: "expired",
                 planId: hobbyPlan.id,
@@ -364,7 +310,7 @@ async function handleSubscriptionExpired(data: PolarWebhookEvent["data"]) {
             },
         });
 
-        console.log(`Subscription expired for team ${team.id} - downgraded to HOBBY`);
+        console.log(`Subscription expired for user ${user.id} - downgraded to HOBBY`);
     } catch (error) {
         console.error("Error handling subscription expired:", error);
         throw error;

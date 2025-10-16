@@ -17,20 +17,19 @@ model WaitlistEntry {
 }
 
 model User {
-  id            String       @id @default(cuid())
+  id            String            @id @default(cuid())
   name          String?
-  email         String       @unique
+  email         String            @unique
   emailVerified DateTime?
   image         String?
   password      String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
   accounts      Account[]
   projects      Project[]
   sessions      Session[]
-  teamMembers   TeamMember[]
-  ownedTeams    Team[]       @relation("TeamOwner")
   files         File[] // All files uploaded by this user
+  subscription  UserSubscription?
 
   @@map("users")
 }
@@ -104,14 +103,13 @@ model File {
   userId        String // Always required: Who uploaded/owns the file
   projectId     String? // Optional: Associated project (if any)
   chatMessageId String? // Optional: Chat message this file was uploaded with
-  teamId        String? // Optional: Team this file belongs to (for team logos, etc.)
   path          String? // File path in project (e.g., "src/app/page.tsx") - null for non-code files
   r2Key         String       @unique // R2/S3 object key (e.g., "files/abc123/xyz789")
   r2Url         String // CDN URL for accessing the file
   fileName      String // Original filename
   mimeType      String? // MIME type (e.g., "image/png", "text/typescript")
   size          Int // File size in bytes
-  purpose       String       @default("upload") // "source" | "image" | "asset" | "upload" | "profile" | "team-logo"
+  purpose       String       @default("upload") // "source" | "image" | "asset" | "upload" | "profile"
   version       Int          @default(1) // File version number
   isDeleted     Boolean      @default(false) // Soft delete flag
   metadata      Json? // Flexible metadata (dimensions, alt text, etc.)
@@ -124,7 +122,6 @@ model File {
   @@index([userId])
   @@index([projectId])
   @@index([chatMessageId])
-  @@index([teamId])
   @@index([r2Key])
   @@index([purpose])
   @@index([projectId, path]) // Fast lookup for project files by path
@@ -205,39 +202,6 @@ model NeonDatabase {
   @@map("neon_databases")
 }
 
-model Team {
-  id           String            @id @default(cuid())
-  name         String
-  slug         String            @unique // URL-friendly identifier
-  ownerId      String
-  isPersonal   Boolean           @default(false) // True if this is the user's default personal team
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  owner        User              @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members      TeamMember[]
-  subscription TeamSubscription?
-
-  @@index([ownerId])
-  @@index([isPersonal])
-  @@map("teams")
-}
-
-model TeamMember {
-  id        String   @id @default(cuid())
-  teamId    String
-  userId    String
-  role      String   @default("member") // "owner", "admin", "member"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, userId]) // User can only be a member once per team
-  @@index([userId])
-  @@index([teamId])
-  @@map("team_members")
-}
-
 // ============================================================================
 // SUBSCRIPTION & BILLING MODELS
 // ============================================================================
@@ -258,16 +222,16 @@ model Plan {
   sortOrder         Int                @default(0)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  subscriptions     TeamSubscription[]
+  subscriptions     UserSubscription[]
 
   @@index([name])
   @@index([isActive])
   @@map("plans")
 }
 
-model TeamSubscription {
+model UserSubscription {
   id                 String        @id @default(cuid())
-  teamId             String
+  userId             String        @unique // One active subscription per user
   planId             String
   status             String        @default("active") // "active", "cancelled", "expired", "past_due"
   currentPeriodStart DateTime      @default(now())
@@ -278,17 +242,16 @@ model TeamSubscription {
   polarPaymentId     String? // Last Polar payment ID
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
-  team               Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan               Plan          @relation(fields: [planId], references: [id])
   usageRecords       UsageRecord[]
   invoices           Invoice[]
 
-  @@unique([teamId]) // One active subscription per team
-  @@index([teamId])
+  @@index([userId])
   @@index([planId])
   @@index([status])
   @@index([currentPeriodEnd])
-  @@map("team_subscriptions")
+  @@map("user_subscriptions")
 }
 
 // ============================================================================
@@ -297,7 +260,6 @@ model TeamSubscription {
 
 model AITokenUsage {
   id           String   @id @default(cuid())
-  teamId       String
   userId       String
   projectId    String
   model        String // "claude-sonnet-4.5", "gpt-5", "gemini-2.5-pro", etc.
@@ -308,7 +270,6 @@ model AITokenUsage {
   endpoint     String? // "chat", "code-generation", "image-analysis", etc.
   createdAt    DateTime @default(now())
 
-  @@index([teamId, createdAt])
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
   @@index([model, createdAt])
@@ -322,7 +283,7 @@ model AITokenUsage {
 
 model UsageRecord {
   id                      String           @id @default(cuid())
-  teamId                  String
+  userId                  String
   subscriptionId          String
   billingPeriodStart      DateTime
   billingPeriodEnd        DateTime
@@ -348,10 +309,10 @@ model UsageRecord {
   totalCostUsd            Float            @default(0)
   createdAt               DateTime         @default(now())
   updatedAt               DateTime         @updatedAt
-  subscription            TeamSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscription            UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@unique([subscriptionId, billingPeriodStart]) // One record per billing period
-  @@index([teamId, billingPeriodStart])
+  @@index([userId, billingPeriodStart])
   @@index([billingPeriodEnd])
   @@map("usage_records")
 }
@@ -362,7 +323,7 @@ model UsageRecord {
 
 model Invoice {
   id                  String           @id @default(cuid())
-  teamId              String
+  userId              String
   subscriptionId      String
   invoiceNumber       String           @unique // e.g., "INV-2025-001"
   status              String           @default("draft") // "draft", "issued", "paid", "failed", "refunded"
@@ -388,9 +349,9 @@ model Invoice {
   dueDate             DateTime?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
-  subscription        TeamSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscription        UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
-  @@index([teamId])
+  @@index([userId])
   @@index([subscriptionId])
   @@index([status])
   @@index([billingPeriodStart])
@@ -404,7 +365,7 @@ model Invoice {
 
 model PaymentTransaction {
   id              String   @id @default(cuid())
-  teamId          String
+  userId          String
   invoiceId       String?
   amount          Float
   currency        String   @default("USD")
@@ -418,7 +379,7 @@ model PaymentTransaction {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  @@index([teamId])
+  @@index([userId])
   @@index([invoiceId])
   @@index([status])
   @@index([polarCheckoutId])
@@ -433,7 +394,6 @@ model PaymentTransaction {
 
 model TokenPurchase {
   id              String    @id @default(cuid())
-  teamId          String
   userId          String
   tokenAmount     Int // Number of tokens purchased (e.g., 1000000 for 1M tokens)
   priceUsd        Float // Price paid in USD (e.g., 5.00 for 1M tokens)
@@ -449,7 +409,6 @@ model TokenPurchase {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  @@index([teamId])
   @@index([userId])
   @@index([status])
   @@index([polarCheckoutId])

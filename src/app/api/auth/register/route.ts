@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { createDefaultPersonalTeam } from "@/lib/team";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
@@ -30,7 +29,7 @@ export async function POST(request: NextRequest) {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create user
+        // Create user (no team needed - direct user subscriptions)
         const user = await prisma.user.create({
             data: {
                 email,
@@ -39,8 +38,7 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        // Create default personal team for the new user
-        await createDefaultPersonalTeam(user.id, user.name, user.email);
+        console.log(`✅ User created: ${user.email}`);
 
         return NextResponse.json(
             {

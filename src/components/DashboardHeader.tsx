@@ -4,13 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import UserMenu from "./UserMenu";
-import TeamSwitcher from "./TeamSwitcher";
 
 interface DashboardHeaderProps {
   title?: string;
   planName?: string;
-  teamId?: string;
-  teamSubscription?: {
+  userId?: string;
+  userSubscription?: {
     plan: {
       name: string;
       displayName: string;
@@ -21,8 +20,6 @@ interface DashboardHeaderProps {
 export default function DashboardHeader({
   title = "Dashboard",
   planName,
-  teamId,
-  teamSubscription,
 }: DashboardHeaderProps) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -46,15 +43,6 @@ export default function DashboardHeader({
             <span className="px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
               {planName === "HOBBY" ? "Hobby" : "Pro"}
             </span>
-          )}
-          {teamId && (
-            <TeamSwitcher
-              currentTeam={{
-                id: teamId,
-                name: title,
-                subscription: teamSubscription || null,
-              }}
-            />
           )}
         </div>
         <div className="flex items-center justify-center">

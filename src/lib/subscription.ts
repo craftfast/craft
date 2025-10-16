@@ -1,13 +1,13 @@
 /**
  * Subscription Management Utility
- * Handles team subscriptions, plan assignments, and billing
+ * Handles user subscriptions, plan assignments, and billing
  */
 
 import { prisma } from "@/lib/db";
 
 export interface SubscriptionDetails {
     id: string;
-    teamId: string;
+    userId: string;
     plan: {
         name: string;
         displayName: string;
@@ -20,13 +20,13 @@ export interface SubscriptionDetails {
 }
 
 /**
- * Get team's current subscription
+ * Get user's current subscription
  */
-export async function getTeamSubscription(
-    teamId: string
+export async function getUserSubscription(
+    userId: string
 ): Promise<SubscriptionDetails | null> {
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId },
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
         include: {
             plan: true,
         },
@@ -36,7 +36,7 @@ export async function getTeamSubscription(
 
     return {
         id: subscription.id,
-        teamId: subscription.teamId,
+        userId: subscription.userId,
         plan: {
             name: subscription.plan.name,
             displayName: subscription.plan.displayName,
@@ -50,11 +50,11 @@ export async function getTeamSubscription(
 }
 
 /**
- * Create or assign a plan to a team
- * By default assigns HOBBY plan to new teams
+ * Create or assign a plan to a user
+ * By default assigns HOBBY plan to new users
  */
-export async function assignPlanToTeam(
-    teamId: string,
+export async function assignPlanToUser(
+    userId: string,
     planName: "HOBBY" | "PRO" | "ENTERPRISE" = "HOBBY"
 ): Promise<SubscriptionDetails> {
     // Get the plan
@@ -72,16 +72,16 @@ export async function assignPlanToTeam(
     periodEnd.setDate(periodEnd.getDate() + 30);
 
     // Check if subscription already exists
-    const existing = await prisma.teamSubscription.findUnique({
-        where: { teamId },
+    const existing = await prisma.userSubscription.findUnique({
+        where: { userId },
     });
 
     let subscription;
 
     if (existing) {
         // Update existing subscription
-        subscription = await prisma.teamSubscription.update({
-            where: { teamId },
+        subscription = await prisma.userSubscription.update({
+            where: { userId },
             data: {
                 planId: plan.id,
                 currentPeriodStart: periodStart,
@@ -94,9 +94,9 @@ export async function assignPlanToTeam(
         });
     } else {
         // Create new subscription
-        subscription = await prisma.teamSubscription.create({
+        subscription = await prisma.userSubscription.create({
             data: {
-                teamId,
+                userId,
                 planId: plan.id,
                 currentPeriodStart: periodStart,
                 currentPeriodEnd: periodEnd,
@@ -110,7 +110,7 @@ export async function assignPlanToTeam(
 
     return {
         id: subscription.id,
-        teamId: subscription.teamId,
+        userId: subscription.userId,
         plan: {
             name: subscription.plan.name,
             displayName: subscription.plan.displayName,
@@ -127,10 +127,10 @@ export async function assignPlanToTeam(
  * Cancel subscription at end of period
  */
 export async function cancelSubscription(
-    teamId: string
+    userId: string
 ): Promise<SubscriptionDetails> {
-    const subscription = await prisma.teamSubscription.update({
-        where: { teamId },
+    const subscription = await prisma.userSubscription.update({
+        where: { userId },
         data: {
             cancelAtPeriodEnd: true,
             cancelledAt: new Date(),
@@ -142,7 +142,7 @@ export async function cancelSubscription(
 
     return {
         id: subscription.id,
-        teamId: subscription.teamId,
+        userId: subscription.userId,
         plan: {
             name: subscription.plan.name,
             displayName: subscription.plan.displayName,
@@ -159,10 +159,10 @@ export async function cancelSubscription(
  * Reactivate a cancelled subscription
  */
 export async function reactivateSubscription(
-    teamId: string
+    userId: string
 ): Promise<SubscriptionDetails> {
-    const subscription = await prisma.teamSubscription.update({
-        where: { teamId },
+    const subscription = await prisma.userSubscription.update({
+        where: { userId },
         data: {
             cancelAtPeriodEnd: false,
             cancelledAt: null,
@@ -175,7 +175,7 @@ export async function reactivateSubscription(
 
     return {
         id: subscription.id,
-        teamId: subscription.teamId,
+        userId: subscription.userId,
         plan: {
             name: subscription.plan.name,
             displayName: subscription.plan.displayName,
@@ -197,7 +197,7 @@ export async function getExpiringSoonSubscriptions(): Promise<
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-    const subscriptions = await prisma.teamSubscription.findMany({
+    const subscriptions = await prisma.userSubscription.findMany({
         where: {
             currentPeriodEnd: {
                 lte: sevenDaysFromNow,
@@ -211,7 +211,7 @@ export async function getExpiringSoonSubscriptions(): Promise<
 
     return subscriptions.map((sub) => ({
         id: sub.id,
-        teamId: sub.teamId,
+        userId: sub.userId,
         plan: {
             name: sub.plan.name,
             displayName: sub.plan.displayName,
@@ -225,22 +225,22 @@ export async function getExpiringSoonSubscriptions(): Promise<
 }
 
 /**
- * Check if team has an active subscription
+ * Check if user has an active subscription
  */
-export async function hasActiveSubscription(teamId: string): Promise<boolean> {
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId },
+export async function hasActiveSubscription(userId: string): Promise<boolean> {
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
     });
 
     return subscription?.status === "active";
 }
 
 /**
- * Get team's plan name
+ * Get user's plan name
  */
-export async function getTeamPlan(
-    teamId: string
+export async function getUserPlan(
+    userId: string
 ): Promise<"HOBBY" | "PRO" | "ENTERPRISE"> {
-    const subscription = await getTeamSubscription(teamId);
+    const subscription = await getUserSubscription(userId);
     return (subscription?.plan.name as "HOBBY" | "PRO" | "ENTERPRISE") || "HOBBY";
 }

@@ -34,21 +34,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get user and their team
+        // Get user and their subscription
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
             include: {
-                teamMembers: {
+                subscription: {
                     include: {
-                        team: {
-                            include: {
-                                subscription: {
-                                    include: {
-                                        plan: true,
-                                    },
-                                },
-                            },
-                        },
+                        plan: true,
                     },
                 },
             },
@@ -61,19 +53,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get user's personal team
-        const personalTeam = user.teamMembers.find((tm) => tm.team.isPersonal);
-        const team = personalTeam?.team || user.teamMembers[0]?.team;
-
-        if (!team) {
-            return NextResponse.json(
-                { error: "Team not found" },
-                { status: 404 }
-            );
-        }
-
         // Check if user's plan allows purchasing tokens
-        const plan = team.subscription?.plan;
+        const plan = user.subscription?.plan;
         if (!plan?.canPurchaseTokens) {
             return NextResponse.json(
                 { error: "Your plan does not allow purchasing additional tokens" },
@@ -96,7 +77,7 @@ export async function POST(request: NextRequest) {
             pricePerMillion: pricePerMillion,
             totalPriceUsd: totalPriceUsd,
             totalPriceCents: totalPriceCents,
-            teamId: team.id,
+            userId: user.id,
             productName: `${tokenAmount}M AI Tokens`,
             productDescription: `Additional ${tokenAmount} million AI tokens for your Craft projects`,
         });

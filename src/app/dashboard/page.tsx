@@ -1,12 +1,11 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import Logo from "@/components/Logo";
 import DashboardHeader from "@/components/DashboardHeader";
 import CraftInput from "@/components/CraftInput";
 import RecentProjects from "@/components/RecentProjects";
-import { getUserPersonalTeam, getTeamById } from "@/lib/team";
+import { getUserSubscription } from "@/lib/subscription";
 import type { Session } from "next-auth";
 
 export default async function DashboardPage() {
@@ -17,19 +16,8 @@ export default async function DashboardPage() {
     redirect("/home");
   }
 
-  // Try to get selected team from cookie, otherwise use personal team
-  const cookieStore = await cookies();
-  const selectedTeamId = cookieStore.get("selectedTeamId")?.value;
-
-  let team;
-  if (selectedTeamId) {
-    team = await getTeamById(selectedTeamId, session.user.id);
-  }
-
-  // Fallback to personal team if no selected team or team not found
-  if (!team) {
-    team = await getUserPersonalTeam(session.user.id);
-  }
+  // Get user's subscription details
+  const subscription = await getUserSubscription(session.user.id);
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
@@ -46,10 +34,10 @@ export default async function DashboardPage() {
               href="/dashboard"
             />
             <DashboardHeader
-              title={team?.name}
-              planName={team?.subscription?.plan?.name}
-              teamId={team?.id}
-              teamSubscription={team?.subscription}
+              title={session.user.name || "My Workspace"}
+              planName={subscription?.plan?.name}
+              userId={session.user.id}
+              userSubscription={subscription}
             />
           </div>
         </div>

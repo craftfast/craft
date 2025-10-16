@@ -12,21 +12,13 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get the user from the database
+        // Get the user from the database with subscription
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
             include: {
-                teamMembers: {
+                subscription: {
                     include: {
-                        team: {
-                            include: {
-                                subscription: {
-                                    include: {
-                                        plan: true,
-                                    },
-                                },
-                            },
-                        },
+                        plan: true,
                     },
                 },
             },
@@ -36,26 +28,14 @@ export async function GET() {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Get the user's personal team (first team, or primary team)
-        const personalTeam = user.teamMembers.find((tm) => tm.team.isPersonal);
-        const team = personalTeam?.team || user.teamMembers[0]?.team;
-
-        if (!team) {
-            // No team found, return default HOBBY plan
-            return NextResponse.json({
-                plan: "HOBBY",
-                displayName: "Hobby",
-                teamId: null,
-            });
-        }
-
-        const planName = team.subscription?.plan.name || "HOBBY";
-        const displayName = team.subscription?.plan.displayName || "Hobby";
+        // Return user's subscription plan or default HOBBY
+        const planName = user.subscription?.plan.name || "HOBBY";
+        const displayName = user.subscription?.plan.displayName || "Hobby";
 
         return NextResponse.json({
             plan: planName,
             displayName: displayName,
-            teamId: team.id,
+            userId: user.id,
         });
     } catch (error) {
         console.error("Error fetching user plan:", error);

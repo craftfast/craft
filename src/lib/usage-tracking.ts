@@ -105,7 +105,7 @@ export function calculateInfrastructureCosts(
  * Create or update usage record for current billing period
  */
 export async function updateUsageRecord(
-    teamId: string,
+    userId: string,
     usage: {
         databaseSizeGb?: number;
         storageSizeGb?: number;
@@ -117,13 +117,13 @@ export async function updateUsageRecord(
     }
 ): Promise<void> {
     // Get subscription
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId },
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
         include: { plan: true },
     });
 
     if (!subscription) {
-        throw new Error("No subscription found for team");
+        throw new Error("No subscription found for user");
     }
 
     const planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
@@ -187,7 +187,7 @@ export async function updateUsageRecord(
         // Create new record
         await prisma.usageRecord.create({
             data: {
-                teamId,
+                userId,
                 subscriptionId: subscription.id,
                 billingPeriodStart: subscription.currentPeriodStart,
                 billingPeriodEnd: subscription.currentPeriodEnd,
@@ -212,9 +212,9 @@ export async function updateUsageRecord(
 /**
  * Get usage record for current billing period
  */
-export async function getCurrentUsageRecord(teamId: string) {
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId },
+export async function getCurrentUsageRecord(userId: string) {
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
     });
 
     if (!subscription) {
@@ -232,11 +232,11 @@ export async function getCurrentUsageRecord(teamId: string) {
 }
 
 /**
- * Get all usage records for a team
+ * Get all usage records for a user
  */
-export async function getTeamUsageHistory(teamId: string) {
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId },
+export async function getUserUsageHistory(userId: string) {
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
     });
 
     if (!subscription) {
@@ -250,14 +250,14 @@ export async function getTeamUsageHistory(teamId: string) {
 }
 
 /**
- * Check if team has exceeded usage limits (for Hobby plan)
+ * Check if user has exceeded usage limits (for Hobby plan)
  */
 export async function checkUsageLimits(
-    teamId: string,
+    userId: string,
     resource: "database" | "storage" | "bandwidth" | "auth" | "edgeFunctions"
 ): Promise<{ exceeded: boolean; current: number; limit: number }> {
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId },
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
         include: { plan: true },
     });
 
@@ -268,7 +268,7 @@ export async function checkUsageLimits(
     const planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
     const freeTier = FREE_TIERS[planName];
 
-    const usageRecord = await getCurrentUsageRecord(teamId);
+    const usageRecord = await getCurrentUsageRecord(userId);
 
     if (!usageRecord) {
         return { exceeded: false, current: 0, limit: freeTier.databaseGb };

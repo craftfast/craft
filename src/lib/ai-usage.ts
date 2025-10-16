@@ -30,7 +30,6 @@ const MODEL_PRICING = {
 } as const;
 
 export interface AIUsageRecord {
-    teamId: string;
     userId: string;
     projectId: string;
     model: string;
@@ -72,7 +71,6 @@ export async function trackAIUsage(
 
     const record = await prisma.aITokenUsage.create({
         data: {
-            teamId: usage.teamId,
             userId: usage.userId,
             projectId: usage.projectId,
             model: usage.model,
@@ -91,10 +89,10 @@ export async function trackAIUsage(
 }
 
 /**
- * Get AI usage for a team in a date range
+ * Get AI usage for a user in a date range
  */
-export async function getTeamAIUsage(
-    teamId: string,
+export async function getUserAIUsageInRange(
+    userId: string,
     startDate: Date,
     endDate: Date
 ): Promise<{
@@ -104,7 +102,7 @@ export async function getTeamAIUsage(
 }> {
     const records = await prisma.aITokenUsage.findMany({
         where: {
-            teamId,
+            userId,
             createdAt: {
                 gte: startDate,
                 lte: endDate,
@@ -135,14 +133,14 @@ export async function getTeamAIUsage(
 /**
  * Get AI usage for current billing period
  */
-export async function getCurrentPeriodAIUsage(teamId: string): Promise<{
+export async function getCurrentPeriodAIUsage(userId: string): Promise<{
     totalTokens: number;
     totalCostUsd: number;
     byModel: Record<string, { tokens: number; costUsd: number }>;
 }> {
-    // Get team's subscription to determine billing period
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId },
+    // Get user's subscription to determine billing period
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
     });
 
     if (!subscription) {
@@ -150,11 +148,11 @@ export async function getCurrentPeriodAIUsage(teamId: string): Promise<{
         const now = new Date();
         const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        return getTeamAIUsage(teamId, startDate, endDate);
+        return getUserAIUsageInRange(userId, startDate, endDate);
     }
 
-    return getTeamAIUsage(
-        teamId,
+    return getUserAIUsageInRange(
+        userId,
         subscription.currentPeriodStart,
         subscription.currentPeriodEnd
     );
@@ -228,7 +226,6 @@ export async function getUserAIUsage(
  * Record a token purchase
  */
 export async function recordTokenPurchase(params: {
-    teamId: string;
     userId: string;
     tokenAmount: number;
     priceUsd: number;
@@ -237,7 +234,6 @@ export async function recordTokenPurchase(params: {
 }): Promise<{ id: string; success: boolean }> {
     const purchase = await prisma.tokenPurchase.create({
         data: {
-            teamId: params.teamId,
             userId: params.userId,
             tokenAmount: params.tokenAmount,
             priceUsd: params.priceUsd,
@@ -256,17 +252,17 @@ export async function recordTokenPurchase(params: {
 }
 
 /**
- * Get team's purchased token balance
+ * Get user's purchased token balance
  */
-export async function getTeamTokenBalance(teamId: string): Promise<{
+export async function getUserTokenBalance(userId: string): Promise<{
     totalPurchased: number;
     totalUsed: number;
     remaining: number;
 }> {
-    // Get all completed token purchases for the team
+    // Get all completed token purchases for the user
     const purchases = await prisma.tokenPurchase.findMany({
         where: {
-            teamId,
+            userId,
             status: "completed",
         },
     });
@@ -291,13 +287,13 @@ export async function getTeamTokenBalance(teamId: string): Promise<{
  * This should be called after AI usage to reduce the purchased token balance
  */
 export async function deductPurchasedTokens(
-    teamId: string,
+    userId: string,
     tokensToDeduct: number
 ): Promise<{ success: boolean; remaining: number }> {
     // Get purchases with remaining tokens, oldest first
     const purchases = await prisma.tokenPurchase.findMany({
         where: {
-            teamId,
+            userId,
             status: "completed",
             tokensRemaining: {
                 gt: 0,
@@ -329,7 +325,7 @@ export async function deductPurchasedTokens(
         remainingToDeduct -= deductFromThis;
     }
 
-    const balance = await getTeamTokenBalance(teamId);
+    const balance = await getUserTokenBalance(userId);
 
     return {
         success: remainingToDeduct === 0,
@@ -338,10 +334,10 @@ export async function deductPurchasedTokens(
 }
 
 /**
- * Get token purchase history for a team
+ * Get token purchase history for a user
  */
-export async function getTeamTokenPurchases(
-    teamId: string
+export async function getUserTokenPurchases(
+    userId: string
 ): Promise<
     Array<{
         id: string;
@@ -353,7 +349,7 @@ export async function getTeamTokenPurchases(
     }>
 > {
     const purchases = await prisma.tokenPurchase.findMany({
-        where: { teamId },
+        where: { userId },
         orderBy: {
             purchasedAt: "desc",
         },
@@ -374,10 +370,10 @@ export async function getTeamTokenPurchases(
 // ============================================================================
 
 /**
- * Check if team can use AI based on subscription limits and purchased tokens
+ * Check if user can use AI based on subscription limits and purchased tokens
  */
-export async function checkTeamTokenAvailability(
-    teamId: string
+export async function checkUserTokenAvailability(
+    userId: string
 ): Promise<{
     allowed: boolean;
     reason?: string;
@@ -386,17 +382,17 @@ export async function checkTeamTokenAvailability(
     purchasedTokensRemaining: number;
     totalAvailable: number;
 }> {
-    // Get team's subscription with plan details
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId },
+    // Get user's subscription with plan details
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
         include: { plan: true },
     });
 
     // Get current period usage
-    const currentUsage = await getCurrentPeriodAIUsage(teamId);
+    const currentUsage = await getCurrentPeriodAIUsage(userId);
 
     // Get purchased token balance
-    const purchasedBalance = await getTeamTokenBalance(teamId);
+    const purchasedBalance = await getUserTokenBalance(userId);
 
     // Determine subscription token limit from plan
     let subscriptionLimit: number | null = null;
@@ -444,7 +440,6 @@ export async function checkTeamTokenAvailability(
  * Process AI usage: track it and deduct from appropriate balance
  */
 export async function processAIUsage(params: {
-    teamId: string;
     userId: string;
     projectId: string;
     model: string;
@@ -460,9 +455,9 @@ export async function processAIUsage(params: {
     // Track the usage
     const usage = await trackAIUsage(params);
 
-    // Get team's subscription with plan details
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId: params.teamId },
+    // Get user's subscription with plan details
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId: params.userId },
         include: { plan: true },
     });
 
@@ -475,7 +470,7 @@ export async function processAIUsage(params: {
     }
 
     // Get current period usage (before this request)
-    const currentUsage = await getCurrentPeriodAIUsage(params.teamId);
+    const currentUsage = await getCurrentPeriodAIUsage(params.userId);
 
     const totalTokens = params.inputTokens + params.outputTokens;
     const newTotalUsage = currentUsage.totalTokens + totalTokens;
@@ -497,7 +492,7 @@ export async function processAIUsage(params: {
     // Deduct from purchased balance if needed
     let deductedFromPurchased = 0;
     if (tokensToDeductFromPurchased > 0) {
-        const result = await deductPurchasedTokens(params.teamId, tokensToDeductFromPurchased);
+        const result = await deductPurchasedTokens(params.userId, tokensToDeductFromPurchased);
         deductedFromPurchased = result.success ? tokensToDeductFromPurchased : 0;
     }
 
