@@ -71,7 +71,6 @@ export function analyzeComplexity(
         /algorithm|complex logic|advanced/i,
         /integration|third-party|external api/i,
         /testing|unit test|e2e test/i,
-        /deployment|ci\/cd|docker|kubernetes/i,
 
         // Multi-file operations
         /create.*components?.*and.*pages?/i,

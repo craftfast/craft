@@ -10,7 +10,6 @@ import PreviewPanel from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
 import DatabasePanel from "./coding-interface/DatabasePanel";
 import AnalyticsPanel from "./coding-interface/AnalyticsPanel";
-import DomainsPanel from "./coding-interface/DomainsPanel";
 import LogsPanel from "./coding-interface/LogsPanel";
 import ApiPanel from "./coding-interface/ApiPanel";
 import SettingsPanel from "./coding-interface/SettingsPanel";
@@ -21,7 +20,6 @@ type TabType =
   | "code"
   | "database"
   | "analytics"
-  | "domains"
   | "logs"
   | "api"
   | "settings"
@@ -237,25 +235,6 @@ export default function CodingInterface({
             strokeLinejoin="round"
             strokeWidth={2}
             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-          />
-        </svg>
-      ),
-    },
-    {
-      id: "domains" as const,
-      label: "Domains",
-      svg: (
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
           />
         </svg>
       ),
@@ -565,9 +544,6 @@ export default function CodingInterface({
               )}
               {activeTab === "analytics" && (
                 <AnalyticsPanel projectId={project.id} />
-              )}
-              {activeTab === "domains" && (
-                <DomainsPanel projectId={project.id} />
               )}
               {activeTab === "logs" && <LogsPanel projectId={project.id} />}
               {activeTab === "api" && <ApiPanel projectId={project.id} />}

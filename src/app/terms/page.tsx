@@ -137,7 +137,6 @@ export default function TermsOfService() {
                   <li>• 5GB database storage</li>
                   <li>• Unlimited projects</li>
                   <li>• Priority support</li>
-                  <li>• Custom domains</li>
                   <li>• Pay-as-you-go for infrastructure overages</li>
                 </ul>
               </div>
@@ -223,7 +222,7 @@ export default function TermsOfService() {
             <h3 className="text-xl font-semibold mb-3">4.1 Permitted Uses</h3>
             <p>You may use Craft to:</p>
             <ul className="space-y-2">
-              <li>Create, develop, and deploy web applications</li>
+              <li>Create and develop web applications</li>
               <li>Use AI assistance for code generation and problem-solving</li>
               <li>Collaborate with team members on projects</li>
               <li>Integrate with supported third-party services</li>
@@ -466,9 +465,6 @@ export default function TermsOfService() {
             <ul className="space-y-2">
               <li>
                 <strong>GitHub:</strong> Repository sync and version control
-              </li>
-              <li>
-                <strong>Vercel:</strong> Deployment and hosting
               </li>
               <li>
                 <strong>Figma:</strong> Design imports

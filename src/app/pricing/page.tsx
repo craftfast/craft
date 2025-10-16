@@ -35,7 +35,7 @@ export default function PricingPage() {
     : null;
 
   const handleProPayment = async () => {
-    const amount = 4995; // $4,995/month for Pro
+    const amount = 25; // $25/month for Pro
 
     try {
       // Initiate Polar payment (this will redirect to Polar checkout)
@@ -80,76 +80,11 @@ export default function PricingPage() {
     }
   };
 
-  const handleTokenPurchase = async (tokenMillions: number) => {
-    if (!session) {
-      router.push("/auth/signin");
-      return;
-    }
-
-    try {
-      // First, call our API to prepare the purchase
-      const response = await fetch("/api/tokens/purchase", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tokenAmount: tokenMillions,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to prepare token purchase");
-      }
-
-      const purchaseData = await response.json();
-
-      // Now initiate Polar payment
-      await initiatePolarPayment({
-        amount: purchaseData.totalPriceCents,
-        currency: "USD",
-        productName: purchaseData.productName,
-        productDescription: purchaseData.productDescription,
-        email: session?.user?.email || undefined,
-        successUrl: `${window.location.origin}/dashboard?payment=success&tokens=${tokenMillions}M`,
-        onFailure: (error) => {
-          console.error("Token purchase payment failed:", error);
-          const errorMsg =
-            typeof error === "object" && "error" in error
-              ? error.error
-              : "An unexpected error occurred";
-
-          alert(
-            "❌ Token Purchase Failed\n\n" +
-              errorMsg +
-              "\n\n" +
-              "What to do:\n" +
-              "• Try again in a few minutes\n" +
-              "• Check your internet connection\n" +
-              "• If the issue persists, contact support:\n\n" +
-              "📧 Email: support@craft.tech\n" +
-              "💬 We typically respond within 24 hours"
-          );
-        },
-      });
-    } catch (error) {
-      console.error("Token purchase error:", error);
-      alert(
-        "⚠️ Token Purchase Error\n\n" +
-          (error instanceof Error ? error.message : "Something went wrong") +
-          "\n\n" +
-          "Please try again later or contact support:\n" +
-          "📧 support@craft.tech"
-      );
-    }
-  };
-
   const plans: PricingPlan[] = [
     {
       name: "Hobby",
       price: "Free",
-      description: "The perfect starting place for your next project.",
+      description: "Try Craft with basic features. Limited to 3 projects.",
       cta:
         userPlan === "pro"
           ? "Downgrade"
@@ -158,19 +93,19 @@ export default function PricingPage() {
           : "Start Crafting",
       action: () => router.push("/auth/signup"),
       features: [
-        { text: "Import from Figma & GitHub", included: true },
-        { text: "Limited access to AI chat", included: true, highlight: false },
+        { text: "100k AI tokens per month", included: true, highlight: true },
+        { text: "Up to 3 projects", included: true },
+        { text: "AI-powered chat interface", included: true },
         { text: "Live preview environment", included: true },
-        { text: "Up to 20 projects", included: true },
         { text: "Integrated database & storage", included: true },
         { text: "Authentication", included: true },
-        { text: "Hosting & deployment", included: true },
+        { text: "Craft branding on projects", included: true },
         { text: "Community support", included: true },
       ],
     },
     {
       name: "Pro",
-      price: "$4,995/mo",
+      price: "$25/mo",
       description: "Everything you need to build and scale your app.",
       cta: !session
         ? "Start a free trial"
@@ -183,18 +118,30 @@ export default function PricingPage() {
           ? () => {} // No action for current plan
           : handleProPayment,
       features: [
-        { text: "All Hobby features, plus:", included: true, highlight: true },
-        { text: "Extended access to AI chat", included: true, highlight: true },
+        { text: "Everything in hobby, plus:", included: true, highlight: true },
+        { text: "10M AI tokens per month", included: true, highlight: true },
+        { text: "Unlimited projects", included: true, highlight: false },
         {
-          text: "Human expert quality review",
+          text: "Purchase additional AI credits starting at $5/Million tokens",
           included: true,
-          highlight: true,
+          highlight: false,
         },
-        { text: "Unlimited projects", included: true },
-        { text: "Custom domains", included: true },
-        { text: "Priority AI processing", included: true },
-        { text: "Advanced code generation", included: true },
-        { text: "Priority email support", included: true },
+        {
+          text: "Import from Figma & GitHub",
+          included: true,
+          highlight: false,
+        },
+        {
+          text: "Remove Craft branding",
+          included: true,
+          highlight: false,
+        },
+        {
+          text: "Pay-as-you-go for infrastructure",
+          included: true,
+          highlight: false,
+        },
+        { text: "Priority email support", included: true, highlight: false },
       ],
     },
     {
@@ -391,9 +338,11 @@ export default function PricingPage() {
               Detailed Usage Limits & Costs
             </h2>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mb-4 max-w-3xl mx-auto">
-              <strong>Hobby:</strong> Limited access to AI chat.{" "}
-              <strong>Pro:</strong> Extended access to AI chat. Usage resets
-              monthly.
+              <strong>Hobby:</strong> Limited to 3 projects, 100k AI
+              tokens/month (fixed), no imports, includes branding.
+              <strong>Pro:</strong> Unlimited projects, 10M AI tokens/month,
+              Figma/GitHub imports, purchase additional credits, and
+              pay-as-you-go infrastructure. Usage resets monthly.
             </p>
             <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden">
               <table className="w-full">
@@ -434,12 +383,18 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        Limited access
+                        100k tokens/month
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        Fixed limit (upgrade to Pro for more)
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        Extended access
+                        10M tokens/month
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        Purchase more at $5/1M
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -475,61 +430,42 @@ export default function PricingPage() {
                       </div>
                     </td>
                   </tr>
+
+                  {/* Project & Domain Features */}
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="p-4 sm:p-6">
                       <div className="font-semibold text-foreground mb-1">
-                        Token Top-Up
+                        Projects Limit
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Purchase additional AI tokens as needed
+                        Maximum number of projects you can create
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-2">
-                        <span className="font-semibold">$5 / 1M tokens</span>
+                      <div className="font-medium text-foreground mb-1">
+                        <span className="font-semibold">3 projects</span>
                       </div>
-                      <div className="text-neutral-600 dark:text-neutral-400 mb-2">
-                        Starting from
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        Upgrade to Pro for unlimited
                       </div>
-                      <button
-                        onClick={() => handleTokenPurchase(1)}
-                        disabled={!session}
-                        className="px-3 py-1.5 bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                      >
-                        {session ? "Purchase" : "Sign in"}
-                      </button>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-2">
-                        <span className="font-semibold">$5 / 1M tokens</span>
+                      <div className="font-medium text-foreground mb-1">
+                        <span className="font-semibold">Unlimited</span>
                       </div>
-                      <div className="text-neutral-600 dark:text-neutral-400 mb-2">
-                        Starting from
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        Create as many as you need
                       </div>
-                      <button
-                        onClick={() => handleTokenPurchase(5)}
-                        disabled={!session}
-                        className="px-3 py-1.5 bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                      >
-                        {session ? "Purchase" : "Sign in"}
-                      </button>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-2">
-                        <span className="font-semibold">Custom pricing</span>
+                      <div className="font-medium text-foreground mb-1">
+                        <span className="font-semibold">Unlimited</span>
                       </div>
-                      <div className="text-neutral-600 dark:text-neutral-400 mb-2">
-                        Volume discounts available
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        Custom project management
                       </div>
-                      <a
-                        href="mailto:sales@craft.tech?subject=Enterprise Token Purchase"
-                        className="inline-block px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg font-medium transition-colors text-xs border border-neutral-300 dark:border-neutral-600"
-                      >
-                        Contact Sales
-                      </a>
                     </td>
                   </tr>
-
                   {/* Infrastructure Section */}
                   <tr className="bg-neutral-50/50 dark:bg-neutral-800/30">
                     <td
@@ -550,7 +486,10 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        500 MB free
+                        500 MB
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        Fixed limit (upgrade to Pro for more)
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -582,7 +521,10 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        1 GB free
+                        1 GB
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        Fixed limit (upgrade to Pro for more)
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -614,7 +556,10 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        100 GB free
+                        100 GB
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        Fixed limit (upgrade to Pro for more)
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -645,7 +590,10 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        1,000 MAU free
+                        1,000 MAU
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        Fixed limit (upgrade to Pro for more)
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -672,346 +620,785 @@ export default function PricingPage() {
                       colSpan={4}
                       className="p-3 sm:p-4 font-semibold text-sm text-neutral-700 dark:text-neutral-300 uppercase tracking-wide"
                     >
-                      Features Included in All Plans
+                      Core Development Features
                     </td>
                   </tr>
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="p-4 sm:p-6">
                       <div className="font-semibold text-foreground mb-1">
-                        Core Development
+                        AI-Powered Chat Interface
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Essential development tools
+                        Chat with AI to build applications
                       </div>
                     </td>
-                    <td
-                      colSpan={3}
-                      className="p-4 sm:p-6 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"
-                    >
-                      <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>AI-powered chat interface</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Live preview environment</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Real-time code generation</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Figma import</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>GitHub integration</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Code export & download</span>
-                        </li>
-                      </ul>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
                     </td>
                   </tr>
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="p-4 sm:p-6">
                       <div className="font-semibold text-foreground mb-1">
-                        Hosting & Deployment
+                        Live Preview Environment
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Production-ready infrastructure
+                        See changes instantly in real browser
                       </div>
                     </td>
-                    <td
-                      colSpan={3}
-                      className="p-4 sm:p-6 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"
-                    >
-                      <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Automatic SSL certificates</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Global CDN</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Automatic deployments</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Environment variables</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Instant rollbacks</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Preview deployments</span>
-                        </li>
-                      </ul>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
                     </td>
                   </tr>
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="p-4 sm:p-6">
                       <div className="font-semibold text-foreground mb-1">
-                        Backend Services
+                        Real-Time Code Generation
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Integrated backend infrastructure
+                        AI generates code as you describe
                       </div>
                     </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Figma Import
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Import designs directly from Figma
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        GitHub Integration
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Connect and sync with GitHub repos
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Code Export & Download
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Download your project code anytime
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Backend Services Section */}
+                  <tr className="bg-neutral-50/50 dark:bg-neutral-800/30">
                     <td
-                      colSpan={3}
-                      className="p-4 sm:p-6 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"
+                      colSpan={4}
+                      className="p-3 sm:p-4 font-semibold text-sm text-neutral-700 dark:text-neutral-300 uppercase tracking-wide"
                     >
-                      <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>PostgreSQL database</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Prisma ORM included</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>File storage & CDN</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Email/password auth</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>OAuth providers (Google, GitHub)</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <svg
-                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>API rate limiting</span>
-                        </li>
-                      </ul>
+                      Backend Services
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        PostgreSQL Database
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Managed PostgreSQL database
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Prisma ORM
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Type-safe database toolkit
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        File Storage & CDN
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        S3-compatible object storage
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Email/Password Authentication
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Built-in credential authentication
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        OAuth Providers
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Google, GitHub social login
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        API Rate Limiting
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Protect against abuse
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -1037,7 +1424,7 @@ export default function PricingPage() {
               </h2>
               <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mb-10 max-w-2xl mx-auto">
                 Integrated platform with AI chat, live preview, database,
-                storage, authentication, and deployment.
+                storage, and authentication.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -1161,30 +1548,6 @@ export default function PricingPage() {
                     Built-in auth with social login support.
                   </p>
                 </div>
-
-                <div className="bg-white dark:bg-neutral-900 rounded-xl p-6 border border-neutral-200 dark:border-neutral-700">
-                  <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center mb-4">
-                    <svg
-                      className="w-5 h-5 text-white dark:text-black"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Deployment
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    One-click hosting with global CDN.
-                  </p>
-                </div>
               </div>
             </div>
           </div>
@@ -1202,35 +1565,35 @@ export default function PricingPage() {
                     How does billing work?
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    <strong>Hobby:</strong> Free with limited AI usage
-                    allocation and infrastructure. No pay-as-you-go - upgrade to
-                    Pro for more. <strong>Pro:</strong> $4,995/month includes
-                    generous AI usage allocation + generous infrastructure
-                    limits, then pay-as-you-go only for infrastructure beyond
-                    free tiers. Code without worrying about usage.
+                    <strong>Hobby:</strong> Free forever with up to 3 projects,
+                    100k AI tokens/month, and fixed infrastructure limits.
+                    Perfect for trying out Craft. <strong>Pro:</strong>{" "}
+                    $25/month with unlimited projects, 10M AI tokens,
+                    Figma/GitHub imports, and pay-as-you-go for overages.
                   </p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">
-                    What AI features are included?
+                    What&apos;s the difference between Hobby and Pro?
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    <strong>Hobby:</strong> AI-powered chat and code generation
-                    with limited usage allocation. <strong>Pro:</strong>
-                    AI access with generous usage allocation and priority
-                    processing - <strong>code without anxiety.</strong>
+                    <strong>Hobby:</strong> Limited to 3 projects, no
+                    Figma/GitHub imports, includes Craft branding, and fixed
+                    100k AI tokens. <strong>Pro:</strong> Unlimited projects,
+                    Figma/GitHub imports, without branding, 10M AI tokens, and
+                    ability to purchase more credits.
                   </p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">
-                    What are the free usage limits?
+                    Can I upgrade from Hobby to Pro?
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    All plans include free tiers for database, storage, auth,
-                    and bandwidth. See the usage table above for specific
-                    limits.
+                    Yes! Upgrade anytime to unlock unlimited projects,
+                    Figma/GitHub imports, and much higher AI token limits. Your
+                    existing projects will be preserved.
                   </p>
                 </div>
 
@@ -1256,7 +1619,8 @@ export default function PricingPage() {
               Get started today — no credit card required.
             </p>
             <p className="text-sm text-neutral-500 dark:text-neutral-500 mb-8">
-              Build and deploy your first project with the Hobby plan.
+              Start with the free Hobby plan (up to 3 projects). Upgrade to Pro
+              for unlimited projects and advanced features.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button

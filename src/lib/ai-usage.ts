@@ -404,8 +404,8 @@ export async function checkTeamTokenAvailability(
     if (subscription?.plan) {
         subscriptionLimit = subscription.plan.monthlyTokenLimit;
     } else {
-        // No subscription = free tier limits (1M tokens)
-        subscriptionLimit = 1000000;
+        // No subscription = free tier limits (100k tokens)
+        subscriptionLimit = 100000;
     }
 
     // Calculate available tokens
@@ -471,7 +471,7 @@ export async function processAIUsage(params: {
     if (subscription?.plan) {
         subscriptionLimit = subscription.plan.monthlyTokenLimit;
     } else {
-        subscriptionLimit = 1000000; // Default to free tier (1M tokens)
+        subscriptionLimit = 100000; // Default to free tier (100k tokens)
     }
 
     // Get current period usage (before this request)

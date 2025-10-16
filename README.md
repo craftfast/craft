@@ -154,7 +154,6 @@ For detailed guidelines, please read our [Contributing Guide](CONTRIBUTING.md).
 - **Build Tool**: Turbopack (Next.js native)
 - **Code Quality**: ESLint, TypeScript
 - **Analytics**: Vercel Analytics, Speed Insights
-- **Deployment**: Vercel (optimized for Next.js)
 
 ---
 
@@ -214,11 +213,15 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🚀 Deploy Your Own
 
-The easiest way to deploy craft.tech is using the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme):
+You can deploy craft.tech to your favorite hosting provider:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/craftdottech/craft)
+- **[Vercel](https://vercel.com)** - Optimized for Next.js with zero configuration
+- **[Netlify](https://www.netlify.com)** - Automated builds and serverless functions
+- **[Cloudflare Pages](https://pages.cloudflare.com)** - Global edge network
+- **[AWS Amplify](https://aws.amazon.com/amplify/)** - Full-stack AWS deployment
+- **[Railway](https://railway.app)** - Simple cloud deployment
 
-For other deployment options, check out our [Deployment Guide](docs/deployment.md).
+For deployment instructions, check out our [Deployment Guide](docs/deployment.md).
 
 ---
 

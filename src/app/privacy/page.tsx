@@ -191,8 +191,8 @@ export default function PrivacyPolicy() {
                 processing (they have their own privacy policies).
               </li>
               <li>
-                <strong>Cloud Infrastructure:</strong> Vercel for hosting and
-                deployment services.
+                <strong>Cloud Infrastructure:</strong> Vercel for hosting
+                services.
               </li>
               <li>
                 <strong>AI Services:</strong> Third-party AI model providers for

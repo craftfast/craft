@@ -10,16 +10,15 @@ export const PRICING = {
         priceMonthly: 0,
         displayPriceMonthly: "$0",
         databaseStorageGB: 0.5,
-        maxProjects: 3,
-        monthlyTokens: 1000000, // 1M tokens/month (hard limit)
+        maxProjects: null, // Unlimited
+        monthlyTokens: 100000, // 100k tokens/month included
         features: {
             aiChat: true,
-            unlimitedProjects: false,
-            vercelDeployment: true,
+            unlimitedProjects: true,
             figmaImport: true,
             githubSync: true,
             databaseAccess: "limited",
-            customDomain: false,
+            customDomain: false, // Not implemented yet
             privateProjects: false,
             support: "community",
             prioritySupport: false,
@@ -28,6 +27,7 @@ export const PRICING = {
             sso: false,
             dedicatedSupport: false,
             canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
+            payAsYouGo: true, // Pay-as-you-go for infrastructure overages
         },
     },
     PRO: {
@@ -40,11 +40,10 @@ export const PRICING = {
         features: {
             aiChat: true,
             unlimitedProjects: true,
-            vercelDeployment: true,
             figmaImport: true,
             githubSync: true,
             databaseAccess: "full",
-            customDomain: true,
+            customDomain: false, // Not implemented yet
             privateProjects: true,
             support: "priority",
             prioritySupport: true,
@@ -66,11 +65,10 @@ export const PRICING = {
         features: {
             aiChat: true,
             unlimitedProjects: true,
-            vercelDeployment: true,
             figmaImport: true,
             githubSync: true,
             databaseAccess: "unlimited",
-            customDomain: true,
+            customDomain: false, // Not implemented yet - can be custom implemented for Enterprise
             privateProjects: true,
             support: "dedicated",
             prioritySupport: true,
