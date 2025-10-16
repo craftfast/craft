@@ -1,7 +1,7 @@
 /**
  * Pricing Constants
  * Centralized pricing information for the Craft platform
- * Token-based pricing model - Pro plan includes 10M tokens/month with top-up option
+ * Pro plan includes generous AI usage allocation - code without anxiety
  */
 
 export const PRICING = {
@@ -32,11 +32,11 @@ export const PRICING = {
     },
     PRO: {
         name: "Pro",
-        priceMonthly: 150,
-        displayPriceMonthly: "$150",
+        priceMonthly: 4995,
+        displayPriceMonthly: "$4,995",
         databaseStorageGB: 5,
         maxProjects: null, // Unlimited
-        monthlyTokens: 10000000, // 10M tokens/month included
+        monthlyTokens: null, // Generous AI allocation - code without anxiety
         features: {
             aiChat: true,
             unlimitedProjects: true,
@@ -52,7 +52,8 @@ export const PRICING = {
             trainingOptOut: false,
             sso: false,
             dedicatedSupport: false,
-            canPurchaseTokens: true, // Can top-up tokens as needed
+            canPurchaseTokens: false, // Generous allocation included
+            unlimitedAI: true, // Extended AI LLM access with generous allocation
         },
     },
     ENTERPRISE: {

@@ -23,7 +23,7 @@ export default function HelpPage() {
     {
       question: "Is Craft free to use?",
       answer:
-        "Craft offers various pricing plans to suit different needs. We have a free tier for getting started, as well as premium plans with additional features and higher usage limits. Check our pricing page for details.",
+        "Craft offers various pricing plans to suit different needs. We have a free tier with generous usage limits to get you started, as well as premium plans with additional features and enhanced capabilities. Check our pricing page for details.",
     },
     {
       question: "Do I need coding experience?",

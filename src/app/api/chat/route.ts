@@ -1,11 +1,7 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { streamText } from "ai";
 import { getSystemPrompt } from "@/lib/ai/system-prompts";
-import { AI_MODELS } from "@/lib/ai-models";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { canUseModel } from "@/lib/ai-usage";
-import { prisma } from "@/lib/db";
+import { getSmartModel, logModelSelection } from "@/lib/ai/model-router";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -30,50 +26,28 @@ type MessageContent = string | (TextContent | ImageUrlContent)[];
 
 export async function POST(req: Request) {
     try {
-        const { messages, taskType, projectFiles, selectedModel, teamId } = await req.json();
+        const { messages, taskType, projectFiles } = await req.json();
 
-        // Get user session for plan verification
-        const session = await getServerSession(authOptions);
+        // Get the last user message for analysis
+        const lastUserMessage = messages
+            .filter((m: { role: string }) => m.role === 'user')
+            .pop();
 
-        // Determine which model to use
-        let modelName: string;
+        const userMessageText = typeof lastUserMessage?.content === 'string'
+            ? lastUserMessage.content
+            : Array.isArray(lastUserMessage?.content)
+                ? lastUserMessage.content.find((c: { type: string }) => c.type === 'text')?.text || ''
+                : '';
 
-        if (selectedModel) {
-            // User explicitly selected a model - verify they have access
-            if (teamId && session?.user?.email) {
-                const user = await prisma.user.findUnique({
-                    where: { email: session.user.email },
-                });
+        // Use smart router to determine the best model
+        const { model: modelName, modelName: displayName, analysis } = getSmartModel(
+            userMessageText,
+            projectFiles || {},
+            messages.slice(0, -1) // conversation history before last message
+        );
 
-                if (user) {
-                    // Check if user can access this model
-                    const hasAccess = await canUseModel(teamId, selectedModel);
-
-                    if (!hasAccess) {
-                        return new Response(
-                            JSON.stringify({
-                                error: "Model not available",
-                                message: "Upgrade your plan to access this model",
-                            }),
-                            {
-                                status: 403,
-                                headers: { "Content-Type": "application/json" },
-                            }
-                        );
-                    }
-                }
-            }
-
-            // Use the selected model
-            const modelInfo = AI_MODELS[selectedModel];
-            modelName = modelInfo?.id || selectedModel;
-        } else {
-            // Fallback: Use legacy task-based model selection
-            modelName =
-                taskType === "naming" || taskType === "general"
-                    ? process.env.GROK_MODEL || "x-ai/grok-4-fast"
-                    : process.env.CLAUDE_MODEL || "anthropic/claude-sonnet-4.5";
-        }
+        // Log the routing decision
+        logModelSelection(displayName, analysis, userMessageText);
 
         // Get environment-aware system prompt
         const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles);

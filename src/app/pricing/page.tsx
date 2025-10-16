@@ -35,7 +35,7 @@ export default function PricingPage() {
     : null;
 
   const handleProPayment = async () => {
-    const amount = 150; // $150/month for Pro
+    const amount = 4995; // $4,995/month for Pro
 
     try {
       // Initiate Polar payment (this will redirect to Polar checkout)
@@ -94,7 +94,7 @@ export default function PricingPage() {
       action: () => router.push("/auth/signup"),
       features: [
         { text: "Import from Figma & GitHub", included: true },
-        { text: "AI-powered chat interface", included: true },
+        { text: "Limited AI model access", included: true, highlight: false },
         { text: "Live preview environment", included: true },
         { text: "Up to 20 projects", included: true },
         { text: "Integrated database & storage", included: true },
@@ -105,7 +105,7 @@ export default function PricingPage() {
     },
     {
       name: "Pro",
-      price: "$150/mo",
+      price: "$4,995/mo",
       description: "Everything you need to build and scale your app.",
       cta: !session
         ? "Start a free trial"
@@ -119,13 +119,13 @@ export default function PricingPage() {
           : handleProPayment,
       features: [
         { text: "All Hobby features, plus:", included: true, highlight: true },
-        { text: "Purchase additional AI tokens", included: true },
+        { text: "Extended AI model access", included: true, highlight: true },
         { text: "Unlimited projects", included: true },
         { text: "Custom domains", included: true },
         { text: "Priority AI processing", included: true },
         { text: "Advanced code generation", included: true },
         { text: "Remove Craft branding", included: true },
-        { text: "Email support", included: true },
+        { text: "Priority email support", included: true },
       ],
     },
     {
@@ -295,16 +295,36 @@ export default function PricingPage() {
             ))}
           </div>
 
+          {/* Pricing Disclaimer */}
+          <div className="mt-6 text-center">
+            <p className="text-xs text-neutral-500 dark:text-neutral-500">
+              By subscribing, you agree to our{" "}
+              <a
+                href="/terms"
+                className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
+              >
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a
+                href="/refunds"
+                className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
+              >
+                Cancellation &amp; Refund Policy
+              </a>
+              .
+            </p>
+          </div>
+
           {/* Usage-Based Pricing Comparison Table */}
           <div className="mt-16 overflow-x-auto">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 text-center">
               Detailed Usage Limits & Costs
             </h2>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mb-4 max-w-3xl mx-auto">
-              <strong>Hobby:</strong> 1M tokens/month with hard limits on
-              infrastructure (no pay-as-you-go). <strong>Pro:</strong> 10M
-              tokens included + pay-as-you-go for tokens and infrastructure
-              beyond generous free tiers. Usage resets monthly.
+              <strong>Hobby:</strong> Limited AI model access.{" "}
+              <strong>Pro:</strong> Extended AI model access. Usage resets
+              monthly.
             </p>
             <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden">
               <table className="w-full">
@@ -331,7 +351,7 @@ export default function PricingPage() {
                       colSpan={4}
                       className="p-3 sm:p-4 font-semibold text-sm text-neutral-700 dark:text-neutral-300 uppercase tracking-wide"
                     >
-                      AI Models & Usage
+                      AI Usage
                     </td>
                   </tr>
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
@@ -340,68 +360,22 @@ export default function PricingPage() {
                         AI Model Access
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Available AI models for chat & code generation
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-2">
-                        Lite AI models only
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400 space-y-1">
-                        <div>• Claude Haiku 4.5</div>
-                        <div>• GPT-5 mini</div>
-                        <div>• Gemini 2.5 Flash</div>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-2">
-                        Premium models with priority
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400 space-y-1">
-                        <div>• Claude Sonnet 4.5</div>
-                        <div>• GPT-5</div>
-                        <div>• Gemini 2.5 Pro</div>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground">
-                        Custom model setup
-                      </div>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
-                        AI Token Usage
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Monthly token allocation
+                        Monthly AI usage allocation
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        1M tokens/month
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        <span className="inline-block px-2 py-0.5 bg-neutral-200 dark:bg-neutral-700 rounded text-xs font-medium">
-                          Hard limit - upgrade to Pro for more
-                        </span>
+                        Limited access
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        10M tokens included
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        Purchase additional tokens as needed
+                        Extended access
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        Unlimited tokens
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        Custom allocations & volume discounts
+                        Custom allocation
                       </div>
                     </td>
                   </tr>
@@ -428,20 +402,14 @@ export default function PricingPage() {
                       <div className="font-medium text-foreground mb-1">
                         500 MB free
                       </div>
-                      <div className="text-neutral-500 dark:text-neutral-500 text-xs mb-1">
-                        Hard limit - upgrade to Pro for more
-                      </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
                         5 GB free
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400 mb-1">
-                        <span className="font-semibold">$0.08/GB/month</span>{" "}
+                        <span className="font-semibold">$0.10/GB/month</span>{" "}
                         after
-                      </div>
-                      <div className="text-neutral-500 dark:text-neutral-500 text-xs">
-                        Max 100 GB total
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -466,20 +434,14 @@ export default function PricingPage() {
                       <div className="font-medium text-foreground mb-1">
                         1 GB free
                       </div>
-                      <div className="text-neutral-500 dark:text-neutral-500 text-xs mb-1">
-                        Hard limit - upgrade to Pro for more
-                      </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
                         10 GB free
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400 mb-1">
-                        <span className="font-semibold">$0.04/GB/month</span>{" "}
+                        <span className="font-semibold">$0.05/GB/month</span>{" "}
                         after
-                      </div>
-                      <div className="text-neutral-500 dark:text-neutral-500 text-xs">
-                        Max 500 GB total
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -504,16 +466,13 @@ export default function PricingPage() {
                       <div className="font-medium text-foreground mb-1">
                         100 GB free
                       </div>
-                      <div className="text-neutral-500 dark:text-neutral-500 text-xs">
-                        Hard limit - upgrade to Pro for more
-                      </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
                         500 GB free
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
-                        <span className="font-semibold">$0.08/GB</span> after
+                        <span className="font-semibold">$0.10/GB</span> after
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -538,21 +497,18 @@ export default function PricingPage() {
                       <div className="font-medium text-foreground mb-1">
                         1,000 MAU free
                       </div>
-                      <div className="text-neutral-500 dark:text-neutral-500 text-xs">
-                        Hard limit - upgrade to Pro for more
-                      </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
                         10,000 MAU free
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
-                        <span className="font-semibold">$0.008/user</span> after
+                        <span className="font-semibold">$0.01/user</span> after
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        Unlimited MAU
+                        Custom MAU
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
                         SSO & SAML included
@@ -923,27 +879,6 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* Pricing Disclaimer */}
-          <div className="mt-8 text-center">
-            <p className="text-xs text-neutral-500 dark:text-neutral-500">
-              By subscribing, you agree to our{" "}
-              <a
-                href="/terms"
-                className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
-              >
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a
-                href="/refunds"
-                className="underline hover:text-neutral-700 dark:hover:text-neutral-400"
-              >
-                Cancellation &amp; Refund Policy
-              </a>
-              .
-            </p>
-          </div>
-
           {/* What's Included Section */}
           <div className="mt-16 sm:mt-20">
             <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 sm:p-12">
@@ -1117,23 +1052,24 @@ export default function PricingPage() {
                     How does billing work?
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    <strong>Hobby:</strong> Free with hard limits (1M
-                    tokens/month, 500MB database). No pay-as-you-go - upgrade to
-                    Pro for more. <strong>Pro:</strong> $150/month includes 10M
-                    tokens + generous infrastructure limits, then pay-as-you-go
-                    for additional usage.
+                    <strong>Hobby:</strong> Free with limited AI usage
+                    allocation and infrastructure. No pay-as-you-go - upgrade to
+                    Pro for more. <strong>Pro:</strong> $4,995/month includes
+                    generous AI usage allocation + generous infrastructure
+                    limits, then pay-as-you-go only for infrastructure beyond
+                    free tiers. Code without worrying about usage.
                   </p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">
-                    Which AI models can I use?
+                    What AI features are included?
                   </h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    <strong>Hobby:</strong> Free coding models including Claude
-                    Haiku 4.5, GPT-5 mini, and Gemini 2.5 Flash.{" "}
-                    <strong>Pro:</strong> Premium models including Claude Sonnet
-                    4.5, GPT-5, and Gemini 2.5 Pro with priority processing.
+                    <strong>Hobby:</strong> AI-powered chat and code generation
+                    with limited usage allocation. <strong>Pro:</strong>
+                    AI access with generous usage allocation and priority
+                    processing - <strong>code without anxiety.</strong>
                   </p>
                 </div>
 

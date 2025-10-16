@@ -6,9 +6,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
-import { getModelsForPlan, getDefaultModel, AI_MODELS } from "@/lib/ai-models";
-import type { PlanName } from "@/lib/ai-models";
-import ModelSelector from "../ModelSelector";
 import FileChangesCard from "./FileChangesCard";
 
 // Speech Recognition types
@@ -105,7 +102,6 @@ export default function ChatPanel({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
-  const [modelLoaded, setModelLoaded] = useState(false); // Track if model has been loaded
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<ImageAttachment[]>([]);
   const [previewImage, setPreviewImage] = useState<ImageAttachment | null>(
@@ -128,13 +124,6 @@ export default function ChatPanel({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [previewImage]);
-
-  // Model selection
-  const [selectedModel, setSelectedModel] =
-    useState<string>("claude-haiku-4.5");
-  const [availableModels, setAvailableModels] = useState(
-    getModelsForPlan("HOBBY")
-  );
 
   // Load messages for the project
   const loadMessages = useCallback(async () => {
@@ -230,12 +219,9 @@ export default function ChatPanel({
         projectDescription &&
         projectDescription.trim() !== "" &&
         messagesLoaded &&
-        modelLoaded &&
         !isLoading
       ) {
-        console.log(
-          `🚀 Auto-sending first message with model: ${selectedModel}`
-        );
+        console.log(`🚀 Auto-sending first message`);
         hasTriggeredAutoSend.current = true;
 
         // Check for images in sessionStorage
@@ -271,84 +257,7 @@ export default function ChatPanel({
 
     sendFirstMessage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    projectVersion,
-    projectDescription,
-    messagesLoaded,
-    modelLoaded,
-    isLoading,
-  ]);
-
-  // Fetch user's plan and project's saved model
-  useEffect(() => {
-    const fetchUserPlanAndProjectModel = async () => {
-      try {
-        // Fetch user plan
-        const planResponse = await fetch("/api/user/plan");
-        if (planResponse.ok) {
-          const planData = await planResponse.json();
-          const plan: PlanName = planData.plan || "HOBBY";
-
-          console.log(`🎯 User plan: ${plan}`);
-
-          setAvailableModels(getModelsForPlan(plan));
-
-          // Fetch project to get saved aiModel
-          const projectResponse = await fetch(`/api/projects/${projectId}`);
-          if (projectResponse.ok) {
-            const projectData = await projectResponse.json();
-            const savedAiModel = projectData.project?.aiModel;
-
-            if (savedAiModel) {
-              // Find the model key from the model ID
-              const modelKey = Object.keys(AI_MODELS).find(
-                (key) => AI_MODELS[key].id === savedAiModel
-              );
-
-              if (modelKey) {
-                setSelectedModel(modelKey);
-                console.log(
-                  `🤖 Using saved model from project: ${savedAiModel}`
-                );
-              } else {
-                // If saved model not found, use default for plan
-                const defaultModel = getDefaultModel(plan);
-                setSelectedModel(defaultModel);
-                console.log(
-                  `🤖 Saved model not found, using default for ${plan}: ${defaultModel}`
-                );
-              }
-            } else {
-              // No saved model, use default for plan
-              const defaultModel = getDefaultModel(plan);
-              setSelectedModel(defaultModel);
-              console.log(
-                `🤖 No saved model, using default for ${plan}: ${defaultModel}`
-              );
-            }
-          } else {
-            // Failed to fetch project, use default for plan
-            const defaultModel = getDefaultModel(plan);
-            setSelectedModel(defaultModel);
-            console.log(
-              `🤖 Failed to fetch project, using default for ${plan}: ${defaultModel}`
-            );
-          }
-
-          // Mark model as loaded
-          setModelLoaded(true);
-        }
-      } catch (error) {
-        console.error("Error fetching user plan or project:", error);
-        // Default to HOBBY plan on error
-        setAvailableModels(getModelsForPlan("HOBBY"));
-        setSelectedModel(getDefaultModel("HOBBY"));
-        setModelLoaded(true); // Still mark as loaded even on error
-      }
-    };
-
-    fetchUserPlanAndProjectModel();
-  }, [projectId]);
+  }, [projectVersion, projectDescription, messagesLoaded, isLoading]);
 
   // Handle new chat - just clear messages
   const handleNewChat = useCallback(() => {
@@ -786,8 +695,6 @@ export default function ChatPanel({
           }),
           taskType: "coding",
           projectFiles, // Send existing project files for context
-          selectedModel, // Send selected AI model
-          teamId: projectId, // For plan verification
         }),
       });
 
@@ -1422,13 +1329,6 @@ export default function ChatPanel({
                     />
                   </svg>
                 </button>
-
-                {/* Model Selector */}
-                <ModelSelector
-                  selectedModel={selectedModel}
-                  availableModels={availableModels}
-                  onModelChange={setSelectedModel}
-                />
               </div>
 
               <div className="flex items-center gap-2">

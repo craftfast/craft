@@ -3,9 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getModelsForPlan, getDefaultModel, AI_MODELS } from "@/lib/ai-models";
-import type { PlanName } from "@/lib/ai-models";
-import ModelSelector from "./ModelSelector";
 
 interface ImageAttachment {
   id: string;
@@ -196,38 +193,6 @@ export default function CraftInput() {
     }
   };
 
-  // Model selection
-  const [selectedModel, setSelectedModel] =
-    useState<string>("claude-haiku-4.5");
-  const [availableModels, setAvailableModels] = useState(
-    getModelsForPlan("HOBBY")
-  );
-
-  // Fetch user's plan and set available models
-  useEffect(() => {
-    const fetchUserPlan = async () => {
-      try {
-        const response = await fetch("/api/user/plan");
-        if (response.ok) {
-          const data = await response.json();
-          const plan = data.plan as PlanName;
-          const models = getModelsForPlan(plan);
-          setAvailableModels(models);
-          // Set default model based on plan
-          const defaultModel = getDefaultModel(plan);
-          setSelectedModel(
-            Object.keys(AI_MODELS).find(
-              (key) => AI_MODELS[key].id === defaultModel
-            ) || "claude-haiku-4.5"
-          );
-        }
-      } catch (error) {
-        console.error("Failed to fetch user plan:", error);
-      }
-    };
-    fetchUserPlan();
-  }, []);
-
   useEffect(() => {
     let currentIndex = 0;
     let timeoutId: NodeJS.Timeout;
@@ -316,7 +281,6 @@ export default function CraftInput() {
         body: JSON.stringify({
           name: "New Project", // Default name
           description: input,
-          aiModel: AI_MODELS[selectedModel]?.id, // Include selected model
         }),
       });
 
@@ -541,13 +505,6 @@ export default function CraftInput() {
                 />
               </svg>
             </button>
-
-            {/* Model Selector */}
-            <ModelSelector
-              selectedModel={selectedModel}
-              availableModels={availableModels}
-              onModelChange={setSelectedModel}
-            />
           </div>
 
           <div className="flex items-center gap-2">

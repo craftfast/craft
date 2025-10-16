@@ -120,7 +120,7 @@ export default function TermsOfService() {
                 <p className="font-semibold mb-2">Hobby Plan</p>
                 <ul className="space-y-1 text-sm">
                   <li>• Free forever</li>
-                  <li>• 1M AI tokens per month (hard limit)</li>
+                  <li>• Limited AI usage allocation</li>
                   <li>• Access to lite AI models</li>
                   <li>• 500MB database storage</li>
                   <li>• Up to 20 projects</li>
@@ -131,9 +131,9 @@ export default function TermsOfService() {
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
                 <p className="font-semibold mb-2">Pro Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• $150/month</li>
-                  <li>• 10M AI tokens included per month</li>
-                  <li>• Purchase additional tokens as needed</li>
+                  <li>• $4,995/month</li>
+                  <li>• Generous AI usage allocation - code without anxiety</li>
+                  <li>• Extended AI LLM access with all premium models</li>
                   <li>• 5GB database storage</li>
                   <li>• Unlimited projects</li>
                   <li>• Priority support</li>
@@ -146,7 +146,7 @@ export default function TermsOfService() {
                 <p className="font-semibold mb-2">Enterprise Plan</p>
                 <ul className="space-y-1 text-sm">
                   <li>• Custom pricing</li>
-                  <li>• Custom token allocation</li>
+                  <li>• Custom usage allocation tailored to your needs</li>
                   <li>• Unlimited projects and storage</li>
                   <li>• Dedicated AI model instances</li>
                   <li>• Priority support (24/7)</li>
@@ -173,8 +173,9 @@ export default function TermsOfService() {
               </li>
               <li>
                 <strong>Token Usage:</strong> AI tokens are used for AI
-                interactions and features. Pro plan includes 10M tokens/month
-                with option to purchase additional tokens as needed.
+                interactions and features. Pro plan includes generous AI usage
+                allocation - code without anxiety. Hobby plan includes limited
+                usage allocation.
               </li>
               <li>
                 <strong>Payment Methods:</strong> We accept credit cards, debit
@@ -366,23 +367,25 @@ export default function TermsOfService() {
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              6.2 Token Limits and Fair Use
+              6.2 Token Usage and Fair Use
             </h3>
             <ul className="space-y-2">
               <li>
-                <strong>Hobby Users:</strong> 1M AI tokens per month (hard
-                limit, cannot purchase more)
+                <strong>Hobby Users:</strong> Limited AI usage allocation
+                designed to support your development needs
               </li>
               <li>
-                <strong>Pro Users:</strong> 10M AI tokens included per month,
-                with ability to purchase additional tokens as needed
+                <strong>Pro Users:</strong> Generous AI usage allocation with
+                priority access - focus on building without worrying about
+                limits
               </li>
               <li>
-                <strong>Enterprise Users:</strong> Unlimited tokens with custom
-                allocations based on agreement
+                <strong>Enterprise Users:</strong> Custom usage allocations
+                based on your specific requirements and agreement
               </li>
               <li>
                 We reserve the right to implement rate limits to ensure fair use
+                and maintain service quality for all users
               </li>
               <li>
                 Excessive usage may result in temporary throttling or account
@@ -762,7 +765,7 @@ export default function TermsOfService() {
                 <strong>Nextcrafter Labs (OPC) Private Limited</strong>
               </p>
               <p className="mb-1">Bangalore, India</p>
-              <p className="mb-3 text-sm">Operating: Craft.tech & Craft App</p>
+              <p className="mb-3 text-sm">Operating: Craft.tech</p>
               <p className="mb-1">
                 Email:{" "}
                 <a

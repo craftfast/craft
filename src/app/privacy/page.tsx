@@ -466,12 +466,12 @@ export default function PrivacyPolicy() {
                 Usage data is retained for accounting and dispute resolution
               </li>
               <li>
-                Pro users: 10M AI tokens included per month + ability to
-                purchase more
+                Pro users: Generous AI usage allocation - code without anxiety
               </li>
-              <li>Hobby users: 1M AI tokens per month (hard limit)</li>
+              <li>Hobby users: Limited AI usage allocation</li>
               <li>
-                Enterprise users: Unlimited tokens with custom allocations
+                Enterprise users: Custom usage allocations tailored to your
+                needs
               </li>
               <li>
                 Detailed usage logs are available in your account dashboard
@@ -507,7 +507,7 @@ export default function PrivacyPolicy() {
                 <strong>Nextcrafter Labs (OPC) Private Limited</strong>
               </p>
               <p className="mb-1">Bangalore, India</p>
-              <p className="mb-3 text-sm">Operating: Craft.tech & Craft App</p>
+              <p className="mb-3 text-sm">Operating: Craft.tech</p>
               <p className="mb-1">
                 Email:{" "}
                 <a
