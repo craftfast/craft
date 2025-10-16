@@ -1329,9 +1329,7 @@ export default function ChatPanel({
                     />
                   </svg>
                 </button>
-              </div>
 
-              <div className="flex items-center gap-2">
                 {/* Voice input button */}
                 <button
                   onClick={toggleVoiceInput}
@@ -1371,7 +1369,9 @@ export default function ChatPanel({
                     </svg>
                   )}
                 </button>
+              </div>
 
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handleFormSubmit}
                   disabled={!input.trim() || isLoading}

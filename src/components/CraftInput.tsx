@@ -505,9 +505,7 @@ export default function CraftInput() {
                 />
               </svg>
             </button>
-          </div>
 
-          <div className="flex items-center gap-2">
             {/* Voice input button */}
             <button
               onClick={toggleVoiceInput}
@@ -545,7 +543,9 @@ export default function CraftInput() {
                 </svg>
               )}
             </button>
+          </div>
 
+          <div className="flex items-center gap-2">
             <button
               onClick={handleSubmit}
               disabled={!input.trim() || isCreating}
