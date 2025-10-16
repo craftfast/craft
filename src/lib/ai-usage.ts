@@ -56,27 +56,15 @@ function calculateCost(
     inputTokens: number,
     outputTokens: number
 ): number {
-    console.log('💰 Calculating cost for model:', model);
     const pricing =
         MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING.default;
-
-    console.log('💰 Using pricing:', pricing);
 
     // Cost per 1M tokens, so divide by 1,000,000
     const inputCost = (inputTokens / 1000000) * pricing.input;
     const outputCost = (outputTokens / 1000000) * pricing.output;
-    const totalCost = inputCost + outputCost;
 
-    console.log('💰 Cost breakdown:', {
-        inputCost,
-        outputCost,
-        totalCost
-    });
-
-    return totalCost;
-}
-
-/**
+    return inputCost + outputCost;
+}/**
  * Track AI token usage
  */
 export async function trackAIUsage(
@@ -472,22 +460,8 @@ export async function processAIUsage(params: {
     costUsd: number;
     deductedFromPurchased: number;
 }> {
-    console.log('💾 processAIUsage called with params:', {
-        userId: params.userId,
-        projectId: params.projectId,
-        model: params.model,
-        inputTokens: params.inputTokens,
-        outputTokens: params.outputTokens,
-        endpoint: params.endpoint
-    });
-
     // Track the usage
-    console.log('📝 Calling trackAIUsage...');
     const usage = await trackAIUsage(params);
-    console.log('✅ Usage tracked successfully:', {
-        usageId: usage.id,
-        costUsd: usage.costUsd
-    });
 
     // Get user's subscription with plan details
     const subscription = await prisma.userSubscription.findUnique({
@@ -503,15 +477,11 @@ export async function processAIUsage(params: {
         subscriptionLimit = 100000; // Default to free tier (100k tokens)
     }
 
-    console.log('💳 Subscription limit:', subscriptionLimit);
-
     // Get current period usage (before this request)
     const currentUsage = await getCurrentPeriodAIUsage(params.userId);
-    console.log('📊 Current period usage:', currentUsage.totalTokens);
 
     const totalTokens = params.inputTokens + params.outputTokens;
     const newTotalUsage = currentUsage.totalTokens + totalTokens;
-    console.log('📈 New total usage:', newTotalUsage);
 
     // Determine how many tokens to deduct from purchased balance
     let tokensToDeductFromPurchased = 0;
@@ -525,7 +495,6 @@ export async function processAIUsage(params: {
         if (currentUsage.totalTokens < subscriptionLimit) {
             tokensToDeductFromPurchased = newTotalUsage - subscriptionLimit;
         }
-        console.log('💰 Tokens to deduct from purchased balance:', tokensToDeductFromPurchased);
     }
 
     // Deduct from purchased balance if needed
@@ -533,16 +502,12 @@ export async function processAIUsage(params: {
     if (tokensToDeductFromPurchased > 0) {
         const result = await deductPurchasedTokens(params.userId, tokensToDeductFromPurchased);
         deductedFromPurchased = result.success ? tokensToDeductFromPurchased : 0;
-        console.log('✅ Deducted from purchased:', deductedFromPurchased);
     }
 
-    const finalResult = {
+    return {
         success: true,
         usageId: usage.id,
         costUsd: usage.costUsd,
         deductedFromPurchased,
     };
-
-    console.log('✅ processAIUsage completed:', finalResult);
-    return finalResult;
 }

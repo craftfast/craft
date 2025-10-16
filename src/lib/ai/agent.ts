@@ -205,9 +205,6 @@ export function streamCodingResponse(options: CodingStreamOptions) {
         system: systemPrompt,
         messages: messages as never, // AI SDK will handle the validation
         onFinish: async ({ usage }) => {
-            console.log('🔔 onFinish callback triggered');
-            console.log('📊 Usage object:', JSON.stringify(usage, null, 2));
-
             if (usage) {
                 // OpenRouter returns inputTokens/outputTokens directly (not promptTokens/completionTokens)
                 const inputTokens = usage.inputTokens || 0;
@@ -217,7 +214,6 @@ export function streamCodingResponse(options: CodingStreamOptions) {
                 console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
 
                 if (onFinish) {
-                    console.log('🎯 Calling onFinish callback with usage data');
                     try {
                         await onFinish({
                             model,
@@ -225,15 +221,10 @@ export function streamCodingResponse(options: CodingStreamOptions) {
                             outputTokens,
                             totalTokens,
                         });
-                        console.log('✅ onFinish callback completed successfully');
                     } catch (error) {
-                        console.error('❌ Error in onFinish callback:', error);
+                        console.error('❌ Failed to track usage:', error);
                     }
-                } else {
-                    console.warn('⚠️ onFinish callback is not provided');
                 }
-            } else {
-                console.warn('⚠️ No usage data received from AI SDK');
             }
         },
     });
