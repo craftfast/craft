@@ -122,7 +122,7 @@ export default function PricingPage() {
         { text: "10M AI tokens per month", included: true, highlight: true },
         { text: "Unlimited projects", included: true, highlight: false },
         {
-          text: "Purchase additional AI credits starting at $5/Million tokens",
+          text: "Purchase additional AI credits at $5 per million tokens",
           included: true,
           highlight: false,
         },
@@ -191,7 +191,7 @@ export default function PricingPage() {
               Find a plan to craft your apps
             </h1>
             <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
-              Craft supports teams of all sizes, with pricing that scales.
+              Simple, transparent pricing for individual developers.
             </p>
           </div>
 
@@ -312,7 +312,7 @@ export default function PricingPage() {
           </div>
 
           {/* Pricing Disclaimer */}
-          <div className="mt-6 text-center">
+          <div className="mt-4 text-center">
             <p className="text-xs text-neutral-500 dark:text-neutral-500">
               By subscribing, you agree to our{" "}
               <a
@@ -403,33 +403,6 @@ export default function PricingPage() {
                       </div>
                     </td>
                   </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
-                        Human Expert Review
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Quality guaranteed by designers & engineers
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <span>Not included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <span className="font-semibold">
-                          Custom requirements
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
 
                   {/* Project & Domain Features */}
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
@@ -486,7 +459,7 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        500 MB
+                        50 MB
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
                         Fixed limit (upgrade to Pro for more)
@@ -494,7 +467,7 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        5 GB free
+                        500 MB free
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400 mb-1">
                         <span className="font-semibold">$0.10/GB/month</span>{" "}
@@ -521,7 +494,7 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        1 GB
+                        100 MB
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
                         Fixed limit (upgrade to Pro for more)
@@ -529,7 +502,7 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        10 GB free
+                        1 GB free
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400 mb-1">
                         <span className="font-semibold">$0.05/GB/month</span>{" "}
@@ -548,40 +521,6 @@ export default function PricingPage() {
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="p-4 sm:p-6">
                       <div className="font-semibold text-foreground mb-1">
-                        Bandwidth
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Data transfer for hosting
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        100 GB
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        Fixed limit (upgrade to Pro for more)
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        1000 GB free
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        <span className="font-semibold">$0.10/GB</span> after
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        Custom bandwidth limits
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        Global CDN included
-                      </div>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
                         Authentication
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
@@ -590,23 +529,23 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        1,000 MAU
+                        <span className="font-semibold">Unlimited</span>
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
-                        Fixed limit (upgrade to Pro for more)
+                        No MAU limits
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        10,000 MAU free
+                        <span className="font-semibold">Unlimited</span>
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
-                        <span className="font-semibold">$0.01/user</span> after
+                        No MAU limits
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        Custom MAU
+                        <span className="font-semibold">Unlimited</span>
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
                         SSO & SAML included
@@ -1148,7 +1087,7 @@ export default function PricingPage() {
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="p-4 sm:p-6">
                       <div className="font-semibold text-foreground mb-1">
-                        File Storage & CDN
+                        File Storage
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
                         S3-compatible object storage
@@ -1337,70 +1276,6 @@ export default function PricingPage() {
                       </div>
                     </td>
                   </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
-                        API Rate Limiting
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Protect against abuse
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                  </tr>
                 </tbody>
               </table>
             </div>
@@ -1409,146 +1284,6 @@ export default function PricingPage() {
                 * All usage limits reset monthly. Usage beyond free tiers is
                 billed at the end of each month.
               </p>
-              <p className="mt-1">
-                * Enterprise plans include custom limits tailored to your needs.
-                Contact sales for details.
-              </p>
-            </div>
-          </div>
-
-          {/* What's Included Section */}
-          <div className="mt-16 sm:mt-20">
-            <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 sm:p-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3 text-center">
-                Everything you need to build & ship
-              </h2>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mb-10 max-w-2xl mx-auto">
-                Integrated platform with AI chat, live preview, database,
-                storage, and authentication.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                <div className="bg-white dark:bg-neutral-900 rounded-xl p-6 border border-neutral-200 dark:border-neutral-700">
-                  <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center mb-4">
-                    <svg
-                      className="w-5 h-5 text-white dark:text-black"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    AI Development
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    Chat with AI to build apps. Access GPT-4, Claude, o1, and
-                    more.
-                  </p>
-                </div>
-
-                <div className="bg-white dark:bg-neutral-900 rounded-xl p-6 border border-neutral-200 dark:border-neutral-700">
-                  <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center mb-4">
-                    <svg
-                      className="w-5 h-5 text-white dark:text-black"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Live Preview
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    See changes instantly in a real browser environment.
-                  </p>
-                </div>
-
-                <div className="bg-white dark:bg-neutral-900 rounded-xl p-6 border border-neutral-200 dark:border-neutral-700">
-                  <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center mb-4">
-                    <svg
-                      className="w-5 h-5 text-white dark:text-black"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Database
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    PostgreSQL database with generous free tier.
-                  </p>
-                </div>
-
-                <div className="bg-white dark:bg-neutral-900 rounded-xl p-6 border border-neutral-200 dark:border-neutral-700">
-                  <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center mb-4">
-                    <svg
-                      className="w-5 h-5 text-white dark:text-black"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Storage
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    S3-compatible storage for files and assets.
-                  </p>
-                </div>
-
-                <div className="bg-white dark:bg-neutral-900 rounded-xl p-6 border border-neutral-200 dark:border-neutral-700">
-                  <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center mb-4">
-                    <svg
-                      className="w-5 h-5 text-white dark:text-black"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Authentication
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    Built-in auth with social login support.
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 

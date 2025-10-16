@@ -120,24 +120,29 @@ export default function TermsOfService() {
                 <p className="font-semibold mb-2">Hobby Plan</p>
                 <ul className="space-y-1 text-sm">
                   <li>• Free forever</li>
-                  <li>• Limited AI usage allocation</li>
-                  <li>• Access to lite AI models</li>
-                  <li>• 500MB database storage</li>
-                  <li>• Up to 20 projects</li>
+                  <li>• 100k AI tokens per month</li>
+                  <li>• Up to 3 projects</li>
+                  <li>• AI-powered chat interface</li>
+                  <li>• Live preview environment</li>
+                  <li>• Integrated database & storage</li>
+                  <li>• Authentication</li>
+                  <li>• Craft branding on projects</li>
                   <li>• Community support</li>
-                  <li>• Cannot purchase additional usage</li>
                 </ul>
               </div>
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
                 <p className="font-semibold mb-2">Pro Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• $4,995/month</li>
-                  <li>• Generous AI usage allocation - code without anxiety</li>
-                  <li>• Extended AI LLM access with all premium models</li>
-                  <li>• 5GB database storage</li>
+                  <li>• $25/month</li>
+                  <li>• 10M AI tokens per month</li>
                   <li>• Unlimited projects</li>
-                  <li>• Priority support</li>
-                  <li>• Pay-as-you-go for infrastructure overages</li>
+                  <li>
+                    • Purchase additional AI credits at $5 per million tokens
+                  </li>
+                  <li>• Import from Figma & GitHub</li>
+                  <li>• Remove Craft branding</li>
+                  <li>• Pay-as-you-go for infrastructure</li>
+                  <li>• Priority email support</li>
                 </ul>
               </div>
 
@@ -145,15 +150,13 @@ export default function TermsOfService() {
                 <p className="font-semibold mb-2">Enterprise Plan</p>
                 <ul className="space-y-1 text-sm">
                   <li>• Custom pricing</li>
-                  <li>• Custom usage allocation tailored to your needs</li>
-                  <li>• Unlimited projects and storage</li>
-                  <li>• Dedicated AI model instances</li>
-                  <li>• Priority support (24/7)</li>
                   <li>• SSO & SAML authentication</li>
-                  <li>• Training opt-out</li>
-                  <li>• Custom integrations</li>
+                  <li>• Advanced security controls</li>
+                  <li>• Audit logs & compliance</li>
+                  <li>• Custom database & storage limits</li>
                   <li>• 99.9% uptime SLA</li>
-                  <li>• Advanced security & compliance</li>
+                  <li>• Dedicated account manager</li>
+                  <li>• 24/7 priority support</li>
                 </ul>
               </div>
             </div>
@@ -172,9 +175,9 @@ export default function TermsOfService() {
               </li>
               <li>
                 <strong>Token Usage:</strong> AI tokens are used for AI
-                interactions and features. Pro plan includes generous AI usage
-                allocation - code without anxiety. Hobby plan includes limited
-                usage allocation.
+                interactions and features. Hobby plan includes 100k tokens per
+                month. Pro plan includes 10M tokens per month. Additional tokens
+                can be purchased at $5 per million tokens (Pro plan only).
               </li>
               <li>
                 <strong>Payment Methods:</strong> We accept credit cards, debit

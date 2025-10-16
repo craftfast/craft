@@ -116,8 +116,7 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Database Content:</strong> Data stored in your Craft
-                databases (0.5GB for Free, 5GB for Pro, unlimited for
-                Enterprise).
+                databases and storage systems.
               </li>
               <li>
                 <strong>Integrations:</strong> Data from connected services like
@@ -142,9 +141,9 @@ export default function PrivacyPolicy() {
                 based on your usage patterns and preferences.
               </li>
               <li>
-                <strong>AI Training:</strong> For Hobby and Pro users, we may
-                use your prompts and interactions to improve our AI models.
-                Enterprise users can opt out of AI training.
+                <strong>AI Training:</strong> We may use your prompts and
+                interactions to improve our AI models. Enterprise users can opt
+                out of AI training.
               </li>
               <li>
                 <strong>User Memory:</strong> Store context and preferences to
@@ -152,7 +151,8 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Process Payments:</strong> Handle billing,
-                subscriptions, and token usage for Pro and Enterprise plans.
+                subscriptions, token usage, and additional token purchases for
+                Pro and Enterprise plans.
               </li>
               <li>
                 <strong>Communication:</strong> Send service updates, security
@@ -254,9 +254,11 @@ export default function PrivacyPolicy() {
                 you delete them or close your account.
               </li>
               <li>
-                <strong>AI Conversations:</strong> May be retained for up to 30
-                days (Free), 90 days (Pro), or as configured for Enterprise
-                users.
+                <strong>AI Conversations:</strong> Retained as needed to retrain
+                our AI models and improve the app-building experience. We do not
+                guarantee specific retention periods, as data may be used to
+                continuously enhance service quality and provide a smoother
+                development experience.
               </li>
               <li>
                 <strong>Payment Records:</strong> Retained for 7 years for

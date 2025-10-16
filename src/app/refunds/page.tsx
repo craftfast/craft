@@ -48,24 +48,23 @@ export default function RefundPolicy() {
               1. Subscription Plans Overview
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">1.1 Free Plan</h3>
+            <h3 className="text-xl font-semibold mb-3">1.1 Hobby Plan</h3>
             <ul className="space-y-2">
               <li>No subscription fee or payment required</li>
               <li>
                 Can be cancelled at any time without any refund implications
               </li>
-              <li>Limited AI usage allocation - no top-up available</li>
+              <li>100k AI tokens per month included</li>
+              <li>Up to 3 projects</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">1.2 Pro Plan</h3>
             <ul className="space-y-2">
               <li>Monthly subscription billed in advance</li>
-              <li>Pricing: $4,995/month</li>
-              <li>
-                Includes generous AI usage allocation - code without anxiety
-              </li>
-              <li>Extended AI LLM access with all premium models</li>
-              <li>14-day free trial available (no credit card required)</li>
+              <li>Pricing: $25/month</li>
+              <li>Includes 10M AI tokens per month</li>
+              <li>Unlimited projects</li>
+              <li>Purchase additional AI credits at $5 per million tokens</li>
               <li>Automatically renews monthly unless cancelled</li>
             </ul>
 
@@ -127,8 +126,8 @@ export default function RefundPolicy() {
               <li>Your projects and data remain accessible</li>
               <li>Pro features are disabled</li>
               <li>
-                Usage is subject to Free plan limitations (limited AI
-                allocation, 20 projects max)
+                Usage is subject to Hobby plan limitations (100k AI
+                tokens/month, 3 projects max)
               </li>
               <li>You can resubscribe at any time</li>
               <li>No data is deleted from your account</li>
@@ -189,8 +188,8 @@ export default function RefundPolicy() {
             </h3>
             <ul className="space-y-2">
               <li>Partial period subscriptions</li>
-              <li>Unused AI usage from any plan</li>
-              <li>AI usage top-up purchases</li>
+              <li>Unused AI tokens from any plan</li>
+              <li>Additional AI token purchases ($5 per million tokens)</li>
               <li>Subscription fees after the 7-day refund request window</li>
               <li>
                 Any fees if service termination was due to Terms of Service
