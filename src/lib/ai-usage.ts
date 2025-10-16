@@ -8,7 +8,12 @@ import { prisma } from "@/lib/db";
 // AI Model pricing per 1M tokens (in USD)
 // Updated from OpenRouter pricing (October 16, 2025)
 const MODEL_PRICING = {
-    // Claude models
+    // Claude models (with full OpenRouter path)
+    "anthropic/claude-sonnet-4.5": { input: 3.0, output: 15.0 },
+    "anthropic/claude-sonnet-3.5": { input: 3.0, output: 15.0 },
+    "anthropic/claude-haiku-4.5": { input: 1.0, output: 5.0 },
+
+    // Claude models (short names for backwards compatibility)
     "claude-sonnet-4.5": { input: 3.0, output: 15.0 },
     "claude-sonnet-3.5": { input: 3.0, output: 15.0 },
     "claude-haiku-4.5": { input: 1.0, output: 5.0 },
@@ -22,7 +27,12 @@ const MODEL_PRICING = {
     "gemini-2.5-pro": { input: 1.25, output: 10.0 },
     "gemini-2.5-flash": { input: 0.3, output: 2.5 },
 
-    // Grok models
+    // Grok models (with full OpenRouter path)
+    "x-ai/grok-4-fast": { input: 0.05, output: 0.15 },
+    "x-ai/grok-2": { input: 2.0, output: 6.0 },
+
+    // Grok models (short names for backwards compatibility)
+    "grok-4-fast": { input: 0.05, output: 0.15 },
     "grok-2": { input: 2.0, output: 6.0 },
 
     // Default fallback
@@ -46,14 +56,24 @@ function calculateCost(
     inputTokens: number,
     outputTokens: number
 ): number {
+    console.log('💰 Calculating cost for model:', model);
     const pricing =
         MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING.default;
+
+    console.log('💰 Using pricing:', pricing);
 
     // Cost per 1M tokens, so divide by 1,000,000
     const inputCost = (inputTokens / 1000000) * pricing.input;
     const outputCost = (outputTokens / 1000000) * pricing.output;
+    const totalCost = inputCost + outputCost;
 
-    return inputCost + outputCost;
+    console.log('💰 Cost breakdown:', {
+        inputCost,
+        outputCost,
+        totalCost
+    });
+
+    return totalCost;
 }
 
 /**
@@ -452,8 +472,22 @@ export async function processAIUsage(params: {
     costUsd: number;
     deductedFromPurchased: number;
 }> {
+    console.log('💾 processAIUsage called with params:', {
+        userId: params.userId,
+        projectId: params.projectId,
+        model: params.model,
+        inputTokens: params.inputTokens,
+        outputTokens: params.outputTokens,
+        endpoint: params.endpoint
+    });
+
     // Track the usage
+    console.log('📝 Calling trackAIUsage...');
     const usage = await trackAIUsage(params);
+    console.log('✅ Usage tracked successfully:', {
+        usageId: usage.id,
+        costUsd: usage.costUsd
+    });
 
     // Get user's subscription with plan details
     const subscription = await prisma.userSubscription.findUnique({
@@ -469,11 +503,15 @@ export async function processAIUsage(params: {
         subscriptionLimit = 100000; // Default to free tier (100k tokens)
     }
 
+    console.log('💳 Subscription limit:', subscriptionLimit);
+
     // Get current period usage (before this request)
     const currentUsage = await getCurrentPeriodAIUsage(params.userId);
+    console.log('📊 Current period usage:', currentUsage.totalTokens);
 
     const totalTokens = params.inputTokens + params.outputTokens;
     const newTotalUsage = currentUsage.totalTokens + totalTokens;
+    console.log('📈 New total usage:', newTotalUsage);
 
     // Determine how many tokens to deduct from purchased balance
     let tokensToDeductFromPurchased = 0;
@@ -487,6 +525,7 @@ export async function processAIUsage(params: {
         if (currentUsage.totalTokens < subscriptionLimit) {
             tokensToDeductFromPurchased = newTotalUsage - subscriptionLimit;
         }
+        console.log('💰 Tokens to deduct from purchased balance:', tokensToDeductFromPurchased);
     }
 
     // Deduct from purchased balance if needed
@@ -494,12 +533,16 @@ export async function processAIUsage(params: {
     if (tokensToDeductFromPurchased > 0) {
         const result = await deductPurchasedTokens(params.userId, tokensToDeductFromPurchased);
         deductedFromPurchased = result.success ? tokensToDeductFromPurchased : 0;
+        console.log('✅ Deducted from purchased:', deductedFromPurchased);
     }
 
-    return {
+    const finalResult = {
         success: true,
         usageId: usage.id,
         costUsd: usage.costUsd,
         deductedFromPurchased,
     };
+
+    console.log('✅ processAIUsage completed:', finalResult);
+    return finalResult;
 }

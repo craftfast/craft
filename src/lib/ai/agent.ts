@@ -205,19 +205,35 @@ export function streamCodingResponse(options: CodingStreamOptions) {
         system: systemPrompt,
         messages: messages as never, // AI SDK will handle the validation
         onFinish: async ({ usage }) => {
-            if (usage && onFinish) {
-                // AI SDK v5 uses different property names
-                const inputTokens = (usage as { promptTokens?: number }).promptTokens || 0;
-                const outputTokens = (usage as { completionTokens?: number }).completionTokens || 0;
+            console.log('🔔 onFinish callback triggered');
+            console.log('📊 Usage object:', JSON.stringify(usage, null, 2));
+
+            if (usage) {
+                // OpenRouter returns inputTokens/outputTokens directly (not promptTokens/completionTokens)
+                const inputTokens = usage.inputTokens || 0;
+                const outputTokens = usage.outputTokens || 0;
                 const totalTokens = usage.totalTokens || inputTokens + outputTokens;
 
                 console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
-                await onFinish({
-                    model,
-                    inputTokens,
-                    outputTokens,
-                    totalTokens,
-                });
+
+                if (onFinish) {
+                    console.log('🎯 Calling onFinish callback with usage data');
+                    try {
+                        await onFinish({
+                            model,
+                            inputTokens,
+                            outputTokens,
+                            totalTokens,
+                        });
+                        console.log('✅ onFinish callback completed successfully');
+                    } catch (error) {
+                        console.error('❌ Error in onFinish callback:', error);
+                    }
+                } else {
+                    console.warn('⚠️ onFinish callback is not provided');
+                }
+            } else {
+                console.warn('⚠️ No usage data received from AI SDK');
             }
         },
     });
