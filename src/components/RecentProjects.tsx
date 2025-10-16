@@ -82,7 +82,7 @@ export default function RecentProjects() {
 
       {/* Empty State */}
       {!loading && projects.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-1">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
             <svg
               className="w-8 h-8 text-neutral-400 dark:text-neutral-600"
@@ -98,10 +98,10 @@ export default function RecentProjects() {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
             No projects yet
           </h3>
-          <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+          <p className="text-neutral-600 dark:text-neutral-400">
             Create your first project to get started
           </p>
         </div>
