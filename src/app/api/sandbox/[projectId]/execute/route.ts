@@ -7,7 +7,7 @@ import { Sandbox } from "@e2b/code-interpreter";
 // Import the active sandboxes map (would be better in a shared module)
 // For now, we'll access it through a global
 declare global {
-    var activeSandboxes: Map<string, { sandbox: Sandbox; lastAccessed: Date }>;
+    var activeSandboxes: Map<string, { sandbox: Sandbox; lastAccessed: Date; devServerPid?: number }>;
 }
 
 if (!global.activeSandboxes) {
@@ -16,7 +16,7 @@ if (!global.activeSandboxes) {
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { projectId: string } }
+    { params }: { params: Promise<{ projectId: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions);
@@ -25,7 +25,7 @@ export async function POST(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { projectId } = params;
+        const { projectId } = await params;
 
         // Verify project ownership
         const project = await prisma.project.findFirst({

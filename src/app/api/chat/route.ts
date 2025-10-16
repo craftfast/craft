@@ -1,15 +1,8 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { streamText } from "ai";
 import { getSystemPrompt } from "@/lib/ai/system-prompts";
-import { getSmartModel, logModelSelection } from "@/lib/ai/model-router";
+import { streamCodingResponse } from "@/lib/ai/agent";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
-
-// Create OpenRouter client
-const openrouter = createOpenRouter({
-    apiKey: process.env.OPENROUTER_API_KEY || "",
-});
 
 // Types for message content
 interface TextContent {
@@ -27,27 +20,6 @@ type MessageContent = string | (TextContent | ImageUrlContent)[];
 export async function POST(req: Request) {
     try {
         const { messages, taskType, projectFiles } = await req.json();
-
-        // Get the last user message for analysis
-        const lastUserMessage = messages
-            .filter((m: { role: string }) => m.role === 'user')
-            .pop();
-
-        const userMessageText = typeof lastUserMessage?.content === 'string'
-            ? lastUserMessage.content
-            : Array.isArray(lastUserMessage?.content)
-                ? lastUserMessage.content.find((c: { type: string }) => c.type === 'text')?.text || ''
-                : '';
-
-        // Use smart router to determine the best model
-        const { model: modelName, modelName: displayName, analysis } = getSmartModel(
-            userMessageText,
-            projectFiles || {},
-            messages.slice(0, -1) // conversation history before last message
-        );
-
-        // Log the routing decision
-        logModelSelection(displayName, analysis, userMessageText);
 
         // Get environment-aware system prompt
         const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles);
@@ -92,15 +64,17 @@ export async function POST(req: Request) {
             Array.isArray(m.content) && m.content.some((c: { type: string }) => c.type === 'image')
         );
 
-        console.log(`🤖 AI Chat Request - Model: ${modelName}, Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}`);
+        console.log(`🤖 AI Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}`);
         if (projectFiles && Object.keys(projectFiles).length > 0) {
             console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
         }
 
-        const result = streamText({
-            model: openrouter.chat(modelName),
-            system: systemPrompt,
+        // Use the centralized AI agent for smart routing and streaming
+        const result = streamCodingResponse({
             messages: formattedMessages,
+            systemPrompt,
+            projectFiles: projectFiles || {},
+            conversationHistory: messages.slice(0, -1),
         });
 
         // Use the official AI SDK method for streaming responses

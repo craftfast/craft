@@ -95,6 +95,17 @@ export const TOKEN_PRICING = {
     PAY_AS_YOU_GO: 5, // $5 per 1M tokens for top-up (both input and output included)
 } as const;
 
+export const CREDIT_TIERS = [
+    { tokens: 1000000, price: 5, display: "1M tokens - $5" },
+    { tokens: 5000000, price: 20, display: "5M tokens - $20" },
+    { tokens: 10000000, price: 35, display: "10M tokens - $35" },
+    { tokens: 25000000, price: 80, display: "25M tokens - $80" },
+] as const;
+
+export function getCreditTiers() {
+    return CREDIT_TIERS;
+}
+
 export const SUPPORT_EMAIL = "support@craft.tech";
 export const SALES_EMAIL = "sales@craft.tech";
 

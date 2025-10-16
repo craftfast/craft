@@ -34,8 +34,11 @@ export default function CreditSelector({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const formatCredits = (credits: number) => {
-    return credits >= 1000 ? `${credits / 1000}k` : credits.toLocaleString();
+  const formatCredits = (tokens: number) => {
+    if (tokens >= 1000000) {
+      return `${tokens / 1000000}M tokens`;
+    }
+    return `${tokens.toLocaleString()} tokens`;
   };
 
   const handleSelect = (credits: number) => {
@@ -81,13 +84,13 @@ export default function CreditSelector({
           <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-600 shadow-xl overflow-hidden">
             <div className="max-h-64 overflow-y-auto minimalist-scrollbar">
               {creditTiers.map((tier, index) => {
-                const isSelected = tier === selectedCredits;
+                const isSelected = tier.tokens === selectedCredits;
 
                 return (
                   <button
-                    key={tier}
+                    key={tier.tokens}
                     type="button"
-                    onClick={() => handleSelect(tier)}
+                    onClick={() => handleSelect(tier.tokens)}
                     className={`w-full px-4 py-3 text-left transition-colors duration-150 flex items-center justify-between ${
                       index !== creditTiers.length - 1
                         ? "border-b border-neutral-100 dark:border-neutral-700"
@@ -105,7 +108,7 @@ export default function CreditSelector({
                           : "font-medium text-neutral-700 dark:text-neutral-300"
                       }`}
                     >
-                      {formatCredits(tier)} credits/month
+                      {tier.display}
                     </span>
                     {/* Checkmark for selected item on the right */}
                     <div className="w-5 h-5 flex items-center justify-center">

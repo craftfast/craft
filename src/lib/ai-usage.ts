@@ -220,53 +220,6 @@ export async function getUserAIUsage(
     };
 }
 
-/**
- * Get available AI models for a plan
- */
-export function getAvailableModels(
-    planName: "HOBBY" | "PRO" | "ENTERPRISE"
-): string[] {
-    if (planName === "HOBBY") {
-        return [
-            "claude-haiku-4.5",
-            "gpt-5-mini",
-            "gemini-2.5-flash",
-            "claude-sonnet-3.5",
-        ];
-    }
-
-    if (planName === "PRO") {
-        return [
-            ...getAvailableModels("HOBBY"),
-            "gpt-5",
-            "claude-sonnet-4.5",
-            "gemini-2.5-pro",
-            "grok-2",
-        ];
-    }
-
-    // ENTERPRISE gets all models
-    return Object.keys(MODEL_PRICING).filter((key) => key !== "default");
-}
-
-/**
- * Check if team can use a specific model
- */
-export async function canUseModel(
-    teamId: string,
-    model: string
-): Promise<boolean> {
-    const subscription = await prisma.teamSubscription.findUnique({
-        where: { teamId },
-        include: { plan: true },
-    });
-
-    const planName = (subscription?.plan.name as "HOBBY" | "PRO" | "ENTERPRISE") || "HOBBY";
-    const availableModels = getAvailableModels(planName);
-
-    return availableModels.includes(model);
-}
-
 // ============================================================================
 // TOKEN PURCHASE TRACKING
 // ============================================================================
