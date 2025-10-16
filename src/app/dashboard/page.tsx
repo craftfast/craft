@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Logo from "@/components/Logo";
 import DashboardHeader from "@/components/DashboardHeader";
 import CraftInput from "@/components/CraftInput";
 import RecentProjects from "@/components/RecentProjects";
@@ -27,18 +26,12 @@ export default async function DashboardPage() {
       {/* Header - Fixed */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
-          <div className="relative flex items-center justify-between">
-            <Logo
-              showText={true}
-              iconClassName="text-white dark:text-white"
-              href="/dashboard"
-            />
-            <DashboardHeader
-              planName={subscription?.plan?.name}
-              userId={session.user.id}
-              userSubscription={subscription}
-            />
-          </div>
+          <DashboardHeader
+            planName={subscription?.plan?.name}
+            userId={session.user.id}
+            userSubscription={subscription}
+            showLogoText={true}
+          />
         </div>
       </header>
 
