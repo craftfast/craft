@@ -266,3 +266,152 @@ export async function canUseModel(
 
     return availableModels.includes(model);
 }
+
+// ============================================================================
+// TOKEN PURCHASE TRACKING
+// ============================================================================
+
+/**
+ * Record a token purchase
+ */
+export async function recordTokenPurchase(params: {
+    teamId: string;
+    userId: string;
+    tokenAmount: number;
+    priceUsd: number;
+    polarCheckoutId?: string;
+    polarPaymentId?: string;
+}): Promise<{ id: string; success: boolean }> {
+    const purchase = await prisma.tokenPurchase.create({
+        data: {
+            teamId: params.teamId,
+            userId: params.userId,
+            tokenAmount: params.tokenAmount,
+            priceUsd: params.priceUsd,
+            tokensRemaining: params.tokenAmount,
+            status: "completed",
+            polarCheckoutId: params.polarCheckoutId,
+            polarPaymentId: params.polarPaymentId,
+            expiresAt: null, // Tokens never expire
+        },
+    });
+
+    return {
+        id: purchase.id,
+        success: true,
+    };
+}
+
+/**
+ * Get team's purchased token balance
+ */
+export async function getTeamTokenBalance(teamId: string): Promise<{
+    totalPurchased: number;
+    totalUsed: number;
+    remaining: number;
+}> {
+    // Get all completed token purchases for the team
+    const purchases = await prisma.tokenPurchase.findMany({
+        where: {
+            teamId,
+            status: "completed",
+        },
+    });
+
+    const totalPurchased = purchases.reduce(
+        (sum, p) => sum + p.tokenAmount,
+        0
+    );
+
+    const remaining = purchases.reduce((sum, p) => sum + p.tokensRemaining, 0);
+    const totalUsed = totalPurchased - remaining;
+
+    return {
+        totalPurchased,
+        totalUsed,
+        remaining,
+    };
+}
+
+/**
+ * Deduct tokens from purchased balance
+ * This should be called after AI usage to reduce the purchased token balance
+ */
+export async function deductPurchasedTokens(
+    teamId: string,
+    tokensToDeduct: number
+): Promise<{ success: boolean; remaining: number }> {
+    // Get purchases with remaining tokens, oldest first
+    const purchases = await prisma.tokenPurchase.findMany({
+        where: {
+            teamId,
+            status: "completed",
+            tokensRemaining: {
+                gt: 0,
+            },
+        },
+        orderBy: {
+            purchasedAt: "asc", // Use oldest purchases first
+        },
+    });
+
+    let remainingToDeduct = tokensToDeduct;
+
+    // Deduct from purchases until we've used all tokens needed
+    for (const purchase of purchases) {
+        if (remainingToDeduct <= 0) break;
+
+        const deductFromThis = Math.min(
+            purchase.tokensRemaining,
+            remainingToDeduct
+        );
+
+        await prisma.tokenPurchase.update({
+            where: { id: purchase.id },
+            data: {
+                tokensRemaining: purchase.tokensRemaining - deductFromThis,
+            },
+        });
+
+        remainingToDeduct -= deductFromThis;
+    }
+
+    const balance = await getTeamTokenBalance(teamId);
+
+    return {
+        success: remainingToDeduct === 0,
+        remaining: balance.remaining,
+    };
+}
+
+/**
+ * Get token purchase history for a team
+ */
+export async function getTeamTokenPurchases(
+    teamId: string
+): Promise<
+    Array<{
+        id: string;
+        tokenAmount: number;
+        priceUsd: number;
+        tokensRemaining: number;
+        purchasedAt: Date;
+        status: string;
+    }>
+> {
+    const purchases = await prisma.tokenPurchase.findMany({
+        where: { teamId },
+        orderBy: {
+            purchasedAt: "desc",
+        },
+    });
+
+    return purchases.map((p) => ({
+        id: p.id,
+        tokenAmount: p.tokenAmount,
+        priceUsd: p.priceUsd,
+        tokensRemaining: p.tokensRemaining,
+        purchasedAt: p.purchasedAt,
+        status: p.status,
+    }));
+}

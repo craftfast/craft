@@ -27,7 +27,7 @@ export const PRICING = {
             trainingOptOut: false,
             sso: false,
             dedicatedSupport: false,
-            canPurchaseTokens: false,
+            canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
         },
     },
     PRO: {
@@ -52,7 +52,7 @@ export const PRICING = {
             trainingOptOut: false,
             sso: false,
             dedicatedSupport: false,
-            canPurchaseTokens: false, // Generous allocation included
+            canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
             unlimitedAI: true, // Extended AI LLM access with generous allocation
         },
     },
@@ -92,7 +92,7 @@ export const PRICING = {
 } as const;
 
 export const TOKEN_PRICING = {
-    PAY_AS_YOU_GO: 20, // $20 per 1M tokens for top-up
+    PAY_AS_YOU_GO: 5, // $5 per 1M tokens for top-up (both input and output included)
 } as const;
 
 export const SUPPORT_EMAIL = "support@craft.tech";

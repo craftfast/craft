@@ -427,3 +427,34 @@ model PaymentTransaction {
   @@index([createdAt])
   @@map("payment_transactions")
 }
+
+// ============================================================================
+// TOKEN PURCHASES
+// ============================================================================
+
+model TokenPurchase {
+  id              String    @id @default(cuid())
+  teamId          String
+  userId          String
+  tokenAmount     Int // Number of tokens purchased (e.g., 1000000 for 1M tokens)
+  priceUsd        Float // Price paid in USD (e.g., 5.00 for 1M tokens)
+  currency        String    @default("USD")
+  status          String    @default("pending") // "pending", "completed", "failed", "refunded"
+  polarCheckoutId String?
+  polarPaymentId  String?
+  purchasedAt     DateTime  @default(now())
+  expiresAt       DateTime? // Null = never expires
+  tokensRemaining Int // Tokens not yet used from this purchase
+  transactionId   String? // Link to PaymentTransaction if needed
+  metadata        Json? // Additional purchase metadata
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([teamId])
+  @@index([userId])
+  @@index([status])
+  @@index([polarCheckoutId])
+  @@index([polarPaymentId])
+  @@index([purchasedAt])
+  @@map("token_purchases")
+}

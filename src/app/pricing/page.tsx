@@ -80,6 +80,71 @@ export default function PricingPage() {
     }
   };
 
+  const handleTokenPurchase = async (tokenMillions: number) => {
+    if (!session) {
+      router.push("/auth/signin");
+      return;
+    }
+
+    try {
+      // First, call our API to prepare the purchase
+      const response = await fetch("/api/tokens/purchase", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tokenAmount: tokenMillions,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to prepare token purchase");
+      }
+
+      const purchaseData = await response.json();
+
+      // Now initiate Polar payment
+      await initiatePolarPayment({
+        amount: purchaseData.totalPriceCents,
+        currency: "USD",
+        productName: purchaseData.productName,
+        productDescription: purchaseData.productDescription,
+        email: session?.user?.email || undefined,
+        successUrl: `${window.location.origin}/dashboard?payment=success&tokens=${tokenMillions}M`,
+        onFailure: (error) => {
+          console.error("Token purchase payment failed:", error);
+          const errorMsg =
+            typeof error === "object" && "error" in error
+              ? error.error
+              : "An unexpected error occurred";
+
+          alert(
+            "❌ Token Purchase Failed\n\n" +
+              errorMsg +
+              "\n\n" +
+              "What to do:\n" +
+              "• Try again in a few minutes\n" +
+              "• Check your internet connection\n" +
+              "• If the issue persists, contact support:\n\n" +
+              "📧 Email: support@craft.tech\n" +
+              "💬 We typically respond within 24 hours"
+          );
+        },
+      });
+    } catch (error) {
+      console.error("Token purchase error:", error);
+      alert(
+        "⚠️ Token Purchase Error\n\n" +
+          (error instanceof Error ? error.message : "Something went wrong") +
+          "\n\n" +
+          "Please try again later or contact support:\n" +
+          "📧 support@craft.tech"
+      );
+    }
+  };
+
   const plans: PricingPlan[] = [
     {
       name: "Hobby",
@@ -408,6 +473,60 @@ export default function PricingPage() {
                           Custom requirements
                         </span>
                       </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Token Top-Up
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Purchase additional AI tokens as needed
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="font-medium text-foreground mb-2">
+                        <span className="font-semibold">$5 / 1M tokens</span>
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400 mb-2">
+                        Tokens never expire
+                      </div>
+                      <button
+                        onClick={() => handleTokenPurchase(1)}
+                        disabled={!session}
+                        className="px-3 py-1.5 bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                      >
+                        {session ? "Purchase" : "Sign in"}
+                      </button>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="font-medium text-foreground mb-2">
+                        <span className="font-semibold">$5 / 1M tokens</span>
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400 mb-2">
+                        Tokens never expire
+                      </div>
+                      <button
+                        onClick={() => handleTokenPurchase(5)}
+                        disabled={!session}
+                        className="px-3 py-1.5 bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                      >
+                        {session ? "Purchase" : "Sign in"}
+                      </button>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="font-medium text-foreground mb-2">
+                        <span className="font-semibold">Custom pricing</span>
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400 mb-2">
+                        Volume discounts available
+                      </div>
+                      <a
+                        href="mailto:sales@craft.tech?subject=Enterprise Token Purchase"
+                        className="inline-block px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg font-medium transition-colors text-xs border border-neutral-300 dark:border-neutral-600"
+                      >
+                        Contact Sales
+                      </a>
                     </td>
                   </tr>
 
