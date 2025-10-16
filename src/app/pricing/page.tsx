@@ -94,7 +94,7 @@ export default function PricingPage() {
       action: () => router.push("/auth/signup"),
       features: [
         { text: "Import from Figma & GitHub", included: true },
-        { text: "Limited AI model access", included: true, highlight: false },
+        { text: "Limited access to AI chat", included: true, highlight: false },
         { text: "Live preview environment", included: true },
         { text: "Up to 20 projects", included: true },
         { text: "Integrated database & storage", included: true },
@@ -106,7 +106,8 @@ export default function PricingPage() {
     {
       name: "Pro",
       price: "$4,995/mo",
-      description: "Everything you need to build and scale your app.",
+      description:
+        "Everything you need to build and scale your app.",
       cta: !session
         ? "Start a free trial"
         : userPlan === "pro"
@@ -119,7 +120,12 @@ export default function PricingPage() {
           : handleProPayment,
       features: [
         { text: "All Hobby features, plus:", included: true, highlight: true },
-        { text: "Extended AI model access", included: true, highlight: true },
+        { text: "Extended access to AI chat", included: true, highlight: true },
+        {
+          text: "Human expert quality review",
+          included: true,
+          highlight: true,
+        },
         { text: "Unlimited projects", included: true },
         { text: "Custom domains", included: true },
         { text: "Priority AI processing", included: true },
@@ -322,8 +328,8 @@ export default function PricingPage() {
               Detailed Usage Limits & Costs
             </h2>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mb-4 max-w-3xl mx-auto">
-              <strong>Hobby:</strong> Limited AI model access.{" "}
-              <strong>Pro:</strong> Extended AI model access. Usage resets
+              <strong>Hobby:</strong> Limited access to AI chat.{" "}
+              <strong>Pro:</strong> Extended access to AI chat. Usage resets
               monthly.
             </p>
             <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden">
@@ -376,6 +382,33 @@ export default function PricingPage() {
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
                         Custom allocation
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Human Expert Review
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Quality guaranteed by designers & engineers
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <span className="font-semibold">
+                          Custom requirements
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -469,7 +502,7 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        500 GB free
+                        1000 GB free
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
                         <span className="font-semibold">$0.10/GB</span> after
