@@ -2,7 +2,7 @@
  * API Route: Purchase Additional AI Tokens
  * POST /api/tokens/purchase
  * 
- * Allows users to purchase additional AI tokens beyond their plan limit
+ * Creates a Polar checkout session for purchasing additional AI tokens
  * Pricing: $5 per 1M tokens (both input and output included)
  */
 
@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { TOKEN_PRICING } from "@/lib/pricing-constants";
+import { getCreditTiers } from "@/lib/pricing-constants";
 
 export async function POST(request: NextRequest) {
     try {
@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
 
         // Get request body
         const body = await request.json();
-        const { tokenAmount } = body; // Amount of tokens to purchase in millions (e.g., 1 = 1M tokens)
+        const { tokens } = body; // Exact token amount (e.g., 1000000 for 1M)
 
-        if (!tokenAmount || tokenAmount <= 0) {
+        if (!tokens || tokens <= 0) {
             return NextResponse.json(
                 { error: "Invalid token amount. Must be greater than 0." },
                 { status: 400 }
@@ -57,29 +57,42 @@ export async function POST(request: NextRequest) {
         const plan = user.subscription?.plan;
         if (!plan?.canPurchaseTokens) {
             return NextResponse.json(
-                { error: "Your plan does not allow purchasing additional tokens" },
+                { error: "Your plan does not allow purchasing additional tokens. Please upgrade to Pro." },
                 { status: 403 }
             );
         }
 
-        // Calculate price in USD
-        const pricePerMillion = TOKEN_PRICING.PAY_AS_YOU_GO;
-        const totalPriceUsd = tokenAmount * pricePerMillion;
+        // Find the matching credit tier
+        const creditTiers = getCreditTiers();
+        const tier = creditTiers.find(t => t.tokens === tokens);
 
-        // Convert to cents for payment processing
-        const totalPriceCents = Math.round(totalPriceUsd * 100);
+        if (!tier) {
+            return NextResponse.json(
+                { error: "Invalid token amount. Please select a valid token package." },
+                { status: 400 }
+            );
+        }
 
-        // Return checkout information
-        // The actual payment will be processed by Polar via client-side redirect
+        // Get the Polar price ID from environment
+        const polarPriceId = process.env[tier.polarEnvKey];
+
+        if (!polarPriceId) {
+            console.error(`Missing Polar price ID for ${tier.display}`);
+            return NextResponse.json(
+                { error: "Payment configuration error. Please contact support." },
+                { status: 500 }
+            );
+        }
+
+        // Create checkout URL with metadata
+        const checkoutUrl = `https://sandbox.polar.sh/checkout/${polarPriceId}?customer_email=${encodeURIComponent(user.email || '')}&metadata[userId]=${user.id}&metadata[purchaseType]=token_topup&metadata[tokenAmount]=${tokens}&metadata[priceUsd]=${tier.price}`;
+
         return NextResponse.json({
             success: true,
-            tokenAmount: tokenAmount * 1000000, // Convert millions to actual token count
-            pricePerMillion: pricePerMillion,
-            totalPriceUsd: totalPriceUsd,
-            totalPriceCents: totalPriceCents,
-            userId: user.id,
-            productName: `${tokenAmount}M AI Tokens`,
-            productDescription: `Additional ${tokenAmount} million AI tokens for your Craft projects`,
+            checkoutUrl,
+            tokens: tier.tokens,
+            price: tier.price,
+            display: tier.display,
         });
     } catch (error) {
         console.error("Token purchase error:", error);

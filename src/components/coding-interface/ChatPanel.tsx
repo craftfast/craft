@@ -7,6 +7,8 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
 import FileChangesCard from "./FileChangesCard";
+import { useCreditBalance } from "@/hooks/useCreditBalance";
+import PricingModal from "../PricingModal";
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -113,6 +115,13 @@ export default function ChatPanel({
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const { balance } = useCreditBalance();
+
+  // Check if tokens are low or exhausted
+  const isLowTokens =
+    balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;
+  const isTokensExhausted = balance && balance.totalAvailable === 0;
 
   // Close preview modal on Escape key
   useEffect(() => {
@@ -610,6 +619,12 @@ export default function ChatPanel({
   ) => {
     const contentToSend = messageContent || input;
     if (!contentToSend.trim() || isLoading) return;
+
+    // Check if tokens are exhausted
+    if (isTokensExhausted) {
+      setShowPricingModal(true);
+      return;
+    }
 
     // Use provided images or fall back to selectedImages from state
     const imagesToUpload = imagesToSend || selectedImages;
@@ -1437,6 +1452,71 @@ export default function ChatPanel({
                 </button>
               </div>
             </div>
+
+            {/* Low Token Warning */}
+            {isLowTokens && !isTokensExhausted && (
+              <div className="mt-3 px-3 py-2 bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 rounded-xl">
+                <div className="flex items-start gap-2">
+                  <svg
+                    className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-amber-900 dark:text-amber-100">
+                      Low on AI tokens (
+                      {balance?.totalAvailable.toLocaleString()} remaining).{" "}
+                      <button
+                        onClick={() => setShowPricingModal(true)}
+                        className="underline hover:no-underline"
+                      >
+                        Get more
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Exhausted Token Warning */}
+            {isTokensExhausted && (
+              <div className="mt-3 px-3 py-2 bg-red-50 dark:bg-red-950 border border-red-300 dark:border-red-800 rounded-xl">
+                <div className="flex items-start gap-2">
+                  <svg
+                    className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-red-900 dark:text-red-100">
+                      Out of AI tokens.{" "}
+                      <button
+                        onClick={() => setShowPricingModal(true)}
+                        className="underline hover:no-underline"
+                      >
+                        Purchase tokens or upgrade
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1492,6 +1572,13 @@ export default function ChatPanel({
           </div>
         </div>
       )}
+
+      {/* Pricing Modal */}
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
+        showProOnly={false}
+      />
     </div>
   );
 }

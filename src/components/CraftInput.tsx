@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import PricingModal from "./PricingModal";
+import { useCreditBalance } from "@/hooks/useCreditBalance";
 
 interface ImageAttachment {
   id: string;
@@ -75,6 +77,14 @@ export default function CraftInput() {
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { balance } = useCreditBalance();
+
+  // Check if tokens are low or exhausted
+  const isLowTokens =
+    balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;
+  const isTokensExhausted = balance && balance.totalAvailable === 0;
 
   // Close preview modal on Escape key
   useEffect(() => {
@@ -269,6 +279,15 @@ export default function CraftInput() {
   const handleSubmit = async () => {
     if (!input.trim() || isCreating) return;
 
+    // Check if tokens are exhausted
+    if (isTokensExhausted) {
+      setErrorMessage(
+        "You've run out of AI tokens. Please upgrade to Pro or purchase additional tokens to continue."
+      );
+      setShowPricingModal(true);
+      return;
+    }
+
     setIsCreating(true);
 
     try {
@@ -306,6 +325,18 @@ export default function CraftInput() {
       } else {
         const errorData = await response.json();
         console.error("Failed to create project:", errorData);
+
+        // Check if it's a project limit error
+        if (errorData.code === "PROJECT_LIMIT_REACHED") {
+          setErrorMessage(errorData.error);
+          setShowPricingModal(true);
+        } else {
+          // Show generic error message
+          setErrorMessage(
+            errorData.error || "Failed to create project. Please try again."
+          );
+        }
+
         setIsCreating(false);
       }
     } catch (error) {
@@ -593,6 +624,93 @@ export default function CraftInput() {
         </div>
       </div>
 
+      {/* Low Token Warning */}
+      {isLowTokens && !isTokensExhausted && (
+        <div className="mt-3 px-4 py-3 bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 rounded-2xl">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                Low on AI tokens
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                You have {balance?.totalAvailable.toLocaleString()} tokens
+                remaining.{" "}
+                <button
+                  onClick={() => setShowPricingModal(true)}
+                  className="underline hover:no-underline font-medium"
+                >
+                  Purchase more tokens
+                </button>{" "}
+                or{" "}
+                <button
+                  onClick={() => setShowPricingModal(true)}
+                  className="underline hover:no-underline font-medium"
+                >
+                  upgrade to Pro
+                </button>
+                .
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exhausted Token Warning */}
+      {isTokensExhausted && (
+        <div className="mt-3 px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-300 dark:border-red-800 rounded-2xl">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                Out of AI tokens
+              </p>
+              <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                You&apos;ve used all your AI tokens.{" "}
+                <button
+                  onClick={() => setShowPricingModal(true)}
+                  className="underline hover:no-underline font-medium"
+                >
+                  Purchase additional tokens
+                </button>{" "}
+                or{" "}
+                <button
+                  onClick={() => setShowPricingModal(true)}
+                  className="underline hover:no-underline font-medium"
+                >
+                  upgrade to Pro
+                </button>{" "}
+                to continue.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quick options */}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <span className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -681,6 +799,61 @@ export default function CraftInput() {
           </div>
         </div>
       )}
+
+      {/* Error Message Display */}
+      {errorMessage && !showPricingModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setErrorMessage(null)}
+        >
+          <div
+            className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-red-600 dark:text-red-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-1">
+                  Error
+                </h3>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                  {errorMessage}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="w-full px-4 py-2.5 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pricing Modal */}
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => {
+          setShowPricingModal(false);
+          setErrorMessage(null);
+        }}
+        showProOnly={true}
+      />
     </div>
   );
 }

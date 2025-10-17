@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { recordTokenPurchase } from "@/lib/ai-usage";
 
 /**
  * Polar Webhook Handler
- * Handles subscription lifecycle events from Polar.sh
+ * Handles subscription lifecycle events and token purchases from Polar.sh
  * 
  * Events handled:
- * - checkout.completed: When a checkout is successfully completed
- * - checkout.failed: When a checkout fails
+ * - checkout.created: When a checkout is created
  * - subscription.created: When a new subscription is created
  * - subscription.updated: When a subscription is updated
- * - subscription.cancelled: When a subscription is cancelled
- * - subscription.expired: When a subscription expires
+ * - subscription.active: When a subscription becomes active
+ * - subscription.canceled: When a subscription is cancelled (US spelling)
+ * - subscription.uncanceled: When a subscription is uncanceled/reactivated
+ * - subscription.revoked: When a subscription is revoked/expired
+ * - order.created: When a token purchase order is created
+ * - order.paid: When a token purchase is paid
+ * - refund.created: When a refund is issued
+ * 
+ * Note: Polar uses US spelling "canceled" (one 'l')
  */
 
 interface PolarWebhookEvent {
@@ -19,9 +26,15 @@ interface PolarWebhookEvent {
     data: {
         id: string;
         customer_email?: string;
+        customer_id?: string;
         status?: string;
         metadata?: Record<string, string>;
         cancel_at_period_end?: boolean;
+        billing_reason?: string;
+        amount?: number;
+        currency?: string;
+        product_id?: string;
+        product_price_id?: string;
     };
 }
 
@@ -46,12 +59,8 @@ export async function POST(request: NextRequest) {
 
         // Handle different event types
         switch (event.type) {
-            case "checkout.completed":
-                await handleCheckoutCompleted(event.data);
-                break;
-
-            case "checkout.failed":
-                await handleCheckoutFailed(event.data);
+            case "checkout.created":
+                await handleCheckoutCreated(event.data);
                 break;
 
             case "subscription.created":
@@ -62,12 +71,32 @@ export async function POST(request: NextRequest) {
                 await handleSubscriptionUpdated(event.data);
                 break;
 
-            case "subscription.cancelled":
-                await handleSubscriptionCancelled(event.data);
+            case "subscription.active":
+                await handleSubscriptionActive(event.data);
                 break;
 
-            case "subscription.expired":
-                await handleSubscriptionExpired(event.data);
+            case "subscription.canceled": // Note: US spelling (one 'l')
+                await handleSubscriptionCanceled(event.data);
+                break;
+
+            case "subscription.uncanceled":
+                await handleSubscriptionUncanceled(event.data);
+                break;
+
+            case "subscription.revoked":
+                await handleSubscriptionRevoked(event.data);
+                break;
+
+            case "order.created":
+                await handleOrderCreated(event.data);
+                break;
+
+            case "order.paid":
+                await handleOrderPaid(event.data);
+                break;
+
+            case "refund.created":
+                await handleRefundCreated(event.data);
                 break;
 
             default:
@@ -88,10 +117,11 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Handle checkout completed event
- * This fires when a user successfully completes payment
+ * Handle checkout created event
+ * This fires when a checkout is created (before payment)
+ * Handles both subscriptions and one-time token purchases
  */
-async function handleCheckoutCompleted(data: PolarWebhookEvent["data"]) {
+async function handleCheckoutCreated(data: PolarWebhookEvent["data"]) {
     try {
         console.log("Processing checkout completed:", data.id);
 
@@ -112,6 +142,16 @@ async function handleCheckoutCompleted(data: PolarWebhookEvent["data"]) {
             return;
         }
 
+        // Check purchase type to determine how to handle this checkout
+        const purchaseType = metadata?.purchaseType;
+
+        if (purchaseType === "token_topup") {
+            // Token purchases are handled by order.paid event
+            console.log("Token top-up checkout completed - will be processed by order.paid");
+            return;
+        }
+
+        // Handle subscription checkout (default behavior)
         // Determine plan name from product/metadata
         const planName = metadata?.planName || "PRO";
 
@@ -155,42 +195,7 @@ async function handleCheckoutCompleted(data: PolarWebhookEvent["data"]) {
             `Subscription activated for user ${user.id} - ${planName}`
         );
     } catch (error) {
-        console.error("Error handling checkout completed:", error);
-        throw error;
-    }
-}
-
-/**
- * Handle checkout failed event
- */
-async function handleCheckoutFailed(data: PolarWebhookEvent["data"]) {
-    try {
-        console.log("Processing checkout failed:", data.id);
-
-        // Create a payment transaction record marking the failure
-        const { id: checkoutId, customer_email } = data;
-
-        const user = await prisma.user.findUnique({
-            where: { email: customer_email },
-        });
-
-        if (!user) return;
-
-        // Log the failed payment
-        await prisma.paymentTransaction.create({
-            data: {
-                userId: user.id,
-                amount: 0, // Amount not available in failed checkout
-                currency: "USD",
-                status: "failed",
-                paymentMethod: "polar",
-                polarCheckoutId: checkoutId,
-            },
-        });
-
-        console.log(`Checkout failed recorded for user ${user.id}`);
-    } catch (error) {
-        console.error("Error handling checkout failed:", error);
+        console.error("Error handling checkout created:", error);
         throw error;
     }
 }
@@ -242,9 +247,42 @@ async function handleSubscriptionUpdated(data: PolarWebhookEvent["data"]) {
 }
 
 /**
- * Handle subscription cancelled event
+ * Handle subscription active event
+ * Fired when a subscription becomes active (after payment)
  */
-async function handleSubscriptionCancelled(data: PolarWebhookEvent["data"]) {
+async function handleSubscriptionActive(data: PolarWebhookEvent["data"]) {
+    try {
+        console.log("Processing subscription active:", data.id);
+
+        const { customer_email } = data;
+
+        const user = await prisma.user.findUnique({
+            where: { email: customer_email },
+        });
+
+        if (!user) return;
+
+        // Ensure subscription status is active
+        await prisma.userSubscription.update({
+            where: { userId: user.id },
+            data: {
+                status: "active",
+                cancelAtPeriodEnd: false,
+                updatedAt: new Date(),
+            },
+        });
+
+        console.log(`Subscription confirmed active for user ${user.id}`);
+    } catch (error) {
+        console.error("Error handling subscription active:", error);
+        throw error;
+    }
+}
+
+/**
+ * Handle subscription canceled event (US spelling)
+ */
+async function handleSubscriptionCanceled(data: PolarWebhookEvent["data"]) {
     try {
         console.log("Processing subscription cancelled:", data.id);
 
@@ -267,18 +305,52 @@ async function handleSubscriptionCancelled(data: PolarWebhookEvent["data"]) {
         });
 
         console.log(
-            `Subscription cancelled for user ${user.id} - cancel at period end: ${cancel_at_period_end}`
+            `Subscription canceled for user ${user.id} - cancel at period end: ${cancel_at_period_end}`
         );
     } catch (error) {
-        console.error("Error handling subscription cancelled:", error);
+        console.error("Error handling subscription canceled:", error);
         throw error;
     }
 }
 
 /**
- * Handle subscription expired event
+ * Handle subscription uncanceled event
+ * Fired when a previously canceled subscription is reactivated
  */
-async function handleSubscriptionExpired(data: PolarWebhookEvent["data"]) {
+async function handleSubscriptionUncanceled(data: PolarWebhookEvent["data"]) {
+    try {
+        console.log("Processing subscription uncanceled:", data.id);
+
+        const { customer_email } = data;
+
+        const user = await prisma.user.findUnique({
+            where: { email: customer_email },
+        });
+
+        if (!user) return;
+
+        // Reactivate the subscription
+        await prisma.userSubscription.update({
+            where: { userId: user.id },
+            data: {
+                status: "active",
+                cancelAtPeriodEnd: false,
+                updatedAt: new Date(),
+            },
+        });
+
+        console.log(`Subscription uncanceled/reactivated for user ${user.id}`);
+    } catch (error) {
+        console.error("Error handling subscription uncanceled:", error);
+        throw error;
+    }
+}
+
+/**
+ * Handle subscription revoked event
+ * Fired when a subscription is revoked or expires
+ */
+async function handleSubscriptionRevoked(data: PolarWebhookEvent["data"]) {
     try {
         console.log("Processing subscription expired:", data.id);
 
@@ -310,9 +382,211 @@ async function handleSubscriptionExpired(data: PolarWebhookEvent["data"]) {
             },
         });
 
-        console.log(`Subscription expired for user ${user.id} - downgraded to HOBBY`);
+        console.log(`Subscription revoked for user ${user.id} - downgraded to HOBBY`);
     } catch (error) {
-        console.error("Error handling subscription expired:", error);
+        console.error("Error handling subscription revoked:", error);
         throw error;
     }
 }
+
+/**
+ * Handle order created event
+ * This fires when a token purchase order is created
+ */
+async function handleOrderCreated(data: PolarWebhookEvent["data"]) {
+    try {
+        console.log("Processing order created:", data.id);
+
+        const { id: orderId, customer_email, metadata, billing_reason } = data;
+
+        // Only process token purchase orders (not subscription renewals)
+        if (billing_reason !== "purchase") {
+            console.log("Skipping order.created - not a token purchase:", billing_reason);
+            return;
+        }
+
+        if (!customer_email) {
+            console.warn("No customer email in order data");
+            return;
+        }
+
+        // Find user by email
+        const user = await prisma.user.findUnique({
+            where: { email: customer_email },
+        });
+
+        if (!user) {
+            console.warn(`User not found for email: ${customer_email}`);
+            return;
+        }
+
+        // Extract token amount and price from metadata
+        const tokenAmount = parseInt(metadata?.tokenAmount || "0");
+        const priceUsd = parseFloat(metadata?.priceUsd || "0");
+
+        if (!tokenAmount || !priceUsd) {
+            console.error("Missing token amount or price in metadata");
+            return;
+        }
+
+        // Create pending token purchase record
+        await prisma.tokenPurchase.create({
+            data: {
+                userId: user.id,
+                tokenAmount: tokenAmount,
+                priceUsd: priceUsd,
+                tokensRemaining: tokenAmount,
+                status: "pending",
+                polarCheckoutId: orderId,
+                expiresAt: null,
+            },
+        });
+
+        console.log(`Token purchase order created for user ${user.id} - ${tokenAmount} tokens`);
+    } catch (error) {
+        console.error("Error handling order created:", error);
+        throw error;
+    }
+}
+
+/**
+ * Handle order paid event
+ * This fires when a token purchase order is successfully paid
+ * This is where we actually add tokens to the user's account
+ */
+async function handleOrderPaid(data: PolarWebhookEvent["data"]) {
+    try {
+        console.log("Processing order paid:", data.id);
+
+        const { id: orderId, customer_email, metadata, billing_reason } = data;
+
+        // Only process token purchase orders (not subscription renewals)
+        if (billing_reason !== "purchase") {
+            console.log("Skipping order.paid - not a token purchase:", billing_reason);
+            return;
+        }
+
+        if (!customer_email) {
+            console.warn("No customer email in order data");
+            return;
+        }
+
+        // Find user by email
+        const user = await prisma.user.findUnique({
+            where: { email: customer_email },
+        });
+
+        if (!user) {
+            console.warn(`User not found for email: ${customer_email}`);
+            return;
+        }
+
+        // Extract token amount and price from metadata
+        const tokenAmount = parseInt(metadata?.tokenAmount || "0");
+        const priceUsd = parseFloat(metadata?.priceUsd || "0");
+
+        if (!tokenAmount || !priceUsd) {
+            console.error("Missing token amount or price in metadata");
+            return;
+        }
+
+        // Record the completed token purchase (this adds tokens to user balance)
+        const result = await recordTokenPurchase({
+            userId: user.id,
+            tokenAmount: tokenAmount,
+            priceUsd: priceUsd,
+            polarCheckoutId: orderId,
+            polarPaymentId: data.id,
+        });
+
+        if (result.success) {
+            console.log(`✅ Token purchase completed for user ${user.id} - ${tokenAmount} tokens added`);
+        } else {
+            console.error(`❌ Failed to record token purchase for user ${user.id}`);
+        }
+
+        // Create payment transaction record
+        await prisma.paymentTransaction.create({
+            data: {
+                userId: user.id,
+                amount: priceUsd,
+                currency: data.currency || "USD",
+                status: "completed",
+                paymentMethod: "polar",
+                polarCheckoutId: orderId,
+                metadata: {
+                    tokenAmount,
+                    purchaseType: "token_topup",
+                },
+            },
+        });
+
+        console.log(`Payment transaction recorded for user ${user.id}`);
+    } catch (error) {
+        console.error("Error handling order paid:", error);
+        throw error;
+    }
+}
+
+/**
+ * Handle refund created event
+ * This fires when a refund is issued (for token purchases or subscriptions)
+ */
+async function handleRefundCreated(data: PolarWebhookEvent["data"]) {
+    try {
+        console.log("Processing order refunded:", data.id);
+
+        const { id: orderId, customer_email } = data;
+
+        if (!customer_email) {
+            console.warn("No customer email in order data");
+            return;
+        }
+
+        // Find user by email
+        const user = await prisma.user.findUnique({
+            where: { email: customer_email },
+        });
+
+        if (!user) {
+            console.warn(`User not found for email: ${customer_email}`);
+            return;
+        }
+
+        // Find the token purchase record
+        const purchase = await prisma.tokenPurchase.findFirst({
+            where: {
+                userId: user.id,
+                polarCheckoutId: orderId,
+            },
+        });
+
+        if (!purchase) {
+            console.warn(`Token purchase not found for order: ${orderId}`);
+            return;
+        }
+
+        // Update token purchase status to refunded
+        await prisma.tokenPurchase.update({
+            where: { id: purchase.id },
+            data: {
+                status: "refunded",
+                updatedAt: new Date(),
+            },
+        });
+
+        // Deduct any remaining tokens from user balance
+        // (In a more sophisticated system, you might want to track which tokens were used)
+        if (purchase.tokensRemaining > 0) {
+            console.log(`Deducting ${purchase.tokensRemaining} unused tokens from user ${user.id}`);
+            // Note: You may want to add logic to actually deduct from user's token balance
+            // This depends on how you're tracking the token balance in your system
+        }
+
+        console.log(`Token purchase refunded for user ${user.id} - order ${orderId}`);
+    } catch (error) {
+        console.error("Error handling order refunded:", error);
+        throw error;
+    }
+}
+

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import UserMenu from "./UserMenu";
 import Logo from "./Logo";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
+import PricingModal from "./PricingModal";
 
 interface DashboardHeaderProps {
   planName?: string;
@@ -26,6 +27,10 @@ export default function DashboardHeader({
   const router = useRouter();
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [pricingModalMode, setPricingModalMode] = useState<
+    "all" | "tokens" | "pro"
+  >("all");
   const { balance } = useCreditBalance();
 
   const showPlanBadge = planName === "HOBBY" || planName === "PRO";
@@ -39,6 +44,13 @@ export default function DashboardHeader({
     }
     return credits.toString();
   };
+
+  // Determine if tokens are low (less than 10k)
+  const isLowTokens =
+    balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;
+
+  // Determine if tokens are exhausted
+  const isTokensExhausted = balance && balance.totalAvailable === 0;
 
   return (
     <>
@@ -61,7 +73,10 @@ export default function DashboardHeader({
         <div className="flex items-center justify-center">
           {planName === "HOBBY" && (
             <button
-              onClick={() => router.push("/pricing")}
+              onClick={() => {
+                setPricingModalMode("pro");
+                setIsPricingModalOpen(true);
+              }}
               className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
             >
               <svg
@@ -83,10 +98,19 @@ export default function DashboardHeader({
         </div>
         {/* Right column - Actions and user menu */}
         <div className="flex items-center gap-2 justify-end">
-          {balance && balance.totalAvailable > 0 && (
+          {balance && (
             <div
-              className="px-3 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700 flex items-center gap-1.5 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-              onClick={() => router.push("/pricing")}
+              className={`px-3 py-2 rounded-full border flex items-center gap-1.5 cursor-pointer transition-colors ${
+                isTokensExhausted
+                  ? "bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900"
+                  : isLowTokens
+                  ? "bg-amber-50 dark:bg-amber-950 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900"
+                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+              }`}
+              onClick={() => {
+                setPricingModalMode(planName === "PRO" ? "tokens" : "all");
+                setIsPricingModalOpen(true);
+              }}
               title={`Total: ${balance.totalAvailable.toLocaleString()} tokens\nMonthly: ${balance.subscriptionTokensRemaining.toLocaleString()} | Purchased: ${balance.purchasedTokensRemaining.toLocaleString()}`}
             >
               <svg
@@ -95,15 +119,26 @@ export default function DashboardHeader({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
+                {isTokensExhausted || isLowTokens ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                )}
               </svg>
               <span className="text-xs font-medium leading-tight">
-                {formatCredits(balance.totalAvailable)}
+                {isTokensExhausted
+                  ? "0 tokens"
+                  : formatCredits(balance.totalAvailable)}
               </span>
             </div>
           )}
@@ -130,7 +165,10 @@ export default function DashboardHeader({
         <div className="flex items-center gap-2">
           {planName === "HOBBY" && (
             <button
-              onClick={() => router.push("/pricing")}
+              onClick={() => {
+                setPricingModalMode("pro");
+                setIsPricingModalOpen(true);
+              }}
               className="flex items-center leading-tight gap-2 px-3 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
             >
               <svg
@@ -149,10 +187,19 @@ export default function DashboardHeader({
               <span className="hidden xl:inline">Upgrade to Pro</span>
             </button>
           )}
-          {balance && balance.totalAvailable > 0 && (
+          {balance && (
             <div
-              className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700 flex items-center gap-1.5 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-              onClick={() => router.push("/pricing")}
+              className={`px-3 py-1.5 rounded-full border flex items-center gap-1.5 cursor-pointer transition-colors ${
+                isTokensExhausted
+                  ? "bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900"
+                  : isLowTokens
+                  ? "bg-amber-50 dark:bg-amber-950 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900"
+                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+              }`}
+              onClick={() => {
+                setPricingModalMode(planName === "PRO" ? "tokens" : "all");
+                setIsPricingModalOpen(true);
+              }}
               title={`Total: ${balance.totalAvailable.toLocaleString()} tokens\nMonthly: ${balance.subscriptionTokensRemaining.toLocaleString()} | Purchased: ${balance.purchasedTokensRemaining.toLocaleString()}`}
             >
               <svg
@@ -161,15 +208,26 @@ export default function DashboardHeader({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
+                {isTokensExhausted || isLowTokens ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                )}
               </svg>
               <span className="text-xs font-medium leading-tight">
-                {formatCredits(balance.totalAvailable)}
+                {isTokensExhausted
+                  ? "0 tokens"
+                  : formatCredits(balance.totalAvailable)}
               </span>
             </div>
           )}
@@ -236,14 +294,25 @@ export default function DashboardHeader({
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
                     {session.user.email}
                   </p>
-                  {balance && balance.totalAvailable > 0 && (
+                  {balance && (
                     <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-neutral-600 dark:text-neutral-400">
                           Total Credits
                         </span>
-                        <span className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
-                          {formatCredits(balance.totalAvailable)}
+                        <span
+                          className={`text-xs font-semibold ${
+                            isTokensExhausted
+                              ? "text-red-700 dark:text-red-300"
+                              : isLowTokens
+                              ? "text-amber-700 dark:text-amber-300"
+                              : "text-neutral-900 dark:text-neutral-100"
+                          }`}
+                        >
+                          {isTokensExhausted
+                            ? "0 tokens"
+                            : formatCredits(balance.totalAvailable)}
+                          {isLowTokens && !isTokensExhausted && " ⚠️"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
@@ -327,7 +396,8 @@ export default function DashboardHeader({
                 </button>
                 <button
                   onClick={() => {
-                    router.push("/pricing");
+                    setPricingModalMode("all");
+                    setIsPricingModalOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors text-left"
@@ -372,7 +442,8 @@ export default function DashboardHeader({
                 {planName === "HOBBY" && (
                   <button
                     onClick={() => {
-                      router.push("/pricing");
+                      setPricingModalMode("pro");
+                      setIsPricingModalOpen(true);
                       setIsMobileMenuOpen(false);
                     }}
                     className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors text-left"
@@ -409,6 +480,15 @@ export default function DashboardHeader({
           </nav>
         </div>
       )}
+
+      {/* Pricing Modal */}
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+        currentPlan={planName}
+        showTokensOnly={pricingModalMode === "tokens"}
+        showProOnly={pricingModalMode === "pro"}
+      />
     </>
   );
 }

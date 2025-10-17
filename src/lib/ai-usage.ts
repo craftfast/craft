@@ -418,9 +418,16 @@ export async function checkUserTokenAvailability(
         ? Math.max(0, subscriptionLimit - subscriptionTokensUsed)
         : Infinity;
 
-    const totalAvailable = subscriptionTokensRemaining === Infinity
-        ? Infinity
-        : subscriptionTokensRemaining + purchasedBalance.remaining;
+    // Calculate total available - handle edge case where subscription is exceeded
+    let totalAvailable: number;
+    if (subscriptionTokensRemaining === Infinity) {
+        totalAvailable = Infinity;
+    } else {
+        // If subscription tokens are exhausted, only purchased tokens are available
+        totalAvailable = subscriptionTokensRemaining + purchasedBalance.remaining;
+        // Ensure totalAvailable is never negative
+        totalAvailable = Math.max(0, totalAvailable);
+    }
 
     // Check if usage is allowed
     let allowed = true;
