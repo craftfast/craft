@@ -1,0 +1,308 @@
+/**
+ * E2B Build System 2.0 - Next.js Sandbox Template Definition
+ * 
+ * This file defines our sandbox template as CODE following E2B v2 best practices.
+ * 
+ * Benefits:
+ * - 14× faster builds when cached
+ * - AI-friendly (can be parsed/modified by AI agents)
+ * - Simpler DX - no separate e2b.toml or Dockerfile needed
+ * - Templates expressed as TypeScript for type safety
+ * 
+ * References:
+ * - https://e2b.dev/docs/template/how-it-works
+ * - https://e2b.dev/docs/template/defining-template
+ * - https://e2b.dev/docs/template/start-ready-command
+ */
+
+import { Template, waitForPort } from "e2b";
+
+/**
+ * Create a Next.js sandbox template with all dependencies pre-installed.
+ * This template will be built once and then spawned instantly (~150ms) for each user.
+ * 
+ * The template includes:
+ * - Node.js 20 LTS (from official Node.js image)
+ * - pnpm package manager
+ * - Next.js 15 + React 19
+ * - TypeScript
+ * - Tailwind CSS 4
+ * - All common dependencies pre-installed
+ * 
+ * How it works:
+ * 1. Template is built with all dependencies installed
+ * 2. Next.js dev server is started
+ * 3. We wait for port 3000 to be ready
+ * 4. Sandbox is snapshotted with server running
+ * 5. Users can spawn this snapshot in ~150ms with server already running
+ */
+export const nextjsTemplate = Template({
+    // Specify the file context path (current directory)
+    fileContextPath: ".",
+    // Ignore unnecessary files during build
+    fileIgnorePatterns: [
+        ".git",
+        "node_modules",
+        ".next",
+        "dist",
+        "build",
+        ".turbo",
+        ".cache",
+        "*.log",
+    ],
+})
+    // Start from official Node.js 20 LTS image
+    // This provides Node.js and npm pre-installed with a default 'user'
+    .fromNodeImage("20")
+
+    // Set working directory
+    .setWorkdir("/home/user/project")
+
+    // Set environment variables for Next.js
+    .setEnvs({
+        NODE_ENV: "development",
+        PORT: "3000",
+        HOSTNAME: "0.0.0.0",
+        // Disable Next.js telemetry in sandboxes
+        NEXT_TELEMETRY_DISABLED: "1",
+    })
+
+    // Create Next.js project structure matching templates/nextjs.ts
+    // This will be cached, making dependency installation instant on subsequent builds
+
+    // Create package.json (matches template exactly)
+    .runCmd(`cat > package.json << 'EOF'
+{
+  "name": "craft-project",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start"
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "next": "15.5.4"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4",
+    "autoprefixer": "^10",
+    "postcss": "^8"
+  }
+}
+EOF`)
+
+    // Create tsconfig.json (matches template exactly)
+    .runCmd(`cat > tsconfig.json << 'EOF'
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+EOF`)
+
+    // Create next.config.ts (matches template exactly)
+    .runCmd(`cat > next.config.ts << 'EOF'
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+EOF`)
+
+    // Create postcss.config.mjs (for Tailwind CSS v4)
+    .runCmd(`cat > postcss.config.mjs << 'EOF'
+const config = {
+  plugins: ["@tailwindcss/postcss"],
+};
+
+export default config;
+EOF`)
+
+    // Create next-env.d.ts
+    .runCmd(`cat > next-env.d.ts << 'EOF'
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+/// <reference path="./.next/types/routes.d.ts" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+EOF`)
+
+    // Create directory structure
+    .runCmd("mkdir -p src/app public")
+
+    // Create src/app/layout.tsx (full template version)
+    .runCmd(`cat > src/app/layout.tsx << 'EOF'
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body
+        className={\`\${geistSans.variable} \${geistMono.variable} antialiased\`}
+      >
+        {children}
+      </body>
+    </html>
+  );
+}
+EOF`)
+
+    // Create src/app/globals.css (Tailwind CSS v4 format)
+    .runCmd(`cat > src/app/globals.css << 'EOF'
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+EOF`)
+
+    // Create src/app/page.tsx (simplified version without images for faster builds)
+    .runCmd(`cat > src/app/page.tsx << 'EOF'
+export default function Home() {
+  return (
+    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
+        <h1 className="text-4xl font-bold">Welcome to Next.js!</h1>
+        <ol className="font-mono list-inside list-decimal text-sm text-center sm:text-left">
+          <li className="mb-2">
+            Get started by editing{" "}
+            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
+              src/app/page.tsx
+            </code>
+          </li>
+          <li>Save and see your changes instantly.</li>
+        </ol>
+      </main>
+    </div>
+  );
+}
+EOF`)
+
+    // Install all dependencies - this is cached in the template!
+    // Subsequent sandbox spawns won't need to reinstall
+    .runCmd("npm install")
+
+    // Start Next.js dev server and wait for it to be ready
+    // The server will be running when sandboxes are spawned
+    .setStartCmd(
+        "npm run dev -- -H 0.0.0.0 -p 3000",
+        waitForPort(3000) // Wait for Next.js to start on port 3000
+    );
+
+/**
+ * Get the template alias for creating sandboxes.
+ * 
+ * In development, we use a separate alias to avoid conflicts.
+ * In production, we use the main alias.
+ */
+export function getTemplateAlias(): string {
+    const isDevelopment = process.env.NODE_ENV === "development";
+    return isDevelopment ? "craft-nextjs-dev" : "craft-nextjs";
+}
+
+/**
+ * Build options for the E2B template.
+ * 
+ * These control CPU, RAM, caching, and logging during the build process.
+ * 
+ * Reference: https://e2b.dev/docs/template/build
+ */
+export const buildOptions = {
+    // CPU and RAM configuration
+    // 2 vCPUs = faster builds, good for Next.js dev server
+    cpuCount: 2,
+    memoryMB: 4096, // 4GB RAM for Next.js dev server and builds
+
+    // Skip cache if needed (normally false for faster builds)
+    skipCache: false,
+
+    // Custom build logger to see what's happening during template build
+    onBuildLogs: (log: { message: string; level: string; timestamp: Date }) => {
+        const prefix =
+            log.level === "error" ? "❌" :
+                log.level === "warn" ? "⚠️" :
+                    log.level === "info" ? "ℹ️" :
+                        "📦";
+
+        const timestamp = log.timestamp
+            ? `[${log.timestamp.toLocaleTimeString()}]`
+            : "";
+
+        console.log(`${prefix} ${timestamp} ${log.message}`);
+    },
+};

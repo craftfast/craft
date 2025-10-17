@@ -33,7 +33,9 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "type-check": "tsc --noEmit",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "e2b:build:dev": "tsx scripts/build-e2b-dev.ts",
+    "e2b:build:prod": "tsx scripts/build-e2b-prod.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -61,6 +63,7 @@
     "@vercel/speed-insights": "^1.2.0",
     "ai": "^5.0.62",
     "bcryptjs": "^3.0.2",
+    "e2b": "^2.3.1",
     "lucide-react": "^0.544.0",
     "next": "15.5.4",
     "next-auth": "^4.24.11",

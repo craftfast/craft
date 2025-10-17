@@ -8,8 +8,9 @@
  * - Turbopack
  * - No ESLint (to match E2B template)
  * 
- * This is synchronized with the E2B build template to ensure consistency.
- * E2B Template ID: btwdawjx36bcf3mtkwvf
+ * This is synchronized with the E2B Build System 2.0 template (src/lib/e2b/template.ts).
+ * E2B template aliases: "craft-nextjs-dev" (development) and "craft-nextjs" (production)
+ * Build with: pnpm e2b:build:dev or pnpm e2b:build:prod
  */
 
 export interface ProjectFiles {

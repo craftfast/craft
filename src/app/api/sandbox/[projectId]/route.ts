@@ -108,8 +108,8 @@ export async function POST(
                     await Promise.all(
                         Object.entries(files).map(async ([filePath, content]) => {
                             const normalizedPath = filePath.startsWith("/")
-                                ? `/home/user${filePath}`
-                                : `/home/user/${filePath}`;
+                                ? `/home/user/project${filePath.startsWith("/") ? filePath : `/${filePath}`}`
+                                : `/home/user/project/${filePath}`;
 
                             await sandboxData!.sandbox.files.write(normalizedPath, content as string);
                         })
@@ -117,67 +117,10 @@ export async function POST(
 
                     console.log(`✅ Files updated successfully in parallel`);
 
-                    // Check if package.json was updated (dependencies changed)
-                    const packageJsonUpdated = "package.json" in files;
-
-                    if (packageJsonUpdated) {
-                        console.log("📦 package.json updated, reinstalling dependencies...");
-
-                        // Use commands.run() for shell commands (E2B best practice)
-                        const installCmd = await sandboxData.sandbox.commands.run(
-                            'cd /home/user && npm install --legacy-peer-deps',
-                            { timeoutMs: 120000 }
-                        );
-
-                        if (installCmd.exitCode === 0) {
-                            console.log("✅ Dependencies reinstalled");
-
-                            // Restart dev server
-                            if (sandboxData.devServerPid) {
-                                await sandboxData.sandbox.commands.run(
-                                    `kill ${sandboxData.devServerPid}`
-                                ).catch(() => { });
-                            }
-
-                            // Start new dev server - listen on 0.0.0.0 for E2B access
-                            const devCmd = await sandboxData.sandbox.commands.run(
-                                'cd /home/user && npx next dev -H 0.0.0.0 -p 3000 > /tmp/nextjs.log 2>&1 &',
-                                { background: true }
-                            );
-
-                            sandboxData.devServerPid = devCmd.pid;
-                            console.log(`🚀 Dev server restarted on 0.0.0.0:3000 (PID: ${devCmd.pid})`);
-                        }
-                    } else {
-                        // For non-dependency updates, verify dev server is still running
-                        console.log("🔍 Verifying dev server health...");
-                        const healthCheck = await sandboxData.sandbox.commands.run(
-                            'curl -s http://0.0.0.0:3000 > /dev/null && echo "healthy" || echo "down"',
-                            { timeoutMs: 5000 }
-                        );
-
-                        if (healthCheck.stdout.includes('down')) {
-                            console.warn("⚠️  Dev server appears down, restarting...");
-
-                            // Kill old process if exists
-                            if (sandboxData.devServerPid) {
-                                await sandboxData.sandbox.commands.run(
-                                    `kill ${sandboxData.devServerPid}`
-                                ).catch(() => { });
-                            }
-
-                            // Restart dev server - CRITICAL: Use -H 0.0.0.0 for network access
-                            const devCmd = await sandboxData.sandbox.commands.run(
-                                'cd /home/user && npx next dev -H 0.0.0.0 -p 3000 > /tmp/nextjs.log 2>&1 &',
-                                { background: true }
-                            );
-
-                            sandboxData.devServerPid = devCmd.pid;
-                            console.log(`🚀 Dev server restarted on 0.0.0.0:3000 (PID: ${devCmd.pid})`);
-                        } else {
-                            console.log("✅ Dev server is healthy, Next.js will hot-reload automatically");
-                        }
-                    }
+                    // Build System 2.0: Dev server is always running from template
+                    // Hot reload will automatically pick up file changes
+                    // No need to restart the dev server or reinstall dependencies
+                    console.log("✅ Next.js will hot-reload automatically (Build System 2.0)");
 
                 } catch (error: unknown) {
                     console.error("Error updating files:", error);
@@ -217,22 +160,25 @@ export async function POST(
         // Create new sandbox
         console.log(`🚀 Creating NEW sandbox for project: ${projectId}`);
 
-        // Use custom template if available for 100x faster startup (~3s vs 5-10 min)
-        // Template includes pre-installed Next.js, TypeScript, Tailwind, and common dependencies
-        // Reference: https://e2b.dev/docs/sandbox-template
-        const templateId = process.env.E2B_TEMPLATE_ID;
+        // Build System 2.0: Use template alias instead of template ID
+        // Templates are now defined as code (see src/lib/e2b/template.ts)
+        // This provides 14× faster builds and AI-friendly configuration
+        // Reference: https://e2b.dev/docs/template/quickstart
+        const templateAlias = process.env.NODE_ENV === "development"
+            ? "craft-nextjs-dev"
+            : "craft-nextjs";
 
         const sandboxOpts = {
             metadata: { projectId, userId: session.user.email },
             timeoutMs: 15 * 60 * 1000, // 15 minutes for better UX (can extend if needed)
-            // Note: CPU/RAM configured in template's e2b.toml for optimal performance
+            // Note: CPU/RAM configured in template definition (src/lib/e2b/template.ts)
         };
 
-        const sandbox = templateId
-            ? await Sandbox.create(templateId, sandboxOpts)
-            : await Sandbox.create(sandboxOpts);
+        // Always use template for instant startup (~150ms)
+        // Template has Next.js dev server already running
+        const sandbox = await Sandbox.create(templateAlias, sandboxOpts);
 
-        console.log(`✅ Sandbox created: ${sandbox.sandboxId}${templateId ? ' (using optimized template 🚀)' : ''}`);
+        console.log(`✅ Sandbox created: ${sandbox.sandboxId} (Build System 2.0 🚀)`);
 
         // Prepare project files
         // Priority: Files from database (template + AI edits) > Default fallback
@@ -255,9 +201,10 @@ export async function POST(
         // Reference: https://e2b.dev/docs/filesystem/read-write
         await Promise.all(
             Object.entries(projectFiles).map(async ([filePath, content]) => {
+                // Build System 2.0: Use /home/user/project as workdir (set in template)
                 const normalizedPath = filePath.startsWith("/")
-                    ? `/home/user${filePath}`
-                    : `/home/user/${filePath}`;
+                    ? `/home/user/project${filePath}`
+                    : `/home/user/project/${filePath}`;
 
                 await sandbox.files.write(normalizedPath, content as string);
             })
@@ -266,91 +213,15 @@ export async function POST(
         console.log(`✅ All files written in parallel`);
 
         try {
-            // If using template, dependencies are already installed!
-            // Only run npm install if NOT using template or if package.json is modified
-            const isUsingTemplate = !!process.env.E2B_TEMPLATE_ID;
+            // Build System 2.0: Dev server is ALREADY RUNNING from template's setStartCmd!
+            // The template was snapshotted with Next.js dev server running on port 3000
+            // Dependencies are pre-installed, hot reload will pick up new files automatically
+            console.log("✅ Build System 2.0: Dependencies pre-installed, dev server running, files will hot-reload 🚀");
 
-            if (!isUsingTemplate) {
-                // Install dependencies using commands.run() (E2B best practice)
-                // OPTIMIZATION: Use faster npm install flags
-                console.log("📦 Installing dependencies...");
-
-                const installCmd = await sandbox.commands.run(
-                    // Optimized npm install:
-                    // --prefer-offline: Use cache when possible
-                    // --no-audit: Skip security audit (faster)
-                    // --no-fund: Skip funding messages
-                    // --loglevel=error: Reduce output noise
-                    'cd /home/user && npm install --prefer-offline --no-audit --no-fund --loglevel=error',
-                    {
-                        timeoutMs: 180000, // 3 minutes max for install
-                    }
-                );
-
-                if (installCmd.exitCode !== 0) {
-                    console.error("❌ npm install failed:", installCmd.stderr);
-                    throw new Error(`npm install failed with exit code ${installCmd.exitCode}`);
-                }
-
-                console.log("✅ Dependencies installed");
-            } else {
-                console.log("✅ Using template - dependencies already installed, skipping npm install 🚀");
-            }
-
-            // Start Next.js dev server using commands.run() in background
-            // IMPORTANT: Use -H 0.0.0.0 to listen on all interfaces (required for E2B sandbox access)
-            // OPTIMIZATION: Use --turbo for faster compilation
-            console.log("🚀 Starting Next.js dev server on 0.0.0.0:3000...");
-
-            const devServerCmd = await sandbox.commands.run(
-                'cd /home/user && npx next dev -H 0.0.0.0 -p 3000 --turbo > /tmp/nextjs.log 2>&1 &',
-                { background: true }
-            );
-
-            const devServerPid = devServerCmd.pid;
-            console.log(`📝 Dev server starting (PID: ${devServerPid})`);
-
-            // OPTIMIZATION: Smarter wait strategy - poll for "Ready" instead of fixed wait
-            // This reduces wait time from 20s to actual compilation time
-            console.log("⏳ Waiting for Next.js compilation...");
-
-            let attempts = 0;
-            const maxAttempts = 40; // 40 attempts * 500ms = 20s max
-            let isReady = false;
-
-            while (attempts < maxAttempts && !isReady) {
-                await new Promise(resolve => setTimeout(resolve, 500)); // Check every 500ms
-
-                const logsCmd = await sandbox.commands.run('tail -30 /tmp/nextjs.log');
-
-                if (logsCmd.stdout.includes('Ready in') || logsCmd.stdout.includes('✓ Ready')) {
-                    isReady = true;
-                    console.log(`✅ Next.js server is ready after ${(attempts * 0.5).toFixed(1)}s!`);
-                    break;
-                }
-
-                attempts++;
-            }
-
-            if (!isReady) {
-                console.warn("⚠️  Server may still be starting (timeout reached)...");
-                // Continue anyway - might still work
-            }
-
-            // Also check if port is listening
-            const portCheck = await sandbox.commands.run(
-                'netstat -tuln | grep :3000 || lsof -i :3000 || echo "Checking..."',
-                { timeoutMs: 5000 }
-            );
-            if (portCheck.stdout.includes('3000')) {
-                console.log("✅ Port 3000 is listening");
-            }
-
-            // Store sandbox reference with dev server PID
+            // Store sandbox reference (no dev server PID needed, it's from the template)
             activeSandboxes.set(projectId, {
                 sandbox,
                 lastAccessed: new Date(),
-                devServerPid,
             });
 
             console.log(`💾 Sandbox stored. Active: ${activeSandboxes.size}`);

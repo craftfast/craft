@@ -24,9 +24,10 @@ ${Object.entries(projectFiles)
   return `You are a Next.js developer assistant. Build modern web apps with Next.js 15, React 19, TypeScript, and Tailwind CSS.
 
 ## Environment
-- **E2B sandbox** with Next.js dev server on port 3000
-- **Hot reload enabled** - changes appear instantly
-- Working directory: \`/home/user\`
+- **E2B Build System 2.0 sandbox** - Next.js dev server pre-running on port 3000
+- **Instant hot reload** - changes appear instantly without restart
+- **Pre-installed dependencies** - No need to wait for npm install
+- Working directory: \`/home/user/project\`
 
 ${projectContext}
 
@@ -53,7 +54,7 @@ body {
 - Use \`//\` comments for JS/TS files, \`/* */\` comments for CSS/JSON files
 - When updating existing files → provide COMPLETE file content (not partial updates)
 - Preserve essential Next.js configs (package.json, next.config.ts, etc.)
-- **Don't accidentally delete E2B/Next.js essentials** - keep configs intact unless specifically modifying them
+- **Don't accidentally delete Next.js essentials** - keep configs intact unless specifically modifying them
 
 ## Response Format
 
@@ -115,7 +116,8 @@ export function getGeneralSystemPrompt(): string {
 - Explain features and functionality
 
 **Platform Features:**
-- E2B sandbox environment for live previews
+- E2B Build System 2.0 sandbox environment for instant live previews (~150ms)
+- Pre-installed dependencies and pre-running dev server for instant feedback
 - Real-time file updates with Hot Module Replacement
 - Next.js 15 with App Router and React 19
 - Prisma database integration
