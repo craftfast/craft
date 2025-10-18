@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import DashboardHeader from "@/components/DashboardHeader";
 import CraftInput from "@/components/CraftInput";
 import RecentProjects from "@/components/RecentProjects";
+import PaymentSuccessHandler from "@/components/PaymentSuccessHandler";
 import { getUserSubscription } from "@/lib/subscription";
 import type { Session } from "next-auth";
 
@@ -20,6 +21,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
+      {/* Payment Success Handler - Updates credits when returning from checkout */}
+      <PaymentSuccessHandler />
+
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-stone-50 via-background to-stone-100 dark:from-neutral-900 dark:via-background dark:to-neutral-800 opacity-60" />
 

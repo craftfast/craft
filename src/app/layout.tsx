@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { SessionProvider } from "@/components/SessionProvider";
+import { CreditBalanceProvider } from "@/contexts/CreditBalanceContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -52,7 +53,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <CreditBalanceProvider>{children}</CreditBalanceProvider>
+        </SessionProvider>
         <SpeedInsights />
         <Analytics />
       </body>
