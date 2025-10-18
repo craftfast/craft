@@ -19,6 +19,7 @@ export default function LogsPanel({ projectId }: LogsPanelProps) {
     "all"
   );
   const [searchQuery, setSearchQuery] = useState("");
+  console.log("LogsPanel projectId:", projectId);
 
   const logs: Log[] = [
     {

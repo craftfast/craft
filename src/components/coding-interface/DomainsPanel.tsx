@@ -17,6 +17,7 @@ interface Domain {
 export default function DomainsPanel({ projectId }: DomainsPanelProps) {
   const [showAddDomain, setShowAddDomain] = useState(false);
   const [newDomain, setNewDomain] = useState("");
+  console.log("DomainsPanel projectId:", projectId);
 
   const domains: Domain[] = [
     {

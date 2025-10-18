@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
 interface DatabasePanelProps {
   projectId: string;
 }
 
 export default function DatabasePanel({ projectId }: DatabasePanelProps) {
+  console.log("DatabasePanel projectId:", projectId);
   return (
     <div className="h-full flex items-center justify-center bg-white dark:bg-neutral-900">
       <div className="text-center max-w-md p-8">

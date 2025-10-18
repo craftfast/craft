@@ -7,9 +7,7 @@ interface AuthPanelProps {
 }
 
 export default function AuthPanel({ projectId }: AuthPanelProps) {
-  const [authMethod, setAuthMethod] = useState<
-    "email" | "google" | "github" | "magic-link"
-  >("email");
+  console.log("AuthPanel projectId:", projectId);
   const [enabledMethods, setEnabledMethods] = useState({
     email: true,
     google: false,

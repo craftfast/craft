@@ -8,6 +8,7 @@ interface AnalyticsPanelProps {
 
 export default function AnalyticsPanel({ projectId }: AnalyticsPanelProps) {
   const [timeRange, setTimeRange] = useState("7d");
+  console.log("AnalyticsPanel projectId:", projectId);
 
   const metrics = [
     { label: "Total Visits", value: "12,345", change: "+12.5%", trend: "up" },

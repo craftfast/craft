@@ -16,7 +16,9 @@ interface ApiEndpoint {
 
 export default function ApiPanel({ projectId }: ApiPanelProps) {
   const [selectedEndpoint, setSelectedEndpoint] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showCreateEndpoint, setShowCreateEndpoint] = useState(false);
+  console.log("ApiPanel projectId:", projectId);
 
   const endpoints: ApiEndpoint[] = [
     {

@@ -174,7 +174,7 @@ export async function fileExists(r2Key: string): Promise<boolean> {
 
         await r2Client.send(command);
         return true;
-    } catch (error) {
+    } catch {
         return false;
     }
 }
