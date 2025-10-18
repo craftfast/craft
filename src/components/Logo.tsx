@@ -71,7 +71,7 @@ export default function Logo({
   const size = iconSizes[iconSize];
 
   const logoContent = (
-    <div className={`flex items-center justify-center gap-2 ${className}`}>
+    <div className={`flex items-center justify-center gap-1 ${className}`}>
       {showIcon && (
         <LogoIcon
           width={size.width}

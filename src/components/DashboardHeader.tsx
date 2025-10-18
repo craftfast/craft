@@ -33,7 +33,34 @@ export default function DashboardHeader({
   >("all");
   const { balance } = useCreditBalance();
 
-  const showPlanBadge = planName === "HOBBY" || planName === "PRO";
+  const showPlanBadge =
+    planName === "HOBBY" || planName === "PRO" || planName === "AGENT";
+
+  // Get plan display name and styling
+  const getPlanBadgeInfo = () => {
+    if (planName === "HOBBY") {
+      return {
+        displayName: "Hobby",
+        className:
+          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700",
+      };
+    } else if (planName === "PRO") {
+      return {
+        displayName: "Pro",
+        className:
+          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-700 dark:bg-neutral-300 text-white dark:text-neutral-900 rounded-full border border-neutral-700 dark:border-neutral-300",
+      };
+    } else if (planName === "AGENT") {
+      return {
+        displayName: "Agent",
+        className:
+          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full border border-neutral-900 dark:border-neutral-100",
+      };
+    }
+    return null;
+  };
+
+  const planBadgeInfo = getPlanBadgeInfo();
 
   // Format credits for display (e.g., 1,234,567 -> "1.23M" or 5,000 -> "5K")
   const formatCredits = (credits: number): string => {
@@ -57,15 +84,15 @@ export default function DashboardHeader({
       {/* Desktop Header - 3 column grid */}
       <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4 lg:items-center w-full">
         {/* Left column - Logo and Plan Badge */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Logo
             showText={showLogoText}
             iconClassName="text-white dark:text-white"
             href="/dashboard"
           />
-          {showPlanBadge && (
-            <span className="px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
-              {planName === "HOBBY" ? "Hobby" : "Pro"}
+          {showPlanBadge && planBadgeInfo && (
+            <span className={planBadgeInfo.className}>
+              {planBadgeInfo.displayName}
             </span>
           )}
         </div>
@@ -156,9 +183,9 @@ export default function DashboardHeader({
             iconClassName="text-white dark:text-white"
             href="/dashboard"
           />
-          {showPlanBadge && (
-            <span className="px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
-              {planName === "HOBBY" ? "Hobby" : "Pro"}
+          {showPlanBadge && planBadgeInfo && (
+            <span className={planBadgeInfo.className}>
+              {planBadgeInfo.displayName}
             </span>
           )}
         </div>
@@ -245,9 +272,9 @@ export default function DashboardHeader({
             iconClassName="text-white dark:text-white"
             href="/dashboard"
           />
-          {showPlanBadge && (
-            <span className="px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700">
-              {planName === "HOBBY" ? "Hobby" : "Pro"}
+          {showPlanBadge && planBadgeInfo && (
+            <span className={planBadgeInfo.className}>
+              {planBadgeInfo.displayName}
             </span>
           )}
         </div>
