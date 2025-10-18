@@ -118,8 +118,8 @@ export async function getUserAIUsageInRange(
         },
     });
 
-    const totalTokens = records.reduce((sum, r) => sum + r.totalTokens, 0);
-    const totalCostUsd = records.reduce((sum, r) => sum + r.costUsd, 0);
+    const totalTokens = records.reduce((sum: number, r: typeof records[number]) => sum + r.totalTokens, 0);
+    const totalCostUsd = records.reduce((sum: number, r: typeof records[number]) => sum + r.costUsd, 0);
 
     // Group by model
     const byModel: Record<string, { tokens: number; costUsd: number }> = {};
@@ -187,8 +187,8 @@ export async function getProjectAIUsage(
         },
     });
 
-    const totalTokens = records.reduce((sum, r) => sum + r.totalTokens, 0);
-    const totalCostUsd = records.reduce((sum, r) => sum + r.costUsd, 0);
+    const totalTokens = records.reduce((sum: number, r: typeof records[number]) => sum + r.totalTokens, 0);
+    const totalCostUsd = records.reduce((sum: number, r: typeof records[number]) => sum + r.costUsd, 0);
 
     return {
         totalTokens,
@@ -217,8 +217,8 @@ export async function getUserAIUsage(
         },
     });
 
-    const totalTokens = records.reduce((sum, r) => sum + r.totalTokens, 0);
-    const totalCostUsd = records.reduce((sum, r) => sum + r.costUsd, 0);
+    const totalTokens = records.reduce((sum: number, r: typeof records[number]) => sum + r.totalTokens, 0);
+    const totalCostUsd = records.reduce((sum: number, r: typeof records[number]) => sum + r.costUsd, 0);
 
     return {
         totalTokens,
@@ -276,11 +276,11 @@ export async function getUserTokenBalance(userId: string): Promise<{
     });
 
     const totalPurchased = purchases.reduce(
-        (sum, p) => sum + p.tokenAmount,
+        (sum: number, p: typeof purchases[number]) => sum + p.tokenAmount,
         0
     );
 
-    const remaining = purchases.reduce((sum, p) => sum + p.tokensRemaining, 0);
+    const remaining = purchases.reduce((sum: number, p: typeof purchases[number]) => sum + p.tokensRemaining, 0);
     const totalUsed = totalPurchased - remaining;
 
     return {
@@ -363,7 +363,7 @@ export async function getUserTokenPurchases(
         },
     });
 
-    return purchases.map((p) => ({
+    return purchases.map((p: typeof purchases[number]) => ({
         id: p.id,
         tokenAmount: p.tokenAmount,
         priceUsd: p.priceUsd,

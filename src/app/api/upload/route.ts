@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            files: files.map((f) => ({
+            files: files.map((f: typeof files[number]) => ({
                 id: f.id,
                 fileName: f.fileName,
                 url: f.r2Url,

@@ -77,6 +77,9 @@ importers:
       e2b:
         specifier: ^2.3.1
         version: 2.3.1
+      highlight.js:
+        specifier: ^11.11.1
+        version: 11.11.1
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.1.1)
