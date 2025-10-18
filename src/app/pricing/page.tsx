@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Logo from "@/components/Logo";
 import HeaderNav from "@/components/HeaderNav";
 import Footer from "@/components/Footer";
@@ -256,14 +256,48 @@ function FAQSection() {
 
 export default function PricingPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const [userPlan, setUserPlan] = useState<"hobby" | "pro" | null>(null);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
+  const hasFetchedRef = useRef(false);
 
-  // TODO: Fetch actual subscription plan from user data when implemented
-  // For now, we assume all authenticated users are on Hobby plan
-  // In the future, fetch from: session.user.subscriptionPlan or similar
-  const userPlan: "hobby" | "pro" | null = session
-    ? ("hobby" as "hobby" | "pro") // Type assertion for future implementation
-    : null;
+  // Fetch user's actual subscription plan (only once when authenticated)
+  useEffect(() => {
+    // Skip if already fetched, not authenticated, or still loading session
+    if (hasFetchedRef.current || status === "loading" || !session?.user) {
+      if (!session?.user) {
+        setUserPlan(null);
+        hasFetchedRef.current = false; // Reset if user logs out
+      }
+      return;
+    }
+
+    const fetchUserPlan = async () => {
+      setIsLoadingPlan(true);
+      try {
+        const response = await fetch("/api/user/subscription");
+        if (response.ok) {
+          const data = await response.json();
+          // Map plan names to lowercase for consistency
+          setUserPlan(data.plan === "PRO" ? "pro" : "hobby");
+          hasFetchedRef.current = true; // Mark as fetched
+        } else {
+          // Default to hobby if fetch fails
+          setUserPlan("hobby");
+          hasFetchedRef.current = true;
+        }
+      } catch (error) {
+        console.error("Failed to fetch user plan:", error);
+        // Default to hobby if there's an error
+        setUserPlan("hobby");
+        hasFetchedRef.current = true;
+      } finally {
+        setIsLoadingPlan(false);
+      }
+    };
+
+    fetchUserPlan();
+  }, [session, status]);
 
   const handleProPayment = async () => {
     const amount = 50; // $50/month for Pro
@@ -316,12 +350,13 @@ export default function PricingPage() {
       name: "Hobby",
       price: "Free",
       description: "Try Craft with basic features. Limited to 3 projects.",
-      cta:
-        userPlan === "pro"
-          ? "Downgrade"
-          : userPlan === "hobby"
-          ? "Current plan"
-          : "Start Crafting",
+      cta: isLoadingPlan
+        ? "Loading..."
+        : userPlan === "pro"
+        ? "Downgrade"
+        : userPlan === "hobby"
+        ? "Current plan"
+        : "Start Crafting",
       action: () => router.push("/auth/signup"),
       features: [
         { text: "100k AI tokens per month", included: true, highlight: true },
@@ -338,7 +373,9 @@ export default function PricingPage() {
       name: "Pro",
       price: "$50/mo",
       description: "Everything you need to build and scale your app.",
-      cta: !session
+      cta: isLoadingPlan
+        ? "Loading..."
+        : !session
         ? "Start a free trial"
         : userPlan === "pro"
         ? "Current plan"
@@ -427,7 +464,10 @@ export default function PricingPage() {
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+          <div
+            id="pricing-plans"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch"
+          >
             {plans.map((plan) => (
               <div
                 key={plan.name}
@@ -469,10 +509,12 @@ export default function PricingPage() {
                   <button
                     onClick={plan.action}
                     disabled={
+                      isLoadingPlan ||
                       (plan.name === "Pro" && userPlan === "pro") ||
                       (plan.name === "Hobby" && userPlan === "hobby")
                     }
                     className={`w-full px-6 py-3 rounded-full font-medium transition-all duration-200 ${
+                      isLoadingPlan ||
                       (plan.name === "Pro" && userPlan === "pro") ||
                       (plan.name === "Hobby" && userPlan === "hobby")
                         ? "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-not-allowed"
@@ -1869,6 +1911,26 @@ export default function PricingPage() {
                 Need more AI tokens? Purchase additional token packages to
                 extend your monthly allocation.
               </p>
+              {session && userPlan === "hobby" && !isLoadingPlan && (
+                <div className="mt-4 max-w-2xl mx-auto">
+                  <div className="bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-xl p-4">
+                    <p className="text-sm text-neutral-700 dark:text-neutral-300">
+                      📌 <strong>Pro plan required:</strong> Token packages are
+                      only available to Pro subscribers.
+                      <button
+                        onClick={() =>
+                          document
+                            .getElementById("pricing-plans")
+                            ?.scrollIntoView({ behavior: "smooth" })
+                        }
+                        className="ml-2 underline hover:text-neutral-900 dark:hover:text-neutral-100"
+                      >
+                        Upgrade to Pro
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="max-w-4xl mx-auto">
@@ -1965,13 +2027,26 @@ export default function PricingPage() {
                               )}
                             </div>
                             <button
+                              disabled={
+                                !session ||
+                                userPlan === "hobby" ||
+                                isLoadingPlan
+                              }
                               className={`px-6 py-2.5 rounded-full font-medium transition-colors whitespace-nowrap ${
-                                isBestValue
+                                !session ||
+                                userPlan === "hobby" ||
+                                isLoadingPlan
+                                  ? "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-not-allowed"
+                                  : isBestValue
                                   ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-sm hover:shadow-md"
                                   : "bg-neutral-100 dark:bg-neutral-800 text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-600"
                               }`}
                             >
-                              Purchase
+                              {!session
+                                ? "Sign in to purchase"
+                                : userPlan === "hobby"
+                                ? "Pro required"
+                                : "Purchase"}
                             </button>
                           </div>
                         </div>
