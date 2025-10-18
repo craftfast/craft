@@ -3,10 +3,8 @@
  * 
  * This is the single source of truth for all AI operations in Craft.
  * 
- * Intelligent Model Routing:
- * - Grok 4 Fast analyzes each request to determine complexity
- * - Claude Haiku 4.5: Used for 90%+ of tasks (fast, cost-efficient)
- * - Claude Sonnet 4.5: Reserved for complex planning & architecture only
+ * Model Configuration:
+ * - Claude Haiku 4.5: All coding tasks (fast, cost-efficient)
  * - Grok 4 Fast: Project naming and creative text generation
  * 
  * The system is optimized to minimize costs while maintaining quality.
@@ -26,104 +24,15 @@ const openrouter = createOpenRouter({
 // ============================================================================
 
 const MODELS = {
-    // Primary coding models (auto-routed based on complexity)
-    HAIKU: "anthropic/claude-haiku-4.5",      // Fast, efficient for general tasks
-    SONNET: "anthropic/claude-sonnet-4.5",    // Complex planning & architecture
+    // Primary coding model
+    CODING: "anthropic/claude-haiku-4.5",      // Fast, efficient for all coding tasks
 
     // Specialized models
     NAMING: "x-ai/grok-4-fast",                // Project naming & creative text
 } as const;
 
 // ============================================================================
-// INTELLIGENT MODEL SELECTION (Using Grok 4 Fast)
-// ============================================================================
-
-interface ModelSelection {
-    useHaiku: boolean;
-    reasoning: string;
-}
-
-/**
- * Use Grok 4 Fast to intelligently determine which model to use
- * Optimized for 90%+ Haiku usage, only Sonnet for complex planning
- */
-async function selectModelWithGrok(
-    message: string,
-    projectFiles: Record<string, string> = {},
-    conversationHistory: Array<{ role: string; content: string }> = []
-): Promise<ModelSelection> {
-    const fileCount = Object.keys(projectFiles).length;
-    const conversationLength = conversationHistory.length;
-
-    const systemPrompt = `You are a model selection assistant. Your job is to determine if a user's coding request requires Claude Sonnet 4.5 (complex planning) or Claude Haiku 4.5 (all other tasks).
-
-CRITICAL RULES:
-1. Default to "haiku" for 90%+ of tasks
-2. Only use "sonnet" for truly complex planning, architecture, or system design
-3. Your response MUST be EXACTLY one word: "haiku" or "sonnet"
-4. NO explanations, NO markdown, NO extra text
-
-USE HAIKU FOR:
-- All UI changes (styling, colors, layouts, components)
-- Bug fixes and code corrections
-- Adding features to existing code
-- Refactoring existing functions
-- Simple questions and explanations
-- API integrations
-- Database queries
-- Form handling
-- Most coding tasks
-
-USE SONNET ONLY FOR:
-- Designing entire system architectures from scratch
-- Multi-service distributed system planning
-- Complex algorithm design requiring deep analysis
-- Security architecture planning
-- Performance optimization strategies for large systems
-
-Context:
-- Project has ${fileCount} files
-- Conversation has ${conversationLength} messages
-
-User's request: "${message}"
-
-Respond with ONLY: haiku or sonnet`;
-
-    try {
-        const result = await generateText({
-            model: openrouter.chat(MODELS.NAMING), // Grok 4 Fast
-            system: systemPrompt,
-            prompt: message,
-            temperature: 0.3, // Low temperature for consistent decisions
-        });
-
-        const decision = result.text.trim().toLowerCase();
-
-        if (decision === 'sonnet') {
-            return {
-                useHaiku: false,
-                reasoning: 'Grok determined: Complex planning/architecture task',
-            };
-        } else {
-            // Default to Haiku for any non-sonnet response
-            return {
-                useHaiku: true,
-                reasoning: 'Grok determined: General coding task',
-            };
-        }
-    } catch (error) {
-        console.error('⚠️ Grok model selection failed, defaulting to Haiku:', error);
-        // Fallback: Always use Haiku if Grok fails
-        return {
-            useHaiku: true,
-            reasoning: 'Fallback to Haiku (Grok unavailable)',
-        };
-    }
-}
-
-// ============================================================================
-// ============================================================================
-// CODING AGENT (Smart Routing: Haiku for general, Sonnet for complex)
+// CODING AGENT (Claude Haiku 4.5)
 // ============================================================================
 
 interface CodingStreamOptions {
@@ -140,35 +49,16 @@ interface CodingStreamOptions {
 }
 
 /**
- * Stream coding responses with Grok-powered intelligent model routing
- * Uses Grok 4 Fast to decide between Haiku (90%+) and Sonnet (complex planning only)
+ * Stream coding responses using Claude Haiku 4.5
+ * Fast and cost-efficient for all coding tasks
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {
-    const { messages, systemPrompt, projectFiles = {}, conversationHistory = [], onFinish } = options;
+    const { messages, systemPrompt, projectFiles = {}, onFinish } = options;
 
-    // Get the last user message for analysis
-    const lastUserMessage = messages
-        .filter((m): m is { role: string; content: unknown } =>
-            typeof m === 'object' && m !== null && 'role' in m && (m as { role: string }).role === 'user'
-        )
-        .pop();
+    const model = MODELS.CODING;
+    const modelName = 'Claude Haiku 4.5';
 
-    const userMessageText = typeof lastUserMessage?.content === 'string'
-        ? lastUserMessage.content
-        : Array.isArray(lastUserMessage?.content)
-            ? (lastUserMessage.content.find((c: { type: string }) => c.type === 'text') as { text?: string })?.text || ''
-            : '';
-
-    // Use Grok to intelligently select model
-    const selection = await selectModelWithGrok(userMessageText, projectFiles, conversationHistory);
-    const model = selection.useHaiku ? MODELS.HAIKU : MODELS.SONNET;
-    const modelName = selection.useHaiku ? 'Claude Haiku 4.5' : 'Claude Sonnet 4.5';
-
-    // Log the routing decision
-    const emoji = selection.useHaiku ? '⚡' : '🧠';
-    console.log(`${emoji} AI Agent: Using ${modelName}`);
-    console.log(`   Decision: ${selection.reasoning}`);
-    console.log(`   Message: "${userMessageText.substring(0, 60)}..."`);
+    console.log(`⚡ AI Agent: Using ${modelName}`);
 
     if (Object.keys(projectFiles).length > 0) {
         console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
@@ -293,50 +183,7 @@ Project name (1-${maxWords} words only, no code):`;
 
     } catch (grokError) {
         console.error(`❌ Grok naming failed:`, grokError instanceof Error ? grokError.message : 'Unknown error');
-
-        // Fallback to Claude Sonnet
-        console.log(`🔄 AI Agent: Falling back to Claude Sonnet 4.5 for naming`);
-
-        try {
-            const result = await generateText({
-                model: openrouter.chat(MODELS.SONNET),
-                system: systemPrompt,
-                prompt: userPrompt,
-                temperature,
-                maxRetries: 2,
-            });
-
-            let rawName = result.text.trim();
-
-            // Clean and validate
-            rawName = rawName
-                .replace(/```[\s\S]*?```/g, '')
-                .replace(/`[^`]*`/g, '')
-                .replace(/['"]/g, '')
-                .replace(/^\*+|\*+$/g, '')
-                .replace(/^#+\s*/g, '')
-                .trim();
-
-            rawName = rawName.split('\n')[0].trim();
-
-            // Validate
-            if (rawName.includes('{') || rawName.includes('}') ||
-                rawName.includes('(') || rawName.includes(')') ||
-                rawName.includes(';') || rawName.includes('=') ||
-                rawName.includes('function') || rawName.includes('const') ||
-                rawName.includes('let') || rawName.includes('var') ||
-                rawName.length > 50) {
-                console.warn(`⚠️ Generated name looks like code, using fallback`);
-                return "New Project";
-            }
-
-            console.log(`✨ Generated name with fallback: ${rawName}`);
-            return rawName;
-
-        } catch (claudeError) {
-            console.error(`❌ Claude fallback also failed:`, claudeError instanceof Error ? claudeError.message : 'Unknown error');
-            return "New Project";
-        }
+        return "New Project";
     }
 }
 
