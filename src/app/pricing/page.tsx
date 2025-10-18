@@ -172,7 +172,7 @@ function FAQSection() {
 
   return (
     <div id="faq" className="mt-16 sm:mt-20">
-      <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 sm:p-12">
+      <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl p-8 sm:p-12">
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 text-center">
           Frequently Asked Questions
         </h2>

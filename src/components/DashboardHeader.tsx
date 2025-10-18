@@ -48,13 +48,13 @@ export default function DashboardHeader({
       return {
         displayName: "Pro",
         className:
-          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-700 dark:bg-neutral-300 text-white dark:text-neutral-900 rounded-full border border-neutral-700 dark:border-neutral-300",
+          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700",
       };
     } else if (planName === "AGENT") {
       return {
         displayName: "Agent",
         className:
-          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full border border-neutral-900 dark:border-neutral-100",
+          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700",
       };
     }
     return null;
