@@ -142,7 +142,7 @@ export default function PricingModal({
 
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-3xl font-bold text-neutral-900 dark:text-neutral-50">
-                    $25
+                    $50
                   </span>
                   <span className="text-sm text-neutral-500 dark:text-neutral-400">
                     /month

@@ -55,7 +55,7 @@ export async function getUserSubscription(
  */
 export async function assignPlanToUser(
     userId: string,
-    planName: "HOBBY" | "PRO" | "ENTERPRISE" = "HOBBY"
+    planName: "HOBBY" | "PRO" | "AGENT" = "HOBBY"
 ): Promise<SubscriptionDetails> {
     // Get the plan
     const plan = await prisma.plan.findUnique({
@@ -240,7 +240,7 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
  */
 export async function getUserPlan(
     userId: string
-): Promise<"HOBBY" | "PRO" | "ENTERPRISE"> {
+): Promise<"HOBBY" | "PRO" | "AGENT"> {
     const subscription = await getUserSubscription(userId);
-    return (subscription?.plan.name as "HOBBY" | "PRO" | "ENTERPRISE") || "HOBBY";
+    return (subscription?.plan.name as "HOBBY" | "PRO" | "AGENT") || "HOBBY";
 }

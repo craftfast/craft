@@ -34,8 +34,8 @@ export const PRICING = {
     },
     PRO: {
         name: "Pro",
-        priceMonthly: 25,
-        displayPriceMonthly: "$25/mo",
+        priceMonthly: 50,
+        displayPriceMonthly: "$50/mo",
         databaseStorageGB: 0.5, // 500 MB free
         fileStorageGB: 1, // 1 GB free
         maxProjects: 999, // Unlimited
@@ -58,40 +58,38 @@ export const PRICING = {
             payAsYouGo: true, // Pay-as-you-go for infrastructure
         },
     },
-    ENTERPRISE: {
-        name: "Enterprise",
-        priceMonthly: null, // Contact sales
-        displayPriceMonthly: "Custom",
-        databaseStorageGB: null, // Unlimited
+    AGENT: {
+        name: "Agent",
+        priceMonthly: 5000,
+        displayPriceMonthly: "$5,000/mo",
+        databaseStorageGB: 2, // 2 GB
+        fileStorageGB: 5, // 5 GB
         maxProjects: null, // Unlimited
-        monthlyTokens: null, // Unlimited
+        monthlyTokens: 100000000, // 100M tokens/month
         features: {
             aiChat: true,
             unlimitedProjects: true,
             figmaImport: true,
             githubSync: true,
             databaseAccess: "unlimited",
-            customDomain: false, // Not implemented yet - can be custom implemented for Enterprise
+            customDomain: false, // Not implemented yet
             privateProjects: true,
             support: "dedicated",
             prioritySupport: true,
             removeBranding: true,
             trainingOptOut: false,
-            sso: true,
+            sso: false,
             dedicatedSupport: true,
-            customSecurity: true,
-            slaGuarantees: true,
-            customIntegrations: true,
-            advancedAnalytics: true,
-            onboardingServices: true,
-            customConnections: true,
-            groupBasedAccess: true,
-            customDesignSystems: true,
             canPurchaseTokens: true,
-            auditLogs: true,
-            compliance: true,
-            customLimits: true,
-            accountManager: true,
+            payAsYouGo: true,
+            craftBranding: false,
+            // Agent-specific features
+            longRunningTasks: true, // Can delegate long-running tasks
+            expertOversight: true, // Expert review and oversight
+            backgroundExecution: true, // Tasks execute in background
+            featureDelegation: true, // Can delegate entire features
+            advancedCodeGeneration: true, // Advanced AI capabilities
+            architectureReview: true, // Architecture and design review
         },
     },
 } as const;

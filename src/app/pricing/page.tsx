@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useState } from "react";
 import Logo from "@/components/Logo";
 import HeaderNav from "@/components/HeaderNav";
 import Footer from "@/components/Footer";
 import { initiatePolarPayment, toSmallestUnit } from "@/lib/polar";
+import { CREDIT_TIERS } from "@/lib/pricing-constants";
 
 interface PlanFeature {
   text: string;
@@ -23,6 +25,235 @@ interface PricingPlan {
   action: () => void;
 }
 
+interface FAQItem {
+  question: string;
+  answer: React.ReactNode;
+}
+
+// FAQ Section Component
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const toggleFAQ = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
+
+  const faqs: FAQItem[] = [
+    {
+      question: "How does billing work?",
+      answer: (
+        <>
+          <strong>Hobby:</strong> Free forever with up to 3 projects, 100k AI
+          tokens/month, and fixed infrastructure limits. Perfect for trying out
+          Craft. <strong>Pro:</strong> $50/month with unlimited projects, 10M AI
+          tokens, Figma/GitHub imports, and pay-as-you-go for overages. Need
+          more tokens? Check out our{" "}
+          <a
+            href="#token-packages"
+            className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+          >
+            token packages
+          </a>
+          .
+        </>
+      ),
+    },
+    {
+      question: "What's the difference between Hobby and Pro?",
+      answer: (
+        <>
+          <strong>Hobby:</strong> Limited to 3 projects, no Figma/GitHub
+          imports, includes Craft branding, and fixed 100k AI tokens.{" "}
+          <strong>Pro:</strong> Unlimited projects, Figma/GitHub imports,
+          without branding, 10M AI tokens, and ability to purchase{" "}
+          <a
+            href="#token-packages"
+            className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+          >
+            additional token packages
+          </a>
+          .
+        </>
+      ),
+    },
+    {
+      question: "Can I upgrade from Hobby to Pro?",
+      answer:
+        "Yes! Upgrade anytime to unlock unlimited projects, Figma/GitHub imports, and much higher AI token limits. Your existing projects will be preserved and immediately benefit from the Pro features.",
+    },
+    {
+      question: "Can I cancel anytime?",
+      answer:
+        "Yes. No commitments. Cancel your Pro subscription anytime from your dashboard. You'll retain access until the end of your current billing period. See our refund policy for details on early cancellation refunds.",
+    },
+    {
+      question: "How do token packages work?",
+      answer:
+        "Token packages are one-time purchases that add AI tokens to your account. They never expire and can be used anytime. Available in multiple tiers from 1M tokens ($5) up to 1000M tokens ($2,750). Larger packages offer better value with discounts of up to 45% off the base rate.",
+    },
+    {
+      question: "What happens if I run out of tokens?",
+      answer: (
+        <>
+          If you exceed your monthly token allocation, you can purchase
+          additional{" "}
+          <a
+            href="#token-packages"
+            className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+          >
+            token packages
+          </a>{" "}
+          at any time. Your projects will continue working, and you&apos;ll be
+          notified when approaching your limit.
+        </>
+      ),
+    },
+    {
+      question: "What AI models do you support?",
+      answer:
+        "Craft supports leading AI models including GPT-4, GPT-4 Turbo, Claude 3.5 Sonnet, and other cutting-edge models. You can switch between models based on your needs, with token usage calculated accordingly.",
+    },
+    {
+      question: "Do unused tokens roll over?",
+      answer:
+        "Monthly token allocations (100k for Hobby, 10M for Pro, 100M for Agent) reset each billing cycle and don't roll over. However, purchased token packages never expire and remain available until used.",
+    },
+    {
+      question: "What's included in the Agent plan?",
+      answer:
+        "The Agent plan ($5,000/month) includes everything in Pro plus: 100M tokens/month, ability to delegate long-running tasks with expert oversight, background task execution, architecture & design review, 2GB database + 5GB storage, and dedicated support.",
+    },
+    {
+      question: "Can I use my own infrastructure?",
+      answer:
+        "Currently, Craft manages the infrastructure for you including database, storage, and deployment. This ensures optimal performance and seamless integration. For custom infrastructure needs, please contact our sales team about the Agent plan.",
+    },
+    {
+      question: "What payment methods do you accept?",
+      answer:
+        "We accept all major credit cards (Visa, Mastercard, American Express, Discover) through our secure payment processor Polar. All transactions are encrypted and PCI-compliant.",
+    },
+    {
+      question: "Is there a free trial for Pro?",
+      answer:
+        "Yes! New users can start a free trial of Pro to experience unlimited projects and advanced features. No credit card required to start. You can upgrade to Pro at any time to unlock the full experience.",
+    },
+    {
+      question: "How is infrastructure billed?",
+      answer:
+        "Infrastructure is pay-as-you-go on Pro and Agent plans. Database storage: $0.10/GB/month after free tier. Object storage: $0.02/GB/month after free tier. Network egress: $0.09/GB after free tier. Hobby plan has fixed limits with no overages.",
+    },
+    {
+      question: "Can I get a refund?",
+      answer:
+        "Yes, we offer refunds within 14 days of purchase for monthly subscriptions. Token packages are non-refundable once purchased. Please see our Cancellation & Refund Policy for complete details.",
+    },
+    {
+      question: "What happens to my projects if I downgrade?",
+      answer:
+        "If you downgrade from Pro to Hobby, you'll need to select 3 projects to keep active. Other projects will be archived and can be restored by upgrading back to Pro. All your data is safely preserved.",
+    },
+    {
+      question: "Do you offer discounts for annual plans?",
+      answer:
+        "Currently, we offer monthly billing only. However, purchasing larger token packages provides significant discounts (up to 45% off). Contact sales@craft.fast for information about annual contracts for Agent plans.",
+    },
+    {
+      question: "What kind of support do you provide?",
+      answer:
+        "Hobby plan includes community support via our Discord and documentation. Pro plan includes priority email support with 24-48 hour response time. Agent plan includes dedicated support with direct access to our engineering team.",
+    },
+    {
+      question: "Can I transfer projects between accounts?",
+      answer:
+        "Project transfers between accounts are not currently supported. For team collaboration needs or multi-user access requirements, please contact our sales team about custom solutions.",
+    },
+  ];
+
+  return (
+    <div id="faq" className="mt-16 sm:mt-20">
+      <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 sm:p-12">
+        <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 text-center">
+          Frequently Asked Questions
+        </h2>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center mb-8 max-w-2xl mx-auto">
+          Find answers to common questions about Craft pricing, features, and
+          billing.
+        </p>
+
+        <div className="max-w-4xl mx-auto space-y-3">
+          {faqs.map((faq, index) => (
+            <div
+              key={index}
+              className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden transition-all duration-200 hover:border-neutral-300 dark:hover:border-neutral-600"
+            >
+              <button
+                onClick={() => toggleFAQ(index)}
+                className="w-full px-6 py-4 flex items-center justify-between text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-700/50"
+              >
+                <span className="font-semibold text-foreground pr-4">
+                  {faq.question}
+                </span>
+                <svg
+                  className={`flex-shrink-0 w-5 h-5 text-neutral-600 dark:text-neutral-400 transition-transform duration-200 ${
+                    openIndex === index ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  openIndex === index
+                    ? "max-h-96 opacity-100"
+                    : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="px-6 pb-4 text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                  {faq.answer}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+            Still have questions?
+          </p>
+          <a
+            href="mailto:support@craft.fast"
+            className="inline-flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+            Contact Support
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PricingPage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -35,7 +266,7 @@ export default function PricingPage() {
     : null;
 
   const handleProPayment = async () => {
-    const amount = 25; // $25/month for Pro
+    const amount = 50; // $50/month for Pro
 
     try {
       // Initiate Polar payment (this will redirect to Polar checkout)
@@ -105,7 +336,7 @@ export default function PricingPage() {
     },
     {
       name: "Pro",
-      price: "$25/mo",
+      price: "$50/mo",
       description: "Everything you need to build and scale your app.",
       cta: !session
         ? "Start a free trial"
@@ -122,7 +353,7 @@ export default function PricingPage() {
         { text: "10M AI tokens per month", included: true, highlight: true },
         { text: "Unlimited projects", included: true, highlight: false },
         {
-          text: "Purchase additional AI credits at $5 per million tokens",
+          text: "Purchase additional token packages as needed",
           included: true,
           highlight: false,
         },
@@ -145,13 +376,13 @@ export default function PricingPage() {
       ],
     },
     {
-      name: "Enterprise",
-      price: "Custom",
-      description: "Security, performance, and dedicated support.",
+      name: "Agent",
+      price: "$5,000/mo",
+      description: "Delegate long-running tasks with expert oversight.",
       cta: "Contact Sales",
       action: () => {
         window.location.href =
-          "mailto:sales@craft.fast?subject=Enterprise Plan Inquiry";
+          "mailto:sales@craft.fast?subject=Agent Plan Inquiry";
       },
       features: [
         {
@@ -159,13 +390,13 @@ export default function PricingPage() {
           included: true,
           highlight: true,
         },
-        { text: "SSO & SAML authentication", included: true },
-        { text: "Advanced security controls", included: true },
-        { text: "Audit logs & compliance", included: true },
-        { text: "Custom database & storage limits", included: true },
-        { text: "99.9% uptime SLA", included: true },
-        { text: "Dedicated account manager", included: true },
-        { text: "24/7 priority support", included: true },
+        { text: "100M AI tokens per month", included: true, highlight: true },
+        { text: "Delegate long-running tasks", included: true },
+        { text: "Expert oversight & review", included: true },
+        { text: "Background task execution", included: true },
+        { text: "Architecture & design review", included: true },
+        { text: "2 GB database + 5 GB storage", included: true },
+        { text: "Dedicated support", included: true },
       ],
     },
   ];
@@ -354,7 +585,7 @@ export default function PricingPage() {
                       Pro
                     </th>
                     <th className="text-left p-4 sm:p-6 font-bold text-foreground w-1/4">
-                      Enterprise
+                      Agent
                     </th>
                   </tr>
                 </thead>
@@ -390,12 +621,25 @@ export default function PricingPage() {
                         10M tokens/month
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
-                        Purchase more at $5/1M
+                        <a
+                          href="#token-packages"
+                          className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+                        >
+                          Purchase more
+                        </a>
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        Custom allocation
+                        100M tokens/month
+                      </div>
+                      <div className="text-neutral-600 dark:text-neutral-400">
+                        <a
+                          href="#token-packages"
+                          className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+                        >
+                          Purchase more
+                        </a>
                       </div>
                     </td>
                   </tr>
@@ -431,7 +675,7 @@ export default function PricingPage() {
                         <span className="font-semibold">Unlimited</span>
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
-                        Custom project management
+                        Create as many as you need
                       </div>
                     </td>
                   </tr>
@@ -472,10 +716,11 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        Custom storage limits
+                        2 GB free
                       </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        Dedicated database instances
+                      <div className="text-neutral-600 dark:text-neutral-400 mb-1">
+                        <span className="font-semibold">$0.10/GB/month</span>{" "}
+                        after
                       </div>
                     </td>
                   </tr>
@@ -507,10 +752,11 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        Custom storage limits
+                        5 GB free
                       </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        Dedicated storage buckets
+                      <div className="text-neutral-600 dark:text-neutral-400 mb-1">
+                        <span className="font-semibold">$0.05/GB/month</span>{" "}
+                        after
                       </div>
                     </td>
                   </tr>
@@ -544,7 +790,7 @@ export default function PricingPage() {
                         <span className="font-semibold">Unlimited</span>
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
-                        SSO & SAML included
+                        No MAU limits
                       </div>
                     </td>
                   </tr>
@@ -1272,6 +1518,336 @@ export default function PricingPage() {
                       </div>
                     </td>
                   </tr>
+
+                  {/* Agent Plan Exclusive Features */}
+                  <tr className="bg-neutral-50/50 dark:bg-neutral-800/30">
+                    <td
+                      colSpan={4}
+                      className="p-3 sm:p-4 font-semibold text-sm text-neutral-700 dark:text-neutral-300 uppercase tracking-wide"
+                    >
+                      Agent Plan Exclusive Features
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Long-Running Task Delegation
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Delegate tasks that take hours or days
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Expert Oversight & Review
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        All AI code reviewed by experts
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Background Task Execution
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Tasks run in background without blocking
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Architecture & Design Review
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Expert design and architecture guidance
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Not included</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Included</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 sm:p-6">
+                      <div className="font-semibold text-foreground mb-1">
+                        Dedicated Support
+                      </div>
+                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
+                        Priority access to support team
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                        <span>Community only</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Priority email</span>
+                      </div>
+                    </td>
+                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="font-semibold">Dedicated</span>
+                      </div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -1283,63 +1859,141 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* Additional Information */}
-          <div className="mt-16 sm:mt-20">
-            <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 sm:p-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-8 text-center">
-                Frequently Asked Questions
+          {/* Token Packages Section */}
+          <div id="token-packages" className="mt-16 sm:mt-20">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+                Token Packages
               </h2>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
+                Need more AI tokens? Purchase additional token packages to
+                extend your monthly allocation.
+              </p>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    How does billing work?
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    <strong>Hobby:</strong> Free forever with up to 3 projects,
-                    100k AI tokens/month, and fixed infrastructure limits.
-                    Perfect for trying out Craft. <strong>Pro:</strong>{" "}
-                    $25/month with unlimited projects, 10M AI tokens,
-                    Figma/GitHub imports, and pay-as-you-go for overages.
-                  </p>
-                </div>
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden">
+                <div className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                  {CREDIT_TIERS.map((tier, index) => {
+                    // Calculate savings compared to base $5/1M rate
+                    const basePrice = (tier.tokens / 1000000) * 5;
+                    const savings = basePrice - tier.price;
+                    const savingsPercent = Math.round(
+                      (savings / basePrice) * 100
+                    );
 
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    What&apos;s the difference between Hobby and Pro?
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    <strong>Hobby:</strong> Limited to 3 projects, no
-                    Figma/GitHub imports, includes Craft branding, and fixed
-                    100k AI tokens. <strong>Pro:</strong> Unlimited projects,
-                    Figma/GitHub imports, without branding, 10M AI tokens, and
-                    ability to purchase more credits.
-                  </p>
-                </div>
+                    // Determine if this is the "best value" tier (5M tokens)
+                    const isBestValue = tier.tokens === 5000000;
 
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Can I upgrade from Hobby to Pro?
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    Yes! Upgrade anytime to unlock unlimited projects,
-                    Figma/GitHub imports, and much higher AI token limits. Your
-                    existing projects will be preserved.
-                  </p>
-                </div>
+                    // Format token display (always show as M for millions)
+                    const tokenDisplay =
+                      tier.tokens >= 1000000
+                        ? `${tier.tokens / 1000000}M`
+                        : `${tier.tokens / 1000}K`;
 
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    Can I cancel anytime?
-                  </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    Yes. No commitments. Cancel your Pro subscription anytime
-                    from your dashboard. See our refund policy for details.
-                  </p>
+                    return (
+                      <div
+                        key={index}
+                        className={`p-4 sm:p-6 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors ${
+                          isBestValue
+                            ? "bg-neutral-50/50 dark:bg-neutral-800/30"
+                            : ""
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          {/* Left side - Token info */}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-bold text-foreground">
+                                {tokenDisplay} tokens
+                              </h3>
+                              {isBestValue && (
+                                <span className="inline-block px-3 py-0.5 bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 text-xs font-semibold rounded-full">
+                                  Best Value
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-600 dark:text-neutral-400">
+                              <span className="flex items-center gap-1">
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                                Never expires
+                              </span>
+                              {savings > 0 && (
+                                <span className="flex items-center gap-1 text-neutral-700 dark:text-neutral-300 font-medium">
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                  Save ${savings.toFixed(0)} ({savingsPercent}%
+                                  off)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Right side - Price and button */}
+                          <div className="flex items-center gap-4 sm:gap-6">
+                            <div className="text-right">
+                              <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                                ${tier.price.toLocaleString()}
+                              </div>
+                              {savings > 0 && (
+                                <div className="text-xs text-neutral-500 dark:text-neutral-500 line-through">
+                                  ${basePrice.toFixed(0)}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              className={`px-6 py-2.5 rounded-full font-medium transition-colors whitespace-nowrap ${
+                                isBestValue
+                                  ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-sm hover:shadow-md"
+                                  : "bg-neutral-100 dark:bg-neutral-800 text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-600"
+                              }`}
+                            >
+                              Purchase
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
+
+            <div className="mt-6 text-center">
+              <p className="text-xs text-neutral-500 dark:text-neutral-500">
+                Token packages are one-time purchases that add to your account
+                balance and never expire.
+                <br />
+                All purchases require an active Pro or Agent plan subscription.
+              </p>
+            </div>
           </div>
+
+          {/* Frequently Asked Questions Section */}
+          <FAQSection />
 
           {/* Bottom CTA */}
           <div className="mt-16 sm:mt-20 text-center pb-8">
@@ -1376,7 +2030,7 @@ export default function PricingPage() {
               <button
                 onClick={() =>
                   (window.location.href =
-                    "mailto:sales@craft.fast?subject=Enterprise Inquiry")
+                    "mailto:sales@craft.fast?subject=Agent Plan Inquiry")
                 }
                 className="inline-flex items-center gap-2 px-8 py-3 bg-neutral-100 dark:bg-neutral-800 text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full font-medium transition-colors border border-neutral-300 dark:border-neutral-600"
               >

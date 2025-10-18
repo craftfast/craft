@@ -208,8 +208,8 @@ model NeonDatabase {
 
 model Plan {
   id                String             @id @default(cuid())
-  name              String             @unique // "HOBBY", "PRO", "ENTERPRISE"
-  displayName       String // "Hobby", "Pro", "Enterprise"
+  name              String             @unique // "HOBBY", "PRO", "AGENT"
+  displayName       String // "Hobby", "Pro", "Agent"
   description       String? // Plan description
   priceMonthlyUsd   Float // Monthly price in USD (0 for Hobby, 25 for Pro)
   features          Json // JSON array of plan features

@@ -61,7 +61,7 @@ export default function RefundPolicy() {
             <h3 className="text-xl font-semibold mb-3 mt-6">1.2 Pro Plan</h3>
             <ul className="space-y-2">
               <li>Monthly subscription billed in advance</li>
-              <li>Pricing: $25/month</li>
+              <li>Pricing: $50/month</li>
               <li>Includes 10M AI tokens per month</li>
               <li>Unlimited projects</li>
               <li>Purchase additional AI credits at $5 per million tokens</li>

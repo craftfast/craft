@@ -382,18 +382,18 @@ export function getNeonAPI(orgId?: string): NeonAPI {
     if (!neonApiInstance) {
         neonApiInstance = new NeonAPI();
     }
-    
+
     // Set org ID if provided (for multi-org setups)
     if (orgId) {
         neonApiInstance.setOrgId(orgId);
     }
-    
+
     return neonApiInstance;
 }
 
 /**
  * Get organization ID based on user's plan
- * @param planName - "HOBBY", "PRO", or "ENTERPRISE"
+ * @param planName - "HOBBY", "PRO", or "AGENT"
  * @returns Appropriate Neon organization ID
  */
 export function getNeonOrgIdForPlan(planName: string): string {
@@ -406,14 +406,14 @@ export function getNeonOrgIdForPlan(planName: string): string {
                 throw new Error("NEON_FREE_ORG_ID environment variable is required for Hobby plan");
             }
             return freeOrg;
-        
+
         case "PRO":
-        case "ENTERPRISE":
+        case "AGENT":
             if (!proOrg) {
-                throw new Error("NEON_PRO_ORG_ID environment variable is required for Pro/Enterprise plans");
+                throw new Error("NEON_PRO_ORG_ID environment variable is required for Pro/Agent plans");
             }
             return proOrg;
-        
+
         default:
             // Default to free tier
             if (!freeOrg) {

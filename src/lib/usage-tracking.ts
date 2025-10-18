@@ -39,12 +39,12 @@ const FREE_TIERS = {
         authMau: 999999, // Unlimited
         edgeFunctionInvocations: 1000000, // 1M
     },
-    ENTERPRISE: {
-        databaseGb: 999999, // Virtually unlimited
-        storageGb: 999999,
-        bandwidthGb: 999999,
-        authMau: 999999,
-        edgeFunctionInvocations: 999999999,
+    AGENT: {
+        databaseGb: 2, // 2 GB
+        storageGb: 5, // 5 GB
+        bandwidthGb: 2000, // 2 TB
+        authMau: 999999, // Unlimited
+        edgeFunctionInvocations: 10000000, // 10M
     },
 } as const;
 
@@ -52,7 +52,7 @@ const FREE_TIERS = {
  * Calculate infrastructure costs based on usage
  */
 export function calculateInfrastructureCosts(
-    planName: "HOBBY" | "PRO" | "ENTERPRISE",
+    planName: "HOBBY" | "PRO" | "AGENT",
     usage: {
         databaseSizeGb: number;
         storageSizeGb: number;
@@ -126,7 +126,7 @@ export async function updateUsageRecord(
         throw new Error("No subscription found for user");
     }
 
-    const planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
+    const planName = subscription.plan.name as "HOBBY" | "PRO" | "AGENT";
 
     // Calculate infrastructure costs
     const infraCosts = calculateInfrastructureCosts(planName, {
@@ -265,7 +265,7 @@ export async function checkUsageLimits(
         throw new Error("No subscription found");
     }
 
-    const planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
+    const planName = subscription.plan.name as "HOBBY" | "PRO" | "AGENT";
     const freeTier = FREE_TIERS[planName];
 
     const usageRecord = await getCurrentUsageRecord(userId);

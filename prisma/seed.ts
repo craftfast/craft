@@ -36,7 +36,7 @@ async function main() {
             name: "PRO",
             displayName: "Pro",
             description: "Everything you need to build and scale your app.",
-            priceMonthlyUsd: 25,
+            priceMonthlyUsd: 50,
             maxProjects: 999, // Unlimited projects
             databaseSizeGb: 0.5, // 500 MB free
             storageSizeGb: 1, // 1 GB free
@@ -55,25 +55,25 @@ async function main() {
             ],
         },
         {
-            name: "ENTERPRISE",
-            displayName: "Enterprise",
-            description: "Security, performance, and dedicated support.",
-            priceMonthlyUsd: 0, // Custom pricing
+            name: "AGENT",
+            displayName: "Agent",
+            description: "Delegate long-running tasks with expert oversight.",
+            priceMonthlyUsd: 5000,
             maxProjects: 999999, // Unlimited
-            databaseSizeGb: 999999, // Virtually unlimited
-            storageSizeGb: 999999, // Virtually unlimited
-            monthlyTokenLimit: null, // Unlimited tokens
-            canPurchaseTokens: true, // Custom pricing model
+            databaseSizeGb: 2, // 2 GB
+            storageSizeGb: 5, // 5 GB
+            monthlyTokenLimit: 100000000, // 100M tokens per month
+            canPurchaseTokens: true,
             sortOrder: 2,
             features: [
                 "All Pro features, plus:",
-                "SSO & SAML authentication",
-                "Advanced security controls",
-                "Audit logs & compliance",
-                "Custom database & storage limits",
-                "99.9% uptime SLA",
-                "Dedicated account manager",
-                "24/7 priority support",
+                "100M AI tokens per month",
+                "Delegate long-running tasks",
+                "Expert oversight & review",
+                "Background task execution",
+                "Architecture & design review",
+                "2 GB database + 5 GB storage",
+                "Dedicated support",
             ],
         },
     ];
@@ -90,8 +90,8 @@ async function main() {
     console.log("\n🎉 Database seeding completed successfully!");
     console.log("\nPlan Summary:");
     console.log("- HOBBY: Free forever, 100k tokens/month, up to 3 projects");
-    console.log("- PRO: $25/month, 10M tokens/month, unlimited projects, purchase more at $5/1M");
-    console.log("- ENTERPRISE: Custom pricing, unlimited tokens");
+    console.log("- PRO: $50/month, 10M tokens/month, unlimited projects, purchase more at $5/1M");
+    console.log("- AGENT: $5,000/month, 100M tokens/month, long-running tasks, expert oversight");
 }
 
 main()

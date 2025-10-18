@@ -133,7 +133,7 @@ export default function TermsOfService() {
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
                 <p className="font-semibold mb-2">Pro Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• $25/month</li>
+                  <li>• $50/month</li>
                   <li>• 10M AI tokens per month</li>
                   <li>• Unlimited projects</li>
                   <li>
@@ -147,16 +147,16 @@ export default function TermsOfService() {
               </div>
 
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
-                <p className="font-semibold mb-2">Enterprise Plan</p>
+                <p className="font-semibold mb-2">Agent Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• Custom pricing</li>
-                  <li>• SSO & SAML authentication</li>
-                  <li>• Advanced security controls</li>
-                  <li>• Audit logs & compliance</li>
-                  <li>• Custom database & storage limits</li>
-                  <li>• 99.9% uptime SLA</li>
-                  <li>• Dedicated account manager</li>
-                  <li>• 24/7 priority support</li>
+                  <li>• $5,000 per month</li>
+                  <li>• 100M AI tokens per month</li>
+                  <li>• Delegate long-running tasks</li>
+                  <li>• Expert oversight & review</li>
+                  <li>• Background task execution</li>
+                  <li>• Architecture & design review</li>
+                  <li>• 2 GB database + 5 GB storage</li>
+                  <li>• Dedicated support</li>
                 </ul>
               </div>
             </div>
@@ -170,7 +170,7 @@ export default function TermsOfService() {
                 securely through Polar.sh
               </li>
               <li>
-                <strong>Subscription Renewals:</strong> Pro and Enterprise
+                <strong>Subscription Renewals:</strong> Pro and Agent
                 subscriptions auto-renew monthly unless cancelled
               </li>
               <li>
@@ -382,8 +382,8 @@ export default function TermsOfService() {
                 limits
               </li>
               <li>
-                <strong>Enterprise Users:</strong> Custom usage allocations
-                based on your specific requirements and agreement
+                <strong>Agent Users:</strong> 100M AI tokens per month for
+                long-running tasks with expert oversight and review
               </li>
               <li>
                 We reserve the right to implement rate limits to ensure fair use
@@ -398,11 +398,8 @@ export default function TermsOfService() {
             <h3 className="text-xl font-semibold mb-3 mt-6">6.3 AI Training</h3>
             <ul className="space-y-2">
               <li>
-                <strong>Hobby and Pro:</strong> Your prompts may be used to
-                improve AI models with privacy-preserving techniques
-              </li>
-              <li>
-                <strong>Enterprise:</strong> Can opt out of AI training entirely
+                <strong>All Plans:</strong> Your prompts may be used to improve
+                AI models with privacy-preserving techniques
               </li>
               <li>
                 We implement privacy-preserving techniques when training models
@@ -417,13 +414,16 @@ export default function TermsOfService() {
             <h3 className="text-xl font-semibold mb-3">7.1 Storage Limits</h3>
             <ul className="space-y-2">
               <li>
-                <strong>Free:</strong> 0.5GB database storage, up to 3 projects
+                <strong>Hobby:</strong> 50MB database + 100MB storage, up to 3
+                projects
               </li>
               <li>
-                <strong>Pro:</strong> 5GB database storage, unlimited projects
+                <strong>Pro:</strong> 500MB database + 1GB storage, unlimited
+                projects
               </li>
               <li>
-                <strong>Enterprise:</strong> Unlimited storage and projects
+                <strong>Agent:</strong> 2GB database + 5GB storage, unlimited
+                projects
               </li>
               <li>
                 Exceeding storage limits may result in service interruption
@@ -441,7 +441,7 @@ export default function TermsOfService() {
               <li>
                 We perform regular backups but do not guarantee data recovery
               </li>
-              <li>Pro and Enterprise users have enhanced backup options</li>
+              <li>Pro and Agent users have enhanced backup options</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
@@ -510,7 +510,7 @@ export default function TermsOfService() {
               <li>
                 We may modify, suspend, or discontinue features with notice
               </li>
-              <li>Enterprise users may have specific SLA guarantees</li>
+              <li>Agent users have dedicated support with priority access</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">9.2 Support</h3>
@@ -524,7 +524,7 @@ export default function TermsOfService() {
                 response time
               </li>
               <li>
-                <strong>Enterprise:</strong> Dedicated support with custom SLA
+                <strong>Agent:</strong> Dedicated support with priority access
               </li>
             </ul>
           </section>
