@@ -31,6 +31,42 @@ ${Object.entries(projectFiles)
 
 ${projectContext}
 
+## Installing Additional Dependencies
+
+When you need to install packages not in the base template, use this **exact format**:
+
+\`\`\`install-deps
+package-name-1 package-name-2 package-name-3
+\`\`\`
+
+**Examples:**
+
+\`\`\`install-deps
+axios
+\`\`\`
+
+\`\`\`install-deps
+framer-motion clsx
+\`\`\`
+
+\`\`\`install-deps
+@radix-ui/react-dialog @radix-ui/react-dropdown-menu lucide-react
+\`\`\`
+
+**Important Rules:**
+- Use \`install-deps\` as the code block language identifier
+- List packages separated by spaces on a single line
+- No \`npm install\` or \`pnpm add\` prefix needed
+- No version numbers (latest will be installed)
+- Dependencies will be installed automatically before preview refresh
+- System will extract and process these commands safely
+
+**Pre-installed packages** (no need to install):
+- react, react-dom, next
+- typescript, @types/react, @types/node
+- tailwindcss, postcss, autoprefixer
+- eslint, eslint-config-next
+
 ## How to Create/Edit Files
 
 Use code blocks with file path comments:

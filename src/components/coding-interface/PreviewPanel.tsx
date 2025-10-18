@@ -8,6 +8,8 @@ interface PreviewPanelProps {
   isGeneratingFiles?: boolean; // New prop to indicate AI is generating files
   generationStatus?: string; // "template" | "generating" | "ready"
   version?: number; // Project version (0 = template, 1+ = has AI updates)
+  packages?: string[]; // Packages to install when creating/refreshing sandbox
+  onPackagesInstalled?: () => void; // Callback when packages are installed
   onRefreshProject?: () => Promise<void>; // Callback to refresh project after version restore
 }
 
@@ -30,6 +32,8 @@ export default function PreviewPanel({
   isGeneratingFiles = false,
   generationStatus = "template",
   version = 0,
+  packages = [],
+  onPackagesInstalled,
   onRefreshProject,
 }: PreviewPanelProps) {
   const [previewUrl, setPreviewUrl] = useState("");
@@ -216,6 +220,7 @@ export default function PreviewPanel({
         },
         body: JSON.stringify({
           files: filesToSend,
+          packages: packages.length > 0 ? packages : undefined,
         }),
       });
 
@@ -227,6 +232,17 @@ export default function PreviewPanel({
 
       console.log("📦 Sandbox created:", data);
       console.log("🔗 Preview URL:", data.url);
+
+      // Call callback if packages were installed
+      if (data.depsInstalled && onPackagesInstalled) {
+        console.log("✅ Dependencies installed, clearing pending packages");
+        onPackagesInstalled();
+      }
+
+      // Log if there was an error installing dependencies (non-blocking)
+      if (data.depsError) {
+        console.warn("⚠️ Failed to install some dependencies:", data.depsError);
+      }
 
       // The server is already running thanks to the API!
       // OPTIMIZATION: Reduce wait time - optimized API handles compilation better
@@ -317,12 +333,27 @@ export default function PreviewPanel({
         },
         body: JSON.stringify({
           files: filesToUpdate,
+          packages: packages.length > 0 ? packages : undefined,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
         console.log(`✅ Files updated successfully`, data);
+
+        // Call callback if packages were installed
+        if (data.depsInstalled && onPackagesInstalled) {
+          console.log("✅ Dependencies installed, clearing pending packages");
+          onPackagesInstalled();
+        }
+
+        // Log if there was an error installing dependencies (non-blocking)
+        if (data.depsError) {
+          console.warn(
+            "⚠️ Failed to install some dependencies:",
+            data.depsError
+          );
+        }
 
         // Wait a moment for files to be written and HMR to pick up changes
         await new Promise((resolve) => setTimeout(resolve, 800));

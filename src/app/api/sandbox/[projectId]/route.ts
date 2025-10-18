@@ -19,6 +19,60 @@ if (!global.activeSandboxes) {
 
 const activeSandboxes = global.activeSandboxes;
 
+// Helper function to install dependencies in a sandbox
+async function installDependencies(
+    sandbox: Sandbox,
+    packages: string[]
+): Promise<{ success: boolean; output: string; error?: string }> {
+    if (!packages || packages.length === 0) {
+        return { success: true, output: "" };
+    }
+
+    // Validate package names
+    const validPackages = packages.filter((pkg) => {
+        if (typeof pkg !== "string") return false;
+        // Basic validation for npm package names
+        const validPattern = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/i;
+        return validPattern.test(pkg) && pkg.length <= 214;
+    });
+
+    if (validPackages.length === 0) {
+        return { success: false, output: "", error: "No valid package names provided" };
+    }
+
+    console.log(`📦 Installing ${validPackages.length} package(s): ${validPackages.join(", ")}`);
+
+    try {
+        // Use commands.run() instead of runCode() for shell commands
+        // This is the correct method for running bash commands in E2B sandboxes
+        const installCommand = `cd /home/user/project && npm install ${validPackages.join(" ")}`;
+
+        const result = await sandbox.commands.run(installCommand);
+
+        // Check if installation was successful (exit code 0)
+        const success = result.exitCode === 0;
+
+        if (success) {
+            console.log(`✅ Successfully installed: ${validPackages.join(", ")}`);
+        } else {
+            console.error(`❌ Installation failed:`, result.stderr || result.stdout);
+        }
+
+        return {
+            success,
+            output: result.stdout || "",
+            error: result.exitCode !== 0 ? (result.stderr || "Installation failed") : undefined,
+        };
+    } catch (error) {
+        console.error("Error installing packages:", error);
+        return {
+            success: false,
+            output: "",
+            error: error instanceof Error ? error.message : "Failed to install packages",
+        };
+    }
+}
+
 // 💰 COST OPTIMIZATION: Aggressively cleanup inactive sandboxes
 // E2B charges $0.000028/second for 2 vCPUs = $0.10/hour = $2.40/day
 // With 4 vCPUs (for better UX): $0.20/hour = $4.80/day
@@ -83,7 +137,7 @@ export async function POST(
         }
 
         // Get files from request body or use files from database
-        const { files: requestFiles } = await request.json();
+        const { files: requestFiles, packages } = await request.json();
 
         // Priority: request files > database files
         const files = requestFiles && Object.keys(requestFiles).length > 0
@@ -91,6 +145,11 @@ export async function POST(
             : (project.codeFiles as Record<string, string> || {});
 
         console.log(`📦 Project ${projectId}: ${Object.keys(files).length} files`);
+
+        // Log if packages need to be installed
+        if (packages && Array.isArray(packages) && packages.length > 0) {
+            console.log(`📦 Dependencies to install: ${packages.join(", ")}`);
+        }
 
         // Check if sandbox already exists
         let sandboxData = activeSandboxes.get(projectId);
@@ -146,11 +205,26 @@ export async function POST(
 
             // If we still have sandboxData at this point, return success
             if (sandboxData) {
+                // Install dependencies if provided
+                let depsInstalled = false;
+                let depsError: string | undefined;
+
+                if (packages && Array.isArray(packages) && packages.length > 0) {
+                    const installResult = await installDependencies(sandboxData.sandbox, packages);
+                    depsInstalled = installResult.success;
+                    if (!installResult.success) {
+                        depsError = installResult.error;
+                        console.warn(`⚠️ Failed to install dependencies: ${depsError}`);
+                    }
+                }
+
                 return NextResponse.json({
                     sandboxId: projectId,
                     url: `https://${sandboxData.sandbox.getHost(3000)}`,
                     status: "running",
                     filesUpdated: files && Object.keys(files).length > 0,
+                    depsInstalled,
+                    depsError,
                 });
             }
         }
@@ -218,6 +292,19 @@ export async function POST(
             // Dependencies are pre-installed, hot reload will pick up new files automatically
             console.log("✅ Build System 2.0: Dependencies pre-installed, dev server running, files will hot-reload 🚀");
 
+            // Install additional dependencies if provided
+            let depsInstalled = false;
+            let depsError: string | undefined;
+
+            if (packages && Array.isArray(packages) && packages.length > 0) {
+                const installResult = await installDependencies(sandbox, packages);
+                depsInstalled = installResult.success;
+                if (!installResult.success) {
+                    depsError = installResult.error;
+                    console.warn(`⚠️ Failed to install dependencies: ${depsError}`);
+                }
+            }
+
             // Store sandbox reference (no dev server PID needed, it's from the template)
             activeSandboxes.set(projectId, {
                 sandbox,
@@ -234,6 +321,8 @@ export async function POST(
                 sandboxId: projectId,
                 url: sandboxUrl,
                 status: "created",
+                depsInstalled,
+                depsError,
             });
 
         } catch (error) {

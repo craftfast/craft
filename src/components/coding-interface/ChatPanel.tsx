@@ -9,6 +9,11 @@ import "highlight.js/styles/github-dark.min.css";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import PricingModal from "../PricingModal";
+import {
+  extractDependencyCommands,
+  getAllPackages,
+  hasDependencyCommands,
+} from "@/lib/ai/extract-deps";
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -76,7 +81,10 @@ interface ChatPanelProps {
   projectDescription?: string | null;
   projectVersion?: number; // Project version (0 = new project, 1+ = has updates)
   projectFiles?: Record<string, string>; // Existing project files
-  onFilesCreated?: (files: { path: string; content: string }[]) => void;
+  onFilesCreated?: (
+    files: { path: string; content: string }[],
+    packages?: string[]
+  ) => void;
   onStreamingFiles?: (files: Record<string, string>) => void; // Real-time streaming files
   triggerNewChat?: number;
   onGeneratingStatusChange?: (isGenerating: boolean) => void;
@@ -563,7 +571,8 @@ export default function ChatPanel({
   };
   // Function to save files to the project
   const saveFiles = async (
-    files: { path: string; content: string; language: string }[]
+    files: { path: string; content: string; language: string }[],
+    packages?: string[]
   ): Promise<FileChange[]> => {
     try {
       const fileChanges: FileChange[] = [];
@@ -599,10 +608,11 @@ export default function ChatPanel({
         `✅ BATCH SAVE COMPLETE: Saved ${files.length} files in single batch request`
       );
 
-      // Notify parent component about new files
+      // Notify parent component about new files and packages
       if (onFilesCreated) {
         onFilesCreated(
-          files.map((f) => ({ path: f.path, content: f.content }))
+          files.map((f) => ({ path: f.path, content: f.content })),
+          packages
         );
       }
 
@@ -804,7 +814,23 @@ export default function ChatPanel({
           console.log(
             `📝 Extracted ${extractedFiles.length} files from AI response`
           );
-          const fileChanges = await saveFiles(extractedFiles);
+
+          // Check for dependency installation commands
+          let packagesToInstall: string[] | undefined;
+          if (hasDependencyCommands(fullContent)) {
+            const commands = extractDependencyCommands(fullContent);
+            packagesToInstall = getAllPackages(commands);
+            console.log(
+              `📦 Found dependencies to install: ${packagesToInstall.join(
+                ", "
+              )}`
+            );
+          }
+
+          const fileChanges = await saveFiles(
+            extractedFiles,
+            packagesToInstall
+          );
 
           // Update the message to remove code blocks from display and add file changes
           const contentWithoutCode = removeCodeBlocks(fullContent);

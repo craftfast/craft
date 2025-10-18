@@ -61,6 +61,7 @@ export default function CodingInterface({
   const [streamingFiles, setStreamingFiles] = useState<Record<string, string>>(
     {}
   ); // Files being generated in real-time
+  const [pendingPackages, setPendingPackages] = useState<string[]>([]); // Packages to install on next preview
   const chatWidth = 30; // Fixed at 30%
 
   // Auto-switch to code tab when AI starts generating files
@@ -115,9 +116,20 @@ export default function CodingInterface({
 
   // Function to handle files created from chat
   const handleFilesCreated = async (
-    files: { path: string; content: string }[]
+    files: { path: string; content: string }[],
+    packages?: string[]
   ) => {
     console.log(`📝 Handling ${files.length} files created from chat...`);
+
+    // Store packages if provided
+    if (packages && packages.length > 0) {
+      console.log(
+        `📦 Storing ${
+          packages.length
+        } packages for next preview: ${packages.join(", ")}`
+      );
+      setPendingPackages(packages);
+    }
 
     // Update local state with new files
     const newFiles: Record<string, string> = { ...projectFiles };
@@ -537,6 +549,8 @@ export default function CodingInterface({
                   isGeneratingFiles={isGeneratingFiles}
                   generationStatus={project.generationStatus}
                   version={project.version}
+                  packages={pendingPackages}
+                  onPackagesInstalled={() => setPendingPackages([])}
                   onRefreshProject={async () => {
                     // Reload project files after restore
                     const response = await fetch(
