@@ -30,7 +30,6 @@ export const POST = Webhooks({
         const order = payload.data;
         console.log(" Order paid:", order.id);
         console.log(" Billing reason:", order.billingReason);
-        console.log(" Order details:", JSON.stringify(order, null, 2));
 
         // Check if this order is already processed
         const existingTransaction = await prisma.paymentTransaction.findFirst({
