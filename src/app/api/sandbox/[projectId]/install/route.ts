@@ -89,15 +89,13 @@ export async function POST(
         console.log(`📦 Installing packages for project ${projectId}: ${validPackages.join(", ")}`);
 
         try {
-            // Change to project directory and install packages using pnpm
-            const installCommand = `cd /home/user/project && pnpm add ${validPackages.join(" ")}`;
+            // Change to project directory and install packages using npm
+            const installCommand = `cd /home/user/project && npm install ${validPackages.join(" ")}`;
 
-            const result = await sandboxData.sandbox.runCode(installCommand, {
-                timeoutMs: 120000, // 2 minutes timeout for installations
-            });
+            const result = await sandboxData.sandbox.commands.run(installCommand);
 
             // Check if installation was successful
-            const success = !result.error;
+            const success = result.exitCode === 0;
 
             if (success) {
                 console.log(`✅ Successfully installed: ${validPackages.join(", ")}`);
@@ -105,17 +103,17 @@ export async function POST(
                 return NextResponse.json({
                     success: true,
                     packages: validPackages,
-                    output: result.text || "",
+                    output: result.stdout || "",
                     message: `Successfully installed ${validPackages.length} package(s)`,
                 });
             } else {
-                console.error(`❌ Installation failed:`, result.error || result.text);
+                console.error(`❌ Installation failed:`, result.stderr || result.stdout);
 
                 return NextResponse.json({
                     success: false,
                     packages: validPackages,
-                    error: result.error || result.text || "Installation failed",
-                    output: result.text || "",
+                    error: result.stderr || result.stdout || "Installation failed",
+                    output: result.stdout || "",
                 }, { status: 500 });
             }
         } catch (error) {

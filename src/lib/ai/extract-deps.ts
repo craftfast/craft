@@ -77,9 +77,9 @@ export function hasDependencyCommands(content: string): boolean {
 
 /**
  * Generate installation command for sandbox
- * Returns pnpm add command with all packages
+ * Returns npm install command with all packages
  */
 export function generateInstallCommand(packages: string[]): string {
     if (packages.length === 0) return '';
-    return `pnpm add ${packages.join(' ')}`;
+    return `npm install ${packages.join(' ')}`;
 }
