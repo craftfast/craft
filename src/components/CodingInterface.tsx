@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import Logo from "./Logo";
@@ -47,7 +47,6 @@ interface CodingInterfaceProps {
   project: Project;
   user: User;
 }
-
 export default function CodingInterface({
   project: initialProject,
   user,
@@ -146,9 +145,32 @@ export default function CodingInterface({
   };
 
   // Function to handle streaming files (files being generated in real-time)
-  const handleStreamingFiles = (files: Record<string, string>) => {
-    setStreamingFiles(files);
-  };
+  // Use ref to avoid creating new function references that cause re-renders
+  const streamingFilesRef = useRef<Record<string, string>>({});
+  const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleStreamingFiles = useCallback((files: Record<string, string>) => {
+    // Merge new files with existing streaming files
+    streamingFilesRef.current = { ...streamingFilesRef.current, ...files };
+
+    // Debounce state updates to reduce re-renders
+    if (streamingTimeoutRef.current) {
+      clearTimeout(streamingTimeoutRef.current);
+    }
+
+    streamingTimeoutRef.current = setTimeout(() => {
+      setStreamingFiles(streamingFilesRef.current);
+    }, 50); // Update every 50ms max
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (streamingTimeoutRef.current) {
+        clearTimeout(streamingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Function to handle file clicks from FileChangesCard
   const handleFileClick = () => {

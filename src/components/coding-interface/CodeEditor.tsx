@@ -169,18 +169,37 @@ export default function CodeEditor({
   useEffect(() => {
     if (isGenerating && currentStreamingFile) {
       setSelectedFile(currentStreamingFile);
-      // Merge streaming files into files state for immediate display
-      setFiles((prev) => ({ ...prev, ...streamingFiles }));
 
       // Auto-expand folders for streaming file
       const parts = currentStreamingFile.split("/");
       const newFolders = new Set(expandedFolders);
+      let hasChanges = false;
       for (let i = 0; i < parts.length - 1; i++) {
-        newFolders.add(parts.slice(0, i + 1).join("/"));
+        const folder = parts.slice(0, i + 1).join("/");
+        if (!newFolders.has(folder)) {
+          newFolders.add(folder);
+          hasChanges = true;
+        }
       }
-      setExpandedFolders(newFolders);
+      if (hasChanges) {
+        setExpandedFolders(newFolders);
+      }
     }
-  }, [currentStreamingFile, isGenerating, streamingFiles, expandedFolders]);
+  }, [currentStreamingFile, isGenerating, expandedFolders]);
+
+  // Merge streaming files into files state (separate effect to avoid loops)
+  useEffect(() => {
+    if (isGenerating && Object.keys(streamingFiles).length > 0) {
+      setFiles((prev) => {
+        // Only update if there are actual changes
+        const hasChanges = Object.keys(streamingFiles).some(
+          (key) => streamingFiles[key] !== prev[key]
+        );
+        if (!hasChanges) return prev;
+        return { ...prev, ...streamingFiles };
+      });
+    }
+  }, [streamingFiles, isGenerating]);
 
   // Update code when selected file or files change
   useEffect(() => {

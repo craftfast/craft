@@ -97,6 +97,9 @@ export default function PreviewPanel({
   }, [projectId]);
 
   // Handle AI generation completion - auto-start OR auto-update preview
+  // Use ref to track last processed version to avoid duplicate operations
+  const lastProcessedVersionRef = useRef<number>(-1);
+
   useEffect(() => {
     console.log(`🔍 PreviewPanel effect triggered:`, {
       isGeneratingFiles,
@@ -105,6 +108,12 @@ export default function PreviewPanel({
       fileCount: Object.keys(projectFiles).length,
       sandboxStatus,
     });
+
+    // Skip if we've already processed this version
+    if (lastProcessedVersionRef.current === version) {
+      console.log(`⏭️  Already processed version ${version}, skipping...`);
+      return;
+    }
 
     // Only auto-start when:
     // 1. AI has finished generating (isGeneratingFiles = false)
@@ -125,6 +134,7 @@ export default function PreviewPanel({
           Object.keys(projectFiles).length
         } files...`
       );
+      lastProcessedVersionRef.current = version;
       setTimeout(() => startSandbox(), 800);
     } else if (
       !isGeneratingFiles &&
@@ -139,6 +149,7 @@ export default function PreviewPanel({
           Object.keys(projectFiles).length
         } files...`
       );
+      lastProcessedVersionRef.current = version;
       setTimeout(() => updateSandboxFiles(), 500);
     } else {
       console.log(`⏭️  Skipping preview update - conditions not met`);
@@ -153,6 +164,12 @@ export default function PreviewPanel({
   ]);
 
   const startSandbox = async () => {
+    // Prevent duplicate sandbox starts
+    if (sandboxStatus === "loading" || sandboxStatus === "running") {
+      console.log(`⏭️  Sandbox already ${sandboxStatus}, skipping start...`);
+      return;
+    }
+
     try {
       setSandboxStatus("loading");
       setError(null);
@@ -186,7 +203,6 @@ export default function PreviewPanel({
         );
         console.log(`📋 Files:`, Object.keys(filesToSend));
       }
-
       console.log(
         `📤 Sending ${Object.keys(filesToSend).length} files to sandbox API...`
       );

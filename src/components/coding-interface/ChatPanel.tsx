@@ -733,6 +733,7 @@ export default function ChatPanel({
       if (reader) {
         let fullContent = "";
         let hasNotifiedFileGeneration = false; // Track if we've notified about file generation
+        let lastStreamedContent = ""; // Track last streamed content to avoid duplicate updates
 
         while (true) {
           const { done, value } = await reader.read();
@@ -740,6 +741,12 @@ export default function ChatPanel({
 
           const chunk = decoder.decode(value);
           fullContent += chunk;
+
+          // Only process streaming every ~50ms or when done to reduce updates
+          const shouldUpdate =
+            done || fullContent.length - lastStreamedContent.length > 100;
+
+          if (!shouldUpdate) continue;
 
           // Extract files during streaming (including partial ones) to stream to code editor
           const streamingFiles = extractCodeBlocks(fullContent, true);
@@ -751,6 +758,7 @@ export default function ChatPanel({
           }
 
           // Send streaming files to parent for live code view (no database save yet)
+          // Only send if content has meaningfully changed
           if (onStreamingFiles && streamingFiles.length > 0) {
             const filesMap: Record<string, string> = {};
             streamingFiles.forEach((f) => {
@@ -768,6 +776,7 @@ export default function ChatPanel({
           }));
 
           // During streaming, hide code blocks from text content
+          lastStreamedContent = fullContent;
           const displayContent = removeCodeBlocks(fullContent);
 
           // Update message with file changes (shown in card) and cleaned content
