@@ -84,12 +84,24 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create checkout URL with metadata
-        const checkoutUrl = `https://sandbox.polar.sh/checkout/${polarPriceId}?customer_email=${encodeURIComponent(user.email || '')}&metadata[userId]=${user.id}&metadata[purchaseType]=token_topup&metadata[tokenAmount]=${tokens}&metadata[priceUsd]=${tier.price}`;
+        // Build checkout URL using the Polar Next.js adapter route
+        // This will create a proper Polar checkout session
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const checkoutUrl = new URL("/api/checkout", baseUrl);
+
+        // Add required parameters for Polar checkout
+        checkoutUrl.searchParams.set("products", polarPriceId);
+        checkoutUrl.searchParams.set("customerEmail", user.email || '');
+
+        // Add metadata as query parameters
+        checkoutUrl.searchParams.set("metadata[userId]", user.id);
+        checkoutUrl.searchParams.set("metadata[purchaseType]", "token_topup");
+        checkoutUrl.searchParams.set("metadata[tokenAmount]", tokens.toString());
+        checkoutUrl.searchParams.set("metadata[priceUsd]", tier.price.toString());
 
         return NextResponse.json({
             success: true,
-            checkoutUrl,
+            checkoutUrl: checkoutUrl.toString(),
             tokens: tier.tokens,
             price: tier.price,
             display: tier.display,

@@ -101,15 +101,15 @@ export const TOKEN_PRICING = {
 } as const;
 
 export const CREDIT_TIERS = [
-    { tokens: 1000000, price: 5, display: "1M tokens - $5", polarEnvKey: "POLAR_TOKEN_1M_PRICE_ID" },
-    { tokens: 5000000, price: 22, display: "5M tokens - $22", polarEnvKey: "POLAR_TOKEN_5M_PRICE_ID" },
-    { tokens: 10000000, price: 42, display: "10M tokens - $42", polarEnvKey: "POLAR_TOKEN_10M_PRICE_ID" },
-    { tokens: 25000000, price: 100, display: "25M tokens - $100", polarEnvKey: "POLAR_TOKEN_25M_PRICE_ID" },
-    { tokens: 50000000, price: 187, display: "50M tokens - $187", polarEnvKey: "POLAR_TOKEN_50M_PRICE_ID" },
-    { tokens: 100000000, price: 350, display: "100M tokens - $350", polarEnvKey: "POLAR_TOKEN_100M_PRICE_ID" },
-    { tokens: 250000000, price: 812, display: "250M tokens - $812", polarEnvKey: "POLAR_TOKEN_250M_PRICE_ID" },
-    { tokens: 500000000, price: 1500, display: "500M tokens - $1,500", polarEnvKey: "POLAR_TOKEN_500M_PRICE_ID" },
-    { tokens: 1000000000, price: 2750, display: "1000M tokens - $2,750", polarEnvKey: "POLAR_TOKEN_1000M_PRICE_ID" },
+    { tokens: 1000000, price: 5, display: "1M tokens - $5", polarEnvKey: "POLAR_TOKEN_1M_PRODUCT_ID" },
+    { tokens: 5000000, price: 22, display: "5M tokens - $22", polarEnvKey: "POLAR_TOKEN_5M_PRODUCT_ID" },
+    { tokens: 10000000, price: 42, display: "10M tokens - $42", polarEnvKey: "POLAR_TOKEN_10M_PRODUCT_ID" },
+    { tokens: 25000000, price: 100, display: "25M tokens - $100", polarEnvKey: "POLAR_TOKEN_25M_PRODUCT_ID" },
+    { tokens: 50000000, price: 187, display: "50M tokens - $187", polarEnvKey: "POLAR_TOKEN_50M_PRODUCT_ID" },
+    { tokens: 100000000, price: 350, display: "100M tokens - $350", polarEnvKey: "POLAR_TOKEN_100M_PRODUCT_ID" },
+    { tokens: 250000000, price: 812, display: "250M tokens - $812", polarEnvKey: "POLAR_TOKEN_250M_PRODUCT_ID" },
+    { tokens: 500000000, price: 1500, display: "500M tokens - $1,500", polarEnvKey: "POLAR_TOKEN_500M_PRODUCT_ID" },
+    { tokens: 1000000000, price: 2750, display: "1000M tokens - $2,750", polarEnvKey: "POLAR_TOKEN_1000M_PRODUCT_ID" },
 ] as const;
 
 export function getCreditTiers() {

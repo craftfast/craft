@@ -38,21 +38,20 @@ export function getPolarClient() {
 }
 
 /**
- * Create a Polar checkout session
- * This redirects the user to Polar's hosted checkout page
+ * Create a Polar checkout URL using the Next.js adapter
+ * This calls a helper endpoint to build the checkout URL with the price ID
+ * 
+ * @see https://polar.sh/docs/integrate/sdk/adapters/nextjs
  */
 export async function createPolarCheckout(options: PolarOptions): Promise<string> {
     try {
-        const response = await fetch("/api/payment/create-checkout", {
+        // Call helper endpoint to get the checkout URL with proper price ID
+        const response = await fetch("/api/payment/get-checkout-url", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                amount: options.amount,
-                currency: options.currency,
-                productName: options.productName,
-                productDescription: options.productDescription,
                 email: options.email,
                 successUrl: options.successUrl || `${window.location.origin}/dashboard?payment=success`,
             }),

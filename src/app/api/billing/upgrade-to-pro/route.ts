@@ -71,12 +71,24 @@ export async function POST() {
         // Monthly pricing
         const price = PRICING.PRO.priceMonthly;
 
-        // Create checkout URL with metadata
-        const checkoutUrl = `https://sandbox.polar.sh/checkout/${polarPriceId}?customer_email=${encodeURIComponent(user.email || '')}&metadata[userId]=${user.id}&metadata[purchaseType]=subscription&metadata[planName]=PRO&metadata[billingPeriod]=${billingPeriod}`;
+        // Build checkout URL using the Polar Next.js adapter route
+        // This will create a proper Polar checkout session
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const checkoutUrl = new URL("/api/checkout", baseUrl);
+
+        // Add required parameters for Polar checkout
+        checkoutUrl.searchParams.set("products", polarPriceId);
+        checkoutUrl.searchParams.set("customerEmail", user.email || '');
+
+        // Add metadata as query parameters (Polar SDK will handle these)
+        checkoutUrl.searchParams.set("metadata[userId]", user.id);
+        checkoutUrl.searchParams.set("metadata[purchaseType]", "subscription");
+        checkoutUrl.searchParams.set("metadata[planName]", "PRO");
+        checkoutUrl.searchParams.set("metadata[billingPeriod]", billingPeriod);
 
         return NextResponse.json({
             success: true,
-            checkoutUrl,
+            checkoutUrl: checkoutUrl.toString(),
             planName: "PRO",
             billingPeriod,
             price,
