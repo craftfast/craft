@@ -2,15 +2,15 @@
   "name": "craft",
   "version": "0.1.0",
   "description": "A revolutionary vibe coding tool that transforms the way developers create, collaborate, and craft amazing applications",
-  "author": "craft.tech community",
-  "license": "MIT",
-  "homepage": "https://craft.tech",
+  "author": "craft.fast",
+  "license": "UNLICENSED",
+  "homepage": "https://craft.fast",
   "repository": {
     "type": "git",
-    "url": "https://github.com/craftdottech/craft.git"
+    "url": "https://github.com/craftfast/craft.git"
   },
   "bugs": {
-    "url": "https://github.com/craftdottech/craft/issues"
+    "url": "https://github.com/craftfast/craft/issues"
   },
   "keywords": [
     "next.js",

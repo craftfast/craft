@@ -204,7 +204,7 @@ export default function EnterprisePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
-                href="mailto:enterprise@craft.tech"
+                href="mailto:enterprise@craft.fast"
                 className="px-8 py-3 text-base font-medium bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-full transition-colors"
               >
                 Contact Sales

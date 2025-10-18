@@ -33,7 +33,7 @@ export default function PrivacyPolicy() {
           <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-6 mb-8">
             <p className="text-sm text-neutral-700 dark:text-neutral-300 mb-0">
               This Privacy Policy describes how Nextcrafter Labs (OPC) Private
-              Limited, operating Craft.tech and the Craft application
+              Limited, operating Craft.fast and the Craft application
               (&quot;Craft,&quot; &quot;we,&quot; &quot;us,&quot; or
               &quot;our&quot;) collects, uses, and shares your personal
               information when you use our AI-powered development platform and
@@ -321,7 +321,7 @@ export default function PrivacyPolicy() {
             <h3 className="text-xl font-semibold mb-3 mt-6">6.3 Deletion</h3>
             <p>
               You can delete individual projects or your entire account. Contact
-              support@craft.tech for complete data deletion.
+              support@craft.fast for complete data deletion.
             </p>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
@@ -380,7 +380,7 @@ export default function PrivacyPolicy() {
               children. If we learn that we have collected information from a
               child, we will delete it. If you believe a child has provided us
               with personal information, please contact us at
-              privacy@craft.tech.
+              privacy@craft.fast.
             </p>
           </section>
 
@@ -509,32 +509,32 @@ export default function PrivacyPolicy() {
                 <strong>Nextcrafter Labs (OPC) Private Limited</strong>
               </p>
               <p className="mb-1">Bangalore, India</p>
-              <p className="mb-3 text-sm">Operating: Craft.tech</p>
+              <p className="mb-3 text-sm">Operating: Craft.fast</p>
               <p className="mb-1">
                 Email:{" "}
                 <a
-                  href="mailto:privacy@craft.tech"
+                  href="mailto:privacy@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  privacy@craft.tech
+                  privacy@craft.fast
                 </a>
               </p>
               <p className="mb-1">
                 Support:{" "}
                 <a
-                  href="mailto:support@craft.tech"
+                  href="mailto:support@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  support@craft.tech
+                  support@craft.fast
                 </a>
               </p>
               <p className="mb-1">
                 Data Protection Officer:{" "}
                 <a
-                  href="mailto:dpo@craft.tech"
+                  href="mailto:dpo@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  dpo@craft.tech
+                  dpo@craft.fast
                 </a>
               </p>
             </div>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { FileCode, FilePlus, FileEdit, FileX, ChevronDown } from "lucide-react";

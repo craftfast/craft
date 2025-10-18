@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
                 {
                     verified: false,
                     error: "Payment verification configuration error",
-                    message: "Unable to verify payment. Please contact support at support@craft.tech with your payment ID: " + paymentId
+                    message: "Unable to verify payment. Please contact support at support@craft.fast with your payment ID: " + paymentId
                 },
                 { status: 503 }
             );
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
                 {
                     verified: false,
                     error: "Invalid signature",
-                    message: "Payment verification failed. Your payment may still be processing. Please contact support at support@craft.tech if you were charged."
+                    message: "Payment verification failed. Your payment may still be processing. Please contact support at support@craft.fast if you were charged."
                 },
                 { status: 400 }
             );
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
             {
                 verified: false,
                 error: "Failed to verify payment",
-                message: "Payment verification encountered an error. Please contact support at support@craft.tech to confirm your payment status."
+                message: "Payment verification encountered an error. Please contact support at support@craft.fast to confirm your payment status."
             },
             { status: 500 }
         );

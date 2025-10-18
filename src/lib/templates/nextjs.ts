@@ -297,7 +297,7 @@ body {
     // README
     "README.md": `# Craft Project
 
-This is a [Next.js](https://nextjs.org) project created with [Craft](https://craft.tech).
+This is a [Next.js](https://nextjs.org) project created with [Craft](https://craft.fast).
 
 ## Getting Started
 

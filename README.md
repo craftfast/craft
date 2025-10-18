@@ -1,8 +1,8 @@
-# craft.tech
+# craft.fast
 
-[![craft.tech: The Ultimate Vibe Coding Tool](./public/craft-preview.png)](https://craft.tech)
+[![craft.fast: The Ultimate Vibe Coding Tool](./public/craft-preview.png)](https://craft.fast)
 
-Welcome to **craft.tech** - a revolutionary vibe coding tool that transforms the way developers create, collaborate, and craft amazing applications. Inspired by the innovative approach of bolt.diy, craft.tech brings a unique blend of AI-powered development, modern tooling, and an exceptional developer experience.
+Welcome to **craft.fast** - a revolutionary vibe coding tool that transforms the way developers create, collaborate, and craft amazing applications. craft.fast brings a unique blend of AI-powered development, modern tooling, and an exceptional developer experience.
 
 ---
 
@@ -49,7 +49,7 @@ Welcome to **craft.tech** - a revolutionary vibe coding tool that transforms the
 
 ```bash
 # Clone the repository
-git clone https://github.com/craftdottech/craft.git
+git clone https://github.com/craftfast/craft.git
 cd craft
 
 # Install dependencies
@@ -59,7 +59,7 @@ pnpm install
 pnpm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see craft.tech in action! 🎉
+Open [http://localhost:3000](http://localhost:3000) in your browser to see craft.fast in action! 🎉
 
 ### Development Commands
 
@@ -91,18 +91,16 @@ craft/
 │   ├── components/          # Reusable components
 │   └── lib/                 # Utilities and configurations
 ├── public/                  # Static assets
-├── .github/                 # GitHub workflows and templates
-├── CONTRIBUTING.md          # Contribution guidelines
 └── README.md               # This file
 ```
 
 ---
 
-## 🎯 Getting Started with craft.tech
+## 🎯 Getting Started with craft.fast
 
 ### 1. **Explore the Interface**
 
-Start by familiarizing yourself with the craft.tech interface. The clean, modern design is built to enhance your coding experience.
+Start by familiarizing yourself with the craft.fast interface. The clean, modern design is built to enhance your coding experience.
 
 ### 2. **Create Your First Project**
 
@@ -110,36 +108,7 @@ Use the intuitive project creation tools to start building your next amazing app
 
 ### 3. **Customize Your Workspace**
 
-Personalize craft.tech to match your coding style and preferences.
-
-### 4. **Collaborate with Others**
-
-Invite team members and start collaborating in real-time.
-
----
-
-## 🤝 Contributing
-
-We welcome contributions from developers of all skill levels! Whether you're fixing bugs, adding features, or improving documentation, your help makes craft.tech better for everyone.
-
-### Quick Contribution Guide
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-For detailed guidelines, please read our [Contributing Guide](CONTRIBUTING.md).
-
-### Areas Where We Need Help
-
-- 🐛 **Bug Reports**: Help us identify and fix issues
-- ✨ **Feature Requests**: Suggest new capabilities
-- 📚 **Documentation**: Improve guides and examples
-- 🎨 **UI/UX**: Enhance the user experience
-- 🧪 **Testing**: Add test coverage
-- 🌐 **Translations**: Make craft.tech globally accessible
+Personalize craft.fast to match your coding style and preferences.
 
 ---
 
@@ -155,21 +124,7 @@ For detailed guidelines, please read our [Contributing Guide](CONTRIBUTING.md).
 
 ## 📖 Documentation
 
-- **[Getting Started Guide](docs/getting-started.md)** - Complete setup and usage guide
-- **[API Reference](docs/api-reference.md)** - Detailed API documentation
-- **[Component Library](docs/components.md)** - Available components and usage
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
-- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards and enforcement
-
----
-
-## 🌍 Community
-
-Join our growing community of developers who are building the future of coding:
-
-- **GitHub Discussions**: [Join the conversation](https://github.com/craftdottech/craft/discussions)
-- **Issues**: [Report bugs or request features](https://github.com/craftdottech/craft/issues)
-- **Twitter**: Follow us [@craftdottech](https://twitter.com/craftdottech)
+For detailed information, please contact our support team.
 
 ---
 
@@ -189,36 +144,14 @@ Join our growing community of developers who are building the future of coding:
 - **Cloud Sync**: Seamless project synchronization across devices
 - **Advanced Analytics**: Deep insights into your development workflow
 
-View our detailed [Roadmap](https://github.com/craftdottech/craft/projects) for more information.
-
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under a **Proprietary License** - see the [LICENSE](LICENSE) file for details.
+
+All rights reserved © 2025 craft.fast
 
 ---
 
-## 🙏 Acknowledgments
-
-- Inspired by the innovative work of [bolt.diy](https://github.com/stackblitz-labs/bolt.diy)
-- Built with ❤️ by the craft.tech community
-- Special thanks to all our [contributors](https://github.com/craftdottech/craft/graphs/contributors)
-
----
-
-## 🚀 Deploy Your Own
-
-You can deploy craft.tech to your favorite hosting provider:
-
-- **[Vercel](https://vercel.com)** - Optimized for Next.js with zero configuration
-- **[Netlify](https://www.netlify.com)** - Automated builds and serverless functions
-- **[Cloudflare Pages](https://pages.cloudflare.com)** - Global edge network
-- **[AWS Amplify](https://aws.amazon.com/amplify/)** - Full-stack AWS deployment
-- **[Railway](https://railway.app)** - Simple cloud deployment
-
-For deployment instructions, check out our [Deployment Guide](docs/deployment.md).
-
----
-
-**Made with ✨ by developers, for developers.**
+**Made with ✨ by craft.fast**

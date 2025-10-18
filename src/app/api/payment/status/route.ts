@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
                 {
                     verified: false,
                     error: "Payment verification configuration error",
-                    message: "Unable to verify payment. Please contact support at support@craft.tech"
+                    message: "Unable to verify payment. Please contact support at support@craft.fast"
                 },
                 { status: 503 }
             );
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
             {
                 verified: false,
                 error: "Failed to verify payment",
-                message: "Payment verification encountered an error. Please contact support at support@craft.tech to confirm your payment status."
+                message: "Payment verification encountered an error. Please contact support at support@craft.fast to confirm your payment status."
             },
             { status: 500 }
         );

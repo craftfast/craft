@@ -116,8 +116,8 @@ export function getCreditTiers() {
     return CREDIT_TIERS;
 }
 
-export const SUPPORT_EMAIL = "support@craft.tech";
-export const SALES_EMAIL = "sales@craft.tech";
+export const SUPPORT_EMAIL = "support@craft.fast";
+export const SALES_EMAIL = "sales@craft.fast";
 
 export type PlanName = keyof typeof PRICING;
 

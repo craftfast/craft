@@ -15,11 +15,11 @@ export default function HomeHeader() {
     { href: "/help", label: "Help" },
     { href: "/enterprise", label: "Enterprise" },
     {
-      href: "https://github.com/craftdottech/craft",
+      href: "https://github.com/craftfast/craft",
       label: "Contribute",
       external: true,
     },
-    { href: "https://x.com/craftdottech", label: "Updates", external: true },
+    { href: "https://x.com/craftdotfast", label: "Updates", external: true },
   ];
 
   return (

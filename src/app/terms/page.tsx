@@ -33,7 +33,7 @@ export default function TermsOfService() {
           <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-6 mb-8">
             <p className="text-sm text-neutral-700 dark:text-neutral-300 mb-0">
               These Terms of Service (&quot;Terms&quot;) govern your access to
-              and use of Craft.tech and the Craft application, operated by
+              and use of Craft.fast and the Craft application, operated by
               Nextcrafter Labs (OPC) Private Limited (&quot;Craft,&quot;
               &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), including our
               website, platform, AI services, and related applications
@@ -618,7 +618,7 @@ export default function TermsOfService() {
             <p>You may terminate your account at any time by:</p>
             <ul className="space-y-2">
               <li>Using the account deletion feature in settings</li>
-              <li>Contacting support@craft.tech</li>
+              <li>Contacting support@craft.fast</li>
               <li>
                 Cancelling your subscription (access continues until period end)
               </li>
@@ -657,7 +657,7 @@ export default function TermsOfService() {
               14.1 Informal Resolution
             </h3>
             <p>
-              Before filing a claim, you agree to contact us at legal@craft.tech
+              Before filing a claim, you agree to contact us at legal@craft.fast
               to attempt informal resolution.
             </p>
 
@@ -764,32 +764,32 @@ export default function TermsOfService() {
                 <strong>Nextcrafter Labs (OPC) Private Limited</strong>
               </p>
               <p className="mb-1">Bangalore, India</p>
-              <p className="mb-3 text-sm">Operating: Craft.tech</p>
+              <p className="mb-3 text-sm">Operating: Craft.fast</p>
               <p className="mb-1">
                 Email:{" "}
                 <a
-                  href="mailto:legal@craft.tech"
+                  href="mailto:legal@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  legal@craft.tech
+                  legal@craft.fast
                 </a>
               </p>
               <p className="mb-1">
                 Support:{" "}
                 <a
-                  href="mailto:support@craft.tech"
+                  href="mailto:support@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  support@craft.tech
+                  support@craft.fast
                 </a>
               </p>
               <p className="mb-1">
                 General Inquiries:{" "}
                 <a
-                  href="mailto:hello@craft.tech"
+                  href="mailto:hello@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  hello@craft.tech
+                  hello@craft.fast
                 </a>
               </p>
             </div>

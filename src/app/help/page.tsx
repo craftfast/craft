@@ -209,7 +209,7 @@ export default function HelpPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="mailto:support@craft.tech"
+                href="mailto:support@craft.fast"
                 className="px-8 py-3 bg-foreground text-background hover:bg-neutral-800 dark:hover:bg-neutral-700 rounded-full transition-colors duration-200 font-medium"
               >
                 Email Support

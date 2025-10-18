@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(
                 {
                     error: "Payment system configuration error",
-                    message: "Payment service is temporarily unavailable. Please contact support at support@craft.tech"
+                    message: "Payment service is temporarily unavailable. Please contact support at support@craft.fast"
                 },
                 { status: 503 }
             );
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
         // Provide user-friendly error message
         const errorMessage = error instanceof Error && error.message.includes("authentication")
             ? "Payment service authentication failed. Please contact support."
-            : "Payment service is temporarily unavailable. Please try again in a few minutes or contact support at support@craft.tech";
+            : "Payment service is temporarily unavailable. Please try again in a few minutes or contact support at support@craft.fast";
 
         return NextResponse.json(
             {

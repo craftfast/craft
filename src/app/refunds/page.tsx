@@ -92,10 +92,10 @@ export default function RefundPolicy() {
               <li>
                 Contacting our support team at{" "}
                 <a
-                  href="mailto:support@craft.tech"
+                  href="mailto:support@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  support@craft.tech
+                  support@craft.fast
                 </a>
               </li>
               <li>Writing to us at our registered office address</li>
@@ -206,10 +206,10 @@ export default function RefundPolicy() {
               <li>
                 Email{" "}
                 <a
-                  href="mailto:support@craft.tech"
+                  href="mailto:support@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  support@craft.tech
+                  support@craft.fast
                 </a>{" "}
                 with subject line &quot;Refund Request&quot;
               </li>
@@ -277,10 +277,10 @@ export default function RefundPolicy() {
               <li>
                 Contact us immediately at{" "}
                 <a
-                  href="mailto:support@craft.tech"
+                  href="mailto:support@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  support@craft.tech
+                  support@craft.fast
                 </a>
               </li>
               <li>Do not initiate a chargeback before contacting us</li>
@@ -438,10 +438,10 @@ export default function RefundPolicy() {
               <p className="mb-2">
                 <strong>Email:</strong>{" "}
                 <a
-                  href="mailto:support@craft.tech"
+                  href="mailto:support@craft.fast"
                   className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
                 >
-                  support@craft.tech
+                  support@craft.fast
                 </a>
               </p>
               <p className="mb-2">

@@ -63,7 +63,7 @@ export default function PricingPage() {
               "• Try again in a few minutes\n" +
               "• Check your internet connection\n" +
               "• If the issue persists, contact support:\n\n" +
-              "📧 Email: support@craft.tech\n" +
+              "📧 Email: support@craft.fast\n" +
               "💬 We typically respond within 24 hours"
           );
         },
@@ -74,7 +74,7 @@ export default function PricingPage() {
         "⚠️ Unexpected Error\n\n" +
           "Something went wrong while initiating payment.\n\n" +
           "Please try again later or contact support:\n" +
-          "📧 support@craft.tech\n\n" +
+          "📧 support@craft.fast\n\n" +
           "We apologize for the inconvenience."
       );
     }
@@ -151,7 +151,7 @@ export default function PricingPage() {
       cta: "Contact Sales",
       action: () => {
         window.location.href =
-          "mailto:sales@craft.tech?subject=Enterprise Plan Inquiry";
+          "mailto:sales@craft.fast?subject=Enterprise Plan Inquiry";
       },
       features: [
         {
@@ -1376,7 +1376,7 @@ export default function PricingPage() {
               <button
                 onClick={() =>
                   (window.location.href =
-                    "mailto:sales@craft.tech?subject=Enterprise Inquiry")
+                    "mailto:sales@craft.fast?subject=Enterprise Inquiry")
                 }
                 className="inline-flex items-center gap-2 px-8 py-3 bg-neutral-100 dark:bg-neutral-800 text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full font-medium transition-colors border border-neutral-300 dark:border-neutral-600"
               >

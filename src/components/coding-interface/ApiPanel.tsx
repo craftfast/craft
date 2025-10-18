@@ -155,7 +155,7 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
                     <pre className="p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg overflow-x-auto">
                       <code className="text-xs font-mono text-neutral-700 dark:text-neutral-300">
                         {`curl -X ${endpoint.method} \\
-  https://api.craft.tech${endpoint.path} \\
+  https://api.craft.fast${endpoint.path} \\
   -H "Authorization: Bearer YOUR_API_KEY"`}
                       </code>
                     </pre>

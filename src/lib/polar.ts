@@ -76,7 +76,7 @@ export async function createPolarCheckout(options: PolarOptions): Promise<string
         console.error("Payment initiation error:", error);
         const errorMessage = error instanceof Error
             ? error.message
-            : "Payment could not be initiated. Please try again later or contact support at support@craft.tech";
+            : "Payment could not be initiated. Please try again later or contact support at support@craft.fast";
 
         if (options.onFailure) {
             options.onFailure({ error: errorMessage });
@@ -129,7 +129,7 @@ export async function getCheckoutStatus(
         console.error("Payment verification error:", error);
         return {
             verified: false,
-            error: "Failed to verify payment. Please contact support at support@craft.tech",
+            error: "Failed to verify payment. Please contact support at support@craft.fast",
         };
     }
 }

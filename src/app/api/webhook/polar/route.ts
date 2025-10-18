@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Polar Webhook Handler using Next.js Adapter
  * Handles webhook events from Polar to keep database in sync with payments
  * 
@@ -210,7 +210,7 @@ async function handleTokenPurchasePayment(userId: string, order: Record<string, 
 
     // Calculate price in USD from totalAmount (in cents)
     const priceUsd = Number(order.totalAmount) / 100;
-    console.log(`💰 Creating token purchase: ${tokenAmount} tokens for $${priceUsd}`);
+    console.log(`Creating token purchase: ${tokenAmount} tokens for $${priceUsd}`);
 
     // Create token purchase record
     await prisma.tokenPurchase.create({
@@ -242,7 +242,7 @@ async function handleTokenPurchasePayment(userId: string, order: Record<string, 
         },
     });
 
-    console.log(`✅ Token purchase completed: ${tokenAmount} tokens for $${Number(order.totalAmount) / 100} - User: ${userId}`);
+    console.log(`Token purchase completed: ${tokenAmount} tokens for $${Number(order.totalAmount) / 100} - User: ${userId}`);
 }
 
 async function handleSubscriptionActive(subscription: Record<string, unknown>) {
