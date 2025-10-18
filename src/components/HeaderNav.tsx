@@ -15,8 +15,8 @@ export default function HeaderNav() {
     { href: "/help", label: "Help" },
     { href: "/agent", label: "Agent" },
     {
-      href: "https://github.com/craftfast/craft",
-      label: "Contribute",
+      href: "https://discord.gg/YvPKxcCV",
+      label: "Community",
       external: true,
     },
     { href: "https://x.com/craftdotfast", label: "Updates", external: true },
