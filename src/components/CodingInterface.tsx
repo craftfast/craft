@@ -365,14 +365,14 @@ export default function CodingInterface({
         <div className="flex items-center flex-1 min-w-0">
           {/* Left section - Logo, Project Name & Chat Options (30%) */}
           <div
-            className="flex items-center gap-4 pr-2 transition-all duration-200"
+            className="flex items-center gap-3 pr-2 transition-all duration-200"
             style={{ width: isChatCollapsed ? "auto" : `${chatWidth}%` }}
           >
             {/* Logo and Project Name */}
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
               <button
                 onClick={() => router.push("/dashboard")}
-                className="hover:opacity-70 transition-opacity flex-shrink-0"
+                className="hover:opacity-70 transition-opacity flex-shrink-0 flex items-center"
               >
                 <Logo
                   variant="icon"
