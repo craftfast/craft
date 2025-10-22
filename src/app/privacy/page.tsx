@@ -16,7 +16,7 @@ export default function PrivacyPolicy() {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
           <div className="relative flex items-center justify-between">
-            <Logo iconClassName="text-white dark:text-white" href="/" />
+            <Logo className="text-white dark:text-white" href="/" />
             <HeaderNav />
           </div>
         </div>
@@ -27,13 +27,13 @@ export default function PrivacyPolicy() {
         <div className="prose prose-neutral dark:prose-invert max-w-none">
           <h1 className="text-4xl font-bold mb-2">Privacy Policy</h1>
           <p className="text-neutral-600 dark:text-neutral-400 mb-8">
-            Last updated: October 4, 2025
+            Last updated: October 22, 2025
           </p>
 
           <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-6 mb-8">
             <p className="text-sm text-neutral-700 dark:text-neutral-300 mb-0">
               This Privacy Policy describes how Nextcrafter Labs (OPC) Private
-              Limited, operating Craft.fast and the Craft application
+              Limited, operating Craft and the Craft.fast website
               (&quot;Craft,&quot; &quot;we,&quot; &quot;us,&quot; or
               &quot;our&quot;) collects, uses, and shares your personal
               information when you use our AI-powered development platform and

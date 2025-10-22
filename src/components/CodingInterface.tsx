@@ -375,8 +375,8 @@ export default function CodingInterface({
                 className="hover:opacity-70 transition-opacity flex-shrink-0"
               >
                 <Logo
-                  showText={false}
-                  iconClassName="text-neutral-900 dark:text-neutral-100"
+                  variant="icon"
+                  className="text-neutral-900 dark:text-neutral-100"
                 />
               </button>
               <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />

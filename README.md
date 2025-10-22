@@ -1,8 +1,10 @@
-# craft.fast
+# Craft
 
-[![craft.fast: The Ultimate Vibe Coding Tool](./public/craft-preview.png)](https://craft.fast)
+[![Craft: The Ultimate Vibe Coding Tool](./public/craft-preview.png)](https://craft.fast)
 
-Welcome to **craft.fast** - a revolutionary vibe coding tool that transforms the way developers create, collaborate, and craft amazing applications. craft.fast brings a unique blend of AI-powered development, modern tooling, and an exceptional developer experience.
+Welcome to **Craft** - a revolutionary vibe coding tool that transforms the way developers create, collaborate, and craft amazing applications. Craft brings a unique blend of AI-powered development, modern tooling, and an exceptional developer experience.
+
+**Craft** is developed and operated by **Nextcrafter Labs (OPC) Private Limited**.
 
 ---
 
@@ -59,7 +61,7 @@ pnpm install
 pnpm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see craft.fast in action! 🎉
+Open [http://localhost:3000](http://localhost:3000) in your browser to see Craft in action! 🎉
 
 ### Development Commands
 
@@ -96,11 +98,11 @@ craft/
 
 ---
 
-## 🎯 Getting Started with craft.fast
+## 🎯 Getting Started with Craft
 
 ### 1. **Explore the Interface**
 
-Start by familiarizing yourself with the craft.fast interface. The clean, modern design is built to enhance your coding experience.
+Start by familiarizing yourself with the Craft interface. The clean, modern design is built to enhance your coding experience.
 
 ### 2. **Create Your First Project**
 
@@ -108,7 +110,7 @@ Use the intuitive project creation tools to start building your next amazing app
 
 ### 3. **Customize Your Workspace**
 
-Personalize craft.fast to match your coding style and preferences.
+Personalize Craft to match your coding style and preferences.
 
 ---
 
@@ -150,8 +152,8 @@ For detailed information, please contact our support team.
 
 This project is licensed under a **Proprietary License** - see the [LICENSE](LICENSE) file for details.
 
-All rights reserved © 2025 craft.fast
+All rights reserved © 2025 Nextcrafter Labs (OPC) Private Limited
 
 ---
 
-**Made with ✨ by craft.fast**
+**Made with ✨ by the Craft team**

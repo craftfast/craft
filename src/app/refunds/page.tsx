@@ -16,7 +16,7 @@ export default function RefundPolicy() {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
           <div className="relative flex items-center justify-between">
-            <Logo iconClassName="text-white dark:text-white" href="/" />
+            <Logo className="text-white dark:text-white" href="/" />
             <HeaderNav />
           </div>
         </div>
@@ -29,7 +29,7 @@ export default function RefundPolicy() {
             Cancellation &amp; Refund Policy
           </h1>
           <p className="text-neutral-600 dark:text-neutral-400 mb-8">
-            Last updated: October 4, 2025
+            Last updated: October 22, 2025
           </p>
 
           <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-6 mb-8">

@@ -16,7 +16,7 @@ export default function TermsOfService() {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
           <div className="relative flex items-center justify-between">
-            <Logo iconClassName="text-white dark:text-white" href="/" />
+            <Logo className="text-white dark:text-white" href="/" />
             <HeaderNav />
           </div>
         </div>
@@ -27,13 +27,13 @@ export default function TermsOfService() {
         <div className="prose prose-neutral dark:prose-invert max-w-none">
           <h1 className="text-4xl font-bold mb-2">Terms of Service</h1>
           <p className="text-neutral-600 dark:text-neutral-400 mb-8">
-            Last updated: October 4, 2025
+            Last updated: October 22, 2025
           </p>
 
           <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-6 mb-8">
             <p className="text-sm text-neutral-700 dark:text-neutral-300 mb-0">
               These Terms of Service (&quot;Terms&quot;) govern your access to
-              and use of Craft.fast and the Craft application, operated by
+              and use of Craft and the Craft.fast website, operated by
               Nextcrafter Labs (OPC) Private Limited (&quot;Craft,&quot;
               &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), including our
               website, platform, AI services, and related applications

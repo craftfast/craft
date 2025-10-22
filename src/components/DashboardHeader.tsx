@@ -86,8 +86,8 @@ export default function DashboardHeader({
         {/* Left column - Logo and Plan Badge */}
         <div className="flex items-center gap-2">
           <Logo
-            showText={showLogoText}
-            iconClassName="text-white dark:text-white"
+            variant={showLogoText ? "full" : "icon"}
+            className="text-white dark:text-white"
             href="/dashboard"
           />
           {showPlanBadge && planBadgeInfo && (
@@ -179,8 +179,8 @@ export default function DashboardHeader({
       <div className="hidden md:flex lg:hidden items-center justify-between w-full">
         <div className="flex items-center gap-3">
           <Logo
-            showText={showLogoText}
-            iconClassName="text-white dark:text-white"
+            variant={showLogoText ? "full" : "icon"}
+            className="text-white dark:text-white"
             href="/dashboard"
           />
           {showPlanBadge && planBadgeInfo && (
@@ -268,8 +268,8 @@ export default function DashboardHeader({
       <div className="md:hidden flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
           <Logo
-            showText={showLogoText}
-            iconClassName="text-white dark:text-white"
+            variant={showLogoText ? "full" : "icon"}
+            className="text-white dark:text-white"
             href="/dashboard"
           />
           {showPlanBadge && planBadgeInfo && (
