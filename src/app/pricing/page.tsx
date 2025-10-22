@@ -349,7 +349,7 @@ export default function PricingPage() {
     {
       name: "Hobby",
       price: "Free",
-      description: "Try Craft with basic features. Limited to 3 projects.",
+      description: "Try Craft. Limited to 3 projects.",
       cta: isLoadingPlan
         ? "Loading..."
         : userPlan === "pro"
@@ -415,7 +415,7 @@ export default function PricingPage() {
     {
       name: "Agent",
       price: "$5,000/mo",
-      description: "Delegate long-running tasks with expert oversight.",
+      description: "Delegate longer tasks with expert oversight.",
       cta: "Contact Sales",
       action: () => {
         window.location.href =
