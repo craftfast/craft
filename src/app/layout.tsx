@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Craft - Build Apps by Chatting with AI",
+  title: "Craft Apps Faster by just Chatting with AI",
   description:
     "Join the waitlist for Craft, the revolutionary open-source vibecoding tool that lets you build apps and websites through natural conversation with AI.",
   keywords:

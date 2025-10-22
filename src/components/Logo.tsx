@@ -71,7 +71,7 @@ export default function Logo({
   const size = iconSizes[iconSize];
 
   const logoContent = (
-    <div className={`flex items-center justify-center gap-1 ${className}`}>
+    <div className={`flex items-center justify-center gap-2 ${className}`}>
       {showIcon && (
         <LogoIcon
           width={size.width}
@@ -81,9 +81,9 @@ export default function Logo({
       )}
       {showText && (
         <span
-          className={`font-medium text-foreground tracking-wide leading-tight align-middle flex items-center ${textSizes[textSize]} ${textClassName}`}
+          className={`font-sans font-medium text-foreground italic tracking-tight leading-tight align-middle flex items-center ${textSizes[textSize]} ${textClassName}`}
         >
-          Craft
+          Craftfast
         </span>
       )}
     </div>
