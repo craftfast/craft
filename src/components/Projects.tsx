@@ -81,10 +81,10 @@ export default function Projects() {
   }
 
   return (
-    <div>
-      {/* Title Bar */}
-      <div className="flex items-center justify-between px-4 py-2 mb-4 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 rounded-t-xl">
-        <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">
+    <div className="flex flex-col h-full">
+      {/* Title Bar - Fixed */}
+      <div className="flex-shrink-0 flex items-center justify-between px-2 py-2 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 rounded-t-xl">
+        <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight px-2">
           Projects
         </h1>
         <Link
@@ -108,8 +108,8 @@ export default function Projects() {
         </Link>
       </div>
 
-      {/* Search and Filter Bar */}
-      <div className="mb-6 space-y-4 px-2">
+      {/* Search and Filter Bar - Fixed */}
+      <div className="flex-shrink-0 px-2 py-4 space-y-4 bg-background border-b border-neutral-200 dark:border-neutral-700">
         {/* Search Input with View Toggle */}
         <div className="flex flex-row gap-3">
           {/* Search Input */}
@@ -283,28 +283,59 @@ export default function Projects() {
         )}
       </div>
 
-      {/* Projects Display */}
-      {!loading && !error && projects.length > 0 && (
-        <div
-          className={
-            viewMode === "grid"
-              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-              : "flex flex-col gap-3"
-          }
-        >
-          {projects.map((project) => (
-            <Link
-              key={project.id}
-              href={`/chat/${project.id}`}
-              className={`group bg-transparent rounded-2xl border border-stone-200 dark:border-neutral-700 hover:border-stone-300 dark:hover:border-neutral-600 transition-all cursor-pointer ${
-                viewMode === "grid" ? "p-6" : "p-4"
-              }`}
-            >
-              {viewMode === "grid" ? (
-                // Grid View
-                <>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-neutral-700 flex items-center justify-center">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto px-2 py-4 scrollbar-minimal">
+        {/* Projects Display */}
+        {!loading && !error && projects.length > 0 && (
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                : "flex flex-col gap-3"
+            }
+          >
+            {projects.map((project) => (
+              <Link
+                key={project.id}
+                href={`/chat/${project.id}`}
+                className={`group bg-transparent rounded-2xl border border-stone-200 dark:border-neutral-700 hover:border-stone-300 dark:hover:border-neutral-600 transition-all cursor-pointer ${
+                  viewMode === "grid" ? "p-6" : "p-4"
+                }`}
+              >
+                {viewMode === "grid" ? (
+                  // Grid View
+                  <>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-neutral-700 flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 text-stone-600 dark:text-neutral-300"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <span className="text-xs text-stone-500 dark:text-neutral-400">
+                        {getRelativeTime(project.createdAt)}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">
+                      {project.name}
+                    </h3>
+                    <p className="text-sm text-stone-600 dark:text-neutral-400 line-clamp-2">
+                      {project.description || "No description"}
+                    </p>
+                  </>
+                ) : (
+                  // List View
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-neutral-700 flex items-center justify-center flex-shrink-0">
                       <svg
                         className="w-5 h-5 text-stone-600 dark:text-neutral-300"
                         fill="none"
@@ -319,101 +350,73 @@ export default function Projects() {
                         />
                       </svg>
                     </div>
-                    <span className="text-xs text-stone-500 dark:text-neutral-400">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground mb-1">
+                        {project.name}
+                      </h3>
+                      <p className="text-sm text-stone-600 dark:text-neutral-400 truncate">
+                        {project.description || "No description"}
+                      </p>
+                    </div>
+                    <span className="text-xs text-stone-500 dark:text-neutral-400 flex-shrink-0">
                       {getRelativeTime(project.createdAt)}
                     </span>
                   </div>
-                  <h3 className="font-semibold text-foreground mb-2">
-                    {project.name}
-                  </h3>
-                  <p className="text-sm text-stone-600 dark:text-neutral-400 line-clamp-2">
-                    {project.description || "No description"}
-                  </p>
-                </>
-              ) : (
-                // List View
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-neutral-700 flex items-center justify-center flex-shrink-0">
-                    <svg
-                      className="w-5 h-5 text-stone-600 dark:text-neutral-300"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground mb-1">
-                      {project.name}
-                    </h3>
-                    <p className="text-sm text-stone-600 dark:text-neutral-400 truncate">
-                      {project.description || "No description"}
-                    </p>
-                  </div>
-                  <span className="text-xs text-stone-500 dark:text-neutral-400 flex-shrink-0">
-                    {getRelativeTime(project.createdAt)}
-                  </span>
-                </div>
-              )}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && (
-        <div className="text-center py-12">
-          <p className="text-red-600 dark:text-red-400">{error}</p>
-          <button
-            onClick={fetchProjects}
-            className="mt-4 px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && !error && projects.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-            <svg
-              className="w-8 h-8 text-neutral-400 dark:text-neutral-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-              />
-            </svg>
+                )}
+              </Link>
+            ))}
           </div>
-          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-            {searchQuery ? "No projects found" : "No projects yet"}
-          </h3>
-          <p className="text-neutral-600 dark:text-neutral-400 mb-6">
-            {searchQuery
-              ? "Try adjusting your search criteria"
-              : "Create your first project to get started"}
-          </p>
-        </div>
-      )}
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 dark:border-neutral-100"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-12">
+            <p className="text-red-600 dark:text-red-400">{error}</p>
+            <button
+              onClick={fetchProjects}
+              className="mt-4 px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && projects.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-neutral-400 dark:text-neutral-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+              {searchQuery ? "No projects found" : "No projects yet"}
+            </h3>
+            <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+              {searchQuery
+                ? "Try adjusting your search criteria"
+                : "Create your first project to get started"}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
