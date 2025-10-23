@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import UserMenu from "./UserMenu";
 import Logo from "./Logo";
+import TokenCounter from "./TokenCounter";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import PricingModal from "./PricingModal";
 
@@ -31,10 +32,27 @@ export default function DashboardHeader({
   const [pricingModalMode, setPricingModalMode] = useState<
     "all" | "tokens" | "pro"
   >("all");
-  const { balance } = useCreditBalance();
+  const { balance } = useCreditBalance(); // Only for mobile menu detailed breakdown
 
   const showPlanBadge =
     planName === "HOBBY" || planName === "PRO" || planName === "AGENT";
+
+  // Format credits for display (only for mobile menu)
+  const formatCredits = (credits: number): string => {
+    if (credits >= 1000000) {
+      return `${(credits / 1000000).toFixed(2)}M`;
+    } else if (credits >= 1000) {
+      return `${(credits / 1000).toFixed(1)}K`;
+    }
+    return credits.toString();
+  };
+
+  // Determine if tokens are low (less than 10k) - for mobile menu
+  const isLowTokens =
+    balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;
+
+  // Determine if tokens are exhausted - for mobile menu
+  const isTokensExhausted = balance && balance.totalAvailable === 0;
 
   // Get plan display name and styling
   const getPlanBadgeInfo = () => {
@@ -62,23 +80,6 @@ export default function DashboardHeader({
 
   const planBadgeInfo = getPlanBadgeInfo();
 
-  // Format credits for display (e.g., 1,234,567 -> "1.23M" or 5,000 -> "5K")
-  const formatCredits = (credits: number): string => {
-    if (credits >= 1000000) {
-      return `${(credits / 1000000).toFixed(2)}M`;
-    } else if (credits >= 1000) {
-      return `${(credits / 1000).toFixed(1)}K`;
-    }
-    return credits.toString();
-  };
-
-  // Determine if tokens are low (less than 10k)
-  const isLowTokens =
-    balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;
-
-  // Determine if tokens are exhausted
-  const isTokensExhausted = balance && balance.totalAvailable === 0;
-
   return (
     <>
       {/* Desktop Header - 3 column grid */}
@@ -86,7 +87,7 @@ export default function DashboardHeader({
         {/* Left column - Logo and Plan Badge */}
         <div className="flex items-center gap-2">
           <Logo
-            variant={showLogoText ? "full" : "icon"}
+            variant={showLogoText ? "extended" : "icon"}
             className="text-white dark:text-white"
             href="/dashboard"
           />
@@ -125,50 +126,12 @@ export default function DashboardHeader({
         </div>
         {/* Right column - Actions and user menu */}
         <div className="flex items-center gap-2 justify-end">
-          {balance && (
-            <div
-              className={`px-3 py-2 rounded-full border flex items-center gap-1.5 cursor-pointer transition-colors ${
-                isTokensExhausted
-                  ? "bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900"
-                  : isLowTokens
-                  ? "bg-amber-50 dark:bg-amber-950 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900"
-                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700"
-              }`}
-              onClick={() => {
-                setPricingModalMode(planName === "PRO" ? "tokens" : "all");
-                setIsPricingModalOpen(true);
-              }}
-              title={`Total: ${balance.totalAvailable.toLocaleString()} tokens\nMonthly: ${balance.subscriptionTokensRemaining.toLocaleString()} | Purchased: ${balance.purchasedTokensRemaining.toLocaleString()}`}
-            >
-              <svg
-                className="w-3.5 h-3.5 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {isTokensExhausted || isLowTokens ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                )}
-              </svg>
-              <span className="text-xs font-medium leading-tight">
-                {isTokensExhausted
-                  ? "0 tokens"
-                  : formatCredits(balance.totalAvailable)}
-              </span>
-            </div>
-          )}
+          <TokenCounter
+            onClickAction={() => {
+              setPricingModalMode(planName === "PRO" ? "tokens" : "all");
+              setIsPricingModalOpen(true);
+            }}
+          />
           {session?.user && (
             <UserMenu user={session.user} showDashboardLink={false} />
           )}
@@ -179,7 +142,7 @@ export default function DashboardHeader({
       <div className="hidden md:flex lg:hidden items-center justify-between w-full">
         <div className="flex items-center gap-3">
           <Logo
-            variant={showLogoText ? "full" : "icon"}
+            variant={showLogoText ? "extended" : "icon"}
             className="text-white dark:text-white"
             href="/dashboard"
           />
@@ -214,50 +177,12 @@ export default function DashboardHeader({
               <span className="hidden xl:inline">Upgrade to Pro</span>
             </button>
           )}
-          {balance && (
-            <div
-              className={`px-3 py-1.5 rounded-full border flex items-center gap-1.5 cursor-pointer transition-colors ${
-                isTokensExhausted
-                  ? "bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900"
-                  : isLowTokens
-                  ? "bg-amber-50 dark:bg-amber-950 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900"
-                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700"
-              }`}
-              onClick={() => {
-                setPricingModalMode(planName === "PRO" ? "tokens" : "all");
-                setIsPricingModalOpen(true);
-              }}
-              title={`Total: ${balance.totalAvailable.toLocaleString()} tokens\nMonthly: ${balance.subscriptionTokensRemaining.toLocaleString()} | Purchased: ${balance.purchasedTokensRemaining.toLocaleString()}`}
-            >
-              <svg
-                className="w-3.5 h-3.5 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {isTokensExhausted || isLowTokens ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                )}
-              </svg>
-              <span className="text-xs font-medium leading-tight">
-                {isTokensExhausted
-                  ? "0 tokens"
-                  : formatCredits(balance.totalAvailable)}
-              </span>
-            </div>
-          )}
+          <TokenCounter
+            onClickAction={() => {
+              setPricingModalMode(planName === "PRO" ? "tokens" : "all");
+              setIsPricingModalOpen(true);
+            }}
+          />
           {session?.user && (
             <UserMenu user={session.user} showDashboardLink={false} />
           )}
@@ -268,7 +193,7 @@ export default function DashboardHeader({
       <div className="md:hidden flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
           <Logo
-            variant={showLogoText ? "full" : "icon"}
+            variant={showLogoText ? "extended" : "icon"}
             className="text-white dark:text-white"
             href="/dashboard"
           />

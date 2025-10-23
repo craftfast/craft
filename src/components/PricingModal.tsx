@@ -25,6 +25,13 @@ export default function PricingModal({
   const creditTiers = getCreditTiers();
   const isOnPro = currentPlan === "PRO";
 
+  console.log(
+    "💳 PricingModal - currentPlan:",
+    currentPlan,
+    "isOnPro:",
+    isOnPro
+  );
+
   if (!isOpen) return null;
 
   const handlePurchaseTokens = async (tokens: number) => {

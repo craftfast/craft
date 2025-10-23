@@ -84,7 +84,7 @@ export default function AgentPage() {
       <header className="border-b border-neutral-200 dark:border-neutral-800">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Logo href="/" />
+            <Logo variant="extended" href="/" />
             <HeaderNav />
           </div>
         </div>

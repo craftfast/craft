@@ -2,9 +2,30 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import {
+  ChevronDown,
+  History,
+  Edit,
+  Copy,
+  Download,
+  Eye,
+  Globe,
+  Link2,
+  Lock,
+  ChevronRight,
+  Code2,
+  Monitor,
+  Settings,
+  ExternalLink,
+  RotateCw,
+  Smartphone,
+  Maximize,
+  Minimize,
+} from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
+import TokenCounter from "./TokenCounter";
+import PricingModal from "./PricingModal";
 import ChatPanel from "./coding-interface/ChatPanel";
 import PreviewPanel from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
@@ -46,18 +67,32 @@ interface User {
 interface CodingInterfaceProps {
   project: Project;
   user: User;
+  planName: string;
 }
 export default function CodingInterface({
   project: initialProject,
   user,
+  planName,
 }: CodingInterfaceProps) {
   const router = useRouter();
+
+  console.log("🎨 CodingInterface received planName:", planName);
   const [activeTab, setActiveTab] = useState<TabType>("preview");
-  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [project, setProject] = useState(initialProject);
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
-  const [triggerNewChat, setTriggerNewChat] = useState(0); // Counter to trigger new chat
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
+  const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
+  const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
+  const [isVisibilitySubmenuOpen, setIsVisibilitySubmenuOpen] = useState(false);
+  const [projectVisibility, setProjectVisibility] = useState<
+    "public" | "secret" | "private"
+  >("private");
+  const [previewUrl, setPreviewUrl] = useState("/");
+  const [deviceMode, setDeviceMode] = useState<"desktop" | "mobile">("desktop");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const projectMenuRef = useRef<HTMLDivElement>(null);
+  const viewMenuRef = useRef<HTMLDivElement>(null);
   const [streamingFiles, setStreamingFiles] = useState<Record<string, string>>(
     {}
   ); // Files being generated in real-time
@@ -70,6 +105,46 @@ export default function CodingInterface({
       setActiveTab("code");
     }
   }, [isGeneratingFiles]);
+
+  // Close project menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        projectMenuRef.current &&
+        !projectMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsProjectMenuOpen(false);
+      }
+      if (
+        viewMenuRef.current &&
+        !viewMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsViewMenuOpen(false);
+      }
+    };
+
+    if (isProjectMenuOpen || isViewMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isProjectMenuOpen, isViewMenuOpen]);
+
+  // Handle ESC key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFullscreen]);
 
   console.log(
     `🎯 CodingInterface mounted with project: "${project.name}" (ID: ${project.id})`
@@ -190,50 +265,16 @@ export default function CodingInterface({
     setActiveTab("code");
   };
 
-  const tabs = [
+  const allViews = [
     {
       id: "preview" as const,
       label: "Preview",
-      svg: (
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-          />
-        </svg>
-      ),
+      icon: Eye,
     },
     {
       id: "code" as const,
       label: "Code",
-      svg: (
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-          />
-        </svg>
-      ),
+      icon: Code2,
     },
     {
       id: "database" as const,
@@ -360,37 +401,193 @@ export default function CodingInterface({
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-neutral-50 dark:bg-neutral-950">
       {/* Header */}
-      <header className="h-14 bg-white dark:bg-neutral-900 flex items-center px-4 flex-shrink-0">
-        {/* Main Menu Area - 30/70 Split */}
-        <div className="flex items-center flex-1 min-w-0">
-          {/* Left section - Logo, Project Name & Chat Options (30%) */}
-          <div
-            className="flex items-center gap-3 pr-2 transition-all duration-200"
-            style={{ width: isChatCollapsed ? "auto" : `${chatWidth}%` }}
+      <header className="h-12 bg-white dark:bg-neutral-900 flex items-center px-4 flex-shrink-0">
+        {/* Left Side - Logo and Project Name */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="hover:opacity-70 transition-opacity flex-shrink-0 flex items-center"
           >
-            {/* Logo and Project Name */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="hover:opacity-70 transition-opacity flex-shrink-0 flex items-center"
-              >
-                <Logo
-                  variant="icon"
-                  className="text-neutral-900 dark:text-neutral-100"
-                />
-              </button>
-              <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
-              <div className="min-w-0 flex-1 leading-1">
-                <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate">
-                  {project.name}
-                </h1>
-                <a
-                  href={`/projects/${project.id}`}
-                  className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:underline transition-colors inline-flex items-center gap-1 group"
+            <Logo
+              variant="icon"
+              className="text-neutral-900 dark:text-neutral-100 !h-5"
+            />
+          </button>
+          <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
+
+          {/* Project Name with Dropdown */}
+          <div className="relative" ref={projectMenuRef}>
+            <button
+              onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
+              className="flex items-center gap-2 px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+            >
+              <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[200px]">
+                {project.name}
+              </h1>
+              <ChevronDown
+                className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 flex-shrink-0 transition-transform ${
+                  isProjectMenuOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Dropdown Menu */}
+            {isProjectMenuOpen && (
+              <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 py-1">
+                <button
+                  onClick={() => {
+                    setIsProjectMenuOpen(false);
+                    // TODO: Implement version history
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
                 >
-                  View Project
+                  <History className="w-4 h-4" />
+                  <span>Version history</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsProjectMenuOpen(false);
+                    // TODO: Implement rename
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>Rename...</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsProjectMenuOpen(false);
+                    // TODO: Implement duplicate
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>Duplicate</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsProjectMenuOpen(false);
+                    // TODO: Implement export
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Export</span>
+                </button>
+
+                <div className="border-t border-neutral-200 dark:border-neutral-800 my-1" />
+
+                <div className="relative">
+                  <button
+                    onMouseEnter={() => setIsVisibilitySubmenuOpen(true)}
+                    onMouseLeave={() => setIsVisibilitySubmenuOpen(false)}
+                    onClick={() =>
+                      setIsVisibilitySubmenuOpen(!isVisibilitySubmenuOpen)
+                    }
+                    className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <div className="flex-1 flex items-center justify-between">
+                      <span>Visibility</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400 capitalize">
+                          {projectVisibility}
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Visibility Submenu */}
+                  {isVisibilitySubmenuOpen && (
+                    <div
+                      onMouseEnter={() => setIsVisibilitySubmenuOpen(true)}
+                      onMouseLeave={() => setIsVisibilitySubmenuOpen(false)}
+                      className="absolute left-full top-0 ml-1 w-64 bg-neutral-800 dark:bg-neutral-900 border border-neutral-700 dark:border-neutral-800 rounded-xl shadow-xl z-50 py-1"
+                    >
+                      <button
+                        onClick={() => {
+                          setProjectVisibility("public");
+                          setIsVisibilitySubmenuOpen(false);
+                          setIsProjectMenuOpen(false);
+                          // TODO: Update project visibility to public
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-neutral-700 dark:hover:bg-neutral-800 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Globe className="w-4 h-4 text-neutral-300 dark:text-neutral-400" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-neutral-100 dark:text-neutral-200">
+                              Public
+                            </div>
+                            <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                              Everyone can view
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setProjectVisibility("secret");
+                          setIsVisibilitySubmenuOpen(false);
+                          setIsProjectMenuOpen(false);
+                          // TODO: Update project visibility to secret
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-neutral-700 dark:hover:bg-neutral-800 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Link2 className="w-4 h-4 text-neutral-300 dark:text-neutral-400" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-neutral-100 dark:text-neutral-200">
+                              Secret
+                            </div>
+                            <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                              Accessible via shared URL
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setProjectVisibility("private");
+                          setIsVisibilitySubmenuOpen(false);
+                          setIsProjectMenuOpen(false);
+                          // TODO: Update project visibility to private
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-neutral-700 dark:hover:bg-neutral-800 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Lock className="w-4 h-4 text-neutral-300 dark:text-neutral-400" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-neutral-100 dark:text-neutral-200">
+                              Private
+                            </div>
+                            <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                              Only owner can access
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-neutral-200 dark:border-neutral-800 my-1" />
+
+                <button
+                  onClick={() => {
+                    setIsProjectMenuOpen(false);
+                    // TODO: Implement share
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                >
                   <svg
-                    className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -399,122 +596,196 @@ export default function CodingInterface({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M7 17L17 7M17 7H7M17 7v10"
+                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
                     />
                   </svg>
-                </a>
-              </div>
-            </div>
+                  <span>Share</span>
+                </button>
 
-            {/* Chat Options */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {!isChatCollapsed ? (
-                <>
-                  {/* New Chat Button */}
-                  <button
-                    onClick={() => setTriggerNewChat((prev) => prev + 1)}
-                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-                    title="New Chat"
-                  >
-                    <Plus className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                  </button>
-
-                  {/* Chat Toggle Button */}
-                  <button
-                    onClick={() => setIsChatCollapsed(!isChatCollapsed)}
-                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded-full transition-colors"
-                    title="Hide chat"
-                  >
-                    <PanelLeftClose className="w-4 h-4" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  {/* Show Chat Button when collapsed */}
-                  <button
-                    onClick={() => setIsChatCollapsed(false)}
-                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded-full transition-colors"
-                    title="Show chat"
-                  >
-                    <PanelLeftOpen className="w-4 h-4" />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Right section - All Other Menu Options (70%) */}
-          <div className="flex items-center gap-2 flex-1 pl-2">
-            {/* Navigation Tabs */}
-            <nav className="flex items-center gap-1">
-              {tabs.map((tab) => (
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-2.5 py-1.5 text-xs font-medium rounded-full transition-all flex items-center gap-1.5 ${
-                    activeTab === tab.id
-                      ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-3"
-                      : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100"
-                  }`}
-                  title={tab.label}
+                  onClick={() => {
+                    setIsProjectMenuOpen(false);
+                    // TODO: Implement deploy
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
                 >
-                  {tab.svg}
-                  {activeTab === tab.id && (
-                    <span className="text-xs font-medium">{tab.label}</span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                  <span>Deploy</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Center - URL Bar with View Switcher */}
+        <div className="flex-1 flex items-center justify-center px-8">
+          {/* URL Bar - Always visible */}
+          <div className="flex-1 flex items-center gap-2 max-w-xl">
+            <div className="flex-1 flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg px-3 py-1.5">
+              {/* View Switcher - Left side of URL bar */}
+              <div className="relative flex-shrink-0" ref={viewMenuRef}>
+                <button
+                  onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
+                  className="px-2 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors flex items-center gap-1.5"
+                >
+                  {/* Show current view icon */}
+                  {allViews.find((view) => view.id === activeTab)?.icon && (
+                    <>
+                      {(() => {
+                        const Icon = allViews.find(
+                          (view) => view.id === activeTab
+                        )?.icon;
+                        return Icon ? <Icon className="w-3 h-3" /> : null;
+                      })()}
+                    </>
+                  )}
+                  {allViews.find((view) => view.id === activeTab)?.svg && (
+                    <div className="w-3 h-3">
+                      {allViews.find((view) => view.id === activeTab)?.svg}
+                    </div>
+                  )}
+                  <span className="text-xs">
+                    {allViews.find((view) => view.id === activeTab)?.label ||
+                      "View"}
+                  </span>
+                  <ChevronDown
+                    className={`w-3 h-3 transition-transform ${
+                      isViewMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isViewMenuOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-40 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 py-1">
+                    {allViews.map((view, index) => (
+                      <div key={view.id}>
+                        {index === 2 && (
+                          <div className="border-t border-neutral-200 dark:border-neutral-800 my-1" />
+                        )}
+                        <button
+                          onClick={() => {
+                            setActiveTab(view.id);
+                            setIsViewMenuOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-left text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-2 ${
+                            activeTab === view.id
+                              ? "text-neutral-900 dark:text-neutral-100 font-medium"
+                              : "text-neutral-700 dark:text-neutral-300"
+                          }`}
+                        >
+                          {view.icon && <view.icon className="w-3.5 h-3.5" />}
+                          {view.svg && (
+                            <div className="w-3.5 h-3.5">{view.svg}</div>
+                          )}
+                          <span>{view.label}</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Separator */}
+              <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
+
+              <input
+                type="text"
+                value={previewUrl}
+                onChange={(e) => setPreviewUrl(e.target.value)}
+                placeholder="/"
+                disabled={activeTab !== "preview"}
+                className="flex-1 bg-transparent text-xs text-neutral-900 dark:text-neutral-100 outline-none min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+
+              {/* Preview Controls - Inside URL Bar */}
+              <div className="flex items-center gap-0.5 border-l border-neutral-200 dark:border-neutral-700 pl-2">
+                <button
+                  onClick={() => {
+                    /* TODO: Implement reload */
+                  }}
+                  disabled={activeTab !== "preview"}
+                  className="p-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  title="Reload"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    /* TODO: Implement open in new tab */
+                  }}
+                  disabled={activeTab !== "preview"}
+                  className="p-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  title="Open in new tab"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setDeviceMode(
+                      deviceMode === "desktop" ? "mobile" : "desktop"
+                    );
+                  }}
+                  disabled={activeTab !== "preview"}
+                  className="p-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  title={`Current: ${
+                    deviceMode.charAt(0).toUpperCase() + deviceMode.slice(1)
+                  } - Click to switch`}
+                >
+                  {deviceMode === "desktop" ? (
+                    <Monitor className="w-3.5 h-3.5" />
+                  ) : (
+                    <Smartphone className="w-3.5 h-3.5" />
                   )}
                 </button>
-              ))}
-            </nav>
 
-            {/* Spacer */}
-            <div className="flex-1" />
-
-            {/* Share Button */}
-            <button className="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg border border-neutral-300 dark:border-neutral-600 transition-colors flex items-center gap-1.5">
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                />
-              </svg>
-              <span className="hidden sm:inline">Share</span>
-            </button>
-
-            {/* Deploy Button */}
-            <button className="px-3 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-lg transition-colors flex items-center gap-1.5">
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              <span className="hidden sm:inline">Deploy</span>
-            </button>
-
-            {/* User Profile Menu */}
-            {user && <UserMenu user={user} showDashboardLink={true} />}
+                <button
+                  onClick={() => {
+                    setIsFullscreen(!isFullscreen);
+                  }}
+                  className="p-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors"
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen ? (
+                    <Minimize className="w-3.5 h-3.5" />
+                  ) : (
+                    <Maximize className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Spacer removed - URL bar always visible */}
+        </div>
+
+        {/* Right Side - Token Counter and User Profile */}
+        <div className="flex items-center gap-2">
+          {/* Token Counter */}
+          <TokenCounter onClickAction={() => setIsPricingModalOpen(true)} />
+
+          {/* User Profile Menu */}
+          {user && <UserMenu user={user} showDashboardLink={true} />}
         </div>
       </header>
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Chat Panel - Left Side */}
-        {!isChatCollapsed && (
+        {/* Chat Panel - Left Side - Hide in fullscreen */}
+        {!isFullscreen && (
           <div
             className="flex overflow-hidden bg-white dark:bg-neutral-900"
             style={{ width: `${chatWidth}%` }}
@@ -528,7 +799,6 @@ export default function CodingInterface({
                 projectFiles={projectFiles}
                 onFilesCreated={handleFilesCreated}
                 onStreamingFiles={handleStreamingFiles}
-                triggerNewChat={triggerNewChat}
                 onGeneratingStatusChange={setIsGeneratingFiles}
                 onFileClick={handleFileClick}
               />
@@ -551,6 +821,8 @@ export default function CodingInterface({
                   version={project.version}
                   packages={pendingPackages}
                   onPackagesInstalled={() => setPendingPackages([])}
+                  deviceMode={deviceMode}
+                  previewUrl={previewUrl}
                   onRefreshProject={async () => {
                     // Reload project files after restore
                     const response = await fetch(
@@ -575,25 +847,57 @@ export default function CodingInterface({
                   onFileClick={handleFileClick}
                 />
               )}
+
               {activeTab === "database" && (
-                <DatabasePanel projectId={project.id} />
+                <div className="h-full overflow-auto p-6">
+                  <DatabasePanel projectId={project.id} />
+                </div>
               )}
+
               {activeTab === "analytics" && (
-                <AnalyticsPanel projectId={project.id} />
+                <div className="h-full overflow-auto p-6">
+                  <AnalyticsPanel projectId={project.id} />
+                </div>
               )}
-              {activeTab === "logs" && <LogsPanel projectId={project.id} />}
-              {activeTab === "api" && <ApiPanel projectId={project.id} />}
+
+              {activeTab === "logs" && (
+                <div className="h-full overflow-auto p-6">
+                  <LogsPanel projectId={project.id} />
+                </div>
+              )}
+
+              {activeTab === "api" && (
+                <div className="h-full overflow-auto p-6">
+                  <ApiPanel projectId={project.id} />
+                </div>
+              )}
+
               {activeTab === "settings" && (
-                <SettingsPanel
-                  projectId={project.id}
-                  onProjectUpdate={refreshProject}
-                />
+                <div className="h-full overflow-auto p-6">
+                  <SettingsPanel
+                    projectId={project.id}
+                    onProjectUpdate={refreshProject}
+                  />
+                </div>
               )}
-              {activeTab === "auth" && <AuthPanel projectId={project.id} />}
+
+              {activeTab === "auth" && (
+                <div className="h-full overflow-auto p-6">
+                  <AuthPanel projectId={project.id} />
+                </div>
+              )}
             </main>
           </div>
         </div>
       </div>
+
+      {/* Pricing Modal */}
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+        currentPlan={planName}
+        showTokensOnly={true}
+      />
     </div>
   );
 }

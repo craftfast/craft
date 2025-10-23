@@ -12,7 +12,11 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
           <div className="relative flex items-center justify-between">
-            <Logo className="text-white dark:text-white" href="/home" />
+            <Logo
+              variant="extended"
+              className="text-white dark:text-white"
+              href="/home"
+            />
             <HomeHeader />
           </div>
         </div>

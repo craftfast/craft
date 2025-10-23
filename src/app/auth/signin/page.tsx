@@ -52,7 +52,7 @@ function SignInContent() {
       {/* Logo at top left */}
       <div className="absolute top-4 left-4">
         <Link href="/home">
-          <Logo />
+          <Logo variant="extended" />
         </Link>
       </div>
 

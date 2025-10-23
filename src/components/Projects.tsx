@@ -82,86 +82,63 @@ export default function Projects() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Title Bar - Fixed */}
-      <div className="flex-shrink-0 flex items-center justify-between px-2 py-2 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 rounded-t-xl">
-        <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight px-2">
-          Projects
-        </h1>
-        <Link
-          href="/new-project"
-          className="px-4 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-all flex items-center gap-2 shadow-sm border border-neutral-200 dark:border-neutral-700"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          New Project
-        </Link>
-      </div>
+      {/* Title Bar with Controls - Fixed */}
+      <div className="flex-shrink-0 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 rounded-t-xl">
+        <div className="flex items-center justify-between gap-4 px-4 py-3">
+          <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight flex-shrink-0">
+            Projects
+          </h1>
 
-      {/* Search and Filter Bar - Fixed */}
-      <div className="flex-shrink-0 px-2 py-4 space-y-4 bg-background border-b border-neutral-200 dark:border-neutral-700">
-        {/* Search Input with View Toggle */}
-        <div className="flex flex-row gap-3">
-          {/* Search Input */}
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="Search projects..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 pl-11 bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 transition-all"
-            />
-            <svg
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 dark:text-neutral-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          {/* Search, Filter, and View Controls */}
+          <div className="flex items-center gap-2 flex-1 max-w-2xl">
+            {/* Search Input */}
+            <div className="flex-1 relative min-w-0">
+              <input
+                type="text"
+                placeholder="Search projects..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 pl-9 bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 transition-all"
               />
-            </svg>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            )}
-          </div>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
 
-          {/* Filter and View Controls */}
-          <div className="flex gap-2">
             {/* Filter Button */}
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`px-4 py-2 rounded-xl border transition-all flex items-center gap-2 ${
+              className={`px-3 py-2 rounded-lg border transition-all flex items-center gap-2 flex-shrink-0 ${
                 isFilterOpen
                   ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-100"
                   : "bg-transparent text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
@@ -180,16 +157,16 @@ export default function Projects() {
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                 />
               </svg>
-              <span className="text-sm font-medium hidden sm:inline">
+              <span className="text-sm font-medium hidden md:inline">
                 Filter
               </span>
             </button>
 
             {/* View Toggle */}
-            <div className="flex bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-xl p-2">
+            <div className="flex bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-lg p-1 flex-shrink-0">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-2 rounded-full transition-all ${
+                className={`p-1.5 rounded transition-all ${
                   viewMode === "grid"
                     ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
                     : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
@@ -212,7 +189,7 @@ export default function Projects() {
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-2 rounded-full transition-all ${
+                className={`p-1.5 rounded transition-all ${
                   viewMode === "list"
                     ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
                     : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
@@ -235,11 +212,32 @@ export default function Projects() {
               </button>
             </div>
           </div>
+
+          {/* New Project Button */}
+          <Link
+            href="/new-project"
+            className="px-4 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-all flex items-center gap-2 shadow-sm border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span className="hidden sm:inline">New Project</span>
+          </Link>
         </div>
 
         {/* Filter Options Dropdown */}
         {isFilterOpen && (
-          <div className="border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="mx-4 mb-3 border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
