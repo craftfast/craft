@@ -401,19 +401,19 @@ export default function CodingInterface({
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-neutral-50 dark:bg-neutral-950">
       {/* Header */}
-      <header className="h-12 bg-white dark:bg-neutral-900 flex items-center px-4 flex-shrink-0">
+      <header className="h-12 bg-white dark:bg-neutral-900 grid grid-cols-3 items-center px-4 flex-shrink-0">
         {/* Left Side - Logo and Project Name */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-start">
           <button
             onClick={() => router.push("/dashboard")}
             className="hover:opacity-70 transition-opacity flex-shrink-0 flex items-center"
           >
             <Logo
-              variant="icon"
+              variant="extended"
               className="text-neutral-900 dark:text-neutral-100 !h-5"
             />
           </button>
-          <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
+          <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0 mx-1 ml-3" />
 
           {/* Project Name with Dropdown */}
           <div className="relative" ref={projectMenuRef}>
@@ -424,6 +424,16 @@ export default function CodingInterface({
               <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[200px]">
                 {project.name}
               </h1>
+              {/* Visibility Icon */}
+              {projectVisibility === "private" && (
+                <Lock className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" />
+              )}
+              {projectVisibility === "secret" && (
+                <Link2 className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" />
+              )}
+              {projectVisibility === "public" && (
+                <Globe className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" />
+              )}
               <ChevronDown
                 className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 flex-shrink-0 transition-transform ${
                   isProjectMenuOpen ? "rotate-180" : ""
@@ -630,9 +640,9 @@ export default function CodingInterface({
         </div>
 
         {/* Center - URL Bar with View Switcher */}
-        <div className="flex-1 flex items-center justify-center px-8">
+        <div className="flex items-center justify-center px-8">
           {/* URL Bar - Always visible */}
-          <div className="flex-1 flex items-center gap-2 max-w-xl">
+          <div className="flex items-center gap-2 max-w-xl w-full">
             <div className="flex-1 flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg px-3 py-1.5">
               {/* View Switcher - Left side of URL bar */}
               <div className="relative flex-shrink-0" ref={viewMenuRef}>
@@ -773,7 +783,7 @@ export default function CodingInterface({
         </div>
 
         {/* Right Side - Token Counter and User Profile */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           {/* Token Counter */}
           <TokenCounter onClickAction={() => setIsPricingModalOpen(true)} />
 

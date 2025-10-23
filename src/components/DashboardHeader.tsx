@@ -85,9 +85,9 @@ export default function DashboardHeader({
       {/* Desktop Header - 3 column grid */}
       <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4 lg:items-center w-full">
         {/* Left column - Logo and Plan Badge */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Logo
-            variant={showLogoText ? "full" : "icon"}
+            variant={showLogoText ? "extended" : "icon"}
             className="text-white dark:text-white !h-5"
             href="/dashboard"
           />
