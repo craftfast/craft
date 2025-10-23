@@ -87,8 +87,8 @@ export default function DashboardHeader({
         {/* Left column - Logo and Plan Badge */}
         <div className="flex items-center gap-2">
           <Logo
-            variant={showLogoText ? "extended" : "icon"}
-            className="text-white dark:text-white"
+            variant={showLogoText ? "full" : "icon"}
+            className="text-white dark:text-white !h-5"
             href="/dashboard"
           />
           {showPlanBadge && planBadgeInfo && (
