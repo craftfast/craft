@@ -264,15 +264,15 @@ export default function PreviewPanel({
       }
 
       // The server is already running thanks to the API!
-      // OPTIMIZATION: Reduce wait time - optimized API handles compilation better
+      // OPTIMIZATION: Give server time to compile if needed
       setLoadingMessage("Verifying server is ready...");
 
-      // Shorter initial wait - API already waited for compilation
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Reduced from 2000ms
+      // Wait a bit for compilation
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Try to access the URL to verify it's ready
       let retries = 0;
-      const maxRetries = 8; // Increased attempts but faster intervals
+      const maxRetries = 12; // Increased from 8 to 12 attempts
       let isReady = false;
 
       setLoadingMessage("Connecting to preview...");
@@ -282,14 +282,19 @@ export default function PreviewPanel({
           console.log(
             `🔍 Attempt ${retries + 1}/${maxRetries}: Testing ${data.url}`
           );
-          await fetch(data.url, { mode: "no-cors" });
+          const testFetch = await fetch(data.url, {
+            mode: "no-cors",
+            cache: "no-cache",
+            signal: AbortSignal.timeout(3000), // 3 second timeout per request
+          });
           console.log("✅ Server responded!");
           isReady = true;
         } catch (err) {
           console.warn(`⚠️  Attempt ${retries + 1} failed:`, err);
           retries++;
-          // OPTIMIZATION: Faster retry interval - 800ms instead of 1500ms
-          await new Promise((resolve) => setTimeout(resolve, 800));
+          // Adaptive retry: start with shorter waits, increase if needed
+          const waitTime = retries < 6 ? 1000 : 1500;
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
           setLoadingMessage(`Waiting for server... (${retries}/${maxRetries})`);
         }
       }

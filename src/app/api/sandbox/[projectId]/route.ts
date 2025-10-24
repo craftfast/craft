@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Sandbox } from "@e2b/code-interpreter";
+import { Sandbox } from "e2b"; // Using base e2b package for custom Next.js template
 import { getTemplateAlias } from "@/lib/e2b/template";
 
 // Store active sandboxes in global state (in production, use Redis)
@@ -69,7 +69,9 @@ async function installDependencies(
     try {
         // Use commands.run() instead of runCode() for shell commands
         // This is the correct method for running bash commands in E2B sandboxes
-        const installCommand = `cd /home/user/project && npm install ${validPackages.join(" ")}`;
+        // Use pnpm for better peer dependency handling and faster installs
+        // Set PATH to include pnpm installation location
+        const installCommand = `cd /home/user/project && PATH="/home/user/.local/share/pnpm:$PATH" pnpm add ${validPackages.join(" ")}`;
 
         const result = await sandbox.commands.run(installCommand);
 
@@ -79,16 +81,25 @@ async function installDependencies(
         if (success) {
             console.log(`✅ Successfully installed: ${validPackages.join(", ")}`);
         } else {
-            console.error(`❌ Installation failed:`, result.stderr || result.stdout);
+            console.error(`❌ Installation failed (exit code ${result.exitCode}):`);
+            console.error(`STDOUT:`, result.stdout);
+            console.error(`STDERR:`, result.stderr);
         }
 
         return {
             success,
             output: result.stdout || "",
-            error: result.exitCode !== 0 ? (result.stderr || "Installation failed") : undefined,
+            error: result.exitCode !== 0 ? (result.stderr || result.stdout || "Installation failed") : undefined,
         };
     } catch (error) {
         console.error("Error installing packages:", error);
+        // Log the full error details for debugging
+        if (error && typeof error === 'object' && 'result' in error) {
+            const cmdError = error as { result?: { stdout?: string; stderr?: string; exitCode?: number } };
+            console.error(`Command failed with exit code ${cmdError.result?.exitCode}`);
+            console.error(`STDOUT:`, cmdError.result?.stdout);
+            console.error(`STDERR:`, cmdError.result?.stderr);
+        }
         return {
             success: false,
             output: "",
@@ -195,18 +206,24 @@ export async function POST(
                 }
 
                 try {
-                    // OPTIMIZATION: Write all files in parallel (much faster than sequential)
-                    await Promise.all(
-                        Object.entries(files).map(async ([filePath, content]) => {
-                            // Remove leading slash if present and ensure proper path
-                            const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
-                            const normalizedPath = `/home/user/project/${cleanPath}`;
+                    // OPTIMIZATION: Write files sequentially to avoid race conditions
+                    // Group by directory depth to ensure parent directories exist
+                    const fileEntries = Object.entries(files).map(([filePath, content]) => {
+                        const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+                        const normalizedPath = `/home/user/project/${cleanPath}`;
+                        const depth = cleanPath.split('/').length;
+                        return { normalizedPath, content, depth };
+                    });
 
-                            await sandboxData!.sandbox.files.write(normalizedPath, content as string);
-                        })
-                    );
+                    // Sort by depth (shallower files first)
+                    fileEntries.sort((a, b) => a.depth - b.depth);
 
-                    console.log(`✅ Files updated successfully in parallel`);
+                    // Write files sequentially
+                    for (const { normalizedPath, content } of fileEntries) {
+                        await sandboxData!.sandbox.files.write(normalizedPath, content as string);
+                    }
+
+                    console.log(`✅ Files updated successfully`);
 
                     // If package.json was updated with dependencies, install them
                     if (needsDependencyInstall && dependenciesToInstall.length > 0) {
@@ -228,7 +245,7 @@ export async function POST(
                             // Restart dev server after dependency install
                             console.log(`🚀 Restarting dev server after dependency install...`);
                             const devProcess = await sandboxData.sandbox.commands.run(
-                                "cd /home/user/project && npm run dev -- -H 0.0.0.0 -p 3000",
+                                "cd /home/user/project && PATH=\"/home/user/.local/share/pnpm:$PATH\" pnpm run dev",
                                 {
                                     background: true,
                                     envs: {
@@ -236,6 +253,7 @@ export async function POST(
                                         PORT: "3000",
                                         HOSTNAME: "0.0.0.0",
                                         NEXT_TELEMETRY_DISABLED: "1",
+                                        PATH: "/home/user/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                                     },
                                 }
                             );
@@ -292,15 +310,21 @@ export async function POST(
         // Sandboxes spawn in ~150ms with Next.js already hot-reloading
         const templateAlias = getTemplateAlias();
         console.log(`📦 Using template: ${templateAlias}`);
+        console.log(`🔍 NODE_ENV: ${process.env.NODE_ENV}`);
 
         const sandboxOpts = {
-            template: templateAlias, // Use our pre-built template
             metadata: { projectId, userId: session.user.email },
             timeoutMs: 15 * 60 * 1000, // 15 minutes for better UX (can extend if needed)
         };
 
+        console.log(`🔍 Creating sandbox with template: ${templateAlias}`);
+        console.log(`🔍 Sandbox options:`, JSON.stringify(sandboxOpts, null, 2));
+
         // Create sandbox from template - dev server is ALREADY RUNNING!
-        const sandbox = await Sandbox.create(sandboxOpts);
+        // Note: Template must be passed as FIRST argument, not in opts
+        const sandbox = await Sandbox.create(templateAlias, sandboxOpts);
+
+        console.log(`🔍 Sandbox created - ID: ${sandbox.sandboxId}`);
 
         console.log(`✅ Sandbox created: ${sandbox.sandboxId} (Build System 2.0 🚀)`);
         console.log(`✅ Next.js dev server already running, dependencies pre-installed`);
@@ -333,25 +357,71 @@ export async function POST(
 
         // OPTIMIZATION: Write files in parallel instead of sequentially (80%+ faster)
         // Reference: https://e2b.dev/docs/filesystem/read-write
-        await Promise.all(
-            Object.entries(projectFiles).map(async ([filePath, content]) => {
-                // Build System 2.0: Files are relative to /home/user/project
-                // Remove leading slash if present and ensure proper path
-                const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
-                const normalizedPath = `/home/user/project/${cleanPath}`;
+        // Note: Group by directory depth to avoid race conditions when creating nested directories
+        const fileEntries = Object.entries(projectFiles).map(([filePath, content]) => {
+            const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+            const normalizedPath = `/home/user/project/${cleanPath}`;
+            const depth = cleanPath.split('/').length;
+            return { normalizedPath, content, depth };
+        });
 
+        // Sort by depth (shallower files first) to ensure parent directories exist
+        fileEntries.sort((a, b) => a.depth - b.depth);
+
+        // Write files sequentially to avoid race conditions with directory creation
+        for (const { normalizedPath, content } of fileEntries) {
+            try {
                 await sandbox.files.write(normalizedPath, content as string);
-            })
-        );
+            } catch (error: any) {
+                console.error(`Failed to write file ${normalizedPath}:`, error.message);
+                throw error;
+            }
+        }
 
         console.log(`✅ All files written in parallel`);
 
         // Check if new dependencies were added to package.json
         if (projectFiles["package.json"]) {
             const deps = extractDependencies(projectFiles["package.json"] as string);
-            // Only install if there are additional dependencies beyond the template
-            // Template already has: react, react-dom, next, typescript, tailwindcss, etc.
-            const templateDeps = ["react", "react-dom", "next", "typescript", "@types/node", "@types/react", "@types/react-dom", "@tailwindcss/postcss", "tailwindcss", "autoprefixer", "postcss"];
+
+            // Validate Tailwind CSS version (must be v4 for E2B template compatibility)
+            try {
+                const pkg = JSON.parse(projectFiles["package.json"] as string);
+                const tailwindVersion = pkg.devDependencies?.tailwindcss || pkg.dependencies?.tailwindcss;
+
+                if (tailwindVersion && !tailwindVersion.includes("^4") && !tailwindVersion.includes("4.")) {
+                    console.warn(`⚠️ WARNING: package.json specifies Tailwind CSS ${tailwindVersion}, but E2B template has v4 pre-installed.`);
+                    console.warn(`   This may cause build errors. The AI should use "tailwindcss": "^4" and "@tailwindcss/postcss": "^4"`);
+                }
+
+                // Check for @tailwindcss/postcss (required for v4)
+                const hasPostcssPlugin = pkg.devDependencies?.["@tailwindcss/postcss"] || pkg.dependencies?.["@tailwindcss/postcss"];
+                if (!hasPostcssPlugin && tailwindVersion) {
+                    console.warn(`⚠️ WARNING: package.json missing "@tailwindcss/postcss" which is required for Tailwind CSS v4`);
+                }
+            } catch (error) {
+                console.error("Failed to validate Tailwind CSS version:", error);
+            }
+
+            // E2B template pre-installed dependencies (from src/lib/e2b/template.ts)
+            // These are already installed in the sandbox and don't need reinstallation
+            const templateDeps = [
+                // Dependencies
+                "react",
+                "react-dom",
+                "next",
+                // DevDependencies
+                "typescript",
+                "@types/node",
+                "@types/react",
+                "@types/react-dom",
+                "@tailwindcss/postcss", // Tailwind CSS v4
+                "tailwindcss",          // Tailwind CSS v4
+                "autoprefixer",
+                "postcss"
+            ];
+
+            // Filter out template dependencies to find new packages
             const newDeps = deps.filter(dep => !templateDeps.includes(dep));
 
             if (newDeps.length > 0) {
@@ -368,31 +438,126 @@ export async function POST(
         }
 
         try {
-            // Start Next.js dev server manually
-            // Note: Template's setStartCmd may not be working, so we start it explicitly
-            console.log("🚀 Starting Next.js dev server manually...");
+            // The template's setStartCmd already started the dev server with waitForPort(3000)
+            // However, we need to verify it's running and restart if needed
+            console.log("🔍 Checking if dev server is running...");
 
-            const startCommand = "cd /home/user/project && npm run dev -- -H 0.0.0.0 -p 3000";
-            const devProcess = await sandbox.commands.run(startCommand, {
-                background: true, // Run in background so it doesn't block
-                envs: {
-                    NODE_ENV: "development",
-                    PORT: "3000",
-                    HOSTNAME: "0.0.0.0",
-                    NEXT_TELEMETRY_DISABLED: "1",
-                },
-            });
+            // First, check if the dev server process is actually running
+            let processCheck;
+            try {
+                processCheck = await sandbox.commands.run(
+                    "pgrep -f 'next dev' || echo 'not_running'",
+                    { timeoutMs: 2000 }
+                );
+            } catch (error) {
+                console.warn("⚠️ Process check failed:", error);
+                processCheck = { stdout: 'not_running' };
+            }
 
-            console.log(`✅ Dev server started with PID: ${devProcess.pid || 'N/A'}`);
+            const isProcessRunning = processCheck.stdout?.trim() &&
+                processCheck.stdout.trim() !== 'not_running' &&
+                /^\d+$/.test(processCheck.stdout.trim());
 
-            // Wait a moment for the server to start binding to the port
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            if (isProcessRunning) {
+                console.log(`✅ Dev server process found (PID: ${processCheck.stdout.trim()})`);
 
-            // Store sandbox reference with dev server info
+                // Verify it's actually responsive on port 3000
+                console.log("🔍 Verifying port 3000 is accessible...");
+                let portReady = false;
+                const quickCheck = await sandbox.commands.run(
+                    "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo 'failed'",
+                    { timeoutMs: 3000 }
+                ).catch(() => ({ stdout: 'failed' }));
+
+                const httpCode = quickCheck.stdout?.trim() || '';
+                portReady = httpCode !== 'failed' && /^[2-5]\d\d$/.test(httpCode);
+
+                if (portReady) {
+                    console.log(`✅ Dev server is ready and responsive! (HTTP ${httpCode})`);
+                } else {
+                    console.log(`⏳ Dev server process exists but not ready yet, waiting...`);
+                    // Wait up to 10 seconds for the existing process to become ready
+                    const startTime = Date.now();
+                    while (Date.now() - startTime < 10000 && !portReady) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        const check = await sandbox.commands.run(
+                            "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo 'failed'",
+                            { timeoutMs: 2000 }
+                        ).catch(() => ({ stdout: 'failed' }));
+                        const code = check.stdout?.trim() || '';
+                        if (code !== 'failed' && /^[2-5]\d\d$/.test(code)) {
+                            portReady = true;
+                            console.log(`✅ Dev server became ready! (HTTP ${code})`);
+                        }
+                    }
+                }
+            } else {
+                console.log("⚠️ Dev server process not found - starting manually...");
+
+                // Start the dev server
+                try {
+                    const devProcess = await sandbox.commands.run(
+                        "cd /home/user/project && PATH=\"/home/user/.local/share/pnpm:$PATH\" pnpm run dev",
+                        {
+                            background: true,
+                            envs: {
+                                NODE_ENV: "development",
+                                PORT: "3000",
+                                HOSTNAME: "0.0.0.0",
+                                NEXT_TELEMETRY_DISABLED: "1",
+                                PATH: "/home/user/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                            },
+                        }
+                    );
+                    console.log(`🚀 Started dev server (PID: ${devProcess.pid || 'unknown'})`);
+
+                    // Wait for the server to become ready (up to 20 seconds)
+                    console.log("⏳ Waiting for Next.js to compile and start...");
+                    const startTime = Date.now();
+                    let isReady = false;
+
+                    while (Date.now() - startTime < 20000 && !isReady) {
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+
+                        const check = await sandbox.commands.run(
+                            "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo 'failed'",
+                            { timeoutMs: 2000 }
+                        ).catch(() => ({ stdout: 'failed' }));
+
+                        const code = check.stdout?.trim() || '';
+                        if (code !== 'failed' && /^[2-5]\d\d$/.test(code)) {
+                            isReady = true;
+                            console.log(`✅ Dev server is ready! (HTTP ${code}) - took ${Math.floor((Date.now() - startTime) / 1000)}s`);
+                        } else {
+                            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                            console.log(`⏳ Still waiting for dev server... (${elapsed}s)`);
+                        }
+                    }
+
+                    if (!isReady) {
+                        console.warn(`⚠️ Dev server may not be fully ready yet, but continuing...`);
+
+                        // Log diagnostics to help debug
+                        try {
+                            const psResult = await sandbox.commands.run("ps aux | grep -E 'node|npm|next'", { timeoutMs: 2000 });
+                            console.log("📊 Running processes:", psResult.stdout);
+
+                            const portResult = await sandbox.commands.run("netstat -tuln | grep 3000", { timeoutMs: 2000 });
+                            console.log("🔌 Port 3000 status:", portResult.stdout || "Not listening");
+                        } catch (diagError) {
+                            console.warn("⚠️ Could not get diagnostics:", diagError);
+                        }
+                    }
+                } catch (startError) {
+                    console.error(`❌ Failed to start dev server:`, startError);
+                    throw startError;
+                }
+            }
+
+            // Store sandbox reference
             activeSandboxes.set(projectId, {
                 sandbox,
                 lastAccessed: new Date(),
-                devServerPid: devProcess.pid,
             });
 
             console.log(`💾 Sandbox stored. Active: ${activeSandboxes.size}`);

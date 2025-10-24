@@ -58,9 +58,35 @@ For complete design system documentation, see `docs/design-system.md`.
 All projects created in Craft start with a standardized Next.js template that includes:
 
 - Next.js 15 + React 19 + TypeScript
-- Tailwind CSS 3.4 pre-configured
+- **Tailwind CSS v4** (CRITICAL: Always use v4 with `@tailwindcss/postcss`)
 - Professional configuration files
 - Production-ready structure
+
+### CRITICAL: Tailwind CSS v4 Requirements
+
+When modifying or generating `package.json` files, you MUST always use:
+
+```json
+{
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4",
+    "postcss": "^8",
+    "autoprefixer": "^10"
+  }
+}
+```
+
+And ensure `postcss.config.mjs` exists with:
+
+```js
+const config = {
+  plugins: ["@tailwindcss/postcss"],
+};
+export default config;
+```
+
+**Never use Tailwind CSS v3.x** - it's incompatible with our E2B sandbox template.
 
 **Key files:**
 

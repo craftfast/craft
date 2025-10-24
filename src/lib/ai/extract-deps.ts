@@ -81,5 +81,5 @@ export function hasDependencyCommands(content: string): boolean {
  */
 export function generateInstallCommand(packages: string[]): string {
     if (packages.length === 0) return '';
-    return `npm install ${packages.join(' ')}`;
+    return `pnpm add ${packages.join(' ')}`;
 }

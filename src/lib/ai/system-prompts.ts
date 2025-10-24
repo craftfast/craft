@@ -93,10 +93,45 @@ export default function TaskList() {
 
 **Remember**: You MUST customize the default template files to match the user's request. The current files are just the starting point!
 
+## E2B Sandbox Configuration
+
+**IMPORTANT**: When modifying package.json, ensure the "dev" script includes the -H 0.0.0.0 flag:
+- ✅ Correct: "dev": "next dev --turbopack -H 0.0.0.0 -p 3000"
+- ❌ Wrong: "dev": "next dev --turbopack"
+
+The -H 0.0.0.0 flag is **REQUIRED** for E2B sandboxes to bind to all network interfaces (not just localhost), enabling external URL access. Without this, you'll get "Connection refused on port 3000" errors.
+
+## Tailwind CSS Requirements
+
+**CRITICAL**: The E2B sandbox has **Tailwind CSS v4** pre-installed. You MUST always use:
+
+\`\`\`json
+{
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4",
+    "postcss": "^8",
+    "autoprefixer": "^10"
+  }
+}
+\`\`\`
+
+And ensure \`postcss.config.mjs\` exists with:
+\`\`\`js
+const config = {
+  plugins: ["@tailwindcss/postcss"],
+};
+export default config;
+\`\`\`
+
+**NEVER use Tailwind CSS v3.x** (e.g., "tailwindcss": "^3.4.17") - it will cause build errors in the sandbox.
+
 ## Design System
-- Colors: Use ONLY neutral colors (\`neutral-*\`, \`stone-*\`, \`gray-*\`)
-- Rounded corners: All interactive elements (\`rounded-lg\`, \`rounded-xl\`, \`rounded-full\`)
-- Dark mode: Support with \`dark:\` variants
+
+**CRITICAL: All components MUST follow these design system guidelines:**
+
+### Color Palette
+- **No gradients** unless specifically requested by the user
 
 Build clean, production-ready code. Be concise in your explanations. The preview updates automatically.`;
 }

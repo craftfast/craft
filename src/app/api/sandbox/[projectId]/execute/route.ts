@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Sandbox } from "@e2b/code-interpreter";
+import { Sandbox } from "e2b"; // Using base e2b package for custom Next.js template
 
 // Import the active sandboxes map (would be better in a shared module)
 // For now, we'll access it through a global
@@ -62,13 +62,15 @@ export async function POST(
         // Update last accessed time
         sandboxData.lastAccessed = new Date();
 
-        // Execute command
-        const result = await sandboxData.sandbox.runCode(command);
+        // Execute command in sandbox terminal using E2B v2 API
+        // For Next.js sandbox, we run shell commands
+        const result = await sandboxData.sandbox.commands.run(command);
 
         return NextResponse.json({
             success: true,
-            output: result.text || "",
-            error: result.error || null,
+            output: result.stdout || "",
+            error: result.stderr || null,
+            exitCode: result.exitCode,
         });
     } catch (error) {
         console.error("Error executing command:", error);

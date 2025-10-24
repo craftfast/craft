@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Sandbox } from "@e2b/code-interpreter";
+import { Sandbox } from "e2b"; // Using base e2b package for custom Next.js template
 
 // Import the active sandboxes map
 declare global {
@@ -90,7 +90,7 @@ export async function POST(
 
         try {
             // Change to project directory and install packages using npm
-            const installCommand = `cd /home/user/project && npm install ${validPackages.join(" ")}`;
+            const installCommand = `cd /home/user/project && pnpm add ${validPackages.join(" ")}`;
 
             const result = await sandboxData.sandbox.commands.run(installCommand);
 

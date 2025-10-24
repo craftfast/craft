@@ -330,8 +330,8 @@ export const deleteFile = tool({
 export const runCommand = tool({
     description: `Execute a shell command in the project's sandbox environment.
     Use this to:
-    - Install npm packages: "npm install package-name"
-    - Run build commands: "npm run build"
+    - Install npm packages: "pnpm add package-name"
+    - Run build commands: "pnpm build"
     - Start dev server: "pnpm dev" (for testing, not for production)
     - Execute any shell command needed for the project
     
@@ -340,7 +340,7 @@ export const runCommand = tool({
 
     parameters: z.object({
         projectId: z.string().describe("The project ID"),
-        command: z.string().describe("The shell command to execute (e.g., 'npm install react-icons')"),
+        command: z.string().describe("The shell command to execute (e.g., 'pnpm add react-icons')"),
     }),
 
     // @ts-ignore - AI SDK v5 type inference issue
