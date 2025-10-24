@@ -260,10 +260,17 @@ export default function CodingInterface({
   }, []);
 
   // Function to handle file clicks from FileChangesCard
-  const handleFileClick = () => {
-    // Switch to code tab - file selection happens automatically through streaming
+  const handleFileClick = (filePath: string) => {
+    // Switch to code tab and pass the file path to CodeEditor
     setActiveTab("code");
+    // Trigger file selection in CodeEditor by setting a ref or state
+    // We'll use a callback ref pattern through CodeEditor props
+    setSelectedFileFromChat(filePath);
   };
+
+  const [selectedFileFromChat, setSelectedFileFromChat] = useState<
+    string | null
+  >(null);
 
   const allViews = [
     {
@@ -855,6 +862,8 @@ export default function CodingInterface({
                   streamingFiles={streamingFiles}
                   isGenerating={isGeneratingFiles}
                   onFileClick={handleFileClick}
+                  selectedFileFromChat={selectedFileFromChat}
+                  onFileSelected={() => setSelectedFileFromChat(null)}
                 />
               )}
 

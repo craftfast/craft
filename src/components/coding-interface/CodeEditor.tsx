@@ -27,6 +27,8 @@ interface CodeEditorProps {
   streamingFiles?: Record<string, string>;
   isGenerating?: boolean;
   onFileClick?: (path: string) => void;
+  selectedFileFromChat?: string | null;
+  onFileSelected?: () => void;
 }
 
 interface FileNode {
@@ -45,6 +47,8 @@ export default function CodeEditor({
   streamingFiles = {},
   isGenerating = false,
   onFileClick,
+  selectedFileFromChat,
+  onFileSelected,
 }: CodeEditorProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -225,6 +229,34 @@ export default function CodeEditor({
       }
     }
   }, [selectedFile, files, streamingFiles, isGenerating, currentStreamingFile]);
+
+  // Handle file selection from chat panel
+  useEffect(() => {
+    if (selectedFileFromChat) {
+      // Check if file exists in current files or streaming files
+      const allFiles = { ...files, ...streamingFiles };
+      if (allFiles[selectedFileFromChat]) {
+        setSelectedFile(selectedFileFromChat);
+        // Expand folders in the path
+        const pathParts = selectedFileFromChat.split("/");
+        const newExpandedFolders = new Set(expandedFolders);
+        let currentPath = "";
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          currentPath += (currentPath ? "/" : "") + pathParts[i];
+          newExpandedFolders.add(currentPath);
+        }
+        setExpandedFolders(newExpandedFolders);
+        // Notify parent that file has been selected
+        onFileSelected?.();
+      }
+    }
+  }, [
+    selectedFileFromChat,
+    files,
+    streamingFiles,
+    expandedFolders,
+    onFileSelected,
+  ]);
 
   // Update files when projectFiles prop changes
   useEffect(() => {
