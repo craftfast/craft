@@ -72,9 +72,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { projectId, role, content, fileIds, fileChanges } = await req.json();
+        const body = await req.json();
+        const { projectId, role, content, fileIds, fileChanges } = body;
+
+        // Debug logging
+        console.log("📨 Received chat message request:", {
+            projectId: projectId || "MISSING",
+            role: role || "MISSING",
+            contentLength: content?.length || 0,
+            hasContent: !!content,
+            fileIds: fileIds?.length || 0,
+            fileChanges: fileChanges?.length || 0,
+        });
 
         if (!projectId || !role || !content) {
+            console.error("❌ Validation failed:", {
+                projectId: !!projectId,
+                role: !!role,
+                content: !!content,
+                contentValue: content,
+            });
             return NextResponse.json(
                 { error: "Missing required fields: projectId, role, content" },
                 { status: 400 }

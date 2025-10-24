@@ -11,6 +11,8 @@ interface PreviewPanelProps {
   packages?: string[]; // Packages to install when creating/refreshing sandbox
   onPackagesInstalled?: () => void; // Callback when packages are installed
   onRefreshProject?: () => Promise<void>; // Callback to refresh project after version restore
+  deviceMode?: "desktop" | "mobile"; // Device mode from parent
+  previewUrl?: string; // URL from parent
 }
 
 type SandboxStatus = "inactive" | "loading" | "running" | "error";
@@ -35,6 +37,8 @@ export default function PreviewPanel({
   packages = [],
   onPackagesInstalled,
   onRefreshProject,
+  deviceMode: parentDeviceMode,
+  previewUrl: parentPreviewUrl,
 }: PreviewPanelProps) {
   const [previewUrl, setPreviewUrl] = useState("");
   const [iframeUrl, setIframeUrl] = useState("");
@@ -48,6 +52,21 @@ export default function PreviewPanel({
   const [deviceMode, setDeviceMode] = useState<"mobile" | "tablet" | "desktop">(
     "desktop"
   );
+
+  // Sync device mode with parent
+  useEffect(() => {
+    if (parentDeviceMode) {
+      setDeviceMode(parentDeviceMode);
+    }
+  }, [parentDeviceMode]);
+
+  // Sync preview URL with parent
+  useEffect(() => {
+    if (parentPreviewUrl) {
+      setInputRoute(parentPreviewUrl);
+      setCurrentRoute(parentPreviewUrl);
+    }
+  }, [parentPreviewUrl]);
   const [loadingMessage, setLoadingMessage] = useState("Starting preview...");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showVersionDropdown, setShowVersionDropdown] = useState(false);
@@ -245,15 +264,15 @@ export default function PreviewPanel({
       }
 
       // The server is already running thanks to the API!
-      // OPTIMIZATION: Reduce wait time - optimized API handles compilation better
+      // OPTIMIZATION: Give server time to compile if needed
       setLoadingMessage("Verifying server is ready...");
 
-      // Shorter initial wait - API already waited for compilation
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Reduced from 2000ms
+      // Wait a bit for compilation
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Try to access the URL to verify it's ready
       let retries = 0;
-      const maxRetries = 8; // Increased attempts but faster intervals
+      const maxRetries = 12; // Increased from 8 to 12 attempts
       let isReady = false;
 
       setLoadingMessage("Connecting to preview...");
@@ -263,14 +282,19 @@ export default function PreviewPanel({
           console.log(
             `🔍 Attempt ${retries + 1}/${maxRetries}: Testing ${data.url}`
           );
-          await fetch(data.url, { mode: "no-cors" });
+          const testFetch = await fetch(data.url, {
+            mode: "no-cors",
+            cache: "no-cache",
+            signal: AbortSignal.timeout(3000), // 3 second timeout per request
+          });
           console.log("✅ Server responded!");
           isReady = true;
         } catch (err) {
           console.warn(`⚠️  Attempt ${retries + 1} failed:`, err);
           retries++;
-          // OPTIMIZATION: Faster retry interval - 800ms instead of 1500ms
-          await new Promise((resolve) => setTimeout(resolve, 800));
+          // Adaptive retry: start with shorter waits, increase if needed
+          const waitTime = retries < 6 ? 1000 : 1500;
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
           setLoadingMessage(`Waiting for server... (${retries}/${maxRetries})`);
         }
       }
@@ -554,306 +578,309 @@ export default function PreviewPanel({
         isFullscreen ? "fixed inset-0 z-50" : ""
       }`}
     >
-      {/* Preview Toolbar */}
-      <div className="h-12 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2 flex-1">
-          {/* Navigation Controls */}
+      {/* Preview Toolbar - Hidden since controls moved to main header */}
+      {false && (
+        <div className="h-12 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-4">
+          <div className="flex items-center gap-2 flex-1">
+            {/* Navigation Controls */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleBack}
+                disabled={sandboxStatus !== "running" || historyIndex <= 0}
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Go back"
+              >
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={handleForward}
+                disabled={
+                  sandboxStatus !== "running" ||
+                  historyIndex >= navigationHistory.length - 1
+                }
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Go forward"
+              >
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={sandboxStatus !== "running" || isRefreshing}
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Refresh preview"
+              >
+                <svg
+                  className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 ${
+                    isRefreshing ? "animate-spin" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* URL Bar */}
+            <form
+              onSubmit={handleRouteSubmit}
+              className="flex-1 flex items-center gap-2 mx-2"
+            >
+              <input
+                type="text"
+                value={inputRoute}
+                onChange={(e) => setInputRoute(e.target.value)}
+                onBlur={() => setInputRoute(currentRoute)}
+                placeholder="Enter route (e.g., /about)"
+                disabled={sandboxStatus !== "running"}
+                className="flex-1 px-3 py-1 text-xs bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  previewUrl && window.open(previewUrl + currentRoute, "_blank")
+                }
+                disabled={sandboxStatus !== "running"}
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Open in new tab"
+              >
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+              </button>
+            </form>
+          </div>
           <div className="flex items-center gap-1">
-            <button
-              onClick={handleBack}
-              disabled={sandboxStatus !== "running" || historyIndex <= 0}
-              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Go back"
-            >
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {/* Version History Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={handleVersionDropdownToggle}
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+                title="Version History"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={handleForward}
-              disabled={
-                sandboxStatus !== "running" ||
-                historyIndex >= navigationHistory.length - 1
-              }
-              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Go forward"
-            >
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={handleRefresh}
-              disabled={sandboxStatus !== "running" || isRefreshing}
-              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Refresh preview"
-            >
-              <svg
-                className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 ${
-                  isRefreshing ? "animate-spin" : ""
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            </button>
-          </div>
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </button>
 
-          {/* URL Bar */}
-          <form
-            onSubmit={handleRouteSubmit}
-            className="flex-1 flex items-center gap-2 mx-2"
-          >
-            <input
-              type="text"
-              value={inputRoute}
-              onChange={(e) => setInputRoute(e.target.value)}
-              onBlur={() => setInputRoute(currentRoute)}
-              placeholder="Enter route (e.g., /about)"
-              disabled={sandboxStatus !== "running"}
-              className="flex-1 px-3 py-1 text-xs bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <button
-              type="button"
-              onClick={() =>
-                previewUrl && window.open(previewUrl + currentRoute, "_blank")
-              }
-              disabled={sandboxStatus !== "running"}
-              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Open in new tab"
-            >
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </button>
-          </form>
-        </div>
-        <div className="flex items-center gap-1">
-          {/* Version History Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={handleVersionDropdownToggle}
-              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-              title="Version History"
-            >
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </button>
-
-            {/* Dropdown Menu */}
-            {showVersionDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
-                <div className="overflow-y-auto flex-1">
-                  {isLoadingVersions ? (
-                    <div className="p-6 text-center">
-                      <div className="inline-block w-5 h-5 border-2 border-neutral-300 dark:border-neutral-600 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin"></div>
-                    </div>
-                  ) : versions.length === 0 ? (
-                    <div className="p-6 text-center">
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                        No versions yet
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                      {versions.map((v) => (
-                        <button
-                          key={v.id}
-                          onClick={() => {
-                            if (v.version !== version) {
-                              handleRestoreVersion(v.id, v.version);
+              {/* Dropdown Menu */}
+              {showVersionDropdown && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
+                  <div className="overflow-y-auto flex-1">
+                    {isLoadingVersions ? (
+                      <div className="p-6 text-center">
+                        <div className="inline-block w-5 h-5 border-2 border-neutral-300 dark:border-neutral-600 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin"></div>
+                      </div>
+                    ) : versions.length === 0 ? (
+                      <div className="p-6 text-center">
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                          No versions yet
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                        {versions.map((v) => (
+                          <button
+                            key={v.id}
+                            onClick={() => {
+                              if (v.version !== version) {
+                                handleRestoreVersion(v.id, v.version);
+                              }
+                            }}
+                            disabled={
+                              restoringVersionId === v.id ||
+                              v.version === version
                             }
-                          }}
-                          disabled={
-                            restoringVersionId === v.id || v.version === version
-                          }
-                          className={`w-full p-3 text-left transition-colors disabled:cursor-default ${
-                            v.version === version
-                              ? "bg-neutral-100 dark:bg-neutral-800"
-                              : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                                  Version {v.version}
-                                </span>
-                                {v.version === version && (
-                                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full">
-                                    Current
+                            className={`w-full p-3 text-left transition-colors disabled:cursor-default ${
+                              v.version === version
+                                ? "bg-neutral-100 dark:bg-neutral-800"
+                                : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                    Version {v.version}
                                   </span>
-                                )}
-                                {v.isPublished && (
-                                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-700 dark:bg-neutral-300 text-white dark:text-neutral-900 rounded-full">
-                                    Published
-                                  </span>
-                                )}
+                                  {v.version === version && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full">
+                                      Current
+                                    </span>
+                                  )}
+                                  {v.isPublished && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-700 dark:bg-neutral-300 text-white dark:text-neutral-900 rounded-full">
+                                      Published
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                  {getRelativeTime(v.createdAt)}
+                                </p>
                               </div>
-                              <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                {getRelativeTime(v.createdAt)}
-                              </p>
+                              {restoringVersionId === v.id && (
+                                <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                              )}
                             </div>
-                            {restoringVersionId === v.id && (
-                              <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <button
-            onClick={() => {
-              const modes: Array<"mobile" | "tablet" | "desktop"> = [
-                "desktop",
-                "tablet",
-                "mobile",
-              ];
-              const currentIndex = modes.indexOf(deviceMode);
-              const nextIndex = (currentIndex + 1) % modes.length;
-              setDeviceMode(modes[nextIndex]);
-            }}
-            className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-            title={`Current: ${
-              deviceMode.charAt(0).toUpperCase() + deviceMode.slice(1)
-            } - Click to switch`}
-          >
-            {deviceMode === "mobile" && (
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-                />
-              </svg>
-            )}
-            {deviceMode === "tablet" && (
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                />
-              </svg>
-            )}
-            {deviceMode === "desktop" && (
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-            )}
-          </button>
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
-            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          >
-            {isFullscreen ? (
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9h4.5M15 9V4.5M15 9l5.25-5.25M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-                />
-              </svg>
-            ) : (
-              <svg
-                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-                />
-              </svg>
-            )}
-          </button>
+            <button
+              onClick={() => {
+                const modes: Array<"mobile" | "tablet" | "desktop"> = [
+                  "desktop",
+                  "tablet",
+                  "mobile",
+                ];
+                const currentIndex = modes.indexOf(deviceMode);
+                const nextIndex = (currentIndex + 1) % modes.length;
+                setDeviceMode(modes[nextIndex]);
+              }}
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+              title={`Current: ${
+                deviceMode.charAt(0).toUpperCase() + deviceMode.slice(1)
+              } - Click to switch`}
+            >
+              {deviceMode === "mobile" && (
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+              )}
+              {deviceMode === "tablet" && (
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+              )}
+              {deviceMode === "desktop" && (
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? (
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9h4.5M15 9V4.5M15 9l5.25-5.25M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Preview Frame */}
       <div className="flex-1 bg-neutral-50 dark:bg-neutral-900 overflow-auto">

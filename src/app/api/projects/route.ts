@@ -151,29 +151,32 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Create the project with minimal Next.js template
-        // This provides the full Next.js template with TypeScript, Tailwind CSS, ESLint
-        // AI will modify/extend these files based on user requirements
+        // Create project with Next.js template
+        // Template includes:
+        // 1. package.json with Next.js 15, React 19, TypeScript, Tailwind CSS v4
+        // 2. All config files (tsconfig.json, next.config.ts, postcss.config.mjs)
+        // 3. Basic app structure (layout.tsx, page.tsx, globals.css)
+        // 4. Public assets (Next.js logo, icons)
+        // AI will customize this template based on user's description
         console.log("📦 Creating project with Next.js template...");
 
-        const baseTemplate = getNextJsTemplate();
-        console.log(`✅ Generated ${Object.keys(baseTemplate).length} template files`);
+        const templateFiles = getNextJsTemplate();
 
-        // Create the project with template files stored in the codeFiles JSON field
-        // This allows the files API and sandbox to access them directly
+        // Create the project with template files
         const project = await prisma.project.create({
             data: {
                 name: projectName,
                 description: description?.trim() || null,
                 userId: user.id,
-                codeFiles: baseTemplate, // Store template files directly in JSON field
-                version: 0, // New project starts at version 0
-                generationStatus: "template", // Status: template (not AI-generated yet)
+                codeFiles: templateFiles, // Start with Next.js template
+                version: 0,
+                generationStatus: "template", // Status: template (ready for AI to customize)
             },
         });
 
         console.log(`🎉 Project created with ID: ${project.id}`);
-        console.log(`📁 Base template saved - AI will customize based on description...`);
+        console.log(`📦 Template files added: ${Object.keys(templateFiles).length} files`);
+        console.log(`🤖 Ready for AI to customize based on description...`);
 
         return NextResponse.json({ project }, { status: 201 });
     } catch (error) {

@@ -37,7 +37,7 @@ function AuthErrorContent() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Logo />
+          <Logo variant="extended" />
         </div>
 
         {/* Error Card */}

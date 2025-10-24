@@ -8,6 +8,12 @@ import { prisma } from "@/lib/db";
 // AI Model pricing per 1M tokens (in USD)
 // Updated from OpenRouter pricing (October 16, 2025)
 const MODEL_PRICING = {
+    // Claude models (Anthropic direct API format)
+    "claude-haiku-4-5": { input: 1.0, output: 5.0 },
+    "claude-haiku-3-5": { input: 0.8, output: 4.0 },
+    "claude-sonnet-4-5": { input: 3.0, output: 15.0 },
+    "claude-sonnet-3-5": { input: 3.0, output: 15.0 },
+
     // Claude models (with full OpenRouter path)
     "anthropic/claude-sonnet-4.5": { input: 3.0, output: 15.0 },
     "anthropic/claude-sonnet-3.5": { input: 3.0, output: 15.0 },

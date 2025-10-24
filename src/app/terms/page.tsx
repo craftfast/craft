@@ -16,7 +16,11 @@ export default function TermsOfService() {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
           <div className="relative flex items-center justify-between">
-            <Logo className="text-white dark:text-white" href="/" />
+            <Logo
+              variant="extended"
+              className="text-white dark:text-white"
+              href="/"
+            />
             <HeaderNav />
           </div>
         </div>
