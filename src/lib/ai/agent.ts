@@ -76,13 +76,27 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         system: systemPrompt,
         messages: messages as never, // AI SDK will handle the validation
         onFinish: async ({ usage }) => {
+            console.log('🔍 Raw usage object:', JSON.stringify(usage, null, 2));
+            console.log('🔍 Available properties:', Object.keys(usage));
+
             if (usage) {
-                // AI SDK v2 usage tracking
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const inputTokens = (usage as any).promptTokens || 0;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const outputTokens = (usage as any).completionTokens || 0;
-                const totalTokens = inputTokens + outputTokens;
+                // AI SDK v5 with Anthropic - uses promptTokens/completionTokens
+                const usageAny = usage as any;
+                const inputTokens =
+                    usageAny.promptTokens ||       // ✅ AI SDK v5 primary format
+                    usageAny.inputTokens ||        // Fallback
+                    usageAny.input_tokens ||       // Fallback
+                    usageAny.prompt_tokens || 0;   // Snake case fallback
+
+                const outputTokens =
+                    usageAny.completionTokens ||    // ✅ AI SDK v5 primary format
+                    usageAny.outputTokens ||        // Fallback
+                    usageAny.output_tokens ||       // Fallback
+                    usageAny.completion_tokens || 0;// Snake case fallback
+
+                const totalTokens =
+                    usageAny.totalTokens ||
+                    (inputTokens + outputTokens);
 
                 console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
 
@@ -98,6 +112,8 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
                         console.error('❌ Failed to track usage:', error);
                     }
                 }
+            } else {
+                console.warn('⚠️ No usage data available from Anthropic API');
             }
         },
     });
