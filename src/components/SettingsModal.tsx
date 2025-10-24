@@ -97,11 +97,18 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     fetch(`/api/usage/tokens?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
-        setTokenUsageData(data);
+        // Only set data if it has the expected structure
+        if (data && data.records && data.pagination && data.filters) {
+          setTokenUsageData(data);
+        } else {
+          console.error("Invalid token usage data:", data);
+          setTokenUsageData(null);
+        }
         setIsLoadingUsage(false);
       })
       .catch((error) => {
         console.error("Error fetching usage:", error);
+        setTokenUsageData(null);
         setIsLoadingUsage(false);
       });
   };
@@ -884,11 +891,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       >
                         <option value="">All Projects</option>
-                        {tokenUsageData?.filters.projects.map((project) => (
+                        {tokenUsageData?.filters?.projects?.map((project) => (
                           <option key={project.id} value={project.id}>
                             {project.name}
                           </option>
-                        ))}
+                        )) || null}
                       </select>
                     </div>
 
@@ -906,11 +913,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       >
                         <option value="">All Types</option>
-                        {tokenUsageData?.filters.endpoints.map((endpoint) => (
+                        {tokenUsageData?.filters?.endpoints?.map((endpoint) => (
                           <option key={endpoint} value={endpoint}>
                             {endpoint}
                           </option>
-                        ))}
+                        )) || null}
                       </select>
                     </div>
 
@@ -1521,7 +1528,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </button>
                     </div>
 
-                    {/* Netlify */}
+                    {/* Vercel */}
                     <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-900 flex items-center justify-center">
@@ -1529,15 +1536,15 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             xmlns="http://www.w3.org/2000/svg"
                             width="24"
                             height="24"
-                            fill="#00C7B7"
+                            fill="white"
                             viewBox="0 0 24 24"
                           >
-                            <path d="m7.22 6.1-.95.95v.18l1.44 1.45h1l.14-.14v-1L7.4 6.1zM7.71 15.32l-1.44 1.44v.19l.95.95h.18l1.45-1.45v-.99l-.14-.14zM12.51 9.14H9.42l-.11.11v5.48l.11.11h1.37l.11-.11v-4.15l.07-.07c.43-.02.84-.03 1.19-.02.69.02.91.46.91 1.03v3.21l.11.11h1.37l.11-.11V11.3c0-1.2-.97-2.17-2.17-2.17ZM12.7 7.54l.11-.11V3.32l-.11-.12h-1.38l-.11.12v4.11l.11.11zM7.71 12.69v-1.38l-.11-.11H2.11l-.11.11v1.38l.11.11H7.6zM16.4 11.2l-.11.11v1.38l.11.11h5.49l.11-.11v-1.38l-.11-.11zM11.32 16.46l-.11.11v4.11l.11.12h1.38l.11-.12v-4.11l-.11-.11z"></path>
+                            <path d="M12 2L2 20h20L12 2z" />
                           </svg>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
-                            Netlify
+                            Vercel
                           </p>
                           <p className="text-xs text-neutral-500 dark:text-neutral-400">
                             Deploy and host your projects
