@@ -67,6 +67,48 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // For now, we'll assume false (OAuth user). Set to true for email+password users.
   const hasEmailPassword = false;
 
+  // Load user settings on mount
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      try {
+        const response = await fetch("/api/user/settings");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.preferredChatPosition) {
+            setChatPosition(data.preferredChatPosition);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user settings:", error);
+      }
+    };
+
+    if (isOpen) {
+      loadUserSettings();
+    }
+  }, [isOpen]);
+
+  // Save chat position preference
+  const handleChatPositionChange = async (position: "left" | "right") => {
+    setChatPosition(position);
+
+    try {
+      const response = await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ preferredChatPosition: position }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to save chat position preference");
+      }
+    } catch (error) {
+      console.error("Error saving chat position:", error);
+    }
+  };
+
   // Fetch usage data when usage tab is active
   useEffect(() => {
     if (activeTab === "usage") {
@@ -460,7 +502,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </p>
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setChatPosition("left")}
+                      onClick={() => handleChatPositionChange("left")}
                       className={`flex-1 px-4 py-3 text-sm font-medium rounded-xl border transition-all ${
                         chatPosition === "left"
                           ? "bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-50"
@@ -470,7 +512,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       Left
                     </button>
                     <button
-                      onClick={() => setChatPosition("right")}
+                      onClick={() => handleChatPositionChange("right")}
                       className={`flex-1 px-4 py-3 text-sm font-medium rounded-xl border transition-all ${
                         chatPosition === "right"
                           ? "bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-50"

@@ -174,6 +174,25 @@ export default function CodingInterface({
     loadProjectFiles();
   }, [project.id]);
 
+  // Load user's preferred chat position on mount
+  useEffect(() => {
+    const loadChatPosition = async () => {
+      try {
+        const response = await fetch("/api/user/settings");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.preferredChatPosition) {
+            setChatPosition(data.preferredChatPosition);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading chat position:", error);
+      }
+    };
+
+    loadChatPosition();
+  }, []);
+
   // Function to refresh project data
   const refreshProject = async () => {
     try {
@@ -235,6 +254,7 @@ export default function CodingInterface({
   // Use ref to avoid creating new function references that cause re-renders
   const streamingFilesRef = useRef<Record<string, string>>({});
   const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [chatPosition, setChatPosition] = useState<"left" | "right">("left");
 
   const handleStreamingFiles = useCallback((files: Record<string, string>) => {
     // Merge new files with existing streaming files
@@ -802,7 +822,7 @@ export default function CodingInterface({
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Chat Panel - Left Side - Hide in fullscreen */}
-        {!isFullscreen && (
+        {!isFullscreen && chatPosition === "left" && (
           <div
             className="flex overflow-hidden bg-white dark:bg-neutral-900"
             style={{ width: `${chatWidth}%` }}
@@ -823,7 +843,7 @@ export default function CodingInterface({
           </div>
         )}
 
-        {/* Right Side - Content Panel */}
+        {/* Content Panel */}
         <div className="flex-1 flex overflow-hidden bg-white dark:bg-neutral-900 px-2 pb-2">
           <div className="flex-1 flex overflow-hidden">
             {/* Main Panel */}
@@ -908,6 +928,28 @@ export default function CodingInterface({
             </main>
           </div>
         </div>
+
+        {/* Chat Panel - Right Side - Hide in fullscreen */}
+        {!isFullscreen && chatPosition === "right" && (
+          <div
+            className="flex overflow-hidden bg-white dark:bg-neutral-900"
+            style={{ width: `${chatWidth}%` }}
+          >
+            {/* Chat Panel - Always Mounted */}
+            <div className="flex-1 overflow-hidden">
+              <ChatPanel
+                projectId={project.id}
+                projectDescription={project.description}
+                projectVersion={project.version}
+                projectFiles={projectFiles}
+                onFilesCreated={handleFilesCreated}
+                onStreamingFiles={handleStreamingFiles}
+                onGeneratingStatusChange={setIsGeneratingFiles}
+                onFileClick={handleFileClick}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pricing Modal */}
