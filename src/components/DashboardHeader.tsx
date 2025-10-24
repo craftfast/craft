@@ -132,9 +132,7 @@ export default function DashboardHeader({
               setIsPricingModalOpen(true);
             }}
           />
-          {session?.user && (
-            <UserMenu user={session.user} showDashboardLink={false} />
-          )}
+          {session?.user && <UserMenu user={session.user} />}
         </div>
       </div>
 
@@ -183,9 +181,7 @@ export default function DashboardHeader({
               setIsPricingModalOpen(true);
             }}
           />
-          {session?.user && (
-            <UserMenu user={session.user} showDashboardLink={false} />
-          )}
+          {session?.user && <UserMenu user={session.user} />}
         </div>
       </div>
 

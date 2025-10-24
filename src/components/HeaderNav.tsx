@@ -79,7 +79,7 @@ export default function HeaderNav() {
               </svg>
               Dashboard
             </button>
-            <UserMenu user={session.user} showDashboardLink={true} />
+            <UserMenu user={session.user} />
           </>
         ) : (
           <>

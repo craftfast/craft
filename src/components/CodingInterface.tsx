@@ -795,7 +795,7 @@ export default function CodingInterface({
           <TokenCounter onClickAction={() => setIsPricingModalOpen(true)} />
 
           {/* User Profile Menu */}
-          {user && <UserMenu user={user} showDashboardLink={true} />}
+          {user && <UserMenu user={user} />}
         </div>
       </header>
 
