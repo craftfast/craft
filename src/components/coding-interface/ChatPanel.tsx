@@ -426,7 +426,22 @@ export default function ChatPanel({
     fileChanges?: FileChange[]
   ) => {
     try {
+      // Validate content before sending
+      if (!content || !content.trim()) {
+        console.warn(`⚠️ Skipping save: ${role} message has empty content`);
+        return;
+      }
+
       console.log(`💾 Saving ${role} message to project ${projectId}...`);
+      console.log("📤 Message data:", {
+        projectId,
+        role,
+        contentLength: content?.length || 0,
+        hasContent: !!content,
+        contentPreview: content?.substring(0, 100),
+        fileIds: fileIds?.length || 0,
+        fileChanges: fileChanges?.length || 0,
+      });
 
       const response = await fetch("/api/chat-messages", {
         method: "POST",
@@ -850,8 +865,9 @@ export default function ChatPanel({
           // Save assistant message with cleaned content and file changes
           await saveMessage("assistant", finalContent, undefined, fileChanges);
         } else {
-          // Save assistant message as-is
-          await saveMessage("assistant", fullContent);
+          // Save assistant message as-is (with validation)
+          const contentToSave = fullContent.trim() || "Response received";
+          await saveMessage("assistant", contentToSave);
         }
       }
     } catch (error) {

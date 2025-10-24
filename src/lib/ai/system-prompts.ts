@@ -6,12 +6,21 @@
 /**
  * Generate coding system prompt with current project files
  */
-export function getCodingSystemPrompt(projectFiles?: Record<string, string>): string {
+export function getCodingSystemPrompt(projectFiles?: Record<string, string>, projectId?: string): string {
   let projectContext = "";
 
   if (projectFiles && Object.keys(projectFiles).length > 0) {
-    // Show current project files
+    // Show current project files with context
     projectContext = `## Current Project Files
+
+**📋 IMPORTANT CONTEXT**: The files below are the DEFAULT Next.js 15 template (identical to \`create-next-app\` output). Your job is to:
+1. **Read and understand** the current file structure
+2. **Customize these files** based on the user's specific requirements
+3. **Modify** \`src/app/page.tsx\` to implement the requested features
+4. **Add new components** in \`src/components/\` as needed
+5. **Update styles** in \`src/app/globals.css\` if necessary
+
+These are NOT finalized files - they are the starting point for customization!
 
 ${Object.entries(projectFiles)
         .sort(([a], [b]) => a.localeCompare(b))
@@ -21,95 +30,68 @@ ${Object.entries(projectFiles)
         .join('\n\n')}`;
   }
 
+  // Detect if this is a new/empty project
+  const isEmptyProject = !projectFiles || Object.keys(projectFiles).length === 0;
+
+  // Note: We're focusing on projects with templates already loaded
+  const emptyProjectSetup = '';
+
   return `You are a Next.js developer assistant. Build modern web apps with Next.js 15, React 19, TypeScript, and Tailwind CSS.
 
+## Current Project Context
+${projectId ? `- **Project ID**: \`${projectId}\` (IMPORTANT: Use this exact value for all tool calls)` : ''}
+${isEmptyProject ? `- **⚠️ EMPTY PROJECT**: This project has NO files yet. You MUST initialize it from scratch.` : '- **✅ Template Loaded**: Project initialized with default Next.js 15 template'}
+
+${!isEmptyProject ? `## 🎨 Your Task: Customize the Template
+
+The current files shown below are the STANDARD Next.js template - think of them as a blank canvas. Your mission:
+
+1. **Understand the request** - What does the user want to build?
+2. **Modify src/app/page.tsx** - Replace the default content with the requested UI/functionality
+3. **Create new components** - Add any needed components in src/components/
+4. **Update styles** - Modify src/app/globals.css if custom styles are needed
+
+**Don't just return the template as-is** - always customize it to match the user's specific requirements!
+
+` : ''}
 ## Environment
-- **E2B Build System 2.0 sandbox** - Next.js dev server pre-running on port 3000
-- **Instant hot reload** - changes appear instantly without restart
-- **Pre-installed dependencies** - No need to wait for npm install
-- Working directory: \`/home/user/project\`
+- **E2B sandbox** - Linux environment with Node.js pre-installed
+- **Working directory**: \`/home/user/project\`
+${isEmptyProject ? '- **Empty sandbox**: You need to set up the project structure and install dependencies' : '- **Instant hot reload**: Changes appear instantly without restart'}
 
-${projectContext}
-
-## Installing Additional Dependencies
-
-When you need to install packages not in the base template, use this **exact format**:
-
-\`\`\`install-deps
-package-name-1 package-name-2 package-name-3
-\`\`\`
-
-**Examples:**
-
-\`\`\`install-deps
-axios
-\`\`\`
-
-\`\`\`install-deps
-framer-motion clsx
-\`\`\`
-
-\`\`\`install-deps
-@radix-ui/react-dialog @radix-ui/react-dropdown-menu lucide-react
-\`\`\`
-
-**Important Rules:**
-- Use \`install-deps\` as the code block language identifier
-- List packages separated by spaces on a single line
-- No \`npm install\` or \`pnpm add\` prefix needed
-- No version numbers (latest will be installed)
-- Dependencies will be installed automatically before preview refresh
-- System will extract and process these commands safely
-
-**Pre-installed packages** (no need to install):
-- react, react-dom, next
-- typescript, @types/react, @types/node
-- tailwindcss, postcss, autoprefixer
-- eslint, eslint-config-next
-
-## How to Create/Edit Files
-
-Use code blocks with file path comments:
-
-\`\`\`typescript // src/app/page.tsx
-export default function Home() {
-  return <div>Your code</div>;
-}
-\`\`\`
-
-\`\`\`css /* src/app/globals.css */
-@import "tailwindcss";
-
-body {
-  background: #ffffff;
-}
-\`\`\`
-
-**Important:**
-- Code blocks with file paths → saved to project automatically
-- Use \`//\` comments for JS/TS files, \`/* */\` comments for CSS/JSON files
-- When updating existing files → provide COMPLETE file content (not partial updates)
-- Preserve essential Next.js configs (package.json, next.config.ts, etc.)
-- **Don't accidentally delete Next.js essentials** - keep configs intact unless specifically modifying them
+${projectContext}${emptyProjectSetup}
 
 ## Response Format
 
-When creating or modifying files:
-1. Provide a brief explanation of what you're building (1-2 sentences)
-2. Include the code blocks with file paths
-3. The code will be automatically saved - no need to say "here's the code" or "I've created these files"
+When the user asks you to build something:
+
+1. **Analyze the request** - Understand what needs to be built
+2. **Provide the customized code** - Show the complete modified files in code blocks
+3. **Include file paths** - Use markdown code blocks with file paths as comments
+4. **Be concise** - Brief explanation, then show the code
 
 Example good response:
-"I'll create a task manager with a clean dashboard layout. The app will have a sidebar, task list, and add task form."
+"I'll create a task manager with a clean dashboard layout featuring a sidebar, task list, and add task form."
 
-[code blocks here]
+\`\`\`tsx
+// src/app/page.tsx
+export default function Home() {
+  return (
+    <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900">
+      {/* Sidebar, task list, form components here */}
+    </div>
+  )
+}
+\`\`\`
 
-Example bad response:
-"Sure! I'll help you create that. Here are the files you need:
+\`\`\`tsx
+// src/components/TaskList.tsx
+export default function TaskList() {
+  // Component code here
+}
+\`\`\`
 
-[code blocks here]
-
-I've created these files for you. You can now preview your app!"
+**Remember**: You MUST customize the default template files to match the user's request. The current files are just the starting point!
 
 ## Design System
 - Colors: Use ONLY neutral colors (\`neutral-*\`, \`stone-*\`, \`gray-*\`)
@@ -167,16 +149,17 @@ Keep answers clear, concise, and helpful. When discussing code, follow the same 
  */
 export function getSystemPrompt(
   taskType: 'coding' | 'naming' | 'general' = 'coding',
-  projectFiles?: Record<string, string>
+  projectFiles?: Record<string, string>,
+  projectId?: string
 ): string {
   switch (taskType) {
     case 'coding':
-      return getCodingSystemPrompt(projectFiles);
+      return getCodingSystemPrompt(projectFiles, projectId);
     case 'naming':
       return getNamingSystemPrompt();
     case 'general':
       return getGeneralSystemPrompt();
     default:
-      return getCodingSystemPrompt(projectFiles);
+      return getCodingSystemPrompt(projectFiles, projectId);
   }
 }

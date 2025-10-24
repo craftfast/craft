@@ -11,10 +11,16 @@
  * Future expansion: Add more specialized agents here (image generation, code review, etc.)
  */
 
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, streamText } from "ai";
 
-// Create OpenRouter client
+// Create Anthropic client for coding tasks
+const anthropic = createAnthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY || "",
+});
+
+// Create OpenRouter client for other tasks
 const openrouter = createOpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY || "",
 });
@@ -24,15 +30,15 @@ const openrouter = createOpenRouter({
 // ============================================================================
 
 const MODELS = {
-    // Primary coding model
-    CODING: "anthropic/claude-haiku-4.5",      // Fast, efficient for all coding tasks
+    // Primary coding model (direct Anthropic API)
+    CODING: "claude-haiku-4-5",      // Fast, efficient for all coding tasks
 
-    // Specialized models
+    // Specialized models (via OpenRouter)
     NAMING: "x-ai/grok-4-fast",                // Project naming & creative text
 } as const;
 
 // ============================================================================
-// CODING AGENT (Claude Haiku 4.5)
+// CODING AGENT (Claude Haiku 3.5)
 // ============================================================================
 
 interface CodingStreamOptions {
@@ -66,15 +72,17 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
 
     // Stream the response with usage tracking
     const result = streamText({
-        model: openrouter.chat(model),
+        model: anthropic(model), // Use direct Anthropic API
         system: systemPrompt,
         messages: messages as never, // AI SDK will handle the validation
         onFinish: async ({ usage }) => {
             if (usage) {
-                // OpenRouter returns inputTokens/outputTokens directly (not promptTokens/completionTokens)
-                const inputTokens = usage.inputTokens || 0;
-                const outputTokens = usage.outputTokens || 0;
-                const totalTokens = usage.totalTokens || inputTokens + outputTokens;
+                // AI SDK v2 usage tracking
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const inputTokens = (usage as any).promptTokens || 0;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const outputTokens = (usage as any).completionTokens || 0;
+                const totalTokens = inputTokens + outputTokens;
 
                 console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
 

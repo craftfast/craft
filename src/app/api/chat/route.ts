@@ -74,8 +74,8 @@ export async function POST(req: Request) {
         // Log token availability
         console.log(`💰 Token Availability - Used: ${tokenAvailability.subscriptionTokensUsed}/${tokenAvailability.subscriptionTokenLimit || 'unlimited'}, Purchased: ${tokenAvailability.purchasedTokensRemaining}`);
 
-        // Get environment-aware system prompt
-        const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles);
+        // Get environment-aware system prompt with projectId
+        const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles, projectId);
 
         // Convert messages to AI SDK format
         const formattedMessages = messages.map((m: { role: string; content: MessageContent }) => {

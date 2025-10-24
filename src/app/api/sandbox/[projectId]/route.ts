@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Sandbox } from "@e2b/code-interpreter";
+import { getTemplateAlias } from "@/lib/e2b/template";
 
 // Store active sandboxes in global state (in production, use Redis)
 declare global {
@@ -17,7 +18,30 @@ if (!global.activeSandboxes) {
     global.activeSandboxes = new Map();
 }
 
-const activeSandboxes = global.activeSandboxes;
+// Export for use by AI tools
+export const activeSandboxes = global.activeSandboxes;
+
+// Export the type for use in tools.ts
+export type SandboxData = {
+    sandbox: Sandbox;
+    lastAccessed: Date;
+    devServerPid?: number;
+};
+
+// Helper to extract dependencies from package.json content
+function extractDependencies(packageJsonContent: string): string[] {
+    try {
+        const pkg = JSON.parse(packageJsonContent);
+        const deps = [
+            ...Object.keys(pkg.dependencies || {}),
+            ...Object.keys(pkg.devDependencies || {})
+        ];
+        return deps;
+    } catch (error) {
+        console.error("Failed to parse package.json:", error);
+        return [];
+    }
+}
 
 // Helper function to install dependencies in a sandbox
 async function installDependencies(
@@ -137,7 +161,7 @@ export async function POST(
         }
 
         // Get files from request body or use files from database
-        const { files: requestFiles, packages } = await request.json();
+        const { files: requestFiles } = await request.json();
 
         // Priority: request files > database files
         const files = requestFiles && Object.keys(requestFiles).length > 0
@@ -145,11 +169,6 @@ export async function POST(
             : (project.codeFiles as Record<string, string> || {});
 
         console.log(`📦 Project ${projectId}: ${Object.keys(files).length} files`);
-
-        // Log if packages need to be installed
-        if (packages && Array.isArray(packages) && packages.length > 0) {
-            console.log(`📦 Dependencies to install: ${packages.join(", ")}`);
-        }
 
         // Check if sandbox already exists
         let sandboxData = activeSandboxes.get(projectId);
@@ -162,13 +181,26 @@ export async function POST(
             if (files && Object.keys(files).length > 0) {
                 console.log(`🔄 Updating ${Object.keys(files).length} files in sandbox`);
 
+                // Check if package.json is being updated
+                let needsDependencyInstall = false;
+                let dependenciesToInstall: string[] = [];
+
+                if (files["package.json"]) {
+                    const deps = extractDependencies(files["package.json"] as string);
+                    if (deps.length > 0) {
+                        needsDependencyInstall = true;
+                        dependenciesToInstall = deps;
+                        console.log(`📦 Detected ${deps.length} dependencies in package.json`);
+                    }
+                }
+
                 try {
                     // OPTIMIZATION: Write all files in parallel (much faster than sequential)
                     await Promise.all(
                         Object.entries(files).map(async ([filePath, content]) => {
-                            const normalizedPath = filePath.startsWith("/")
-                                ? `/home/user/project${filePath.startsWith("/") ? filePath : `/${filePath}`}`
-                                : `/home/user/project/${filePath}`;
+                            // Remove leading slash if present and ensure proper path
+                            const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+                            const normalizedPath = `/home/user/project/${cleanPath}`;
 
                             await sandboxData!.sandbox.files.write(normalizedPath, content as string);
                         })
@@ -176,10 +208,46 @@ export async function POST(
 
                     console.log(`✅ Files updated successfully in parallel`);
 
-                    // Build System 2.0: Dev server is always running from template
-                    // Hot reload will automatically pick up file changes
-                    // No need to restart the dev server or reinstall dependencies
-                    console.log("✅ Next.js will hot-reload automatically (Build System 2.0)");
+                    // If package.json was updated with dependencies, install them
+                    if (needsDependencyInstall && dependenciesToInstall.length > 0) {
+                        console.log(`🔄 Installing dependencies...`);
+                        const installResult = await installDependencies(sandboxData.sandbox, dependenciesToInstall);
+                        if (installResult.success) {
+                            console.log(`✅ Dependencies installed successfully`);
+
+                            // Kill old dev server if it exists
+                            if (sandboxData.devServerPid) {
+                                try {
+                                    await sandboxData.sandbox.commands.run(`kill ${sandboxData.devServerPid}`);
+                                    console.log(`🔄 Killed old dev server (PID: ${sandboxData.devServerPid})`);
+                                } catch (error) {
+                                    console.warn(`⚠️ Could not kill old dev server:`, error);
+                                }
+                            }
+
+                            // Restart dev server after dependency install
+                            console.log(`🚀 Restarting dev server after dependency install...`);
+                            const devProcess = await sandboxData.sandbox.commands.run(
+                                "cd /home/user/project && npm run dev -- -H 0.0.0.0 -p 3000",
+                                {
+                                    background: true,
+                                    envs: {
+                                        NODE_ENV: "development",
+                                        PORT: "3000",
+                                        HOSTNAME: "0.0.0.0",
+                                        NEXT_TELEMETRY_DISABLED: "1",
+                                    },
+                                }
+                            );
+                            sandboxData.devServerPid = devProcess.pid;
+                            console.log(`✅ Dev server restarted with PID: ${devProcess.pid || 'N/A'}`);
+                        } else {
+                            console.warn(`⚠️ Failed to install dependencies: ${installResult.error}`);
+                        }
+                    } else {
+                        // Files updated, Next.js hot reload should pick up changes automatically
+                        console.log("✅ Files updated, Next.js will hot-reload automatically");
+                    }
 
                 } catch (error: unknown) {
                     console.error("Error updating files:", error);
@@ -205,26 +273,11 @@ export async function POST(
 
             // If we still have sandboxData at this point, return success
             if (sandboxData) {
-                // Install dependencies if provided
-                let depsInstalled = false;
-                let depsError: string | undefined;
-
-                if (packages && Array.isArray(packages) && packages.length > 0) {
-                    const installResult = await installDependencies(sandboxData.sandbox, packages);
-                    depsInstalled = installResult.success;
-                    if (!installResult.success) {
-                        depsError = installResult.error;
-                        console.warn(`⚠️ Failed to install dependencies: ${depsError}`);
-                    }
-                }
-
                 return NextResponse.json({
                     sandboxId: projectId,
                     url: `https://${sandboxData.sandbox.getHost(3000)}`,
                     status: "running",
                     filesUpdated: files && Object.keys(files).length > 0,
-                    depsInstalled,
-                    depsError,
                 });
             }
         }
@@ -234,25 +287,23 @@ export async function POST(
         // Create new sandbox
         console.log(`🚀 Creating NEW sandbox for project: ${projectId}`);
 
-        // Build System 2.0: Use template alias instead of template ID
-        // Templates are now defined as code (see src/lib/e2b/template.ts)
-        // This provides 14× faster builds and AI-friendly configuration
-        // Reference: https://e2b.dev/docs/template/quickstart
-        const templateAlias = process.env.NODE_ENV === "development"
-            ? "craft-nextjs-dev"
-            : "craft-nextjs";
+        // Use our pre-built Next.js template (Build System 2.0)
+        // This template has all dependencies pre-installed and dev server pre-running
+        // Sandboxes spawn in ~150ms with Next.js already hot-reloading
+        const templateAlias = getTemplateAlias();
+        console.log(`📦 Using template: ${templateAlias}`);
 
         const sandboxOpts = {
+            template: templateAlias, // Use our pre-built template
             metadata: { projectId, userId: session.user.email },
             timeoutMs: 15 * 60 * 1000, // 15 minutes for better UX (can extend if needed)
-            // Note: CPU/RAM configured in template definition (src/lib/e2b/template.ts)
         };
 
-        // Always use template for instant startup (~150ms)
-        // Template has Next.js dev server already running
-        const sandbox = await Sandbox.create(templateAlias, sandboxOpts);
+        // Create sandbox from template - dev server is ALREADY RUNNING!
+        const sandbox = await Sandbox.create(sandboxOpts);
 
         console.log(`✅ Sandbox created: ${sandbox.sandboxId} (Build System 2.0 🚀)`);
+        console.log(`✅ Next.js dev server already running, dependencies pre-installed`);
 
         // Prepare project files
         // Priority: Files from database (template + AI edits) > Default fallback
@@ -260,12 +311,21 @@ export async function POST(
             ? files
             : {};
 
+        // If project has files from database, write them to sandbox
         if (Object.keys(projectFiles).length === 0) {
-            console.warn(`⚠️ No files found for project ${projectId}. Sandbox may not start correctly.`);
-            return NextResponse.json(
-                { error: "No project files available. Please generate files first using the AI chat." },
-                { status: 400 }
-            );
+            console.log(`📝 No custom files - using template defaults`);
+            // Store sandbox info and return - template has default files
+            activeSandboxes.set(projectId, {
+                sandbox,
+                lastAccessed: new Date(),
+            });
+
+            return NextResponse.json({
+                sandboxId: projectId,
+                url: `https://${sandbox.getHost(3000)}`,
+                status: "created",
+                message: "Sandbox created with default Next.js template",
+            });
         }
 
         // Write all files to sandbox filesystem
@@ -275,10 +335,10 @@ export async function POST(
         // Reference: https://e2b.dev/docs/filesystem/read-write
         await Promise.all(
             Object.entries(projectFiles).map(async ([filePath, content]) => {
-                // Build System 2.0: Use /home/user/project as workdir (set in template)
-                const normalizedPath = filePath.startsWith("/")
-                    ? `/home/user/project${filePath}`
-                    : `/home/user/project/${filePath}`;
+                // Build System 2.0: Files are relative to /home/user/project
+                // Remove leading slash if present and ensure proper path
+                const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+                const normalizedPath = `/home/user/project/${cleanPath}`;
 
                 await sandbox.files.write(normalizedPath, content as string);
             })
@@ -286,29 +346,53 @@ export async function POST(
 
         console.log(`✅ All files written in parallel`);
 
-        try {
-            // Build System 2.0: Dev server is ALREADY RUNNING from template's setStartCmd!
-            // The template was snapshotted with Next.js dev server running on port 3000
-            // Dependencies are pre-installed, hot reload will pick up new files automatically
-            console.log("✅ Build System 2.0: Dependencies pre-installed, dev server running, files will hot-reload 🚀");
+        // Check if new dependencies were added to package.json
+        if (projectFiles["package.json"]) {
+            const deps = extractDependencies(projectFiles["package.json"] as string);
+            // Only install if there are additional dependencies beyond the template
+            // Template already has: react, react-dom, next, typescript, tailwindcss, etc.
+            const templateDeps = ["react", "react-dom", "next", "typescript", "@types/node", "@types/react", "@types/react-dom", "@tailwindcss/postcss", "tailwindcss", "autoprefixer", "postcss"];
+            const newDeps = deps.filter(dep => !templateDeps.includes(dep));
 
-            // Install additional dependencies if provided
-            let depsInstalled = false;
-            let depsError: string | undefined;
-
-            if (packages && Array.isArray(packages) && packages.length > 0) {
-                const installResult = await installDependencies(sandbox, packages);
-                depsInstalled = installResult.success;
-                if (!installResult.success) {
-                    depsError = installResult.error;
-                    console.warn(`⚠️ Failed to install dependencies: ${depsError}`);
+            if (newDeps.length > 0) {
+                console.log(`📦 Installing ${newDeps.length} new dependencies: ${newDeps.join(", ")}`);
+                const installResult = await installDependencies(sandbox, newDeps);
+                if (installResult.success) {
+                    console.log(`✅ New dependencies installed successfully`);
+                } else {
+                    console.warn(`⚠️ Failed to install new dependencies: ${installResult.error}`);
                 }
+            } else {
+                console.log(`✅ All dependencies already pre-installed in template`);
             }
+        }
 
-            // Store sandbox reference (no dev server PID needed, it's from the template)
+        try {
+            // Start Next.js dev server manually
+            // Note: Template's setStartCmd may not be working, so we start it explicitly
+            console.log("🚀 Starting Next.js dev server manually...");
+
+            const startCommand = "cd /home/user/project && npm run dev -- -H 0.0.0.0 -p 3000";
+            const devProcess = await sandbox.commands.run(startCommand, {
+                background: true, // Run in background so it doesn't block
+                envs: {
+                    NODE_ENV: "development",
+                    PORT: "3000",
+                    HOSTNAME: "0.0.0.0",
+                    NEXT_TELEMETRY_DISABLED: "1",
+                },
+            });
+
+            console.log(`✅ Dev server started with PID: ${devProcess.pid || 'N/A'}`);
+
+            // Wait a moment for the server to start binding to the port
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Store sandbox reference with dev server info
             activeSandboxes.set(projectId, {
                 sandbox,
                 lastAccessed: new Date(),
+                devServerPid: devProcess.pid,
             });
 
             console.log(`💾 Sandbox stored. Active: ${activeSandboxes.size}`);
@@ -321,8 +405,6 @@ export async function POST(
                 sandboxId: projectId,
                 url: sandboxUrl,
                 status: "created",
-                depsInstalled,
-                depsError,
             });
 
         } catch (error) {
