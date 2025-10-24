@@ -156,7 +156,8 @@ export default function PrivacyPolicy() {
               <li>
                 <strong>Process Payments:</strong> Handle billing,
                 subscriptions, token usage, and additional token purchases for
-                Pro and Enterprise plans.
+                Pro and Enterprise plans. Track token expiration dates (1 year
+                from purchase for token packages).
               </li>
               <li>
                 <strong>Communication:</strong> Send service updates, security
@@ -467,6 +468,10 @@ export default function PrivacyPolicy() {
             <ul className="space-y-2">
               <li>
                 We track token usage for billing and service delivery purposes
+              </li>
+              <li>
+                We store purchase dates and expiration dates for purchased token
+                packages (1 year validity period)
               </li>
               <li>
                 Usage data is retained for accounting and dispute resolution

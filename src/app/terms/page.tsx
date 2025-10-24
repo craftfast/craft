@@ -142,6 +142,7 @@ export default function TermsOfService() {
                   <li>• Unlimited projects</li>
                   <li>
                     • Purchase additional AI credits at $5 per million tokens
+                    (expire 1 year after purchase)
                   </li>
                   <li>• Import from Figma & GitHub</li>
                   <li>• Remove Craft branding</li>
@@ -182,6 +183,7 @@ export default function TermsOfService() {
                 interactions and features. Hobby plan includes 100k tokens per
                 month. Pro plan includes 10M tokens per month. Additional tokens
                 can be purchased at $5 per million tokens (Pro plan only).
+                Purchased tokens expire 1 year after purchase if not used.
               </li>
               <li>
                 <strong>Payment Methods:</strong> We accept credit cards, debit
@@ -208,7 +210,8 @@ export default function TermsOfService() {
               </li>
               <li>
                 <strong>Refunds:</strong> We do not offer refunds for partial
-                periods or unused tokens.
+                periods or unused tokens. Purchased token packages are
+                non-refundable and expire 1 year after purchase if not used.
               </li>
               <li>
                 <strong>Downgrades:</strong> Plan downgrades take effect at the
@@ -217,6 +220,84 @@ export default function TermsOfService() {
               <li>
                 <strong>Failed Payments:</strong> If payment fails, we may
                 suspend your account after reasonable notice.
+              </li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mb-3 mt-6">
+              3.4 Supplemental Token Credits Terms
+            </h3>
+
+            <p className="mb-4">
+              These supplemental terms apply to all AI token credits
+              (&quot;Credits&quot;) purchased or earned through Craft.
+            </p>
+
+            <h4 className="text-lg font-semibold mb-3">Types of Credits</h4>
+            <ul className="space-y-2 mb-4">
+              <li>
+                <strong>Monthly Allocations:</strong> Tokens included with your
+                subscription plan (100k for Hobby, 10M for Pro, 100M for Agent)
+                that reset each billing cycle.
+              </li>
+              <li>
+                <strong>Purchased Token Packages:</strong> Additional tokens
+                purchased separately according to our pricing page. Your order
+                constitutes an offer to purchase, which becomes binding upon our
+                confirmation and processing of payment.
+              </li>
+              <li>
+                <strong>Promotional Credits:</strong> Free tokens provided as
+                part of promotions, sign-up bonuses, or special offers at our
+                sole discretion.
+              </li>
+            </ul>
+
+            <h4 className="text-lg font-semibold mb-3">Credit Terms</h4>
+            <ul className="space-y-2 mb-4">
+              <li>
+                <strong>Non-Refundable:</strong> All Credits are non-refundable
+                once issued. This includes purchased token packages, promotional
+                credits, and any other credits offered by Craft.
+              </li>
+              <li>
+                <strong>Expiration:</strong> Purchased token packages expire one
+                (1) calendar year from the date of purchase confirmation.
+                Promotional credits expire at the time indicated when issued, or
+                one (1) calendar year from issuance if no expiration is
+                specified. Monthly subscription allocations reset each billing
+                cycle and do not roll over.
+              </li>
+              <li>
+                <strong>Account Closure:</strong> Credits automatically expire
+                and cannot be recovered if you close your Craft account.
+              </li>
+              <li>
+                <strong>No Cash Value:</strong> Credits are not legal tender,
+                currency, or property of any kind. They have no cash value and
+                cannot be redeemed for money.
+              </li>
+              <li>
+                <strong>Non-Transferable:</strong> Credits may not be
+                transferred, sold, or assigned to any other person or entity.
+                Credits may only be used by the holder of the Craft account to
+                which they are associated.
+              </li>
+              <li>
+                <strong>Balance Tracking:</strong> You can check your current
+                credit balance on your dashboard. We will provide notifications
+                when you are approaching your credit limit.
+              </li>
+              <li>
+                <strong>Usage Priority:</strong> When using Credits, monthly
+                subscription allocations are consumed first, followed by the
+                oldest purchased token packages, then promotional credits.
+              </li>
+              <li>
+                <strong>Plan Requirements:</strong> Purchased token packages
+                require an active Pro or Agent plan subscription. If you
+                downgrade to Hobby or cancel your subscription, purchased tokens
+                will remain in your account but cannot be used until you upgrade
+                again.
               </li>
             </ul>
           </section>

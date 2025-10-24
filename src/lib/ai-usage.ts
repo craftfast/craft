@@ -245,7 +245,12 @@ export async function recordTokenPurchase(params: {
     priceUsd: number;
     polarCheckoutId?: string;
     polarPaymentId?: string;
-}): Promise<{ id: string; success: boolean }> {
+}): Promise<{ id: string; success: boolean; expiresAt: Date }> {
+    // Calculate expiration date: 1 year from purchase
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
     const purchase = await prisma.tokenPurchase.create({
         data: {
             userId: params.userId,
@@ -255,13 +260,14 @@ export async function recordTokenPurchase(params: {
             status: "completed",
             polarCheckoutId: params.polarCheckoutId,
             polarPaymentId: params.polarPaymentId,
-            expiresAt: null, // Tokens never expire
+            expiresAt, // Tokens expire 1 year after purchase
         },
     });
 
     return {
         id: purchase.id,
         success: true,
+        expiresAt: purchase.expiresAt!,
     };
 }
 
@@ -272,12 +278,21 @@ export async function getUserTokenBalance(userId: string): Promise<{
     totalPurchased: number;
     totalUsed: number;
     remaining: number;
+    expiringSoon: number; // Tokens expiring in next 30 days
 }> {
-    // Get all completed token purchases for the user
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now);
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+    // Get all completed token purchases for the user (excluding expired ones)
     const purchases = await prisma.tokenPurchase.findMany({
         where: {
             userId,
             status: "completed",
+            OR: [
+                { expiresAt: null }, // Legacy purchases without expiration
+                { expiresAt: { gt: now } }, // Not expired yet
+            ],
         },
     });
 
@@ -289,10 +304,16 @@ export async function getUserTokenBalance(userId: string): Promise<{
     const remaining = purchases.reduce((sum: number, p: typeof purchases[number]) => sum + p.tokensRemaining, 0);
     const totalUsed = totalPurchased - remaining;
 
+    // Calculate tokens expiring soon
+    const expiringSoon = purchases
+        .filter(p => p.expiresAt && p.expiresAt <= thirtyDaysFromNow && p.tokensRemaining > 0)
+        .reduce((sum, p) => sum + p.tokensRemaining, 0);
+
     return {
         totalPurchased,
         totalUsed,
         remaining,
+        expiringSoon,
     };
 }
 
@@ -304,7 +325,9 @@ export async function deductPurchasedTokens(
     userId: string,
     tokensToDeduct: number
 ): Promise<{ success: boolean; remaining: number }> {
-    // Get purchases with remaining tokens, oldest first
+    const now = new Date();
+
+    // Get purchases with remaining tokens, oldest first (excluding expired)
     const purchases = await prisma.tokenPurchase.findMany({
         where: {
             userId,
@@ -312,6 +335,10 @@ export async function deductPurchasedTokens(
             tokensRemaining: {
                 gt: 0,
             },
+            OR: [
+                { expiresAt: null }, // Legacy purchases without expiration
+                { expiresAt: { gt: now } }, // Not expired yet
+            ],
         },
         orderBy: {
             purchasedAt: "asc", // Use oldest purchases first

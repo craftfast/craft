@@ -89,7 +89,7 @@ function FAQSection() {
     {
       question: "How do token packages work?",
       answer:
-        "Token packages are one-time purchases that add AI tokens to your account. They never expire and can be used anytime. Available in multiple tiers from 1M tokens ($5) up to 1000M tokens ($2,750). Larger packages offer better value with discounts of up to 45% off the base rate.",
+        "Token packages are one-time purchases that add AI tokens to your account. Purchased tokens expire 1 year after purchase if not used. Available in multiple tiers from 1M tokens ($5) up to 1000M tokens ($2,750). Larger packages offer better value with discounts of up to 45% off the base rate.",
     },
     {
       question: "What happens if I run out of tokens?",
@@ -116,7 +116,7 @@ function FAQSection() {
     {
       question: "Do unused tokens roll over?",
       answer:
-        "Monthly token allocations (100k for Hobby, 10M for Pro, 100M for Agent) reset each billing cycle and don't roll over. However, purchased token packages never expire and remain available until used.",
+        "Monthly token allocations (100k for Hobby, 10M for Pro, 100M for Agent) reset each billing cycle and don't roll over. However, purchased token packages remain available for 1 year from the date of purchase.",
     },
     {
       question: "What's included in the Agent plan?",
@@ -147,6 +147,16 @@ function FAQSection() {
       question: "Can I get a refund?",
       answer:
         "Yes, we offer refunds within 14 days of purchase for monthly subscriptions. Token packages are non-refundable once purchased. Please see our Cancellation & Refund Policy for complete details.",
+    },
+    {
+      question: "Can I transfer my token credits to another account?",
+      answer:
+        "No. Token credits are non-transferable and can only be used by the account holder who purchased them. Credits cannot be sold, transferred, or assigned to other users or accounts.",
+    },
+    {
+      question: "What happens to purchased tokens if I downgrade or cancel?",
+      answer:
+        "Purchased token packages require an active Pro or Agent subscription to use. If you downgrade to Hobby or cancel, your purchased tokens will remain in your account but cannot be used until you upgrade again. Remember, purchased tokens expire 1 year from purchase date.",
     },
     {
       question: "What happens to my projects if I downgrade?",
@@ -1994,7 +2004,7 @@ export default function PricingPage() {
                                     d="M5 13l4 4L19 7"
                                   />
                                 </svg>
-                                Never expires
+                                Valid for 1 year
                               </span>
                               {savings > 0 && (
                                 <span className="flex items-center gap-1 text-neutral-700 dark:text-neutral-300 font-medium">
@@ -2064,7 +2074,7 @@ export default function PricingPage() {
             <div className="mt-6 text-center">
               <p className="text-xs text-neutral-500 dark:text-neutral-500">
                 Token packages are one-time purchases that add to your account
-                balance and never expire.
+                balance and expire 1 year after purchase if not used.
                 <br />
                 All purchases require an active Pro or Agent plan subscription.
               </p>

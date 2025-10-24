@@ -1,0 +1,8 @@
+{
+    "crons": [
+        {
+            "path": "/api/cron/expire-tokens",
+            "schedule": "0 2 * * *"
+        }
+    ]
+}

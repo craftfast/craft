@@ -68,7 +68,10 @@ export default function RefundPolicy() {
               <li>Pricing: $50/month</li>
               <li>Includes 10M AI tokens per month</li>
               <li>Unlimited projects</li>
-              <li>Purchase additional AI credits at $5 per million tokens</li>
+              <li>
+                Purchase additional AI credits at $5 per million tokens (expire
+                1 year after purchase if not used)
+              </li>
               <li>Automatically renews monthly unless cancelled</li>
             </ul>
 
@@ -193,7 +196,11 @@ export default function RefundPolicy() {
             <ul className="space-y-2">
               <li>Partial period subscriptions</li>
               <li>Unused AI tokens from any plan</li>
-              <li>Additional AI token purchases ($5 per million tokens)</li>
+              <li>
+                Additional AI token purchases ($5 per million tokens) - these
+                are non-refundable once issued and expire 1 year after purchase
+                if not used
+              </li>
               <li>Subscription fees after the 7-day refund request window</li>
               <li>
                 Any fees if service termination was due to Terms of Service
@@ -228,17 +235,122 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              4. Payment Processing &amp; Timeline
+              4. Token Package Credits Policy
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">4.1 Payment Gateway</h3>
+            <p className="mb-4">
+              Token packages purchased separately from your subscription are
+              subject to specific terms:
+            </p>
+
+            <h3 className="text-xl font-semibold mb-3">
+              4.1 Non-Refundable Policy
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                All purchased token packages are <strong>non-refundable</strong>{" "}
+                once issued to your account
+              </li>
+              <li>
+                This policy applies regardless of whether tokens are used or
+                unused
+              </li>
+              <li>
+                No refunds will be provided for tokens that expire after the
+                1-year validity period
+              </li>
+              <li>
+                Tokens cannot be exchanged for cash, credit, or transferred to
+                another account
+              </li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mb-3 mt-6">
+              4.2 Expiration Policy
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                Purchased token packages expire <strong>1 year</strong> from the
+                date of purchase confirmation
+              </li>
+              <li>
+                You will receive notifications as your tokens approach
+                expiration
+              </li>
+              <li>Expired tokens cannot be reinstated or refunded</li>
+              <li>
+                Monthly subscription token allocations reset each billing cycle
+                and do not expire (they simply refresh monthly)
+              </li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mb-3 mt-6">
+              4.3 Subscription Requirements
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                Purchased token packages require an active Pro or Agent plan to
+                use
+              </li>
+              <li>
+                If you cancel or downgrade your subscription, purchased tokens
+                remain in your account but cannot be used until you upgrade
+                again
+              </li>
+              <li>
+                Tokens continue aging toward their 1-year expiration date even
+                if your account is downgraded
+              </li>
+              <li>
+                No refunds are provided if tokens expire while your account is
+                on the Hobby plan
+              </li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mb-3 mt-6">4.4 Exceptions</h3>
+            <p className="mb-3">
+              We may provide refunds for token packages only in the following
+              exceptional circumstances:
+            </p>
+            <ul className="space-y-2">
+              <li>
+                Duplicate charges verified by our payment processor within 48
+                hours of purchase
+              </li>
+              <li>
+                Technical errors that prevented tokens from being added to your
+                account (must be reported within 7 days)
+              </li>
+              <li>
+                Unauthorized purchases (subject to verification and fraud
+                prevention checks)
+              </li>
+            </ul>
+            <p className="mt-3">
+              All exception requests must be submitted to{" "}
+              <a
+                href="mailto:support@craft.fast"
+                className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline"
+              >
+                support@craft.fast
+              </a>{" "}
+              with relevant documentation.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">
+              5. Payment Processing &amp; Timeline
+            </h2>
+
+            <h3 className="text-xl font-semibold mb-3">5.1 Payment Gateway</h3>
             <p className="mb-3">
               All payments are securely processed through Polar.sh. We do not
               store your complete payment information on our servers.
             </p>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              4.2 Refund Processing Time
+              5.2 Refund Processing Time
             </h3>
             <ul className="space-y-2">
               <li>Approved refunds are processed within 5-10 business days</li>
@@ -253,7 +365,7 @@ export default function RefundPolicy() {
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              4.3 Currency &amp; Conversion
+              5.3 Currency &amp; Conversion
             </h3>
             <ul className="space-y-2">
               <li>Refunds are issued in the original transaction currency</li>
@@ -269,10 +381,10 @@ export default function RefundPolicy() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">5. Billing Disputes</h2>
+            <h2 className="text-2xl font-semibold mb-4">6. Billing Disputes</h2>
 
             <h3 className="text-xl font-semibold mb-3">
-              5.1 Dispute Resolution
+              6.1 Dispute Resolution
             </h3>
             <p className="mb-3">
               If you believe you have been incorrectly charged:
@@ -292,7 +404,7 @@ export default function RefundPolicy() {
               <li>Most billing issues can be resolved quickly</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">5.2 Chargebacks</h3>
+            <h3 className="text-xl font-semibold mb-3 mt-6">6.2 Chargebacks</h3>
             <p className="mb-3">Unauthorized chargebacks may result in:</p>
             <ul className="space-y-2">
               <li>Immediate suspension of your account</li>
@@ -310,10 +422,10 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              6. Automatic Renewal &amp; Price Changes
+              7. Automatic Renewal &amp; Price Changes
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">6.1 Auto-Renewal</h3>
+            <h3 className="text-xl font-semibold mb-3">7.1 Auto-Renewal</h3>
             <ul className="space-y-2">
               <li>
                 Pro subscriptions automatically renew monthly unless cancelled
@@ -324,7 +436,7 @@ export default function RefundPolicy() {
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              6.2 Price Changes
+              7.2 Price Changes
             </h3>
             <ul className="space-y-2">
               <li>We reserve the right to change our pricing at any time</li>
@@ -342,7 +454,7 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              7. Enterprise &amp; Custom Agreements
+              8. Enterprise &amp; Custom Agreements
             </h2>
 
             <p className="mb-3">
@@ -363,10 +475,10 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              8. Consumer Rights &amp; Legal Compliance
+              9. Consumer Rights &amp; Legal Compliance
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">8.1 India</h3>
+            <h3 className="text-xl font-semibold mb-3">9.1 India</h3>
             <p className="mb-3">
               For customers in India, this policy complies with:
             </p>
@@ -378,7 +490,7 @@ export default function RefundPolicy() {
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              8.2 International Customers
+              9.2 International Customers
             </h3>
             <p className="mb-3">
               International customers may have additional rights under their
@@ -399,7 +511,7 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              9. Data Retention After Cancellation
+              10. Data Retention After Cancellation
             </h2>
 
             <ul className="space-y-2">
@@ -431,7 +543,7 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              10. Contact Information
+              11. Contact Information
             </h2>
 
             <p className="mb-3">

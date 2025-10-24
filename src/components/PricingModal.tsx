@@ -269,6 +269,24 @@ export default function PricingModal({
                   );
                 })}
               </div>
+
+              {/* Token Expiration Disclaimer */}
+              <div className="mt-4 p-3 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-lg">
+                <p className="text-xs text-neutral-600 dark:text-neutral-400">
+                  ⏱️ <strong>Important:</strong> Purchased tokens expire 1 year
+                  from purchase date if not used. Tokens are non-refundable and
+                  non-transferable. See our{" "}
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+                  >
+                    Terms of Service
+                  </a>{" "}
+                  for complete details.
+                </p>
+              </div>
             </div>
           )}
         </div>
