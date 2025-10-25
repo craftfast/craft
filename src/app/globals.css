@@ -21,16 +21,14 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #171717;
-    --color-foreground: #e5e5e5;
-    --color-muted: #a3a3a3;
-    --color-accent: #d4d4d4;
-    --color-border: #404040;
-    --color-surface: #262626;
-    --color-surface-hover: #2d2d2d;
-  }
+.dark {
+  --color-background: #171717;
+  --color-foreground: #e5e5e5;
+  --color-muted: #a3a3a3;
+  --color-accent: #d4d4d4;
+  --color-border: #404040;
+  --color-surface: #262626;
+  --color-surface-hover: #2d2d2d;
 }
 
 body {
@@ -66,10 +64,8 @@ body {
   scrollbar-color: rgba(163, 163, 163, 0.15) transparent;
 }
 
-@media (prefers-color-scheme: dark) {
-  .scrollbar-minimal {
-    scrollbar-color: rgba(115, 115, 115, 0.15) transparent;
-  }
+.dark .scrollbar-minimal {
+  scrollbar-color: rgba(115, 115, 115, 0.15) transparent;
 }
 
 .scrollbar-minimal::-webkit-scrollbar {
@@ -89,14 +85,12 @@ body {
   background-color: rgba(163, 163, 163, 0.3);
 }
 
-@media (prefers-color-scheme: dark) {
-  .scrollbar-minimal::-webkit-scrollbar-thumb {
-    background-color: rgba(115, 115, 115, 0.15);
-  }
-  
-  .scrollbar-minimal::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(115, 115, 115, 0.3);
-  }
+.dark .scrollbar-minimal::-webkit-scrollbar-thumb {
+  background-color: rgba(115, 115, 115, 0.15);
+}
+
+.dark .scrollbar-minimal::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(115, 115, 115, 0.3);
 }
 
 /* Hide scrollbar arrows */
@@ -158,18 +152,16 @@ body {
 }
 
 /* Dark mode scrollbar */
-@media (prefers-color-scheme: dark) {
-  .minimalist-scrollbar {
-    scrollbar-color: rgba(82, 82, 82, 0.2) transparent;
-  }
-  
-  .minimalist-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(82, 82, 82, 0.2);
-  }
-  
-  .minimalist-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(115, 115, 115, 0.4);
-  }
+.dark .minimalist-scrollbar {
+  scrollbar-color: rgba(82, 82, 82, 0.2) transparent;
+}
+
+.dark .minimalist-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(82, 82, 82, 0.2);
+}
+
+.dark .minimalist-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(115, 115, 115, 0.4);
 }
 
 /* Markdown and Code Block Styles */

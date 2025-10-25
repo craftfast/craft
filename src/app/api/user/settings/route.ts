@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 
 /**
  * GET /api/user/settings
- * Get user settings (preferredChatPosition, etc.)
+ * Get user settings (preferredChatPosition, preferredTheme, etc.)
  */
 export async function GET(req: NextRequest) {
     try {
@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
             where: { email: session.user.email },
             select: {
                 preferredChatPosition: true,
+                preferredTheme: true,
             },
         });
 
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             preferredChatPosition: user.preferredChatPosition || "left",
+            preferredTheme: user.preferredTheme || "dark",
         });
     } catch (error) {
         console.error("Error fetching user settings:", error);
@@ -41,7 +43,7 @@ export async function GET(req: NextRequest) {
 /**
  * PATCH /api/user/settings
  * Update user settings
- * Body: { preferredChatPosition?: "left" | "right" }
+ * Body: { preferredChatPosition?: "left" | "right", preferredTheme?: "light" | "dark" | "system" }
  */
 export async function PATCH(req: NextRequest) {
     try {
@@ -52,7 +54,7 @@ export async function PATCH(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { preferredChatPosition } = body;
+        const { preferredChatPosition, preferredTheme } = body;
 
         // Validate preferredChatPosition
         if (
@@ -66,9 +68,25 @@ export async function PATCH(req: NextRequest) {
             );
         }
 
-        const updateData: { preferredChatPosition?: string } = {};
+        // Validate preferredTheme
+        if (
+            preferredTheme &&
+            preferredTheme !== "light" &&
+            preferredTheme !== "dark" &&
+            preferredTheme !== "system"
+        ) {
+            return NextResponse.json(
+                { error: "Invalid preferredTheme. Must be 'light', 'dark', or 'system'" },
+                { status: 400 }
+            );
+        }
+
+        const updateData: { preferredChatPosition?: string; preferredTheme?: string } = {};
         if (preferredChatPosition) {
             updateData.preferredChatPosition = preferredChatPosition;
+        }
+        if (preferredTheme) {
+            updateData.preferredTheme = preferredTheme;
         }
 
         const user = await prisma.user.update({
@@ -76,12 +94,14 @@ export async function PATCH(req: NextRequest) {
             data: updateData,
             select: {
                 preferredChatPosition: true,
+                preferredTheme: true,
             },
         });
 
         return NextResponse.json({
             success: true,
             preferredChatPosition: user.preferredChatPosition,
+            preferredTheme: user.preferredTheme,
         });
     } catch (error) {
         console.error("Error updating user settings:", error);
