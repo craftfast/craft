@@ -67,7 +67,7 @@ export default function RecentProjects() {
         </h2>
         <Link
           href="/projects"
-          className="px-4 py-2 text-neutral-800 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-neutral-100 transition-colors text-sm font-medium"
+          className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
         >
           View all →
         </Link>
@@ -76,16 +76,16 @@ export default function RecentProjects() {
       {/* Loading State */}
       {loading && (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 dark:border-neutral-100"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       )}
 
       {/* Empty State */}
       {!loading && projects.length === 0 && (
         <div className="text-center py-1">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
             <svg
-              className="w-8 h-8 text-neutral-400 dark:text-neutral-600"
+              className="w-8 h-8 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -98,10 +98,10 @@ export default function RecentProjects() {
               />
             </svg>
           </div>
-          <h3 className="text-md font-semibold text-neutral-900 dark:text-neutral-100 pb-1">
+          <h3 className="text-md font-semibold text-foreground pb-1">
             No projects yet
           </h3>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="text-sm text-muted-foreground">
             Create your first project to get started
           </p>
         </div>
@@ -114,12 +114,12 @@ export default function RecentProjects() {
             <Link
               key={project.id}
               href={`/chat/${project.id}`}
-              className="group p-6 bg-transparent rounded-2xl border border-stone-200 dark:border-neutral-700 hover:border-stone-300 dark:hover:border-neutral-600 transition-all cursor-pointer"
+              className="group p-6 bg-card rounded-2xl border border-border hover:border-ring transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-neutral-700 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
                   <svg
-                    className="w-5 h-5 text-stone-600 dark:text-neutral-300"
+                    className="w-5 h-5 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -132,14 +132,14 @@ export default function RecentProjects() {
                     />
                   </svg>
                 </div>
-                <span className="text-xs text-stone-500 dark:text-neutral-400">
+                <span className="text-xs text-muted-foreground">
                   {getRelativeTime(project.createdAt)}
                 </span>
               </div>
-              <h3 className="font-semibold text-foreground mb-2">
+              <h3 className="font-semibold text-card-foreground mb-2">
                 {project.name}
               </h3>
-              <p className="text-sm text-stone-600 dark:text-neutral-400 line-clamp-2">
+              <p className="text-sm text-muted-foreground line-clamp-2">
                 {project.description || "No description"}
               </p>
             </Link>

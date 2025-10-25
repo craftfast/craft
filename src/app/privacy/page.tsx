@@ -71,10 +71,6 @@ export default function PrivacyPolicy() {
                 <strong>Communications:</strong> Information you provide when
                 you contact our support team or participate in surveys.
               </li>
-              <li>
-                <strong>Waitlist Data:</strong> Email addresses submitted
-                through our waitlist form.
-              </li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">

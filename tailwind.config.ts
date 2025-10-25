@@ -6,31 +6,52 @@ const config: Config = {
         "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
         "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     ],
-    darkMode: "class", // Changed from "media" to "class" for manual theme control
+    darkMode: "class",
     theme: {
         extend: {
             colors: {
-                // Primary theme colors using CSS variables
-                background: "var(--color-background)",
-                foreground: "var(--color-foreground)",
-                muted: "var(--color-muted)",
-                accent: "var(--color-accent)",
-                border: "var(--color-border)",
+                // Shadcn/UI color system
+                border: "hsl(var(--border))",
+                input: "hsl(var(--input))",
+                ring: "hsl(var(--ring))",
+                background: "hsl(var(--background))",
+                foreground: "hsl(var(--foreground))",
+                primary: {
+                    DEFAULT: "hsl(var(--primary))",
+                    foreground: "hsl(var(--primary-foreground))",
+                },
+                secondary: {
+                    DEFAULT: "hsl(var(--secondary))",
+                    foreground: "hsl(var(--secondary-foreground))",
+                },
+                destructive: {
+                    DEFAULT: "hsl(var(--destructive))",
+                    foreground: "hsl(var(--destructive-foreground))",
+                },
+                muted: {
+                    DEFAULT: "hsl(var(--muted))",
+                    foreground: "hsl(var(--muted-foreground))",
+                },
+                accent: {
+                    DEFAULT: "hsl(var(--accent))",
+                    foreground: "hsl(var(--accent-foreground))",
+                },
+                popover: {
+                    DEFAULT: "hsl(var(--popover))",
+                    foreground: "hsl(var(--popover-foreground))",
+                },
+                card: {
+                    DEFAULT: "hsl(var(--card))",
+                    foreground: "hsl(var(--card-foreground))",
+                },
+                // Legacy colors for backward compatibility
                 surface: "var(--color-surface)",
                 "surface-hover": "var(--color-surface-hover)",
-
-                // Additional semantic colors
-                primary: "var(--color-primary)",
-                secondary: "var(--color-secondary)",
-                success: "var(--color-success)",
-                warning: "var(--color-warning)",
-                error: "var(--color-error)",
-                info: "var(--color-info)",
             },
             borderRadius: {
-                sm: "var(--radius-sm)",
-                md: "var(--radius-md)",
-                lg: "var(--radius-lg)",
+                lg: "var(--radius)",
+                md: "calc(var(--radius) - 2px)",
+                sm: "calc(var(--radius) - 4px)",
                 xl: "var(--radius-xl)",
                 "2xl": "var(--radius-2xl)",
             },

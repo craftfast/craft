@@ -21,15 +21,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Craft Apps Faster by just Chatting with AI",
   description:
-    "Join the waitlist for Craft, the revolutionary open-source vibecoding tool that lets you build apps and websites through natural conversation with AI.",
+    "Craft is a revolutionary open-source vibecoding tool that lets you build apps and websites through natural conversation with AI.",
   keywords:
-    "AI development, vibecoding, app building, chatbot development, open source, beta access",
+    "AI development, vibecoding, app building, chatbot development, open source",
   authors: [{ name: "Craft Team" }],
   creator: "Craft",
   openGraph: {
     title: "Craft - Build Apps by Chatting with AI",
     description:
-      "Join the waitlist for the future of app development. Build apps and websites through natural conversation with AI.",
+      "Build apps and websites through natural conversation with AI.",
     type: "website",
     locale: "en_US",
   },
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Craft - Build Apps by Chatting with AI",
     description:
-      "Join the waitlist for the future of app development. Build apps and websites through natural conversation with AI.",
+      "Build apps and websites through natural conversation with AI.",
   },
   robots: {
     index: true,

@@ -53,7 +53,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
         aria-label="User menu"
       >
         {user.image ? (
-          <div className="w-8 h-8 rounded-full overflow-hidden relative ring-2 ring-neutral-200 dark:ring-neutral-700">
+          <div className="w-8 h-8 rounded-full overflow-hidden relative ring-2 ring-border">
             <Image
               src={user.image}
               alt={user.name || "User"}
@@ -63,7 +63,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
             />
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-full bg-neutral-300 dark:bg-neutral-700 flex items-center justify-center text-sm font-semibold ring-2 ring-neutral-200 dark:ring-neutral-700">
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-semibold ring-2 ring-border">
             {user.name?.[0]?.toUpperCase() ||
               user.email?.[0]?.toUpperCase() ||
               "U"}
@@ -73,12 +73,12 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
 
       {/* Dropdown Menu */}
       {isUserMenuOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-800 rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-700 z-[101]">
-          <div className="px-4 py-2 border-b border-neutral-200 dark:border-neutral-700">
-            <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate">
+        <div className="absolute right-0 mt-2 w-56 bg-popover rounded-xl shadow-lg border border-border z-[101]">
+          <div className="px-4 py-2 border-b border-border">
+            <p className="text-sm font-semibold text-popover-foreground truncate">
               {user.name || "User"}
             </p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+            <p className="text-xs text-muted-foreground truncate">
               {user.email}
             </p>
           </div>
@@ -88,7 +88,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
                 setIsUserMenuOpen(false);
                 setIsSettingsModalOpen(true);
               }}
-              className="w-full px-4 py-2 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
             >
               <svg
                 className="w-4 h-4"
@@ -116,7 +116,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
                 setIsUserMenuOpen(false);
                 router.push("/pricing");
               }}
-              className="w-full px-4 py-2 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
             >
               <svg
                 className="w-4 h-4"
@@ -138,7 +138,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
                 setIsUserMenuOpen(false);
                 router.push("/help");
               }}
-              className="w-full px-4 py-2 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
             >
               <svg
                 className="w-4 h-4"
@@ -156,10 +156,10 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               Help & Support
             </button>
           </div>
-          <div className="border-t border-neutral-200 dark:border-neutral-700 py-1">
+          <div className="border-t border-border py-1">
             <button
               onClick={handleSignOut}
-              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-destructive hover:bg-destructive/10 flex items-center gap-2"
             >
               <svg
                 className="w-4 h-4"

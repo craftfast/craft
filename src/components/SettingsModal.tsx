@@ -330,7 +330,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       </div>
 
       {/* Modal Content */}
-      <div className="flex-1 flex overflow-hidden" style={{ zIndex: 100000 }}>
+      <div
+        className="flex-1 flex overflow-hidden bg-white dark:bg-neutral-900"
+        style={{ zIndex: 100000 }}
+      >
         {/* Left Sidebar - Menu */}
         <div
           className="w-64 flex-shrink-0 overflow-y-auto bg-white dark:bg-neutral-900 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:rounded-full"
@@ -359,7 +362,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Right Panel - Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 m-2 border border-neutral-200 dark:border-neutral-800 rounded-2xl [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-neutral-400 dark:[&::-webkit-scrollbar-thumb]:hover:bg-neutral-600">
+        <div className="flex-1 overflow-y-auto px-6 py-5 m-2 border border-neutral-200 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-neutral-400 dark:[&::-webkit-scrollbar-thumb]:hover:bg-neutral-600">
           <div className="max-w-3xl mx-auto">
             {/* General Tab */}
             {activeTab === "general" && (

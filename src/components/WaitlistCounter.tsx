@@ -56,7 +56,7 @@ export default function WaitlistCounter() {
     return (
       <div className="text-center">
         <div className="animate-pulse">
-          <div className="text-muted text-sm">Loading count...</div>
+          <div className="text-muted-foreground text-sm">Loading count...</div>
         </div>
       </div>
     );
@@ -65,10 +65,10 @@ export default function WaitlistCounter() {
   if (error) {
     return (
       <div className="text-center">
-        <div className="text-muted text-sm">{error}</div>
+        <div className="text-muted-foreground text-sm">{error}</div>
         <button
           onClick={fetchCount}
-          className="mt-2 text-xs text-accent hover:text-foreground underline"
+          className="mt-2 text-xs text-primary hover:text-primary/80 underline"
         >
           Retry
         </button>
@@ -78,10 +78,10 @@ export default function WaitlistCounter() {
 
   return (
     <div className="text-center">
-      <div className="text-muted text-sm font-light flex items-center justify-center gap-2">
+      <div className="text-muted-foreground text-sm font-light flex items-center justify-center gap-2">
         <div className="relative">
-          <div className="w-2 h-2 bg-neutral-700 dark:bg-neutral-300 rounded-full animate-pulse"></div>
-          <div className="absolute inset-0 w-2 h-2 bg-neutral-700 dark:bg-neutral-300 rounded-full animate-ping opacity-75"></div>
+          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+          <div className="absolute inset-0 w-2 h-2 bg-primary rounded-full animate-ping opacity-75"></div>
         </div>
         <span className="font-mono text-foreground font-medium">
           {waitlistData?.count.toLocaleString() || 0}

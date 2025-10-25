@@ -435,10 +435,7 @@ export default function CodingInterface({
             onClick={() => router.push("/dashboard")}
             className="hover:opacity-70 transition-opacity flex-shrink-0 flex items-center"
           >
-            <Logo
-              variant="extended"
-              className="text-neutral-900 dark:text-neutral-100 !h-5"
-            />
+            <Logo variant="extended" className="!h-5" />
           </button>
           <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0 mx-1 ml-3" />
 

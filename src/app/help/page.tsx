@@ -13,7 +13,7 @@ export default function HelpPage() {
     {
       question: "How do I get started?",
       answer:
-        "Getting started is easy! Join our waitlist to get early access. Once you're in, you can start building by simply chatting with Craft about what you want to create.",
+        "Getting started is easy! Sign up for an account and you can start building by simply chatting with Craft about what you want to create.",
     },
     {
       question: "What can I build with Craft?",

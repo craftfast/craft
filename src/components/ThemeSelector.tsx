@@ -17,17 +17,17 @@ export function ThemeSelector() {
             relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all
             ${
               theme === "light"
-                ? "border-foreground bg-surface-hover"
-                : "border-border bg-surface hover:border-accent"
+                ? "border-primary bg-secondary"
+                : "border-border bg-card hover:border-ring"
             }
           `}
         >
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-stone-100 to-stone-200 border border-stone-300 flex items-center justify-center">
-            <div className="w-6 h-6 rounded-full bg-amber-400"></div>
+          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-secondary to-muted border border-border flex items-center justify-center">
+            <div className="w-6 h-6 rounded-full bg-primary"></div>
           </div>
           <span className="text-sm font-medium text-foreground">Light</span>
           {theme === "light" && (
-            <div className="absolute top-2 right-2 w-2 h-2 bg-foreground rounded-full"></div>
+            <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></div>
           )}
         </button>
 
@@ -37,17 +37,17 @@ export function ThemeSelector() {
             relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all
             ${
               theme === "dark"
-                ? "border-foreground bg-surface-hover"
-                : "border-border bg-surface hover:border-accent"
+                ? "border-primary bg-secondary"
+                : "border-border bg-card hover:border-ring"
             }
           `}
         >
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-neutral-800 to-neutral-900 border border-neutral-700 flex items-center justify-center">
-            <div className="w-6 h-6 rounded-full bg-slate-400"></div>
+          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-muted to-accent border border-border flex items-center justify-center">
+            <div className="w-6 h-6 rounded-full bg-muted-foreground"></div>
           </div>
           <span className="text-sm font-medium text-foreground">Dark</span>
           {theme === "dark" && (
-            <div className="absolute top-2 right-2 w-2 h-2 bg-foreground rounded-full"></div>
+            <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></div>
           )}
         </button>
 
@@ -57,21 +57,21 @@ export function ThemeSelector() {
             relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all
             ${
               theme === "system"
-                ? "border-foreground bg-surface-hover"
-                : "border-border bg-surface hover:border-accent"
+                ? "border-primary bg-secondary"
+                : "border-border bg-card hover:border-ring"
             }
           `}
         >
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-stone-200 via-neutral-600 to-neutral-900 border border-neutral-500 flex items-center justify-center">
-            <div className="w-3 h-3 rounded-full bg-stone-300"></div>
+          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-secondary via-muted to-accent border border-border flex items-center justify-center">
+            <div className="w-3 h-3 rounded-full bg-muted-foreground"></div>
           </div>
           <span className="text-sm font-medium text-foreground">System</span>
           {theme === "system" && (
-            <div className="absolute top-2 right-2 w-2 h-2 bg-foreground rounded-full"></div>
+            <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></div>
           )}
         </button>
       </div>
-      <p className="text-xs text-muted">
+      <p className="text-xs text-muted-foreground">
         {theme === "system"
           ? "Theme will match your system preference"
           : `Theme set to ${theme} mode`}

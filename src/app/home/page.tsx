@@ -14,7 +14,7 @@ export default function HomePage() {
           <div className="relative flex items-center justify-between">
             <Logo
               variant="extended"
-              className="text-white dark:text-white"
+              className="!h-5"
               href="/home"
             />
             <HomeHeader />

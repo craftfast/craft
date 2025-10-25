@@ -79,7 +79,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={cycleTheme}
-      className="p-2 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+      className="p-2 text-foreground hover:bg-accent hover:text-accent-foreground rounded-full transition-colors"
       aria-label={getAriaLabel()}
       title={`Current: ${theme}`}
     >

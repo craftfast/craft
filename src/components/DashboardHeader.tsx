@@ -88,7 +88,7 @@ export default function DashboardHeader({
         <div className="flex items-center gap-3">
           <Logo
             variant={showLogoText ? "extended" : "icon"}
-            className="text-white dark:text-white !h-5"
+            className="!h-5"
             href="/dashboard"
           />
           {showPlanBadge && planBadgeInfo && (
@@ -141,7 +141,7 @@ export default function DashboardHeader({
         <div className="flex items-center gap-3">
           <Logo
             variant={showLogoText ? "extended" : "icon"}
-            className="text-white dark:text-white"
+            className="!h-5"
             href="/dashboard"
           />
           {showPlanBadge && planBadgeInfo && (
@@ -190,7 +190,7 @@ export default function DashboardHeader({
         <div className="flex items-center gap-2">
           <Logo
             variant={showLogoText ? "extended" : "icon"}
-            className="text-white dark:text-white"
+            className="!h-5"
             href="/dashboard"
           />
           {showPlanBadge && planBadgeInfo && (
