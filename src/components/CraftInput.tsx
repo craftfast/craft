@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import PricingModal from "./PricingModal";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 interface ImageAttachment {
   id: string;
@@ -419,14 +421,14 @@ export default function CraftInput() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div className="rounded-3xl px-2 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm hover:shadow-md focus-within:shadow-lg">
+      <div className="rounded-3xl px-2 py-2 bg-card border border-border shadow-sm hover:shadow-md focus-within:shadow-lg transition-shadow">
         {/* Image Previews */}
         {selectedImages.length > 0 && (
           <div className="flex flex-wrap gap-2 pb-2">
             {selectedImages.map((image) => (
               <div
                 key={image.id}
-                className="relative group rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-600"
+                className="relative group rounded-2xl overflow-hidden border border-border"
               >
                 <Image
                   src={image.url}
@@ -439,7 +441,7 @@ export default function CraftInput() {
                 />
                 <button
                   onClick={() => handleRemoveImage(image.id)}
-                  className="absolute top-1 right-1 p-1 bg-neutral-900/80 dark:bg-neutral-100/80 text-white dark:text-neutral-900 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 p-1 bg-primary text-primary-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label="Remove image"
                 >
                   <svg
@@ -463,7 +465,7 @@ export default function CraftInput() {
 
         {/* First row - Input */}
         <div className="relative">
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={input + interimTranscript}
             onChange={(e) => {
@@ -474,7 +476,7 @@ export default function CraftInput() {
             }}
             onInput={handleInput}
             placeholder=""
-            className="w-full p-2 rounded-t-lg bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-muted min-h-[3.5rem] max-h-[200px] scrollbar-minimal"
+            className="w-full p-2 rounded-t-lg bg-transparent !border-0 !shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none outline-none resize-none text-base sm:text-md min-h-[3.5rem] max-h-[200px] scrollbar-minimal"
             rows={1}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -485,7 +487,7 @@ export default function CraftInput() {
           />
           {!input.trim() && !interimTranscript && (
             <div className="absolute inset-0 p-2 pointer-events-none flex items-start">
-              <span className="text-neutral-500 dark:text-neutral-400 text-base sm:text-md leading-relaxed">
+              <span className="text-muted-foreground text-base sm:text-md leading-relaxed">
                 {placeholderText}
               </span>
             </div>
@@ -493,8 +495,8 @@ export default function CraftInput() {
           {/* Show interim transcript indicator */}
           {interimTranscript && (
             <div className="absolute bottom-1 right-2 pointer-events-none">
-              <span className="text-xs text-neutral-400 dark:text-neutral-500 italic flex items-center gap-1">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500 animate-pulse"></span>
+              <span className="text-xs text-muted-foreground italic flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse"></span>
                 transcribing...
               </span>
             </div>
@@ -515,9 +517,12 @@ export default function CraftInput() {
             />
 
             {/* Image upload button */}
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
               onClick={handleFileAttachment}
-              className="p-2 rounded-full border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-500 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+              className="rounded-full"
               aria-label="Attach images"
               title="Upload images (max 5, 5MB each)"
             >
@@ -535,15 +540,18 @@ export default function CraftInput() {
                   d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                 />
               </svg>
-            </button>
+            </Button>
 
             {/* Voice input button */}
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
               onClick={toggleVoiceInput}
-              className={`p-2 rounded-full border transition-all ${
+              className={`rounded-full ${
                 isRecording
-                  ? "border-neutral-500 dark:border-neutral-400 bg-neutral-100 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 animate-pulse"
-                  : "border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-500 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                  ? "bg-accent text-accent-foreground animate-pulse"
+                  : ""
               }`}
               aria-label={isRecording ? "Stop recording" : "Start voice input"}
               title={isRecording ? "Stop recording" : "Start voice input"}
@@ -573,14 +581,16 @@ export default function CraftInput() {
                   />
                 </svg>
               )}
-            </button>
+            </Button>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              type="button"
+              size="icon"
               onClick={handleSubmit}
               disabled={!input.trim() || isCreating}
-              className="p-2 rounded-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-full"
               aria-label="Submit"
             >
               {isCreating ? (
@@ -619,17 +629,17 @@ export default function CraftInput() {
                   />
                 </svg>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Low Token Warning */}
       {isLowTokens && !isTokensExhausted && (
-        <div className="mt-3 px-4 py-3 bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 rounded-2xl">
+        <div className="mt-3 px-4 py-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/50 rounded-2xl">
           <div className="flex items-start gap-3">
             <svg
-              className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+              className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -642,10 +652,10 @@ export default function CraftInput() {
               />
             </svg>
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
                 Low on AI tokens
               </p>
-              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                 You have {balance?.totalAvailable.toLocaleString()} tokens
                 remaining.{" "}
                 <button
@@ -670,10 +680,10 @@ export default function CraftInput() {
 
       {/* Exhausted Token Warning */}
       {isTokensExhausted && (
-        <div className="mt-3 px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-300 dark:border-red-800 rounded-2xl">
+        <div className="mt-3 px-4 py-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-800/50 rounded-2xl">
           <div className="flex items-start gap-3">
             <svg
-              className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+              className="w-5 h-5 text-red-600 dark:text-red-500 flex-shrink-0 mt-0.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -686,10 +696,10 @@ export default function CraftInput() {
               />
             </svg>
             <div className="flex-1">
-              <p className="text-sm font-medium text-red-900 dark:text-red-100">
+              <p className="text-sm font-medium text-red-900 dark:text-red-200">
                 Out of AI tokens
               </p>
-              <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+              <p className="text-xs text-red-700 dark:text-red-400 mt-1">
                 You&apos;ve used all your AI tokens.{" "}
                 <button
                   onClick={() => setShowPricingModal(true)}
@@ -713,12 +723,12 @@ export default function CraftInput() {
 
       {/* Quick options */}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        <span className="text-sm text-neutral-500 dark:text-neutral-400">
-          or import from
-        </span>
-        <button
+        <span className="text-sm text-muted-foreground">or import from</span>
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => handleQuickOption("Import from Figma")}
-          className="px-4 py-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm text-foreground transition-colors border border-neutral-200 dark:border-neutral-700 flex items-center gap-2"
+          className="rounded-full"
         >
           <svg
             className="w-4 h-4"
@@ -736,16 +746,18 @@ export default function CraftInput() {
             <path d="M5 12.5A3.5 3.5 0 0 1 8.5 9H12v7H8.5A3.5 3.5 0 0 1 5 12.5z" />
           </svg>
           Figma
-        </button>
-        <button
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => handleQuickOption("Import from GitHub")}
-          className="px-4 py-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm text-foreground transition-colors border border-neutral-200 dark:border-neutral-700 flex items-center gap-2"
+          className="rounded-full"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.30.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.300 24 12c0-6.627-5.373-12-12-12z" />
           </svg>
           GitHub
-        </button>
+        </Button>
       </div>
 
       {/* Image Preview Modal */}
@@ -759,9 +771,11 @@ export default function CraftInput() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setPreviewImage(null)}
-              className="absolute -top-12 right-0 p-2 text-white hover:text-neutral-300 transition-colors"
+              className="absolute -top-12 right-0 text-white hover:text-white/80 hover:bg-white/10"
               aria-label="Close preview"
             >
               <svg
@@ -777,10 +791,10 @@ export default function CraftInput() {
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
+            </Button>
 
             {/* Image */}
-            <div className="relative bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="relative bg-card rounded-2xl overflow-hidden shadow-2xl">
               <Image
                 src={previewImage.url}
                 alt={previewImage.name}
@@ -807,13 +821,13 @@ export default function CraftInput() {
           onClick={() => setErrorMessage(null)}
         >
           <div
-            className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl max-w-md w-full p-6"
+            className="bg-card rounded-2xl shadow-2xl max-w-md w-full p-6 border border-border"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-red-600 dark:text-red-400"
+                  className="w-5 h-5 text-red-600 dark:text-red-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -827,20 +841,18 @@ export default function CraftInput() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
                   Error
                 </h3>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  {errorMessage}
-                </p>
+                <p className="text-sm text-muted-foreground">{errorMessage}</p>
               </div>
             </div>
-            <button
+            <Button
               onClick={() => setErrorMessage(null)}
-              className="w-full px-4 py-2.5 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+              className="w-full rounded-full"
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       )}

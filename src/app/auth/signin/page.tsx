@@ -48,7 +48,7 @@ function SignInContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 flex flex-col p-8">
+    <div className="min-h-screen bg-background flex flex-col p-8">
       {/* Logo at top left */}
       <div className="absolute top-4 left-4">
         <Link href="/home">
@@ -202,10 +202,8 @@ export default function SignInPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white dark:bg-neutral-950 flex items-center justify-center">
-          <div className="text-neutral-600 dark:text-neutral-400">
-            Loading...
-          </div>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-muted-foreground">Loading...</div>
         </div>
       }
     >

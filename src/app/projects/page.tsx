@@ -20,7 +20,7 @@ export default async function ProjectsPage() {
   return (
     <div className="h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-stone-50 via-background to-stone-100 dark:from-neutral-900 dark:via-background dark:to-neutral-800 opacity-60" />
+      <div className="absolute inset-0 bg-background" />
 
       {/* Header - Fixed */}
       <header className="flex-shrink-0 relative z-50 bg-background/80 backdrop-blur-md">

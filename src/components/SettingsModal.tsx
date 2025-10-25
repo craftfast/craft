@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -289,7 +293,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const modalContent = (
     <div
-      className="fixed inset-0 bg-white dark:bg-neutral-900 animate-in fade-in duration-200 flex flex-col"
+      className="fixed inset-0 bg-background animate-in fade-in duration-200 flex flex-col"
       onClick={(e) => e.stopPropagation()}
       style={{
         position: "fixed",
@@ -303,18 +307,16 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     >
       {/* Top Header Bar */}
       <div
-        className="flex-shrink-0 h-16 flex items-center justify-between px-6 bg-white dark:bg-neutral-900"
+        className="flex-shrink-0 h-16 flex items-center justify-between px-6 bg-background"
         style={{ zIndex: 100000 }}
       >
-        <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-50">
-          Settings
-        </h1>
+        <h1 className="text-xl font-semibold text-foreground">Settings</h1>
         <button
           onClick={onClose}
-          className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          className="p-2 rounded-full hover:bg-muted transition-colors"
         >
           <svg
-            className="w-5 h-5 text-neutral-500 dark:text-neutral-400"
+            className="w-5 h-5 text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -331,12 +333,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       {/* Modal Content */}
       <div
-        className="flex-1 flex overflow-hidden bg-white dark:bg-neutral-900"
+        className="flex-1 flex overflow-hidden bg-background"
         style={{ zIndex: 100000 }}
       >
         {/* Left Sidebar - Menu */}
         <div
-          className="w-64 flex-shrink-0 overflow-y-auto bg-white dark:bg-neutral-900 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:rounded-full"
+          className="w-64 flex-shrink-0 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full"
           style={{ position: "relative", zIndex: 100001 }}
         >
           {/* Menu Items */}
@@ -350,8 +352,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
                   activeTab === item.id
-                    ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50"
-                    : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:hover:text-neutral-50"
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                 }`}
               >
                 {getMenuIcon(item.id)}
@@ -362,48 +364,48 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Right Panel - Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 m-2 border border-neutral-200 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-neutral-400 dark:[&::-webkit-scrollbar-thumb]:hover:bg-neutral-600">
+        <div className="flex-1 overflow-y-auto px-6 py-5 m-2 border border-border rounded-2xl bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
           <div className="max-w-3xl mx-auto">
             {/* General Tab */}
             {activeTab === "general" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Profile
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Name
                       </label>
                       <input
                         type="text"
                         value={session?.user?.name || ""}
                         readOnly
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 cursor-not-allowed text-sm"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-muted text-foreground cursor-not-allowed text-sm"
                       />
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5">
+                      <p className="text-xs text-muted-foreground mt-1.5">
                         Your display name from your authentication provider
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Email
                       </label>
                       <input
                         type="email"
                         value={session?.user?.email || ""}
                         readOnly
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 cursor-not-allowed text-sm"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-muted text-foreground cursor-not-allowed text-sm"
                       />
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5">
+                      <p className="text-xs text-muted-foreground mt-1.5">
                         Your email address
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Profile Picture
                       </label>
                       <div className="flex items-center gap-4">
@@ -411,16 +413,16 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <img
                             src={session.user.image}
                             alt={session.user.name || "User"}
-                            className="w-16 h-16 rounded-full object-cover ring-2 ring-neutral-200 dark:ring-neutral-700"
+                            className="w-16 h-16 rounded-full object-cover ring-2 ring-ring"
                           />
                         ) : (
-                          <div className="w-16 h-16 rounded-full bg-neutral-300 dark:bg-neutral-700 flex items-center justify-center text-2xl font-semibold ring-2 ring-neutral-200 dark:ring-neutral-700">
+                          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-2xl font-semibold ring-2 ring-ring">
                             {session?.user?.name?.[0]?.toUpperCase() ||
                               session?.user?.email?.[0]?.toUpperCase() ||
                               "U"}
                           </div>
                         )}
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        <p className="text-sm text-muted-foreground">
                           Profile picture is managed by your authentication
                           provider
                         </p>
@@ -428,60 +430,65 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                      <Label
+                        htmlFor="location"
+                        className="text-muted-foreground mb-2"
+                      >
                         Location
-                      </label>
-                      <input
+                      </Label>
+                      <Input
+                        id="location"
                         type="text"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                         placeholder="e.g., San Francisco, CA"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-50 focus:border-transparent text-sm"
+                        className="rounded-xl"
                       />
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5">
+                      <p className="text-xs text-muted-foreground mt-1.5">
                         Where you&apos;re based.
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                      <Label
+                        htmlFor="profile-link"
+                        className="text-muted-foreground mb-2"
+                      >
                         Link
-                      </label>
-                      <input
+                      </Label>
+                      <Input
+                        id="profile-link"
                         type="url"
                         value={profileLink}
                         onChange={(e) => setProfileLink(e.target.value)}
                         placeholder="https://yourwebsite.com"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-50 focus:border-transparent text-sm"
+                        className="rounded-xl"
                       />
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5">
+                      <p className="text-xs text-muted-foreground mt-1.5">
                         Add a link to your personal website or portfolio.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Appearance
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-3">
+                      <Label className="text-muted-foreground mb-3">
                         Theme Preference
-                      </label>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-3">
+                      </Label>
+                      <p className="text-sm text-muted-foreground mb-3">
                         Choose your preferred color theme. Dark mode is the
                         default.
                       </p>
                       <div className="grid grid-cols-3 gap-3">
-                        <button
+                        <Button
                           onClick={() => setTheme("light")}
-                          className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
-                            theme === "light"
-                              ? "bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-50"
-                              : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                          }`}
+                          variant={theme === "light" ? "default" : "outline"}
+                          className="flex flex-col h-auto gap-2 p-4 rounded-xl"
                         >
                           <svg
                             className="w-6 h-6"
@@ -497,15 +504,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             />
                           </svg>
                           <span className="text-sm font-medium">Light</span>
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                           onClick={() => setTheme("dark")}
-                          className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
-                            theme === "dark"
-                              ? "bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-50"
-                              : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                          }`}
+                          variant={theme === "dark" ? "default" : "outline"}
+                          className="flex flex-col h-auto gap-2 p-4 rounded-xl"
                         >
                           <svg
                             className="w-6 h-6"
@@ -521,15 +525,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             />
                           </svg>
                           <span className="text-sm font-medium">Dark</span>
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                           onClick={() => setTheme("system")}
-                          className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
-                            theme === "system"
-                              ? "bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-50"
-                              : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                          }`}
+                          variant={theme === "system" ? "default" : "outline"}
+                          className="flex flex-col h-auto gap-2 p-4 rounded-xl"
                         >
                           <svg
                             className="w-6 h-6"
@@ -545,54 +546,48 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             />
                           </svg>
                           <span className="text-sm font-medium">System</span>
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Chat Position
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Choose which side of the screen the chat is on.
                   </p>
                   <div className="flex gap-3">
-                    <button
+                    <Button
                       onClick={() => handleChatPositionChange("left")}
-                      className={`flex-1 px-4 py-3 text-sm font-medium rounded-xl border transition-all ${
-                        chatPosition === "left"
-                          ? "bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-50"
-                          : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                      }`}
+                      variant={chatPosition === "left" ? "default" : "outline"}
+                      className="flex-1 rounded-xl"
                     >
                       Left
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleChatPositionChange("right")}
-                      className={`flex-1 px-4 py-3 text-sm font-medium rounded-xl border transition-all ${
-                        chatPosition === "right"
-                          ? "bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-50"
-                          : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                      }`}
+                      variant={chatPosition === "right" ? "default" : "outline"}
+                      className="flex-1 rounded-xl"
                     >
                       Right
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Custom Instructions
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Manage your custom user rules or preferences for the LLM.
                   </p>
-                  <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                  <div className="p-4 bg-muted/50 rounded-xl border border-input">
                     <div className="flex items-start gap-3">
                       <svg
-                        className="w-5 h-5 text-neutral-500 dark:text-neutral-400 flex-shrink-0 mt-0.5"
+                        className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -605,10 +600,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         />
                       </svg>
                       <div>
-                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">
+                        <p className="text-sm font-medium text-foreground mb-1">
                           Premium Feature
                         </p>
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        <p className="text-sm text-muted-foreground">
                           Custom instructions are not available on the Free
                           plan.
                         </p>
@@ -617,58 +612,38 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
                 </div>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
+                <div className="border-t border-border pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+                      <h3 className="text-lg font-semibold text-foreground">
                         Suggestions
                       </h3>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         Get relevant in-chat suggestions to refine your project.
                       </p>
                     </div>
-                    <button
-                      onClick={() => setSuggestionsEnabled(!suggestionsEnabled)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        suggestionsEnabled
-                          ? "bg-neutral-900 dark:bg-neutral-50"
-                          : "bg-neutral-300 dark:bg-neutral-700"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-neutral-900 transition-transform ${
-                          suggestionsEnabled ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
+                    <Switch
+                      checked={suggestionsEnabled}
+                      onCheckedChange={setSuggestionsEnabled}
+                    />
                   </div>
                 </div>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
+                <div className="border-t border-border pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+                      <h3 className="text-lg font-semibold text-foreground">
                         Sound Notifications
                       </h3>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         A new sound will play when v0 is finished responding and
                         the window is not focused.
                       </p>
                     </div>
-                    <button
-                      onClick={() => setSoundNotifications(!soundNotifications)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        soundNotifications
-                          ? "bg-neutral-900 dark:bg-neutral-50"
-                          : "bg-neutral-300 dark:bg-neutral-700"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-neutral-900 transition-transform ${
-                          soundNotifications ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
+                    <Switch
+                      checked={soundNotifications}
+                      onCheckedChange={setSoundNotifications}
+                    />
                   </div>
                 </div>
               </div>
@@ -679,117 +654,117 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div className="space-y-6">
                 {/* Current Plan */}
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Current Plan
                   </h3>
-                  <div className="p-5 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                  <div className="p-5 bg-muted/50 rounded-xl border border-border">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h4 className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
+                        <h4 className="text-base font-semibold text-foreground">
                           Free Plan
                         </h4>
-                        <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-50 mt-1">
+                        <p className="text-2xl font-bold text-foreground mt-1">
                           $0
-                          <span className="text-sm font-normal text-neutral-500 dark:text-neutral-400">
+                          <span className="text-sm font-normal text-muted-foreground">
                             /mo
                           </span>
                         </p>
                       </div>
-                      <span className="px-3 py-1 text-xs font-semibold bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-50 rounded-full">
+                      <span className="px-3 py-1 text-xs font-semibold bg-secondary text-secondary-foreground rounded-full">
                         Active
                       </span>
                     </div>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    <p className="text-sm text-muted-foreground">
                       Includes 100,000 tokens every month.
                     </p>
-                    <button className="w-full mt-4 px-4 py-2.5 text-sm font-medium bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 rounded-xl hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors">
+                    <Button className="w-full mt-4 rounded-xl">
                       Upgrade Plan
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
                 {/* Token Balance */}
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-2">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     Token Balance
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Your monthly tokens reset in 23 days. Tokens are used in the
                     following order: gifted, monthly, purchased.
                   </p>
 
                   <div className="space-y-3">
                     {/* Total Available */}
-                    <div className="p-4 bg-neutral-900 dark:bg-neutral-50 rounded-xl">
+                    <div className="p-4 bg-primary rounded-xl">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-neutral-400 dark:text-neutral-600">
+                        <span className="text-sm font-medium text-primary-foreground/70">
                           Total Available Tokens
                         </span>
-                        <span className="text-2xl font-bold text-white dark:text-neutral-900">
+                        <span className="text-2xl font-bold text-primary-foreground">
                           98,000
                         </span>
                       </div>
                     </div>
 
                     {/* Gifted Tokens */}
-                    <div className="p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="p-3 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                        <span className="text-sm font-medium text-muted-foreground">
                           Gifted Tokens
                         </span>
-                        <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
+                        <span className="text-sm font-semibold text-foreground">
                           0
                         </span>
                       </div>
                     </div>
 
                     {/* Monthly Tokens */}
-                    <div className="p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="p-3 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                        <span className="text-sm font-medium text-muted-foreground">
                           Monthly Tokens
                         </span>
-                        <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
+                        <span className="text-sm font-semibold text-foreground">
                           98,000 / 100,000
                         </span>
                       </div>
-                      <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+                      <div className="w-full bg-secondary rounded-full h-2">
                         <div
-                          className="bg-neutral-900 dark:bg-neutral-50 h-2 rounded-full transition-all"
+                          className="bg-primary h-2 rounded-full transition-all"
                           style={{ width: "98%" }}
                         ></div>
                       </div>
                     </div>
 
                     {/* Purchased Tokens */}
-                    <div className="p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="p-3 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                        <span className="text-sm font-medium text-muted-foreground">
                           Purchased Tokens
                         </span>
-                        <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
+                        <span className="text-sm font-semibold text-foreground">
                           0
                         </span>
                       </div>
                     </div>
 
-                    <button className="w-full px-4 py-2.5 text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 rounded-xl hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                    <Button variant="secondary" className="w-full rounded-xl">
                       Purchase More Tokens
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
                 {/* Payment Method */}
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Payment Method
                   </h3>
-                  <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                  <div className="p-4 bg-muted/50 rounded-xl border border-input">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
                           <svg
-                            className="w-6 h-6 text-neutral-600 dark:text-neutral-400"
+                            className="w-6 h-6 text-muted-foreground"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -803,60 +778,60 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                          <p className="text-sm font-medium text-foreground">
                             No payment method
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             Add a payment method to purchase tokens
                           </p>
                         </div>
                       </div>
-                      <button className="px-3 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors">
+                      <Button size="sm" className="rounded-lg">
                         Add
-                      </button>
+                      </Button>
                     </div>
                   </div>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     Payments are processed securely through Polar.
                   </p>
                 </div>
 
                 {/* Usage Code */}
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Redeem a Usage Code
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Redeem a usage code to claim your gifted tokens.
                   </p>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Enter code"
-                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-50 focus:border-transparent text-sm"
+                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-input bg-white dark:bg-neutral-900 text-foreground placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-50 focus:border-transparent text-sm"
                     />
-                    <button className="px-4 py-2.5 text-sm font-medium bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 rounded-xl hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors whitespace-nowrap">
+                    <button className="px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors whitespace-nowrap">
                       Redeem
                     </button>
                   </div>
                 </div>
 
                 {/* Subscription Management (for paid plans) */}
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Subscription Management
                   </h3>
-                  <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-3">
+                  <div className="p-4 bg-muted/50 rounded-xl border border-input">
+                    <p className="text-sm text-muted-foreground mb-3">
                       You&apos;re currently on the Free plan. Upgrade to access
                       subscription management features.
                     </p>
                     {/* This section would show when user has a paid subscription:
                     <div className="space-y-2">
-                      <button className="w-full px-4 py-2.5 text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 rounded-xl hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                      <button className="w-full px-4 py-2.5 text-sm font-medium bg-accent text-foreground rounded-xl hover:bg-accent/80 transition-colors">
                         Manage Subscription
                       </button>
-                      <button className="w-full px-4 py-2.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                      <button className="w-full px-4 py-2.5 text-sm font-medium text-muted-foreground border border-input rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                         Cancel Subscription
                       </button>
                     </div>
@@ -865,16 +840,16 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
 
                 {/* Invoices */}
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Invoices
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     View and download your billing history.
                   </p>
 
                   {/* No invoices state */}
-                  <div className="p-6 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700 text-center">
+                  <div className="p-6 bg-muted/50 rounded-xl border border-input text-center">
                     <svg
                       className="w-12 h-12 text-neutral-400 dark:text-neutral-600 mx-auto mb-3"
                       fill="none"
@@ -888,10 +863,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">
+                    <p className="text-sm font-medium text-foreground mb-1">
                       No invoices yet
                     </p>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="text-sm text-muted-foreground">
                       Your invoices will appear here after purchases or
                       subscription payments.
                     </p>
@@ -899,27 +874,27 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                   {/* Example invoices (commented out - will show when user has invoices)
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
-                          <svg className="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                          <p className="text-sm font-medium text-foreground">
                             Pro Plan - January 2025
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             Issued on Jan 1, 2025 • $29.00
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-1 text-xs font-medium bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-full">
+                        <span className="px-2 py-1 text-xs font-medium bg-secondary text-muted-foreground rounded-full">
                           Paid
                         </span>
-                        <button className="p-2 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors">
+                        <button className="p-2 text-muted-foreground hover:bg-accent/80 rounded-lg transition-colors">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
@@ -927,27 +902,27 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
-                          <svg className="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                          <p className="text-sm font-medium text-foreground">
                             Token Purchase - 500K tokens
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             Issued on Dec 15, 2024 • $49.00
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-1 text-xs font-medium bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-full">
+                        <span className="px-2 py-1 text-xs font-medium bg-secondary text-muted-foreground rounded-full">
                           Paid
                         </span>
-                        <button className="p-2 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors">
+                        <button className="p-2 text-muted-foreground hover:bg-accent/80 rounded-lg transition-colors">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
@@ -965,21 +940,21 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div className="space-y-6">
                 {/* Header */}
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     Token Usage History
                   </h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                  <p className="text-sm text-muted-foreground">
                     View detailed breakdown of token consumption for each
                     interaction
                   </p>
                 </div>
 
                 {/* Filters */}
-                <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                <div className="p-4 bg-muted/50 rounded-xl border border-input">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* Project Filter */}
                     <div>
-                      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                         Project
                       </label>
                       <select
@@ -988,7 +963,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           setSelectedProject(e.target.value);
                           setCurrentPage(1);
                         }}
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-white dark:bg-neutral-800 text-foreground focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       >
                         <option value="">All Projects</option>
                         {tokenUsageData?.filters?.projects?.map((project) => (
@@ -1001,7 +976,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                     {/* Endpoint Filter */}
                     <div>
-                      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                         Type
                       </label>
                       <select
@@ -1010,7 +985,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           setSelectedEndpoint(e.target.value);
                           setCurrentPage(1);
                         }}
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-white dark:bg-neutral-800 text-foreground focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       >
                         <option value="">All Types</option>
                         {tokenUsageData?.filters?.endpoints?.map((endpoint) => (
@@ -1023,7 +998,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                     {/* Start Date Filter */}
                     <div>
-                      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                         Start Date
                       </label>
                       <input
@@ -1033,13 +1008,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           setStartDate(e.target.value);
                           setCurrentPage(1);
                         }}
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-white dark:bg-neutral-800 text-foreground focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       />
                     </div>
 
                     {/* End Date Filter */}
                     <div>
-                      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                         End Date
                       </label>
                       <input
@@ -1049,7 +1024,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           setEndDate(e.target.value);
                           setCurrentPage(1);
                         }}
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-white dark:bg-neutral-800 text-foreground focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       />
                     </div>
                   </div>
@@ -1061,7 +1036,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     endDate) && (
                     <button
                       onClick={resetFilters}
-                      className="mt-3 px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+                      className="mt-3 px-3 py-1.5 text-xs font-medium text-muted-foreground bg-white dark:bg-neutral-800 border border-input rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
                     >
                       Reset Filters
                     </button>
@@ -1076,27 +1051,27 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 ) : tokenUsageData && tokenUsageData.records.length > 0 ? (
                   <>
                     {/* Table */}
-                    <div className="border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden">
+                    <div className="border border-input rounded-xl overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full">
-                          <thead className="bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+                          <thead className="bg-accent border-b border-input">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Date & Time
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Project
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Type
                               </th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Input Tokens
                               </th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Output Tokens
                               </th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Total Tokens
                               </th>
                             </tr>
@@ -1107,35 +1082,35 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                 key={record.id}
                                 className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
                               >
-                                <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-50">
+                                <td className="px-4 py-3 text-sm text-foreground">
                                   <div>
                                     {new Date(
                                       record.createdAt
                                     ).toLocaleDateString()}
                                   </div>
-                                  <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                  <div className="text-xs text-muted-foreground">
                                     {new Date(
                                       record.createdAt
                                     ).toLocaleTimeString()}
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-neutral-900 dark:text-neutral-50">
+                                <td className="px-4 py-3 text-sm text-foreground">
                                   <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-700 text-muted-foreground">
                                       {record.projectName}
                                     </span>
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-neutral-700 dark:text-neutral-300 capitalize">
+                                <td className="px-4 py-3 text-sm text-muted-foreground capitalize">
                                   {record.endpoint}
                                 </td>
-                                <td className="px-4 py-3 text-sm text-right font-mono text-neutral-900 dark:text-neutral-50">
+                                <td className="px-4 py-3 text-sm text-right font-mono text-foreground">
                                   {record.inputTokens.toLocaleString()}
                                 </td>
-                                <td className="px-4 py-3 text-sm text-right font-mono text-neutral-900 dark:text-neutral-50">
+                                <td className="px-4 py-3 text-sm text-right font-mono text-foreground">
                                   {record.outputTokens.toLocaleString()}
                                 </td>
-                                <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-neutral-900 dark:text-neutral-50">
+                                <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-foreground">
                                   {record.totalTokens.toLocaleString()}
                                 </td>
                               </tr>
@@ -1147,7 +1122,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                     {/* Pagination */}
                     <div className="flex items-center justify-between px-2">
-                      <div className="text-sm text-neutral-600 dark:text-neutral-400">
+                      <div className="text-sm text-muted-foreground">
                         Showing {(currentPage - 1) * 10 + 1} to{" "}
                         {Math.min(
                           currentPage * 10,
@@ -1162,7 +1137,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             setCurrentPage(Math.max(1, currentPage - 1))
                           }
                           disabled={currentPage === 1}
-                          className="px-3 py-1.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-3 py-1.5 text-sm font-medium text-muted-foreground bg-white dark:bg-neutral-800 border border-input rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           Previous
                         </button>
@@ -1197,8 +1172,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                   onClick={() => setCurrentPage(pageNum)}
                                   className={`w-8 h-8 text-sm font-medium rounded-lg transition-colors ${
                                     currentPage === pageNum
-                                      ? "bg-neutral-900 dark:bg-neutral-50 text-neutral-50 dark:text-neutral-900"
-                                      : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                                      ? "bg-primary text-neutral-50 dark:text-neutral-900"
+                                      : "text-muted-foreground hover:bg-neutral-100 dark:hover:bg-neutral-700"
                                   }`}
                                 >
                                   {pageNum}
@@ -1220,7 +1195,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           disabled={
                             currentPage === tokenUsageData.pagination.totalPages
                           }
-                          className="px-3 py-1.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-3 py-1.5 text-sm font-medium text-muted-foreground bg-white dark:bg-neutral-800 border border-input rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           Next
                         </button>
@@ -1229,7 +1204,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </>
                 ) : (
                   <div className="text-center py-12">
-                    <div className="text-neutral-500 dark:text-neutral-400 mb-2">
+                    <div className="text-muted-foreground mb-2">
                       No usage records found
                     </div>
                     <p className="text-sm text-neutral-400 dark:text-neutral-500">
@@ -1249,48 +1224,48 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             {activeTab === "account" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Account Information
                   </h3>
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
-                      <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-xl border border-input">
+                      <span className="text-sm font-medium text-muted-foreground">
                         User ID
                       </span>
-                      <span className="text-sm text-neutral-500 dark:text-neutral-400 font-mono">
+                      <span className="text-sm text-muted-foreground font-mono">
                         {(session?.user as ExtendedUser)?.id || "N/A"}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
-                      <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-xl border border-input">
+                      <span className="text-sm font-medium text-muted-foreground">
                         Account Status
                       </span>
                       <span className="text-sm text-neutral-600 dark:text-neutral-300 font-medium">
                         Active
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
-                      <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                    <div className="flex justify-between items-center p-3 bg-muted/50 rounded-xl border border-input">
+                      <span className="text-sm font-medium text-muted-foreground">
                         Member Since
                       </span>
-                      <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                      <span className="text-sm text-muted-foreground">
                         {new Date().toLocaleDateString()}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Linked sign-in providers
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Manage authentication providers linked to your account.
                   </p>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-input flex items-center justify-center">
                           <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path
                               fill="#4285F4"
@@ -1312,29 +1287,29 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                            <p className="text-sm font-medium text-foreground">
                               Google
                             </p>
-                            <span className="px-2 py-0.5 text-xs font-medium bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-full">
+                            <span className="px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground rounded-full">
                               Primary
                             </span>
                           </div>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             {session?.user?.email || "sudheerkm72@gmail.com"}
                           </p>
                         </div>
                       </div>
-                      <button className="px-3 py-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                      <button className="px-3 py-1.5 text-xs font-medium text-muted-foreground border border-input rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                         Manage
                       </button>
                     </div>
 
                     {/* GitHub - Not Connected */}
-                    <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-input flex items-center justify-center">
                           <svg
-                            className="w-5 h-5 text-neutral-700 dark:text-neutral-300"
+                            className="w-5 h-5 text-muted-foreground"
                             fill="currentColor"
                             viewBox="0 0 24 24"
                           >
@@ -1346,25 +1321,25 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                          <p className="text-sm font-medium text-foreground">
                             GitHub
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             Not connected
                           </p>
                         </div>
                       </div>
-                      <button className="px-3 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors">
+                      <button className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
                         Connect
                       </button>
                     </div>
 
                     {/* Email + Password */}
-                    <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-input flex items-center justify-center">
                           <svg
-                            className="w-5 h-5 text-neutral-700 dark:text-neutral-300"
+                            className="w-5 h-5 text-muted-foreground"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1378,34 +1353,34 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                          <p className="text-sm font-medium text-foreground">
                             Email + Password
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             Not connected
                           </p>
                         </div>
                       </div>
-                      <button className="px-3 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors">
+                      <button className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
                         Set up
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Security
                   </h3>
                   {hasEmailPassword ? (
-                    <button className="w-full px-4 py-3 text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 rounded-xl hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                    <button className="w-full px-4 py-3 text-sm font-medium bg-accent text-foreground rounded-xl hover:bg-accent/80 transition-colors">
                       Change Password
                     </button>
                   ) : (
-                    <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="p-4 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-start gap-3">
                         <svg
-                          className="w-5 h-5 text-neutral-500 dark:text-neutral-400 flex-shrink-0 mt-0.5"
+                          className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1418,10 +1393,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           />
                         </svg>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50 mb-1">
+                          <p className="text-sm font-medium text-foreground mb-1">
                             Password Not Available
                           </p>
-                          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                          <p className="text-sm text-muted-foreground">
                             You&apos;re signed in with Google or GitHub. To use
                             a password, set up Email + Password authentication
                             in the Linked sign-in providers section above.
@@ -1433,25 +1408,25 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
 
                 {/* API Keys Section */}
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     API Keys
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Generate API keys for programmatic access to your account
                   </p>
                   <button
                     disabled
-                    className="px-4 py-2.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2.5 text-sm font-medium text-muted-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Generate API Key (Coming Soon)
                   </button>
                 </div>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-2 flex items-center gap-2">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
                     <svg
-                      className="w-5 h-5 text-neutral-600 dark:text-neutral-400"
+                      className="w-5 h-5 text-muted-foreground"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -1465,13 +1440,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </svg>
                     Danger Zone
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-3">
+                  <p className="text-sm text-muted-foreground mb-3">
                     Once you delete your account, there is no going back. Please
                     be certain.
                   </p>
                   <button
                     disabled
-                    className="px-4 py-2.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2.5 text-sm font-medium text-muted-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Delete Account (Coming Soon)
                   </button>
@@ -1483,18 +1458,18 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             {activeTab === "integrations" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 mb-4">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     Connected Services
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Connect your account with third-party services to enhance
                     your workflow
                   </p>
                   <div className="space-y-3">
                     {/* Figma */}
-                    <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 flex items-center justify-center border border-neutral-200 dark:border-neutral-700">
+                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 flex items-center justify-center border border-input">
                           <svg
                             className="w-6 h-6"
                             viewBox="0 0 38 57"
@@ -1523,25 +1498,25 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                          <p className="text-sm font-medium text-foreground">
                             Figma
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             Import designs and export code
                           </p>
                         </div>
                       </div>
-                      <button className="px-4 py-2 text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                      <button className="px-4 py-2 text-sm font-medium bg-accent text-foreground rounded-lg hover:bg-accent/80 transition-colors">
                         Connect
                       </button>
                     </div>
 
                     {/* GitHub */}
-                    <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white flex items-center justify-center">
                           <svg
-                            className="w-6 h-6 text-white dark:text-neutral-900"
+                            className="w-6 h-6 text-primary-foreground"
                             fill="currentColor"
                             viewBox="0 0 24 24"
                           >
@@ -1553,21 +1528,21 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                          <p className="text-sm font-medium text-foreground">
                             GitHub
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             Deploy and manage repositories
                           </p>
                         </div>
                       </div>
-                      <button className="px-4 py-2 text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                      <button className="px-4 py-2 text-sm font-medium bg-accent text-foreground rounded-lg hover:bg-accent/80 transition-colors">
                         Connect
                       </button>
                     </div>
 
                     {/* Supabase */}
-                    <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white flex items-center justify-center">
                           <svg
@@ -1615,21 +1590,21 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                          <p className="text-sm font-medium text-foreground">
                             Supabase
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             Backend database and authentication
                           </p>
                         </div>
                       </div>
-                      <button className="px-4 py-2 text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                      <button className="px-4 py-2 text-sm font-medium bg-accent text-foreground rounded-lg hover:bg-accent/80 transition-colors">
                         Connect
                       </button>
                     </div>
 
                     {/* Vercel */}
-                    <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-900 flex items-center justify-center">
                           <svg
@@ -1643,15 +1618,15 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                          <p className="text-sm font-medium text-foreground">
                             Vercel
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <p className="text-xs text-muted-foreground">
                             Deploy and host your projects
                           </p>
                         </div>
                       </div>
-                      <button className="px-4 py-2 text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                      <button className="px-4 py-2 text-sm font-medium bg-accent text-foreground rounded-lg hover:bg-accent/80 transition-colors">
                         Connect
                       </button>
                     </div>

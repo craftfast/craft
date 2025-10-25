@@ -24,9 +24,6 @@ export default async function DashboardPage() {
       {/* Payment Success Handler - Updates credits when returning from checkout */}
       <PaymentSuccessHandler />
 
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-stone-50 via-background to-stone-100 dark:from-neutral-900 dark:via-background dark:to-neutral-800 opacity-60" />
-
       {/* Header - Fixed */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">

@@ -6,17 +6,13 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-stone-50 via-background to-stone-100 dark:from-neutral-900 dark:via-background dark:to-neutral-800 opacity-60" />
+      <div className="absolute inset-0 bg-background" />
 
       {/* Header - Fixed */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
           <div className="relative flex items-center justify-between">
-            <Logo
-              variant="extended"
-              className="!h-5"
-              href="/home"
-            />
+            <Logo variant="extended" className="!h-5" href="/home" />
             <HomeHeader />
           </div>
         </div>
@@ -40,18 +36,18 @@ export default function HomePage() {
       {/* Terms and Privacy Notice - Fixed at bottom */}
       <footer className="relative z-10 w-full py-4 flex-shrink-0">
         <div className="w-full text-center px-4">
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="text-xs text-muted-foreground">
             By messaging Craft, you agree to our{" "}
             <a
               href="/terms"
-              className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline underline-offset-2 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
+              className="text-foreground hover:text-foreground/80 underline underline-offset-2 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
             >
               Terms of Service
             </a>{" "}
             and acknowledge that you have read our{" "}
             <a
               href="/privacy"
-              className="text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 underline underline-offset-2 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
+              className="text-foreground hover:text-foreground/80 underline underline-offset-2 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
             >
               Privacy Policy
             </a>

@@ -2,6 +2,7 @@
 
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 interface TokenCounterProps {
   onClickAction?: () => void;
@@ -64,7 +65,7 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
             ? "bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900"
             : isLowTokens
             ? "bg-amber-50 dark:bg-amber-950 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900"
-            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+            : "bg-accent text-accent-foreground border-border hover:bg-accent/80"
         }`}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
@@ -114,11 +115,11 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
 
       {/* Dropdown Menu */}
       {isDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-72 bg-popover border border-border rounded-xl shadow-lg z-50 overflow-hidden">
           {/* Token Balance Section */}
           <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
             <div className="mb-3">
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+              <p className="text-xs text-muted-foreground mb-1">
                 Total Balance
               </p>
               <p
@@ -127,14 +128,12 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
                     ? "text-red-700 dark:text-red-300"
                     : isLowTokens
                     ? "text-amber-700 dark:text-amber-300"
-                    : "text-neutral-900 dark:text-neutral-100"
+                    : "text-foreground"
                 }`}
               >
                 {formatFullNumber(balance.totalAvailable)}
               </p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                tokens available
-              </p>
+              <p className="text-xs text-muted-foreground">tokens available</p>
             </div>
 
             {/* Token Breakdown */}
@@ -142,7 +141,7 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <svg
-                    className="w-4 h-4 text-neutral-500 dark:text-neutral-400"
+                    className="w-4 h-4 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -154,11 +153,11 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
                       d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                  <span className="text-sm text-accent-foreground">
                     Monthly Tokens
                   </span>
                 </div>
-                <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                <span className="text-sm font-medium text-foreground">
                   {formatFullNumber(balance.subscriptionTokensRemaining)}
                 </span>
               </div>
@@ -166,7 +165,7 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <svg
-                    className="w-4 h-4 text-neutral-500 dark:text-neutral-400"
+                    className="w-4 h-4 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -178,11 +177,11 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
                       d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                     />
                   </svg>
-                  <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                  <span className="text-sm text-accent-foreground">
                     Purchased Tokens
                   </span>
                 </div>
-                <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                <span className="text-sm font-medium text-foreground">
                   {formatFullNumber(balance.purchasedTokensRemaining)}
                 </span>
               </div>
@@ -197,7 +196,7 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
                 // TODO: Implement redeem code functionality
                 console.log("Redeem code clicked");
               }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-accent-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
             >
               <svg
                 className="w-4 h-4 flex-shrink-0"
@@ -215,12 +214,12 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
               <span>Redeem Code</span>
             </button>
 
-            <button
+            <Button
               onClick={() => {
                 setIsDropdownOpen(false);
                 onClickAction?.();
               }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-lg transition-colors"
+              className="w-full rounded-lg"
             >
               <svg
                 className="w-4 h-4 flex-shrink-0"
@@ -236,7 +235,7 @@ export default function TokenCounter({ onClickAction }: TokenCounterProps) {
                 />
               </svg>
               <span>Buy Tokens</span>
-            </button>
+            </Button>
           </div>
         </div>
       )}
