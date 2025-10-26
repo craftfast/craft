@@ -72,8 +72,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // This would be set based on the user's authentication method from the database
   // For now, we'll assume false (OAuth user). Set to true for email+password users.
   const hasEmailPassword = false;
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
 
-  // Load user settings on mount
+  // Load user settings on mount - only once when modal opens
   useEffect(() => {
     const loadUserSettings = async () => {
       try {
@@ -83,16 +84,17 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           if (data.preferredChatPosition) {
             setChatPosition(data.preferredChatPosition);
           }
+          setHasLoadedSettings(true);
         }
       } catch (error) {
         console.error("Error loading user settings:", error);
       }
     };
 
-    if (isOpen) {
+    if (isOpen && !hasLoadedSettings) {
       loadUserSettings();
     }
-  }, [isOpen]);
+  }, [isOpen, hasLoadedSettings]);
 
   // Save chat position preference
   const handleChatPositionChange = async (position: "left" | "right") => {

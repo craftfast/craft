@@ -14,42 +14,58 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [theme, setThemeState] = useState<Theme>("dark");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("dark");
+  const [hasLoadedFromDB, setHasLoadedFromDB] = useState(false);
 
-  // Load theme preference
+  // Reset flag when user logs out
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      setHasLoadedFromDB(false);
+    }
+  }, [status]);
+
+  // Load theme preference - only once on mount or when auth status changes
   useEffect(() => {
     const loadTheme = async () => {
       // First check if user is logged in and has a saved preference in DB
-      if (session?.user) {
+      if (status === "authenticated" && session?.user && !hasLoadedFromDB) {
         try {
           const response = await fetch("/api/user/settings");
           if (response.ok) {
             const data = await response.json();
             if (data.preferredTheme) {
               setThemeState(data.preferredTheme as Theme);
+              setHasLoadedFromDB(true);
               return;
             }
           }
         } catch (error) {
           console.error("Error loading theme from database:", error);
         }
+        setHasLoadedFromDB(true);
+        return;
       }
 
-      // Fall back to localStorage
-      const savedTheme = localStorage.getItem("theme") as Theme | null;
-      if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
-        setThemeState(savedTheme);
-      } else {
-        // Default to dark mode
-        setThemeState("dark");
-        localStorage.setItem("theme", "dark");
+      // Fall back to localStorage for unauthenticated users or if no DB preference
+      if (
+        status === "unauthenticated" ||
+        (status === "authenticated" && hasLoadedFromDB)
+      ) {
+        const savedTheme = localStorage.getItem("theme") as Theme | null;
+        if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
+          setThemeState(savedTheme);
+        } else {
+          // Default to dark mode
+          setThemeState("dark");
+          localStorage.setItem("theme", "dark");
+        }
       }
     };
 
     loadTheme();
-  }, [session]);
+  }, [status, session?.user?.email, hasLoadedFromDB]);
 
   // Apply theme to document
   useEffect(() => {
