@@ -83,7 +83,6 @@ model Project {
   versions         ProjectVersion[]
   chatMessages     ChatMessage[]
   fileRecords      File[]           @relation("ProjectFiles") // File records for R2 storage (separate from files JSON)
-  neonDatabase     NeonDatabase? // One Neon database per project
 
   @@map("projects")
 }
@@ -155,45 +154,6 @@ model ProjectVersion {
   @@index([projectId, isBookmarked])
   @@index([projectId, isPublished])
   @@map("project_versions")
-}
-
-// ============================================================================
-// NEON DATABASE INTEGRATION
-// ============================================================================
-
-model NeonDatabase {
-  id                String    @id @default(cuid())
-  projectId         String    @unique // One database per project
-  neonProjectId     String    @unique // Neon's project ID
-  neonBranchId      String? // Main branch ID (for versioning)
-  connectionUri     String // PostgreSQL connection string
-  host              String // Database host
-  database          String // Database name
-  user              String // Database user/role
-  password          String // Database password (encrypted in production)
-  region            String    @default("aws-us-east-2") // AWS region
-  pgVersion         Int       @default(17) // PostgreSQL version
-  status            String    @default("active") // "provisioning", "active", "claimed", "suspended", "deleted"
-  // Transfer/Claim Details
-  transferRequestId String? // Transfer request ID (if claimable)
-  claimUrl          String? // URL for user to claim ownership
-  transferExpiresAt DateTime? // When transfer request expires
-  claimedAt         DateTime? // When user claimed the database
-  claimedByEmail    String? // Email of user who claimed it
-  // Metadata
-  isClaimable       Boolean   @default(true) // Whether user can claim ownership
-  autoDeleteAt      DateTime? // Auto-delete unclaimed databases after X days
-  metadata          Json? // Additional metadata (config, settings, etc.)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-  @@index([neonProjectId])
-  @@index([status])
-  @@index([transferExpiresAt])
-  @@index([autoDeleteAt])
-  @@map("neon_databases")
 }
 
 // ============================================================================
@@ -410,4 +370,119 @@ model TokenPurchase {
   @@index([purchasedAt])
   @@index([expiresAt]) // Index for expiration queries
   @@map("token_purchases")
+}
+
+// ============================================================================
+// DEPLOYMENT INTEGRATIONS (VERCEL, GITHUB, ETC.)
+// ============================================================================
+
+model VercelIntegration {
+  id             String       @id @default(cuid())
+  userId         String       @unique // One Vercel account per user
+  accessToken    String // OAuth access token (encrypted in production)
+  refreshToken   String? // OAuth refresh token
+  tokenExpiresAt DateTime? // When the access token expires
+  vercelUserId   String? // Vercel user ID
+  vercelTeamId   String? // Vercel team ID (if applicable)
+  email          String? // Vercel account email
+  username       String? // Vercel username
+  scopes         String[] // OAuth scopes granted
+  isActive       Boolean      @default(true)
+  lastSyncAt     DateTime? // Last time we synced with Vercel
+  metadata       Json? // Additional Vercel metadata
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deployments    Deployment[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("vercel_integrations")
+}
+
+model GitHubIntegration {
+  id             String             @id @default(cuid())
+  userId         String             @unique // One GitHub account per user
+  accessToken    String // OAuth access token (encrypted in production)
+  refreshToken   String? // OAuth refresh token (GitHub doesn't provide this currently)
+  tokenExpiresAt DateTime? // When the access token expires (if applicable)
+  githubUserId   Int // GitHub user ID
+  login          String // GitHub username/login
+  email          String? // GitHub account email
+  name           String? // GitHub user's display name
+  avatarUrl      String? // GitHub profile avatar
+  scopes         String[] // OAuth scopes granted
+  isActive       Boolean            @default(true)
+  lastSyncAt     DateTime? // Last time we synced with GitHub
+  metadata       Json? // Additional GitHub metadata
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  repositories   GitHubRepository[]
+
+  @@index([userId])
+  @@index([githubUserId])
+  @@index([isActive])
+  @@map("github_integrations")
+}
+
+model GitHubRepository {
+  id                  String            @id @default(cuid())
+  githubIntegrationId String
+  projectId           String? // Associated Craft project (if any)
+  githubRepoId        Int               @unique // GitHub repository ID
+  name                String // Repository name
+  fullName            String // Full name (owner/repo)
+  owner               String // Repository owner
+  isPrivate           Boolean           @default(true)
+  defaultBranch       String            @default("main")
+  htmlUrl             String // GitHub repository URL
+  cloneUrl            String // Git clone URL
+  sshUrl              String? // SSH clone URL
+  description         String? // Repository description
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  githubIntegration   GitHubIntegration @relation(fields: [githubIntegrationId], references: [id], onDelete: Cascade)
+  deployments         Deployment[]
+
+  @@index([githubIntegrationId])
+  @@index([projectId])
+  @@index([githubRepoId])
+  @@map("github_repositories")
+}
+
+model Deployment {
+  id                  String             @id @default(cuid())
+  projectId           String
+  userId              String
+  vercelIntegrationId String?
+  githubRepositoryId  String?
+  platform            String // "vercel", "netlify", "railway", "github-pages", "cloudflare", etc.
+  status              String             @default("pending") // "pending", "building", "ready", "error", "cancelled"
+  // Vercel-specific
+  vercelDeploymentId  String? // Vercel deployment ID
+  vercelProjectId     String? // Vercel project ID
+  vercelUrl           String? // Deployment URL (e.g., "project.vercel.app")
+  vercelAliases       String[] // Custom domains/aliases
+  // GitHub-specific
+  githubCommitSha     String? // Git commit SHA
+  githubBranch        String? // Git branch name
+  // Deployment metadata
+  buildLog            String?            @db.Text // Build logs
+  errorMessage        String? // Error message if failed
+  startedAt           DateTime? // When deployment started
+  completedAt         DateTime? // When deployment completed
+  duration            Int? // Deployment duration in seconds
+  metadata            Json? // Additional platform-specific metadata
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  vercelIntegration   VercelIntegration? @relation(fields: [vercelIntegrationId], references: [id], onDelete: SetNull)
+  githubRepository    GitHubRepository?  @relation(fields: [githubRepositoryId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([vercelIntegrationId])
+  @@index([githubRepositoryId])
+  @@index([platform])
+  @@index([status])
+  @@index([createdAt])
+  @@map("deployments")
 }

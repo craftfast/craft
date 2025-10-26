@@ -21,6 +21,7 @@ import {
   Smartphone,
   Maximize,
   Minimize,
+  Github,
 } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
@@ -29,6 +30,9 @@ import PricingModal from "./PricingModal";
 import ChatPanel from "./coding-interface/ChatPanel";
 import PreviewPanel, { PreviewPanelRef } from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
+import DeploymentDialog from "./coding-interface/DeploymentDialog";
+import GitHubSyncDialog from "./coding-interface/GitHubSyncDialog";
+import DatabaseConnectionDialog from "./coding-interface/DatabaseConnectionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -57,15 +61,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-type TabType =
-  | "preview"
-  | "code"
-  | "database"
-  | "analytics"
-  | "logs"
-  | "api"
-  | "settings"
-  | "auth";
+type TabType = "preview" | "code";
 
 interface Project {
   id: string;
@@ -127,6 +123,8 @@ export default function CodingInterface({
   const [versions, setVersions] = useState<any[]>([]);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false);
+  const [isSyncGitDialogOpen, setIsSyncGitDialogOpen] = useState(false);
+  const [isDatabaseDialogOpen, setIsDatabaseDialogOpen] = useState(false);
   const chatWidth = 30; // Fixed at 30%
 
   // Auto-switch to code tab when AI starts generating files
@@ -463,126 +461,6 @@ export default function CodingInterface({
       label: "Code",
       icon: Code2,
     },
-    {
-      id: "database" as const,
-      label: "Database",
-      svg: (
-        <svg
-          className="w-3.5 h-3.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
-          />
-        </svg>
-      ),
-    },
-    {
-      id: "analytics" as const,
-      label: "Analytics",
-      svg: (
-        <svg
-          className="w-3.5 h-3.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-          />
-        </svg>
-      ),
-    },
-    {
-      id: "logs" as const,
-      label: "Logs",
-      svg: (
-        <svg
-          className="w-3.5 h-3.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      ),
-    },
-    {
-      id: "api" as const,
-      label: "API",
-      svg: (
-        <svg
-          className="w-3.5 h-3.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
-      ),
-    },
-    {
-      id: "settings" as const,
-      label: "Settings",
-      svg: (
-        <svg
-          className="w-3.5 h-3.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-      ),
-    },
-    {
-      id: "auth" as const,
-      label: "Auth",
-      svg: (
-        <svg
-          className="w-3.5 h-3.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-          />
-        </svg>
-      ),
-    },
   ];
 
   return (
@@ -733,6 +611,31 @@ export default function CodingInterface({
                 <DropdownMenuItem
                   className="rounded-lg"
                   onClick={() => {
+                    setIsDatabaseDialogOpen(true);
+                    setIsProjectMenuOpen(false);
+                  }}
+                >
+                  <svg
+                    className="w-4 h-4 mr-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                    />
+                  </svg>
+                  <span>Connect Database</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
                     setIsShareDialogOpen(true);
                     setIsProjectMenuOpen(false);
                   }}
@@ -751,6 +654,17 @@ export default function CodingInterface({
                     />
                   </svg>
                   <span>Share</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
+                    setIsSyncGitDialogOpen(true);
+                    setIsProjectMenuOpen(false);
+                  }}
+                >
+                  <Github className="w-4 h-4 mr-3" />
+                  <span>Sync with Git</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -805,11 +719,6 @@ export default function CodingInterface({
                           })()}
                         </>
                       )}
-                      {allViews.find((view) => view.id === activeTab)?.svg && (
-                        <div className="flex items-center justify-center">
-                          {allViews.find((view) => view.id === activeTab)?.svg}
-                        </div>
-                      )}
                       <span className="text-xs">
                         {allViews.find((view) => view.id === activeTab)
                           ?.label || "View"}
@@ -828,7 +737,6 @@ export default function CodingInterface({
                   >
                     {allViews.map((view, index) => (
                       <div key={view.id}>
-                        {index === 2 && <DropdownMenuSeparator />}
                         <DropdownMenuItem
                           onClick={() => setActiveTab(view.id)}
                           className={`rounded-lg text-xs ${
@@ -837,11 +745,6 @@ export default function CodingInterface({
                         >
                           {view.icon && (
                             <view.icon className="w-3.5 h-3.5 mr-2" />
-                          )}
-                          {view.svg && (
-                            <div className="mr-2 flex items-center justify-center">
-                              {view.svg}
-                            </div>
                           )}
                           <span>{view.label}</span>
                         </DropdownMenuItem>
@@ -1051,90 +954,6 @@ export default function CodingInterface({
                     onFileSelected={() => setSelectedFileFromChat(null)}
                   />
                 )}
-
-                {activeTab === "database" && (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="text-6xl mb-2">🔨</div>
-                      <h3 className="text-xl font-semibold text-foreground">
-                        Coming Soon
-                      </h3>
-                      <p className="text-sm text-muted-foreground max-w-md">
-                        Database management features are under development
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === "analytics" && (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="text-6xl mb-2">🔨</div>
-                      <h3 className="text-xl font-semibold text-foreground">
-                        Coming Soon
-                      </h3>
-                      <p className="text-sm text-muted-foreground max-w-md">
-                        Analytics dashboard is under development
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === "logs" && (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="text-6xl mb-2">🔨</div>
-                      <h3 className="text-xl font-semibold text-foreground">
-                        Coming Soon
-                      </h3>
-                      <p className="text-sm text-muted-foreground max-w-md">
-                        Logs viewer is under development
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === "api" && (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="text-6xl mb-2">🔨</div>
-                      <h3 className="text-xl font-semibold text-foreground">
-                        Coming Soon
-                      </h3>
-                      <p className="text-sm text-muted-foreground max-w-md">
-                        API management features are under development
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === "settings" && (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="text-6xl mb-2">🔨</div>
-                      <h3 className="text-xl font-semibold text-foreground">
-                        Coming Soon
-                      </h3>
-                      <p className="text-sm text-muted-foreground max-w-md">
-                        Project settings are under development
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === "auth" && (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="text-6xl mb-2">🔨</div>
-                      <h3 className="text-xl font-semibold text-foreground">
-                        Coming Soon
-                      </h3>
-                      <p className="text-sm text-muted-foreground max-w-md">
-                        Authentication features are under development
-                      </p>
-                    </div>
-                  </div>
-                )}
               </main>
             </div>
           </div>
@@ -1340,94 +1159,26 @@ export default function CodingInterface({
         </Dialog>
 
         {/* Deploy Dialog */}
-        <Dialog open={isDeployDialogOpen} onOpenChange={setIsDeployDialogOpen}>
-          <DialogContent className="rounded-2xl sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Deploy Project</DialogTitle>
-              <DialogDescription>
-                Deploy your project to production with Vercel or other
-                platforms.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-6">
-              {/* Vercel Option */}
-              <div className="border rounded-xl p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                    <span className="text-white dark:text-black font-bold text-sm">
-                      ▲
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Deploy to Vercel</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Recommended for Next.js projects
-                    </p>
-                  </div>
-                </div>
-                <ol className="text-sm space-y-2 text-muted-foreground ml-11">
-                  <li>1. Export your project files</li>
-                  <li>2. Create a Git repository</li>
-                  <li>3. Push your code to GitHub/GitLab</li>
-                  <li>4. Connect your repo to Vercel</li>
-                  <li>5. Deploy with one click</li>
-                </ol>
-                <Button
-                  onClick={handleExportProject}
-                  variant="outline"
-                  className="w-full rounded-lg ml-11"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Project Files
-                </Button>
-                <Button
-                  onClick={() =>
-                    window.open("https://vercel.com/new", "_blank")
-                  }
-                  className="w-full rounded-lg ml-11"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Open Vercel
-                </Button>
-              </div>
+        <DeploymentDialog
+          open={isDeployDialogOpen}
+          onOpenChange={setIsDeployDialogOpen}
+          projectId={project.id}
+          onExportProject={handleExportProject}
+        />
 
-              {/* Other Options */}
-              <div className="border rounded-xl p-4 space-y-3">
-                <h3 className="font-semibold">Other Platforms</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    onClick={() =>
-                      window.open("https://www.netlify.com/", "_blank")
-                    }
-                    variant="outline"
-                    className="rounded-lg"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Netlify
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      window.open("https://railway.app/", "_blank")
-                    }
-                    variant="outline"
-                    className="rounded-lg"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Railway
-                  </Button>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                onClick={() => setIsDeployDialogOpen(false)}
-                className="rounded-lg"
-              >
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* GitHub Sync Dialog */}
+        <GitHubSyncDialog
+          open={isSyncGitDialogOpen}
+          onOpenChange={setIsSyncGitDialogOpen}
+          projectId={project.id}
+        />
+
+        {/* Database Connection Dialog */}
+        <DatabaseConnectionDialog
+          open={isDatabaseDialogOpen}
+          onOpenChange={setIsDatabaseDialogOpen}
+          projectId={project.id}
+        />
       </div>
     </TooltipProvider>
   );
