@@ -17,9 +17,10 @@ import { css } from "@codemirror/lang-css";
 import { html } from "@codemirror/lang-html";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
-import { githubDark } from "@uiw/codemirror-theme-github";
+import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import { EditorView } from "@codemirror/view";
 import type { Extension } from "@codemirror/state";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface CodeEditorProps {
   projectId: string;
@@ -50,6 +51,7 @@ export default function CodeEditor({
   selectedFileFromChat,
   onFileSelected,
 }: CodeEditorProps) {
+  const { resolvedTheme } = useTheme();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
@@ -472,9 +474,7 @@ export default function CodeEditor({
                 renderFileTree(fileTree)
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-xs text-muted-foreground">
-                    No files yet
-                  </p>
+                  <p className="text-xs text-muted-foreground">No files yet</p>
                 </div>
               )}
             </div>
@@ -570,23 +570,30 @@ export default function CodeEditor({
                 <CodeMirror
                   value={code}
                   height="100%"
-                  theme={githubDark}
+                  theme={resolvedTheme === "dark" ? githubDark : githubLight}
                   extensions={[
                     ...getLanguageExtension(selectedFile),
                     EditorView.lineWrapping,
                     EditorView.theme({
                       "&": {
-                        backgroundColor: "#000000",
+                        backgroundColor:
+                          resolvedTheme === "dark" ? "#000000" : "#ffffff",
                       },
                       ".cm-gutters": {
-                        backgroundColor: "#000000",
-                        borderRight: "1px solid #404040",
+                        backgroundColor:
+                          resolvedTheme === "dark" ? "#000000" : "#ffffff",
+                        borderRight:
+                          resolvedTheme === "dark"
+                            ? "1px solid #404040"
+                            : "1px solid #e5e7eb",
                       },
                       ".cm-content": {
-                        backgroundColor: "#000000",
+                        backgroundColor:
+                          resolvedTheme === "dark" ? "#000000" : "#ffffff",
                       },
                       ".cm-scroller": {
-                        backgroundColor: "#000000",
+                        backgroundColor:
+                          resolvedTheme === "dark" ? "#000000" : "#ffffff",
                       },
                     }),
                   ]}
