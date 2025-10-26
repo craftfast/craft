@@ -1036,7 +1036,7 @@ export default function ChatPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-neutral-900 overflow-x-hidden">
+    <div className="h-full flex flex-col bg-background overflow-x-hidden">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-0 py-6 scrollbar-minimal">
         <div className="max-w-3xl mx-auto space-y-6">
@@ -1059,8 +1059,8 @@ export default function ChatPanel({
                 <div
                   className={`px-4 py-3 ${
                     message.role === "user"
-                      ? "max-w-[80%] bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-2xl"
-                      : "w-full text-neutral-900 dark:text-neutral-100"
+                      ? "max-w-[80%] bg-muted text-foreground rounded-2xl"
+                      : "w-full text-foreground"
                   }`}
                 >
                   {message.role === "assistant" ? (
@@ -1096,7 +1096,7 @@ export default function ChatPanel({
                                 const isInline = !match;
                                 return isInline ? (
                                   <code
-                                    className="bg-neutral-200 dark:bg-neutral-700 px-1 py-0.5 rounded text-xs"
+                                    className="bg-muted px-1 py-0.5 rounded text-xs"
                                     {...props}
                                   >
                                     {children}
@@ -1125,13 +1125,13 @@ export default function ChatPanel({
                             onClick={() =>
                               handleCopyMessage(message.content, message.id)
                             }
-                            className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                             aria-label="Copy response"
                             title="Copy"
                           >
                             {copiedMessageId === message.id ? (
                               <svg
-                                className="w-4 h-4 text-green-600 dark:text-green-400"
+                                className="w-4 h-4"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1164,8 +1164,8 @@ export default function ChatPanel({
                             onClick={() => handleFeedback(message.id, "like")}
                             className={`p-1.5 rounded-lg transition-colors ${
                               feedbackMessageId[message.id] === "like"
-                                ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
-                                : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                                ? "bg-muted text-foreground"
+                                : "hover:bg-muted text-muted-foreground hover:text-foreground"
                             }`}
                             aria-label="Good response"
                             title="Good response"
@@ -1195,8 +1195,8 @@ export default function ChatPanel({
                             }
                             className={`p-1.5 rounded-lg transition-colors ${
                               feedbackMessageId[message.id] === "dislike"
-                                ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
-                                : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                                ? "bg-muted text-foreground"
+                                : "hover:bg-muted text-muted-foreground hover:text-foreground"
                             }`}
                             aria-label="Bad response"
                             title="Bad response"
@@ -1239,7 +1239,7 @@ export default function ChatPanel({
                           className="flex flex-col gap-1 cursor-pointer group"
                           onClick={() => setPreviewImage(image)}
                         >
-                          <div className="rounded-lg overflow-hidden bg-neutral-800 dark:bg-neutral-700 border border-neutral-700 dark:border-neutral-600 hover:opacity-80 transition-opacity shadow-sm p-2 flex items-center gap-2">
+                          <div className="rounded-lg overflow-hidden bg-muted border border-border hover:opacity-80 transition-opacity shadow-sm p-2 flex items-center gap-2">
                             {/* Image preview with fallback to icon */}
                             <div className="w-4 h-4 flex-shrink-0 relative">
                               <Image
@@ -1275,7 +1275,7 @@ export default function ChatPanel({
                               </svg>
                             </div>
                             {/* Filename */}
-                            <span className="text-xs text-neutral-300 dark:text-neutral-400 truncate max-w-[100px]">
+                            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
                               {image.name}
                             </span>
                           </div>
@@ -1291,11 +1291,11 @@ export default function ChatPanel({
               <div className="px-4 py-3 w-full">
                 <div className="flex items-center gap-3">
                   <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
-                    <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                    <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                    <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.4s]" />
                   </div>
-                  <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                  <span className="text-sm text-muted-foreground">
                     Generating code...
                   </span>
                 </div>
@@ -1307,16 +1307,16 @@ export default function ChatPanel({
       </div>
 
       {/* Input Area */}
-      <div className="border-neutral-200 dark:border-neutral-800 px-0">
+      <div className="border-border px-0">
         <div className="max-w-3xl mx-auto">
-          <div className="rounded-2xl px-2 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 transition-shadow">
+          <div className="rounded-2xl px-2 py-2 bg-card border border-border transition-shadow">
             {/* Image Attachments - Above the textarea */}
             {selectedImages.length > 0 && (
               <div className="flex flex-wrap gap-2 pb-2">
                 {selectedImages.map((image) => (
                   <div
                     key={image.id}
-                    className="relative group rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-600"
+                    className="relative group rounded-2xl overflow-hidden border border-border"
                   >
                     <Image
                       src={image.url}
@@ -1329,7 +1329,7 @@ export default function ChatPanel({
                     />
                     <button
                       onClick={() => handleRemoveImage(image.id)}
-                      className="absolute top-1 right-1 p-1 bg-neutral-900/80 dark:bg-neutral-100/80 text-white dark:text-neutral-900 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 p-1 bg-popover/80 text-popover-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label="Remove image"
                     >
                       <svg
@@ -1366,14 +1366,14 @@ export default function ChatPanel({
                 onKeyDown={handleKeyDown}
                 placeholder="Describe what you want to build or modify..."
                 rows={1}
-                className="w-full p-2 bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-neutral-500 dark:placeholder:text-neutral-400 overflow-y-auto scrollbar-minimal"
+                className="w-full p-2 bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-muted-foreground overflow-y-auto scrollbar-minimal"
                 style={{ minHeight: "3.5rem", maxHeight: "288px" }}
               />
               {/* Show interim transcript indicator */}
               {interimTranscript && (
                 <div className="absolute bottom-1 right-2 pointer-events-none">
-                  <span className="text-xs text-neutral-400 dark:text-neutral-500 italic flex items-center gap-1">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500 animate-pulse"></span>
+                  <span className="text-xs text-muted-foreground italic flex items-center gap-1">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse"></span>
                     transcribing...
                   </span>
                 </div>
@@ -1396,7 +1396,7 @@ export default function ChatPanel({
                 {/* Image upload button */}
                 <button
                   onClick={handleImageUpload}
-                  className="p-2 rounded-full border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-500 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+                  className="p-2 rounded-full border border-border hover:bg-muted hover:border-border text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="Attach images"
                   title="Upload images (max 5, 5MB each)"
                 >
@@ -1421,8 +1421,8 @@ export default function ChatPanel({
                   onClick={toggleVoiceInput}
                   className={`p-2 rounded-full border transition-all ${
                     isRecording
-                      ? "border-neutral-500 dark:border-neutral-400 bg-neutral-100 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 animate-pulse"
-                      : "border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-500 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                      ? "border-ring bg-muted text-foreground animate-pulse"
+                      : "border-border hover:bg-muted hover:border-ring text-muted-foreground hover:text-foreground"
                   }`}
                   aria-label={
                     isRecording ? "Stop recording" : "Start voice input"
@@ -1506,10 +1506,10 @@ export default function ChatPanel({
 
             {/* Low Token Warning */}
             {isLowTokens && !isTokensExhausted && (
-              <div className="mt-3 px-3 py-2 bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 rounded-xl">
+              <div className="mt-3 px-3 py-2 bg-muted border border-border rounded-xl">
                 <div className="flex items-start gap-2">
                   <svg
-                    className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+                    className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1522,7 +1522,7 @@ export default function ChatPanel({
                     />
                   </svg>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-amber-900 dark:text-amber-100">
+                    <p className="text-xs font-medium text-foreground">
                       Low on AI tokens (
                       {balance?.totalAvailable.toLocaleString()} remaining).{" "}
                       <button
@@ -1539,10 +1539,10 @@ export default function ChatPanel({
 
             {/* Exhausted Token Warning */}
             {isTokensExhausted && (
-              <div className="mt-3 px-3 py-2 bg-red-50 dark:bg-red-950 border border-red-300 dark:border-red-800 rounded-xl">
+              <div className="mt-3 px-3 py-2 bg-muted border border-border rounded-xl">
                 <div className="flex items-start gap-2">
                   <svg
-                    className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+                    className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1555,7 +1555,7 @@ export default function ChatPanel({
                     />
                   </svg>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-red-900 dark:text-red-100">
+                    <p className="text-xs font-medium text-foreground">
                       Out of AI tokens.{" "}
                       <button
                         onClick={() => setShowPricingModal(true)}

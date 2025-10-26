@@ -54,49 +54,49 @@ export default function FileChangesCard({
     > = {
       tsx: {
         color: "text-neutral-700 dark:text-neutral-300",
-        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
+        bgColor: "bg-muted/50",
         label: "React",
       },
       jsx: {
         color: "text-neutral-700 dark:text-neutral-300",
-        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
+        bgColor: "bg-muted/50",
         label: "React",
       },
       ts: {
         color: "text-neutral-700 dark:text-neutral-300",
-        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
+        bgColor: "bg-muted/50",
         label: "TS",
       },
       js: {
-        color: "text-neutral-600 dark:text-neutral-400",
-        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
+        color: "text-muted-foreground",
+        bgColor: "bg-muted/50",
         label: "JS",
       },
       css: {
-        color: "text-neutral-600 dark:text-neutral-400",
-        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
+        color: "text-muted-foreground",
+        bgColor: "bg-muted/50",
         label: "CSS",
       },
       json: {
-        color: "text-neutral-600 dark:text-neutral-400",
-        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
+        color: "text-muted-foreground",
+        bgColor: "bg-muted/50",
         label: "JSON",
       },
       md: {
-        color: "text-neutral-600 dark:text-neutral-400",
-        bgColor: "bg-neutral-50 dark:bg-neutral-900/20",
+        color: "text-muted-foreground",
+        bgColor: "bg-background/20",
         label: "MD",
       },
       html: {
-        color: "text-neutral-600 dark:text-neutral-400",
-        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
+        color: "text-muted-foreground",
+        bgColor: "bg-muted/50",
         label: "HTML",
       },
     };
     return (
       iconMap[ext || ""] || {
-        color: "text-neutral-500 dark:text-neutral-400",
-        bgColor: "bg-neutral-50 dark:bg-neutral-900/20",
+        color: "text-muted-foreground",
+        bgColor: "bg-background/20",
         label: ext?.toUpperCase() || "FILE",
       }
     );
@@ -111,19 +111,19 @@ export default function FileChangesCard({
       added: {
         icon: FilePlus,
         color: "text-neutral-700 dark:text-neutral-300",
-        bgColor: "bg-neutral-100 dark:bg-neutral-800/50",
+        bgColor: "bg-muted/50",
         label: "Added",
       },
       modified: {
         icon: FileEdit,
-        color: "text-neutral-600 dark:text-neutral-400",
-        bgColor: "bg-neutral-50 dark:bg-neutral-900/30",
+        color: "text-muted-foreground",
+        bgColor: "bg-background/30",
         label: "Modified",
       },
       deleted: {
         icon: FileX,
         color: "text-neutral-500 dark:text-neutral-500",
-        bgColor: "bg-neutral-50 dark:bg-neutral-900/30",
+        bgColor: "bg-background/30",
         label: "Deleted",
       },
     }[type];
@@ -147,7 +147,7 @@ export default function FileChangesCard({
                 onClick={() => onFileClick?.(file.path)}
                 className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all ${
                   onFileClick
-                    ? "hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer hover:scale-[1.01]"
+                    ? "hover:bg-accent/10 cursor-pointer hover:scale-[1.01]"
                     : "cursor-default"
                 } ${
                   config.bgColor
@@ -160,7 +160,7 @@ export default function FileChangesCard({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                    <span className="text-xs font-medium text-foreground truncate">
                       {fileName}
                     </span>
                     <span
@@ -186,10 +186,10 @@ export default function FileChangesCard({
   const totalFiles = files.length;
 
   return (
-    <div className="border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden bg-gradient-to-br from-white to-neutral-50/30 dark:from-neutral-900 dark:to-neutral-950/50 shadow-sm">
+    <div className="border border-border rounded-2xl overflow-hidden bg-gradient-to-br from-white to-neutral-50/30 dark:from-neutral-900 dark:to-neutral-950/50 shadow-sm">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3.5 flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors border-b border-neutral-200 dark:border-neutral-800"
+        className="w-full px-4 py-3.5 flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors border-b border-border"
       >
         <div
           className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
@@ -200,13 +200,13 @@ export default function FileChangesCard({
         >
           {isStreaming ? (
             <div className="flex gap-0.5">
-              <span className="w-1.5 h-1.5 bg-white dark:bg-neutral-900 rounded-full animate-bounce" />
-              <span className="w-1.5 h-1.5 bg-white dark:bg-neutral-900 rounded-full animate-bounce [animation-delay:0.15s]" />
-              <span className="w-1.5 h-1.5 bg-white dark:bg-neutral-900 rounded-full animate-bounce [animation-delay:0.3s]" />
+              <span className="w-1.5 h-1.5 bg-background rounded-full animate-bounce" />
+              <span className="w-1.5 h-1.5 bg-background rounded-full animate-bounce [animation-delay:0.15s]" />
+              <span className="w-1.5 h-1.5 bg-background rounded-full animate-bounce [animation-delay:0.3s]" />
             </div>
           ) : (
             <svg
-              className="w-5 h-5 text-white dark:text-neutral-900"
+              className="w-5 h-5 text-primary-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -222,21 +222,21 @@ export default function FileChangesCard({
         </div>
         <div className="flex-1 text-left">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+            <h3 className="text-sm font-semibold text-foreground">
               {title}
             </h3>
             {isStreaming && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-700 dark:bg-neutral-300 text-white dark:text-neutral-900 font-bold animate-pulse">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-700 dark:bg-neutral-300 text-primary-foreground font-bold animate-pulse">
                 LIVE
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            <span className="text-xs font-medium text-muted-foreground">
               {version}
             </span>
             <span className="text-neutral-300 dark:text-neutral-700"></span>
-            <span className="text-xs text-neutral-500 dark:text-neutral-400">
+            <span className="text-xs text-muted-foreground">
               {totalFiles} file{totalFiles !== 1 ? "s" : ""}
             </span>
           </div>

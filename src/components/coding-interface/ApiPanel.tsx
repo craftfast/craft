@@ -54,28 +54,28 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
   const getMethodColor = (method: ApiEndpoint["method"]) => {
     switch (method) {
       case "GET":
-        return "bg-neutral-600 dark:bg-neutral-400 text-white dark:text-neutral-900";
+        return "bg-neutral-600 dark:bg-neutral-400 text-primary-foreground";
       case "POST":
-        return "bg-neutral-700 dark:bg-neutral-300 text-white dark:text-neutral-900";
+        return "bg-neutral-700 dark:bg-neutral-300 text-primary-foreground";
       case "PUT":
-        return "bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900";
+        return "bg-neutral-800 dark:bg-neutral-200 text-primary-foreground";
       case "DELETE":
-        return "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900";
+        return "bg-primary text-primary-foreground";
       default:
         return "bg-neutral-500";
     }
   };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="h-14 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-6">
-        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+      <div className="h-14 border-b border-border flex items-center justify-between px-6">
+        <h2 className="text-sm font-semibold text-foreground">
           API Endpoints
         </h2>
         <button
           onClick={() => setShowCreateEndpoint(true)}
-          className="px-4 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full hover:opacity-80 transition-opacity"
+          className="px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-full hover:opacity-80 transition-opacity"
         >
           Create Endpoint
         </button>
@@ -85,9 +85,9 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
       <div className="flex-1 overflow-auto">
         <div className="p-6">
           {/* API Key Section */}
-          <div className="mb-6 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700">
+          <div className="mb-6 p-4 bg-muted rounded-2xl border border-border">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              <h3 className="text-sm font-semibold text-foreground">
                 API Key
               </h3>
               <button className="px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-colors">
@@ -95,12 +95,12 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <code className="flex-1 px-3 py-2 text-xs bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg font-mono text-neutral-700 dark:text-neutral-300">
+              <code className="flex-1 px-3 py-2 text-xs bg-background border border-border rounded-lg font-mono text-neutral-700 dark:text-neutral-300">
                 craft_sk_1234567890abcdef
               </code>
               <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors">
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -124,8 +124,8 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
                 onClick={() => setSelectedEndpoint(endpoint.id)}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                   selectedEndpoint === endpoint.id
-                    ? "bg-neutral-100 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600"
-                    : "bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
+                    ? "bg-muted border-neutral-300 dark:border-neutral-600"
+                    : "bg-muted border-border hover:border-neutral-300 dark:hover:border-neutral-600"
                 }`}
               >
                 <div className="flex items-start justify-between mb-2">
@@ -137,24 +137,24 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
                     >
                       {endpoint.method}
                     </span>
-                    <code className="text-sm font-mono text-neutral-900 dark:text-neutral-100">
+                    <code className="text-sm font-mono text-foreground">
                       {endpoint.path}
                     </code>
                   </div>
-                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                  <span className="text-xs text-muted-foreground">
                     {endpoint.requestCount.toLocaleString()} requests
                   </span>
                 </div>
-                <p className="text-xs text-neutral-600 dark:text-neutral-400">
+                <p className="text-xs text-muted-foreground">
                   {endpoint.description}
                 </p>
 
                 {selectedEndpoint === endpoint.id && (
-                  <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
-                    <h4 className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <h4 className="text-xs font-semibold text-foreground mb-2">
                       Example Request
                     </h4>
-                    <pre className="p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg overflow-x-auto">
+                    <pre className="p-3 bg-background border border-border rounded-lg overflow-x-auto">
                       <code className="text-xs font-mono text-neutral-700 dark:text-neutral-300">
                         {`curl -X ${endpoint.method} \\
   https://api.craft.fast${endpoint.path} \\
@@ -168,11 +168,11 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
           </div>
 
           {/* Documentation Link */}
-          <div className="mt-6 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700">
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+          <div className="mt-6 p-4 bg-muted rounded-2xl border border-border">
+            <h3 className="text-sm font-semibold text-foreground mb-2">
               API Documentation
             </h3>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
               View complete API documentation with examples and response schemas
             </p>
             <a

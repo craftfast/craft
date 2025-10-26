@@ -62,11 +62,11 @@ export default function LogsPanel({ projectId }: LogsPanelProps) {
   const getLevelColor = (level: Log["level"]) => {
     switch (level) {
       case "info":
-        return "text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800";
+        return "text-muted-foreground bg-muted";
       case "warn":
-        return "text-neutral-700 dark:text-neutral-300 bg-neutral-200 dark:bg-neutral-700";
+        return "text-neutral-700 dark:text-neutral-300 bg-muted";
       case "error":
-        return "text-neutral-900 dark:text-neutral-100 bg-neutral-300 dark:bg-neutral-600";
+        return "text-foreground bg-neutral-300 dark:bg-neutral-600";
       default:
         return "text-neutral-500 dark:text-neutral-500";
     }
@@ -76,10 +76,10 @@ export default function LogsPanel({ projectId }: LogsPanelProps) {
     filter === "all" ? logs : logs.filter((log) => log.level === filter);
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="h-14 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-6">
-        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+      <div className="h-14 border-b border-border flex items-center justify-between px-6">
+        <h2 className="text-sm font-semibold text-foreground">
           Application Logs
         </h2>
         <div className="flex items-center gap-3">
@@ -90,17 +90,17 @@ export default function LogsPanel({ projectId }: LogsPanelProps) {
                 onClick={() => setFilter(level as typeof filter)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors capitalize ${
                   filter === level
-                    ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                    : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-neutral-700 dark:text-neutral-300 hover:bg-accent/10"
                 }`}
               >
                 {level}
               </button>
             ))}
           </div>
-          <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
+          <button className="p-2 hover:bg-accent/10 rounded-full transition-colors">
             <svg
-              className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+              className="w-4 h-4 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -117,13 +117,13 @@ export default function LogsPanel({ projectId }: LogsPanelProps) {
       </div>
 
       {/* Search */}
-      <div className="px-6 py-3 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="px-6 py-3 border-b border-border">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search logs..."
-          className="w-full px-4 py-2 text-sm bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
+          className="w-full px-4 py-2 text-sm bg-muted border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
         />
       </div>
 
@@ -134,7 +134,7 @@ export default function LogsPanel({ projectId }: LogsPanelProps) {
             {filteredLogs.map((log) => (
               <div
                 key={log.id}
-                className="p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
+                className="p-4 hover:bg-accent/5 transition-colors"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -145,15 +145,15 @@ export default function LogsPanel({ projectId }: LogsPanelProps) {
                     >
                       {log.level.toUpperCase()}
                     </span>
-                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                    <span className="text-xs text-muted-foreground">
                       {log.timestamp}
                     </span>
                   </div>
-                  <span className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">
+                  <span className="text-xs text-muted-foreground font-mono">
                     {log.source}
                   </span>
                 </div>
-                <p className="text-sm text-neutral-900 dark:text-neutral-100 font-mono">
+                <p className="text-sm text-foreground font-mono">
                   {log.message}
                 </p>
               </div>
@@ -162,13 +162,13 @@ export default function LogsPanel({ projectId }: LogsPanelProps) {
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                 <span className="text-2xl">📋</span>
               </div>
-              <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+              <h3 className="text-sm font-medium text-foreground mb-1">
                 No Logs Found
               </h3>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="text-xs text-muted-foreground">
                 No logs match your current filters
               </p>
             </div>

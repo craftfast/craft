@@ -18,10 +18,10 @@ export default function AnalyticsPanel({ projectId }: AnalyticsPanelProps) {
   ];
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="h-14 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-6">
-        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+      <div className="h-14 border-b border-border flex items-center justify-between px-6">
+        <h2 className="text-sm font-semibold text-foreground">
           Analytics Overview
         </h2>
         <div className="flex items-center gap-2">
@@ -31,8 +31,8 @@ export default function AnalyticsPanel({ projectId }: AnalyticsPanelProps) {
               onClick={() => setTimeRange(range)}
               className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
                 timeRange === range
-                  ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                  : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-neutral-700 dark:text-neutral-300 hover:bg-accent/10"
               }`}
             >
               {range}
@@ -48,13 +48,13 @@ export default function AnalyticsPanel({ projectId }: AnalyticsPanelProps) {
           {metrics.map((metric) => (
             <div
               key={metric.label}
-              className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700"
+              className="p-4 bg-muted rounded-2xl border border-border"
             >
-              <div className="text-xs text-neutral-600 dark:text-neutral-400 mb-1">
+              <div className="text-xs text-muted-foreground mb-1">
                 {metric.label}
               </div>
               <div className="flex items-end justify-between">
-                <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+                <div className="text-2xl font-semibold text-foreground">
                   {metric.value}
                 </div>
                 <div
@@ -72,11 +72,11 @@ export default function AnalyticsPanel({ projectId }: AnalyticsPanelProps) {
         </div>
 
         {/* Chart Placeholder */}
-        <div className="bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 mb-8">
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+        <div className="bg-muted rounded-2xl border border-border p-6 mb-8">
+          <h3 className="text-sm font-semibold text-foreground mb-4">
             Traffic Over Time
           </h3>
-          <div className="h-64 flex items-center justify-center text-neutral-500 dark:text-neutral-400">
+          <div className="h-64 flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
                 <span className="text-2xl">📊</span>
@@ -87,8 +87,8 @@ export default function AnalyticsPanel({ projectId }: AnalyticsPanelProps) {
         </div>
 
         {/* Top Pages */}
-        <div className="bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6">
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+        <div className="bg-muted rounded-2xl border border-border p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4">
             Top Pages
           </h3>
           <div className="space-y-3">
@@ -100,13 +100,13 @@ export default function AnalyticsPanel({ projectId }: AnalyticsPanelProps) {
             ].map((page) => (
               <div
                 key={page.path}
-                className="flex items-center justify-between p-3 bg-white dark:bg-neutral-900 rounded-xl"
+                className="flex items-center justify-between p-3 bg-background rounded-xl"
               >
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  <div className="text-sm font-medium text-foreground">
                     {page.path}
                   </div>
-                  <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                  <div className="text-xs text-muted-foreground">
                     {page.views.toLocaleString()} views
                   </div>
                 </div>

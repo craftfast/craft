@@ -23,13 +23,13 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="h-14 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-6">
-        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+      <div className="h-14 border-b border-border flex items-center justify-between px-6">
+        <h2 className="text-sm font-semibold text-foreground">
           Authentication
         </h2>
-        <button className="px-4 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full hover:opacity-80 transition-opacity">
+        <button className="px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-full hover:opacity-80 transition-opacity">
           Save Changes
         </button>
       </div>
@@ -39,12 +39,12 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
         <div className="max-w-2xl space-y-6">
           {/* Auth Providers */}
           <section>
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+            <h3 className="text-sm font-semibold text-foreground mb-4">
               Authentication Providers
             </h3>
             <div className="space-y-3">
               {/* Email/Password */}
-              <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700">
+              <div className="p-4 bg-muted rounded-2xl border border-border">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
@@ -63,10 +63,10 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
                       </svg>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      <div className="text-sm font-medium text-foreground">
                         Email & Password
                       </div>
-                      <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                      <div className="text-xs text-muted-foreground">
                         Traditional email and password authentication
                       </div>
                     </div>
@@ -75,12 +75,12 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
                     onClick={() => toggleMethod("email")}
                     className={`w-12 h-6 rounded-full transition-colors relative ${
                       enabledMethods.email
-                        ? "bg-neutral-900 dark:bg-neutral-100"
+                        ? "bg-primary"
                         : "bg-neutral-300 dark:bg-neutral-700"
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white dark:bg-neutral-900 transition-transform ${
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-background transition-transform ${
                         enabledMethods.email ? "right-0.5" : "left-0.5"
                       }`}
                     />
@@ -89,17 +89,17 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
               </div>
 
               {/* Google */}
-              <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700">
+              <div className="p-4 bg-muted rounded-2xl border border-border">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
                       <span className="text-xl">G</span>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      <div className="text-sm font-medium text-foreground">
                         Google
                       </div>
-                      <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                      <div className="text-xs text-muted-foreground">
                         Sign in with Google account
                       </div>
                     </div>
@@ -108,35 +108,35 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
                     onClick={() => toggleMethod("google")}
                     className={`w-12 h-6 rounded-full transition-colors relative ${
                       enabledMethods.google
-                        ? "bg-neutral-900 dark:bg-neutral-100"
+                        ? "bg-primary"
                         : "bg-neutral-300 dark:bg-neutral-700"
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white dark:bg-neutral-900 transition-transform ${
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-background transition-transform ${
                         enabledMethods.google ? "right-0.5" : "left-0.5"
                       }`}
                     />
                   </button>
                 </div>
                 {enabledMethods.google && (
-                  <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700 space-y-2">
+                  <div className="mt-3 pt-3 border-t border-border space-y-2">
                     <input
                       type="text"
                       placeholder="Client ID"
-                      className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
                     />
                     <input
                       type="password"
                       placeholder="Client Secret"
-                      className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
                     />
                   </div>
                 )}
               </div>
 
               {/* GitHub */}
-              <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700">
+              <div className="p-4 bg-muted rounded-2xl border border-border">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
@@ -149,10 +149,10 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
                       </svg>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      <div className="text-sm font-medium text-foreground">
                         GitHub
                       </div>
-                      <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                      <div className="text-xs text-muted-foreground">
                         Sign in with GitHub account
                       </div>
                     </div>
@@ -161,45 +161,45 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
                     onClick={() => toggleMethod("github")}
                     className={`w-12 h-6 rounded-full transition-colors relative ${
                       enabledMethods.github
-                        ? "bg-neutral-900 dark:bg-neutral-100"
+                        ? "bg-primary"
                         : "bg-neutral-300 dark:bg-neutral-700"
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white dark:bg-neutral-900 transition-transform ${
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-background transition-transform ${
                         enabledMethods.github ? "right-0.5" : "left-0.5"
                       }`}
                     />
                   </button>
                 </div>
                 {enabledMethods.github && (
-                  <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700 space-y-2">
+                  <div className="mt-3 pt-3 border-t border-border space-y-2">
                     <input
                       type="text"
                       placeholder="Client ID"
-                      className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
                     />
                     <input
                       type="password"
                       placeholder="Client Secret"
-                      className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
+                      className="w-full px-3 py-2 text-xs bg-background border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
                     />
                   </div>
                 )}
               </div>
 
               {/* Magic Link */}
-              <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700">
+              <div className="p-4 bg-muted rounded-2xl border border-border">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
                       <span className="text-xl">✨</span>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      <div className="text-sm font-medium text-foreground">
                         Magic Link
                       </div>
-                      <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                      <div className="text-xs text-muted-foreground">
                         Passwordless email link authentication
                       </div>
                     </div>
@@ -208,12 +208,12 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
                     onClick={() => toggleMethod("magicLink")}
                     className={`w-12 h-6 rounded-full transition-colors relative ${
                       enabledMethods.magicLink
-                        ? "bg-neutral-900 dark:bg-neutral-100"
+                        ? "bg-primary"
                         : "bg-neutral-300 dark:bg-neutral-700"
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white dark:bg-neutral-900 transition-transform ${
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-background transition-transform ${
                         enabledMethods.magicLink ? "right-0.5" : "left-0.5"
                       }`}
                     />
@@ -224,35 +224,35 @@ export default function AuthPanel({ projectId }: AuthPanelProps) {
           </section>
 
           {/* Security Settings */}
-          <section className="pt-6 border-t border-neutral-200 dark:border-neutral-800">
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+          <section className="pt-6 border-t border-border">
+            <h3 className="text-sm font-semibold text-foreground mb-4">
               Security
             </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  <div className="text-sm font-medium text-foreground">
                     Require Email Verification
                   </div>
-                  <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                  <div className="text-xs text-muted-foreground">
                     Users must verify their email before accessing the app
                   </div>
                 </div>
-                <button className="w-12 h-6 rounded-full bg-neutral-900 dark:bg-neutral-100 transition-colors relative">
-                  <span className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-white dark:bg-neutral-900" />
+                <button className="w-12 h-6 rounded-full bg-primary transition-colors relative">
+                  <span className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-background" />
                 </button>
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  <div className="text-sm font-medium text-foreground">
                     Two-Factor Authentication
                   </div>
-                  <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                  <div className="text-xs text-muted-foreground">
                     Enable 2FA for additional security
                   </div>
                 </div>
                 <button className="w-12 h-6 rounded-full bg-neutral-300 dark:bg-neutral-700 transition-colors relative">
-                  <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white dark:bg-neutral-900" />
+                  <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-background" />
                 </button>
               </div>
             </div>

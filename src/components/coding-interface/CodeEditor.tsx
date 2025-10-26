@@ -351,20 +351,20 @@ export default function CodeEditor({
     const ext = fileName.split(".").pop()?.toLowerCase();
     const iconClass = "w-4 h-4";
 
-    // Color-coded by file type
+    // Color-coded by file type using neutral colors
     const colors: Record<string, string> = {
-      tsx: "text-blue-500",
-      jsx: "text-blue-400",
-      ts: "text-blue-600",
-      js: "text-yellow-500",
-      json: "text-yellow-600",
-      css: "text-purple-500",
-      html: "text-orange-500",
-      md: "text-neutral-500",
-      env: "text-green-600",
+      tsx: "text-foreground",
+      jsx: "text-foreground",
+      ts: "text-foreground",
+      js: "text-muted-foreground",
+      json: "text-muted-foreground",
+      css: "text-muted-foreground",
+      html: "text-muted-foreground",
+      md: "text-muted-foreground",
+      env: "text-muted-foreground",
     };
 
-    const color = colors[ext || ""] || "text-neutral-400";
+    const color = colors[ext || ""] || "text-muted-foreground";
 
     return <FileCode className={`${iconClass} ${color}`} />;
   };
@@ -386,13 +386,9 @@ export default function CodeEditor({
             }}
             className={`
               w-full flex items-center gap-1.5 px-2 py-1 text-sm transition-colors
-              hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg
-              ${
-                isSelected
-                  ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
-                  : "text-neutral-700 dark:text-neutral-300"
-              }
-              ${node.isNew ? "bg-neutral-50 dark:bg-neutral-800/50" : ""}
+              hover:bg-muted rounded-lg
+              ${isSelected ? "bg-muted text-foreground" : "text-foreground"}
+              ${node.isNew ? "bg-muted/50" : ""}
             `}
             style={{ paddingLeft: `${level * 12 + 8}px` }}
           >
@@ -404,9 +400,9 @@ export default function CodeEditor({
                   <ChevronRight className="w-3 h-3 flex-shrink-0" />
                 )}
                 {isExpanded ? (
-                  <FolderOpen className="w-4 h-4 flex-shrink-0 text-neutral-600 dark:text-neutral-400" />
+                  <FolderOpen className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
                 ) : (
-                  <Folder className="w-4 h-4 flex-shrink-0 text-neutral-600 dark:text-neutral-400" />
+                  <Folder className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
                 )}
               </>
             ) : (
@@ -417,7 +413,7 @@ export default function CodeEditor({
             )}
             <span className="truncate flex-1 text-left">{node.name}</span>
             {node.isNew && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-medium">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-neutral-700 dark:text-neutral-300 font-medium">
                 NEW
               </span>
             )}
@@ -441,23 +437,23 @@ export default function CodeEditor({
   const fileTree = buildFileTree(allFilePaths);
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+    <div className="h-full flex flex-col bg-background">
       {/* Main Editor Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* File Tree Sidebar */}
         {isFileTreeOpen && (
-          <aside className="w-64 border-r border-neutral-200 dark:border-neutral-800 flex flex-col bg-neutral-50 dark:bg-neutral-900/50">
-            <div className="h-11 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-3 bg-white dark:bg-neutral-900">
+          <aside className="w-64 border-r border-border flex flex-col bg-background/50">
+            <div className="h-11 border-b border-border flex items-center justify-between px-3 bg-background">
               <h3 className="text-xs font-bold tracking-wide text-neutral-700 dark:text-neutral-300 uppercase">
                 Explorer
               </h3>
               <button
                 onClick={() => setIsFileTreeOpen(false)}
-                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-accent/10 rounded-lg transition-colors"
                 title="Close Sidebar"
               >
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -476,7 +472,7 @@ export default function CodeEditor({
                 renderFileTree(fileTree)
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  <p className="text-xs text-muted-foreground">
                     No files yet
                   </p>
                 </div>
@@ -488,16 +484,16 @@ export default function CodeEditor({
         {/* Code Editor Area */}
         <div className="flex-1 flex flex-col">
           {/* Editor Toolbar */}
-          <div className="h-11 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-4 bg-white dark:bg-neutral-900">
+          <div className="h-11 border-b border-border flex items-center justify-between px-4 bg-background">
             <div className="flex items-center gap-3">
               {!isFileTreeOpen && (
                 <button
                   onClick={() => setIsFileTreeOpen(true)}
-                  className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+                  className="p-1.5 hover:bg-accent/10 rounded-lg transition-colors"
                   title="Open Sidebar"
                 >
                   <svg
-                    className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                    className="w-4 h-4 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -514,7 +510,7 @@ export default function CodeEditor({
               {selectedFile && (
                 <div className="flex items-center gap-2">
                   {getFileIcon(selectedFile)}
-                  <span className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
+                  <span className="text-xs font-medium text-foreground">
                     {selectedFile}
                   </span>
                   {currentStreamingFile === selectedFile && (
@@ -525,14 +521,14 @@ export default function CodeEditor({
             </div>
             <div className="flex items-center gap-2">
               {isGenerating && (
-                <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {changeCount > 0 && (
-                    <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+                    <span className="px-2 py-1 rounded-lg bg-muted">
                       {changeCount} {changeCount === 1 ? "change" : "changes"}
                     </span>
                   )}
                   {newFileCount > 0 && (
-                    <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+                    <span className="px-2 py-1 rounded-lg bg-muted">
                       {newFileCount}{" "}
                       {newFileCount === 1 ? "new file" : "new files"}
                     </span>
@@ -543,21 +539,21 @@ export default function CodeEditor({
                 <>
                   <button
                     onClick={handleCopyCode}
-                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors group"
+                    className="p-2 hover:bg-muted rounded-full transition-colors group"
                     title="Copy code"
                   >
                     {isCopied ? (
-                      <Check className="w-4 h-4 text-green-600 dark:text-green-500" />
+                      <Check className="w-4 h-4" />
                     ) : (
-                      <Copy className="w-4 h-4 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
+                      <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
                     )}
                   </button>
                   <button
                     onClick={handleDownloadFile}
-                    className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors group"
+                    className="p-2 hover:bg-muted rounded-full transition-colors group"
                     title="Download file"
                   >
-                    <Download className="w-4 h-4 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
+                    <Download className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
                   </button>
                 </>
               )}
@@ -625,12 +621,12 @@ export default function CodeEditor({
               <div className="h-full flex items-center justify-center bg-white dark:bg-black">
                 <div className="text-center max-w-sm">
                   <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 flex items-center justify-center">
-                    <FileCode className="w-10 h-10 text-neutral-400 dark:text-neutral-600" />
+                    <FileCode className="w-10 h-10 text-muted-foreground" />
                   </div>
-                  <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+                  <h3 className="text-base font-semibold text-foreground mb-2">
                     No file selected
                   </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  <p className="text-sm text-muted-foreground">
                     Choose a file from the explorer to view and edit its
                     contents
                   </p>

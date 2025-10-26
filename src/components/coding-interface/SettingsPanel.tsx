@@ -121,8 +121,8 @@ export default function SettingsPanel({
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-white dark:bg-neutral-900">
-        <div className="text-sm text-neutral-600 dark:text-neutral-400">
+      <div className="h-full flex items-center justify-center bg-background">
+        <div className="text-sm text-muted-foreground">
           Loading settings...
         </div>
       </div>
@@ -130,16 +130,16 @@ export default function SettingsPanel({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-neutral-900">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="h-14 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-6">
-        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+      <div className="h-14 border-b border-border flex items-center justify-between px-6">
+        <h2 className="text-sm font-semibold text-foreground">
           App Settings
         </h2>
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="px-4 py-1.5 text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full hover:opacity-80 transition-opacity disabled:opacity-50"
+          className="px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-full hover:opacity-80 transition-opacity disabled:opacity-50"
         >
           {isSaving ? "Saving..." : "Save Changes"}
         </button>
@@ -150,7 +150,7 @@ export default function SettingsPanel({
         <div className="max-w-2xl space-y-6">
           {/* General Settings */}
           <section>
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+            <h3 className="text-sm font-semibold text-foreground mb-4">
               General
             </h3>
             <div className="space-y-4">
@@ -162,7 +162,7 @@ export default function SettingsPanel({
                   <button
                     onClick={handleGenerateName}
                     disabled={isGeneratingName || !projectDescription.trim()}
-                    className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-muted hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Generate name using AI"
                   >
                     <Sparkles className="w-3 h-3" />
@@ -174,7 +174,7 @@ export default function SettingsPanel({
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="Enter project name"
-                  className="w-full px-4 py-2 text-sm bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
+                  className="w-full px-4 py-2 text-sm bg-muted border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20"
                 />
               </div>
               <div>
@@ -186,9 +186,9 @@ export default function SettingsPanel({
                   onChange={(e) => setProjectDescription(e.target.value)}
                   rows={3}
                   placeholder="Describe your project..."
-                  className="w-full px-4 py-3 text-sm bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-neutral-500/20 resize-none"
+                  className="w-full px-4 py-3 text-sm bg-muted border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-neutral-500/20 resize-none"
                 />
-                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Add a description to generate an AI-powered project name
                 </p>
               </div>
@@ -201,8 +201,8 @@ export default function SettingsPanel({
                     onClick={() => setVisibility("public")}
                     className={`flex-1 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
                       visibility === "public"
-                        ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                        : "bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
                     }`}
                   >
                     Public
@@ -211,8 +211,8 @@ export default function SettingsPanel({
                     onClick={() => setVisibility("private")}
                     className={`flex-1 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
                       visibility === "private"
-                        ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                        : "bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
                     }`}
                   >
                     Private
@@ -223,17 +223,17 @@ export default function SettingsPanel({
           </section>
 
           {/* Editor Settings */}
-          <section className="pt-6 border-t border-neutral-200 dark:border-neutral-800">
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+          <section className="pt-6 border-t border-border">
+            <h3 className="text-sm font-semibold text-foreground mb-4">
               Editor
             </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  <div className="text-sm font-medium text-foreground">
                     Auto Save
                   </div>
-                  <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                  <div className="text-xs text-muted-foreground">
                     Automatically save changes as you type
                   </div>
                 </div>
@@ -241,12 +241,12 @@ export default function SettingsPanel({
                   onClick={() => setAutoSave(!autoSave)}
                   className={`w-12 h-6 rounded-full transition-colors relative ${
                     autoSave
-                      ? "bg-neutral-900 dark:bg-neutral-100"
+                      ? "bg-primary"
                       : "bg-neutral-300 dark:bg-neutral-700"
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white dark:bg-neutral-900 transition-transform ${
+                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-background transition-transform ${
                       autoSave ? "right-0.5" : "left-0.5"
                     }`}
                   />
@@ -254,10 +254,10 @@ export default function SettingsPanel({
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  <div className="text-sm font-medium text-foreground">
                     Dark Mode
                   </div>
-                  <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                  <div className="text-xs text-muted-foreground">
                     Use dark theme in the editor
                   </div>
                 </div>
@@ -265,12 +265,12 @@ export default function SettingsPanel({
                   onClick={() => setDarkMode(!darkMode)}
                   className={`w-12 h-6 rounded-full transition-colors relative ${
                     darkMode
-                      ? "bg-neutral-900 dark:bg-neutral-100"
+                      ? "bg-primary"
                       : "bg-neutral-300 dark:bg-neutral-700"
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white dark:bg-neutral-900 transition-transform ${
+                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-background transition-transform ${
                       darkMode ? "right-0.5" : "left-0.5"
                     }`}
                   />
@@ -280,12 +280,12 @@ export default function SettingsPanel({
           </section>
 
           {/* Environment Variables */}
-          <section className="pt-6 border-t border-neutral-200 dark:border-neutral-800">
+          <section className="pt-6 border-t border-border">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              <h3 className="text-sm font-semibold text-foreground">
                 Environment Variables
               </h3>
-              <button className="px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
+              <button className="px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-accent/10 rounded-full transition-colors">
                 Add Variable
               </button>
             </div>
@@ -293,14 +293,14 @@ export default function SettingsPanel({
               {["DATABASE_URL", "API_KEY", "SECRET_KEY"].map((key) => (
                 <div
                   key={key}
-                  className="flex items-center gap-2 p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl"
+                  className="flex items-center gap-2 p-3 bg-muted rounded-xl"
                 >
                   <code className="flex-1 text-xs font-mono text-neutral-700 dark:text-neutral-300">
                     {key}
                   </code>
                   <button className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors">
                     <svg
-                      className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                      className="w-4 h-4 text-muted-foreground"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -315,7 +315,7 @@ export default function SettingsPanel({
                   </button>
                   <button className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors">
                     <svg
-                      className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                      className="w-4 h-4 text-muted-foreground"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -334,21 +334,21 @@ export default function SettingsPanel({
           </section>
 
           {/* Danger Zone */}
-          <section className="pt-6 border-t border-neutral-200 dark:border-neutral-800">
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+          <section className="pt-6 border-t border-border">
+            <h3 className="text-sm font-semibold text-foreground mb-4">
               Danger Zone
             </h3>
-            <div className="p-4 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl">
+            <div className="p-4 bg-muted border border-border rounded-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                  <div className="text-sm font-medium text-foreground mb-1">
                     Delete Project
                   </div>
-                  <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                  <div className="text-xs text-muted-foreground">
                     Permanently delete this project and all its data
                   </div>
                 </div>
-                <button className="px-4 py-2 text-sm font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full hover:opacity-80 transition-opacity">
+                <button className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-full hover:opacity-80 transition-opacity">
                   Delete
                 </button>
               </div>

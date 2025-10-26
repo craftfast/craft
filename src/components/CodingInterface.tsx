@@ -426,9 +426,9 @@ export default function CodingInterface({
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-white dark:bg-neutral-900">
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
       {/* Header */}
-      <header className="h-12 bg-white dark:bg-neutral-900 grid grid-cols-3 items-center px-4 flex-shrink-0">
+      <header className="h-12 bg-background grid grid-cols-3 items-center px-4 flex-shrink-0">
         {/* Left Side - Logo and Project Name */}
         <div className="flex items-center justify-start">
           <button
@@ -437,29 +437,29 @@ export default function CodingInterface({
           >
             <Logo variant="extended" className="!h-5" />
           </button>
-          <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0 mx-1 ml-3" />
+          <div className="h-6 w-px bg-border flex-shrink-0 mx-1 ml-3" />
 
           {/* Project Name with Dropdown */}
           <div className="relative" ref={projectMenuRef}>
             <button
               onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
-              className="flex items-center gap-2 px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-2 py-1 hover:bg-accent/10 rounded-lg transition-colors"
             >
-              <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[200px]">
+              <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
                 {project.name}
               </h1>
               {/* Visibility Icon */}
               {projectVisibility === "private" && (
-                <Lock className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" />
+                <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
               )}
               {projectVisibility === "secret" && (
-                <Link2 className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" />
+                <Link2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
               )}
               {projectVisibility === "public" && (
-                <Globe className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" />
+                <Globe className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
               )}
               <ChevronDown
-                className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 flex-shrink-0 transition-transform ${
+                className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ${
                   isProjectMenuOpen ? "rotate-180" : ""
                 }`}
               />
@@ -467,13 +467,13 @@ export default function CodingInterface({
 
             {/* Dropdown Menu */}
             {isProjectMenuOpen && (
-              <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 py-1">
+              <div className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-xl shadow-lg z-50 py-1">
                 <button
                   onClick={() => {
                     setIsProjectMenuOpen(false);
                     // TODO: Implement version history
                   }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
                 >
                   <History className="w-4 h-4" />
                   <span>Version history</span>
@@ -484,7 +484,7 @@ export default function CodingInterface({
                     setIsProjectMenuOpen(false);
                     // TODO: Implement rename
                   }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
                 >
                   <Edit className="w-4 h-4" />
                   <span>Rename...</span>
@@ -495,7 +495,7 @@ export default function CodingInterface({
                     setIsProjectMenuOpen(false);
                     // TODO: Implement duplicate
                   }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
                 >
                   <Copy className="w-4 h-4" />
                   <span>Duplicate</span>
@@ -506,13 +506,13 @@ export default function CodingInterface({
                     setIsProjectMenuOpen(false);
                     // TODO: Implement export
                   }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
                 >
                   <Download className="w-4 h-4" />
                   <span>Export</span>
                 </button>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 my-1" />
+                <div className="border-t border-border my-1" />
 
                 <div className="relative">
                   <button
@@ -521,16 +521,16 @@ export default function CodingInterface({
                     onClick={() =>
                       setIsVisibilitySubmenuOpen(!isVisibilitySubmenuOpen)
                     }
-                    className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                    className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
                   >
                     <Eye className="w-4 h-4" />
                     <div className="flex-1 flex items-center justify-between">
                       <span>Visibility</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400 capitalize">
+                        <span className="text-xs text-muted-foreground capitalize">
                           {projectVisibility}
                         </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
                       </div>
                     </div>
                   </button>
@@ -540,7 +540,7 @@ export default function CodingInterface({
                     <div
                       onMouseEnter={() => setIsVisibilitySubmenuOpen(true)}
                       onMouseLeave={() => setIsVisibilitySubmenuOpen(false)}
-                      className="absolute left-full top-0 ml-1 w-64 bg-neutral-800 dark:bg-neutral-900 border border-neutral-700 dark:border-neutral-800 rounded-xl shadow-xl z-50 py-1"
+                      className="absolute left-full top-0 ml-1 w-64 bg-popover border border-border rounded-xl shadow-xl z-50 py-1"
                     >
                       <button
                         onClick={() => {
@@ -549,15 +549,15 @@ export default function CodingInterface({
                           setIsProjectMenuOpen(false);
                           // TODO: Update project visibility to public
                         }}
-                        className="w-full px-4 py-2.5 text-left hover:bg-neutral-700 dark:hover:bg-neutral-800 transition-colors"
+                        className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <Globe className="w-4 h-4 text-neutral-300 dark:text-neutral-400" />
+                          <Globe className="w-4 h-4 text-muted-foreground" />
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-neutral-100 dark:text-neutral-200">
+                            <div className="text-sm font-medium text-popover-foreground">
                               Public
                             </div>
-                            <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                            <div className="text-xs text-muted-foreground">
                               Everyone can view
                             </div>
                           </div>
@@ -571,15 +571,15 @@ export default function CodingInterface({
                           setIsProjectMenuOpen(false);
                           // TODO: Update project visibility to secret
                         }}
-                        className="w-full px-4 py-2.5 text-left hover:bg-neutral-700 dark:hover:bg-neutral-800 transition-colors"
+                        className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <Link2 className="w-4 h-4 text-neutral-300 dark:text-neutral-400" />
+                          <Link2 className="w-4 h-4 text-muted-foreground" />
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-neutral-100 dark:text-neutral-200">
+                            <div className="text-sm font-medium text-popover-foreground">
                               Secret
                             </div>
-                            <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                            <div className="text-xs text-muted-foreground">
                               Accessible via shared URL
                             </div>
                           </div>
@@ -593,15 +593,15 @@ export default function CodingInterface({
                           setIsProjectMenuOpen(false);
                           // TODO: Update project visibility to private
                         }}
-                        className="w-full px-4 py-2.5 text-left hover:bg-neutral-700 dark:hover:bg-neutral-800 transition-colors"
+                        className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <Lock className="w-4 h-4 text-neutral-300 dark:text-neutral-400" />
+                          <Lock className="w-4 h-4 text-muted-foreground" />
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-neutral-100 dark:text-neutral-200">
+                            <div className="text-sm font-medium text-popover-foreground">
                               Private
                             </div>
-                            <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                            <div className="text-xs text-muted-foreground">
                               Only owner can access
                             </div>
                           </div>
@@ -611,14 +611,14 @@ export default function CodingInterface({
                   )}
                 </div>
 
-                <div className="border-t border-neutral-200 dark:border-neutral-800 my-1" />
+                <div className="border-t border-border my-1" />
 
                 <button
                   onClick={() => {
                     setIsProjectMenuOpen(false);
                     // TODO: Implement share
                   }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
                 >
                   <svg
                     className="w-4 h-4"
@@ -641,7 +641,7 @@ export default function CodingInterface({
                     setIsProjectMenuOpen(false);
                     // TODO: Implement deploy
                   }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-3"
+                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
                 >
                   <svg
                     className="w-4 h-4"
@@ -667,12 +667,12 @@ export default function CodingInterface({
         <div className="flex items-center justify-center px-8">
           {/* URL Bar - Always visible */}
           <div className="flex items-center gap-2 max-w-xl w-full">
-            <div className="flex-1 flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg px-3 py-1.5">
+            <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
               {/* View Switcher - Left side of URL bar */}
               <div className="relative flex-shrink-0" ref={viewMenuRef}>
                 <button
                   onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
-                  className="px-2 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors flex items-center gap-1.5"
+                  className="px-2 py-1 text-xs font-medium text-foreground hover:bg-accent/10 rounded transition-colors flex items-center gap-1.5"
                 >
                   {/* Show current view icon */}
                   {allViews.find((view) => view.id === activeTab)?.icon && (
@@ -702,21 +702,21 @@ export default function CodingInterface({
                 </button>
 
                 {isViewMenuOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-40 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 py-1">
+                  <div className="absolute top-full left-0 mt-1 w-40 bg-popover border border-border rounded-xl shadow-lg z-50 py-1">
                     {allViews.map((view, index) => (
                       <div key={view.id}>
                         {index === 2 && (
-                          <div className="border-t border-neutral-200 dark:border-neutral-800 my-1" />
+                          <div className="border-t border-border my-1" />
                         )}
                         <button
                           onClick={() => {
                             setActiveTab(view.id);
                             setIsViewMenuOpen(false);
                           }}
-                          className={`w-full px-3 py-2 text-left text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-2 ${
+                          className={`w-full px-3 py-2 text-left text-xs hover:bg-accent/10 transition-colors flex items-center gap-2 ${
                             activeTab === view.id
-                              ? "text-neutral-900 dark:text-neutral-100 font-medium"
-                              : "text-neutral-700 dark:text-neutral-300"
+                              ? "text-foreground font-medium"
+                              : "text-muted-foreground"
                           }`}
                         >
                           {view.icon && <view.icon className="w-3.5 h-3.5" />}
@@ -732,7 +732,7 @@ export default function CodingInterface({
               </div>
 
               {/* Separator */}
-              <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
+              <div className="h-4 w-px bg-border flex-shrink-0" />
 
               <input
                 type="text"
@@ -740,17 +740,17 @@ export default function CodingInterface({
                 onChange={(e) => setPreviewUrl(e.target.value)}
                 placeholder="/"
                 disabled={activeTab !== "preview"}
-                className="flex-1 bg-transparent text-xs text-neutral-900 dark:text-neutral-100 outline-none min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-transparent text-xs text-foreground outline-none min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
               />
 
               {/* Preview Controls - Inside URL Bar */}
-              <div className="flex items-center gap-0.5 border-l border-neutral-200 dark:border-neutral-700 pl-2">
+              <div className="flex items-center gap-0.5 border-l border-border pl-2">
                 <button
                   onClick={() => {
                     /* TODO: Implement reload */
                   }}
                   disabled={activeTab !== "preview"}
-                  className="p-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  className="p-1 text-muted-foreground hover:bg-accent/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                   title="Reload"
                 >
                   <RotateCw className="w-3.5 h-3.5" />
@@ -761,7 +761,7 @@ export default function CodingInterface({
                     /* TODO: Implement open in new tab */
                   }}
                   disabled={activeTab !== "preview"}
-                  className="p-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  className="p-1 text-muted-foreground hover:bg-accent/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                   title="Open in new tab"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -774,7 +774,7 @@ export default function CodingInterface({
                     );
                   }}
                   disabled={activeTab !== "preview"}
-                  className="p-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  className="p-1 text-muted-foreground hover:bg-accent/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                   title={`Current: ${
                     deviceMode.charAt(0).toUpperCase() + deviceMode.slice(1)
                   } - Click to switch`}
@@ -790,7 +790,7 @@ export default function CodingInterface({
                   onClick={() => {
                     setIsFullscreen(!isFullscreen);
                   }}
-                  className="p-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors"
+                  className="p-1 text-muted-foreground hover:bg-accent/10 rounded transition-colors"
                   title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 >
                   {isFullscreen ? (
@@ -817,7 +817,7 @@ export default function CodingInterface({
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden bg-white dark:bg-neutral-900 px-2 pb-2 gap-2">
+      <div className="flex-1 flex overflow-hidden bg-background px-2 pb-2 gap-2">
         {/* Chat Panel - Left Side - Hide in fullscreen */}
         {!isFullscreen && chatPosition === "left" && (
           <div
@@ -841,10 +841,10 @@ export default function CodingInterface({
         )}
 
         {/* Content Panel */}
-        <div className="flex-1 flex overflow-hidden bg-white dark:bg-neutral-900">
+        <div className="flex-1 flex overflow-hidden bg-background">
           <div className="flex-1 flex overflow-hidden">
             {/* Main Panel */}
-            <main className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl relative">
+            <main className="flex-1 overflow-hidden bg-card border border-border rounded-2xl relative">
               {/* Keep PreviewPanel mounted to maintain sandbox across tab switches */}
               <div className={activeTab === "preview" ? "h-full" : "hidden"}>
                 <PreviewPanel
@@ -885,31 +885,31 @@ export default function CodingInterface({
               )}
 
               {activeTab === "database" && (
-                <div className="h-full overflow-auto p-6">
+                <div className="h-full overflow-auto">
                   <DatabasePanel projectId={project.id} />
                 </div>
               )}
 
               {activeTab === "analytics" && (
-                <div className="h-full overflow-auto p-6">
+                <div className="h-full overflow-auto">
                   <AnalyticsPanel projectId={project.id} />
                 </div>
               )}
 
               {activeTab === "logs" && (
-                <div className="h-full overflow-auto p-6">
+                <div className="h-full overflow-auto">
                   <LogsPanel projectId={project.id} />
                 </div>
               )}
 
               {activeTab === "api" && (
-                <div className="h-full overflow-auto p-6">
+                <div className="h-full overflow-auto">
                   <ApiPanel projectId={project.id} />
                 </div>
               )}
 
               {activeTab === "settings" && (
-                <div className="h-full overflow-auto p-6">
+                <div className="h-full overflow-auto">
                   <SettingsPanel
                     projectId={project.id}
                     onProjectUpdate={refreshProject}
@@ -918,7 +918,7 @@ export default function CodingInterface({
               )}
 
               {activeTab === "auth" && (
-                <div className="h-full overflow-auto p-6">
+                <div className="h-full overflow-auto">
                   <AuthPanel projectId={project.id} />
                 </div>
               )}
@@ -929,7 +929,7 @@ export default function CodingInterface({
         {/* Chat Panel - Right Side - Hide in fullscreen */}
         {!isFullscreen && chatPosition === "right" && (
           <div
-            className="flex overflow-hidden bg-white dark:bg-neutral-900"
+            className="flex overflow-hidden bg-background"
             style={{ width: `${chatWidth}%` }}
           >
             {/* Chat Panel - Always Mounted */}

@@ -574,24 +574,24 @@ export default function PreviewPanel({
 
   return (
     <div
-      className={`h-full flex flex-col bg-white dark:bg-neutral-900 ${
+      className={`h-full flex flex-col bg-background ${
         isFullscreen ? "fixed inset-0 z-50" : ""
       }`}
     >
       {/* Preview Toolbar - Hidden since controls moved to main header */}
       {false && (
-        <div className="h-12 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-4">
+        <div className="h-12 border-b border-border flex items-center justify-between px-4">
           <div className="flex items-center gap-2 flex-1">
             {/* Navigation Controls */}
             <div className="flex items-center gap-1">
               <button
                 onClick={handleBack}
                 disabled={sandboxStatus !== "running" || historyIndex <= 0}
-                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1.5 hover:bg-accent/10 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Go back"
               >
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -610,11 +610,11 @@ export default function PreviewPanel({
                   sandboxStatus !== "running" ||
                   historyIndex >= navigationHistory.length - 1
                 }
-                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1.5 hover:bg-accent/10 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Go forward"
               >
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -630,11 +630,11 @@ export default function PreviewPanel({
               <button
                 onClick={handleRefresh}
                 disabled={sandboxStatus !== "running" || isRefreshing}
-                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1.5 hover:bg-accent/10 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Refresh preview"
               >
                 <svg
-                  className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 ${
+                  className={`w-4 h-4 text-muted-foreground ${
                     isRefreshing ? "animate-spin" : ""
                   }`}
                   fill="none"
@@ -663,7 +663,7 @@ export default function PreviewPanel({
                 onBlur={() => setInputRoute(currentRoute)}
                 placeholder="Enter route (e.g., /about)"
                 disabled={sandboxStatus !== "running"}
-                className="flex-1 px-3 py-1 text-xs bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-1 text-xs bg-muted border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
                 type="button"
@@ -671,11 +671,11 @@ export default function PreviewPanel({
                   previewUrl && window.open(previewUrl + currentRoute, "_blank")
                 }
                 disabled={sandboxStatus !== "running"}
-                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1.5 hover:bg-accent/10 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Open in new tab"
               >
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -695,11 +695,11 @@ export default function PreviewPanel({
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={handleVersionDropdownToggle}
-                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+                className="p-1.5 hover:bg-accent/10 rounded-full transition-colors"
                 title="Version History"
               >
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -715,7 +715,7 @@ export default function PreviewPanel({
 
               {/* Dropdown Menu */}
               {showVersionDropdown && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-popover border border-border rounded-xl shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
                   <div className="overflow-y-auto flex-1">
                     {isLoadingVersions ? (
                       <div className="p-6 text-center">
@@ -723,7 +723,7 @@ export default function PreviewPanel({
                       </div>
                     ) : versions.length === 0 ? (
                       <div className="p-6 text-center">
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        <p className="text-sm text-muted-foreground">
                           No versions yet
                         </p>
                       </div>
@@ -743,28 +743,28 @@ export default function PreviewPanel({
                             }
                             className={`w-full p-3 text-left transition-colors disabled:cursor-default ${
                               v.version === version
-                                ? "bg-neutral-100 dark:bg-neutral-800"
-                                : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+                                ? "bg-muted"
+                                : "hover:bg-accent/5"
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                  <span className="text-sm font-medium text-foreground">
                                     Version {v.version}
                                   </span>
                                   {v.version === version && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full">
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary text-primary-foreground rounded-full">
                                       Current
                                     </span>
                                   )}
                                   {v.isPublished && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-700 dark:bg-neutral-300 text-white dark:text-neutral-900 rounded-full">
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-700 dark:bg-neutral-300 text-primary-foreground rounded-full">
                                       Published
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                <p className="text-xs text-muted-foreground">
                                   {getRelativeTime(v.createdAt)}
                                 </p>
                               </div>
@@ -792,14 +792,14 @@ export default function PreviewPanel({
                 const nextIndex = (currentIndex + 1) % modes.length;
                 setDeviceMode(modes[nextIndex]);
               }}
-              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+              className="p-1.5 hover:bg-accent/10 rounded-full transition-colors"
               title={`Current: ${
                 deviceMode.charAt(0).toUpperCase() + deviceMode.slice(1)
               } - Click to switch`}
             >
               {deviceMode === "mobile" && (
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -814,7 +814,7 @@ export default function PreviewPanel({
               )}
               {deviceMode === "tablet" && (
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -829,7 +829,7 @@ export default function PreviewPanel({
               )}
               {deviceMode === "desktop" && (
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -845,12 +845,12 @@ export default function PreviewPanel({
             </button>
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+              className="p-1.5 hover:bg-accent/10 rounded-full transition-colors"
               title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
             >
               {isFullscreen ? (
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -864,7 +864,7 @@ export default function PreviewPanel({
                 </svg>
               ) : (
                 <svg
-                  className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                  className="w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -883,15 +883,15 @@ export default function PreviewPanel({
       )}
 
       {/* Preview Frame */}
-      <div className="flex-1 bg-neutral-50 dark:bg-neutral-900 overflow-auto">
+      <div className="flex-1 bg-background overflow-auto">
         <div className="h-full flex items-center justify-center">
           {/* Show state when preview is not running */}
           {sandboxStatus === "inactive" && (
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                 {isGeneratingFiles ? (
                   <svg
-                    className="w-8 h-8 text-neutral-600 dark:text-neutral-400 animate-pulse"
+                    className="w-8 h-8 text-muted-foreground animate-pulse"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -905,7 +905,7 @@ export default function PreviewPanel({
                   </svg>
                 ) : (
                   <svg
-                    className="w-8 h-8 text-neutral-400 dark:text-neutral-600"
+                    className="w-8 h-8 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -925,14 +925,14 @@ export default function PreviewPanel({
                   </svg>
                 )}
               </div>
-              <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+              <h3 className="text-sm font-medium text-foreground mb-1">
                 {isGeneratingFiles
                   ? "AI is generating your code..."
                   : version > 0
                   ? "Ready to preview"
                   : "No code generated yet"}
               </h3>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="text-xs text-muted-foreground">
                 {isGeneratingFiles
                   ? "Preview will start automatically when complete"
                   : version > 0
@@ -951,9 +951,9 @@ export default function PreviewPanel({
 
           {sandboxStatus === "loading" && (
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                 <svg
-                  className="w-8 h-8 text-neutral-600 dark:text-neutral-400 animate-spin"
+                  className="w-8 h-8 text-muted-foreground animate-spin"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -966,10 +966,10 @@ export default function PreviewPanel({
                   />
                 </svg>
               </div>
-              <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+              <h3 className="text-sm font-medium text-foreground mb-1">
                 {loadingMessage}
               </h3>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="text-xs text-muted-foreground">
                 Setting up Next.js (this may take 20-30 seconds)...
               </p>
             </div>
@@ -977,9 +977,9 @@ export default function PreviewPanel({
 
           {sandboxStatus === "error" && (
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                 <svg
-                  className="w-8 h-8 text-red-600 dark:text-red-400"
+                  className="w-8 h-8 text-neutral-700 dark:text-neutral-300"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -992,15 +992,15 @@ export default function PreviewPanel({
                   />
                 </svg>
               </div>
-              <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+              <h3 className="text-sm font-medium text-foreground mb-1">
                 Preview Failed
               </h3>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 {error || "Something went wrong"}
               </p>
               <button
                 onClick={startSandbox}
-                className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm font-medium rounded-full hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+                className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-full hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
               >
                 Try Again
               </button>
@@ -1009,10 +1009,10 @@ export default function PreviewPanel({
 
           {sandboxStatus === "running" && iframeUrl && (
             <div
-              className="h-full bg-white dark:bg-neutral-900 transition-all duration-300 mx-auto"
+              className="h-full bg-background transition-all duration-300 mx-auto"
               style={{ width: getDeviceWidth() }}
             >
-              <div className="relative h-full border-l border-r border-neutral-200 dark:border-neutral-800">
+              <div className="relative h-full border-l border-r border-border">
                 <iframe
                   src={iframeUrl}
                   className="w-full h-full border-none"
