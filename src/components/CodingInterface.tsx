@@ -245,7 +245,7 @@ export default function CodingInterface({
   // Use ref to avoid creating new function references that cause re-renders
   const streamingFilesRef = useRef<Record<string, string>>({});
   const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [chatPosition, setChatPosition] = useState<"left" | "right">("left");
+  const [chatPosition, setChatPosition] = useState<"left" | "right">("right");
 
   const handleStreamingFiles = useCallback((files: Record<string, string>) => {
     // Merge new files with existing streaming files
@@ -423,11 +423,7 @@ export default function CodingInterface({
         <header className="h-12 bg-background grid grid-cols-3 items-center px-4 flex-shrink-0">
           {/* Left Side - Logo and Project Name */}
           <div className="flex items-center justify-start">
-            <Logo
-              variant="full"
-              className="!h-5"
-              href="/dashboard"
-            />
+            <Logo variant="full" className="!h-5" href="/dashboard" />
             <Separator orientation="vertical" className="h-6 mx-1 ml-3" />
 
             {/* Project Name with Dropdown */}
