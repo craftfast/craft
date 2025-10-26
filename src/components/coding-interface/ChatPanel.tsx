@@ -9,6 +9,8 @@ import "highlight.js/styles/github-dark.min.css";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import PricingModal from "../PricingModal";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import {
   extractDependencyCommands,
   getAllPackages,
@@ -1327,9 +1329,12 @@ export default function ChatPanel({
                       unoptimized
                       onClick={() => setPreviewImage(image)}
                     />
-                    <button
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleRemoveImage(image.id)}
-                      className="absolute top-1 right-1 p-1 bg-popover/80 text-popover-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-popover/80 hover:bg-popover text-popover-foreground"
                       aria-label="Remove image"
                     >
                       <svg
@@ -1345,7 +1350,7 @@ export default function ChatPanel({
                           d="M6 18L18 6M6 6l12 12"
                         />
                       </svg>
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -1353,7 +1358,7 @@ export default function ChatPanel({
 
             {/* Textarea - Main prompt area */}
             <div className="relative">
-              <textarea
+              <Textarea
                 ref={textareaRef}
                 value={input + interimTranscript}
                 onChange={(e) => {
@@ -1366,8 +1371,7 @@ export default function ChatPanel({
                 onKeyDown={handleKeyDown}
                 placeholder="Describe what you want to build or modify..."
                 rows={1}
-                className="w-full p-2 bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-muted-foreground overflow-y-auto scrollbar-minimal"
-                style={{ minHeight: "3.5rem", maxHeight: "288px" }}
+                className="w-full p-2 !border-0 !shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-muted-foreground overflow-y-auto scrollbar-minimal min-h-[3.5rem] max-h-[288px]"
               />
               {/* Show interim transcript indicator */}
               {interimTranscript && (
@@ -1394,9 +1398,12 @@ export default function ChatPanel({
                 />
 
                 {/* Image upload button */}
-                <button
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={handleImageUpload}
-                  className="p-2 rounded-full border border-border hover:bg-muted hover:border-border text-muted-foreground hover:text-foreground transition-colors"
+                  className="rounded-full"
                   aria-label="Attach images"
                   title="Upload images (max 5, 5MB each)"
                 >
@@ -1414,15 +1421,18 @@ export default function ChatPanel({
                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     />
                   </svg>
-                </button>
+                </Button>
 
                 {/* Voice input button */}
-                <button
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={toggleVoiceInput}
-                  className={`p-2 rounded-full border transition-all ${
+                  className={`rounded-full ${
                     isRecording
-                      ? "border-ring bg-muted text-foreground animate-pulse"
-                      : "border-border hover:bg-muted hover:border-ring text-muted-foreground hover:text-foreground"
+                      ? "bg-accent text-accent-foreground animate-pulse"
+                      : ""
                   }`}
                   aria-label={
                     isRecording ? "Stop recording" : "Start voice input"
@@ -1454,14 +1464,16 @@ export default function ChatPanel({
                       />
                     </svg>
                   )}
-                </button>
+                </Button>
               </div>
 
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  type="button"
+                  size="icon"
                   onClick={handleFormSubmit}
                   disabled={!input.trim() || isLoading}
-                  className="p-2 rounded-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-full"
                   aria-label="Submit"
                 >
                   {isLoading ? (
@@ -1500,7 +1512,7 @@ export default function ChatPanel({
                       />
                     </svg>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
 

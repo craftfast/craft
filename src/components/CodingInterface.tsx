@@ -35,6 +35,25 @@ import LogsPanel from "./coding-interface/LogsPanel";
 import ApiPanel from "./coding-interface/ApiPanel";
 import SettingsPanel from "./coding-interface/SettingsPanel";
 import AuthPanel from "./coding-interface/AuthPanel";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type TabType =
   | "preview"
@@ -91,8 +110,6 @@ export default function CodingInterface({
   const [deviceMode, setDeviceMode] = useState<"desktop" | "mobile">("desktop");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
-  const projectMenuRef = useRef<HTMLDivElement>(null);
-  const viewMenuRef = useRef<HTMLDivElement>(null);
   const [streamingFiles, setStreamingFiles] = useState<Record<string, string>>(
     {}
   ); // Files being generated in real-time
@@ -105,32 +122,6 @@ export default function CodingInterface({
       setActiveTab("code");
     }
   }, [isGeneratingFiles]);
-
-  // Close project menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        projectMenuRef.current &&
-        !projectMenuRef.current.contains(event.target as Node)
-      ) {
-        setIsProjectMenuOpen(false);
-      }
-      if (
-        viewMenuRef.current &&
-        !viewMenuRef.current.contains(event.target as Node)
-      ) {
-        setIsViewMenuOpen(false);
-      }
-    };
-
-    if (isProjectMenuOpen || isViewMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isProjectMenuOpen, isViewMenuOpen]);
 
   // Handle ESC key to exit fullscreen
   useEffect(() => {
@@ -426,202 +417,130 @@ export default function CodingInterface({
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
-      {/* Header */}
-      <header className="h-12 bg-background grid grid-cols-3 items-center px-4 flex-shrink-0">
-        {/* Left Side - Logo and Project Name */}
-        <div className="flex items-center justify-start">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="hover:opacity-70 transition-opacity flex-shrink-0 flex items-center"
-          >
-            <Logo variant="extended" className="!h-5" />
-          </button>
-          <div className="h-6 w-px bg-border flex-shrink-0 mx-1 ml-3" />
+    <TooltipProvider>
+      <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
+        {/* Header */}
+        <header className="h-12 bg-background grid grid-cols-3 items-center px-4 flex-shrink-0">
+          {/* Left Side - Logo and Project Name */}
+          <div className="flex items-center justify-start">
+            <Logo
+              variant="full"
+              className="!h-5"
+              href="/dashboard"
+            />
+            <Separator orientation="vertical" className="h-6 mx-1 ml-3" />
 
-          {/* Project Name with Dropdown */}
-          <div className="relative" ref={projectMenuRef}>
-            <button
-              onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
-              className="flex items-center gap-2 px-2 py-1 hover:bg-accent/10 rounded-lg transition-colors"
+            {/* Project Name with Dropdown */}
+            <DropdownMenu
+              open={isProjectMenuOpen}
+              onOpenChange={setIsProjectMenuOpen}
             >
-              <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
-                {project.name}
-              </h1>
-              {/* Visibility Icon */}
-              {projectVisibility === "private" && (
-                <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              )}
-              {projectVisibility === "secret" && (
-                <Link2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              )}
-              {projectVisibility === "public" && (
-                <Globe className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              )}
-              <ChevronDown
-                className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ${
-                  isProjectMenuOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {/* Dropdown Menu */}
-            {isProjectMenuOpen && (
-              <div className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-xl shadow-lg z-50 py-1">
-                <button
-                  onClick={() => {
-                    setIsProjectMenuOpen(false);
-                    // TODO: Implement version history
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 px-2 py-1 h-auto rounded-lg"
                 >
-                  <History className="w-4 h-4" />
+                  <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
+                    {project.name}
+                  </h1>
+                  {/* Visibility Icon */}
+                  {projectVisibility === "private" && (
+                    <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  )}
+                  {projectVisibility === "secret" && (
+                    <Link2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  )}
+                  {projectVisibility === "public" && (
+                    <Globe className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  )}
+                  <ChevronDown
+                    className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ${
+                      isProjectMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="start" className="w-64 rounded-xl">
+                <DropdownMenuItem className="rounded-lg">
+                  <History className="w-4 h-4 mr-3" />
                   <span>Version history</span>
-                </button>
+                </DropdownMenuItem>
 
-                <button
-                  onClick={() => {
-                    setIsProjectMenuOpen(false);
-                    // TODO: Implement rename
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
-                >
-                  <Edit className="w-4 h-4" />
+                <DropdownMenuItem className="rounded-lg">
+                  <Edit className="w-4 h-4 mr-3" />
                   <span>Rename...</span>
-                </button>
+                </DropdownMenuItem>
 
-                <button
-                  onClick={() => {
-                    setIsProjectMenuOpen(false);
-                    // TODO: Implement duplicate
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
-                >
-                  <Copy className="w-4 h-4" />
+                <DropdownMenuItem className="rounded-lg">
+                  <Copy className="w-4 h-4 mr-3" />
                   <span>Duplicate</span>
-                </button>
+                </DropdownMenuItem>
 
-                <button
-                  onClick={() => {
-                    setIsProjectMenuOpen(false);
-                    // TODO: Implement export
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
-                >
-                  <Download className="w-4 h-4" />
+                <DropdownMenuItem className="rounded-lg">
+                  <Download className="w-4 h-4 mr-3" />
                   <span>Export</span>
-                </button>
+                </DropdownMenuItem>
 
-                <div className="border-t border-border my-1" />
+                <DropdownMenuSeparator />
 
-                <div className="relative">
-                  <button
-                    onMouseEnter={() => setIsVisibilitySubmenuOpen(true)}
-                    onMouseLeave={() => setIsVisibilitySubmenuOpen(false)}
-                    onClick={() =>
-                      setIsVisibilitySubmenuOpen(!isVisibilitySubmenuOpen)
-                    }
-                    className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
-                  >
-                    <Eye className="w-4 h-4" />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="rounded-lg">
+                    <Eye className="w-4 h-4 mr-3" />
                     <div className="flex-1 flex items-center justify-between">
                       <span>Visibility</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground capitalize">
-                          {projectVisibility}
-                        </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                      </div>
+                      <span className="text-xs text-muted-foreground capitalize ml-2">
+                        {projectVisibility}
+                      </span>
                     </div>
-                  </button>
-
-                  {/* Visibility Submenu */}
-                  {isVisibilitySubmenuOpen && (
-                    <div
-                      onMouseEnter={() => setIsVisibilitySubmenuOpen(true)}
-                      onMouseLeave={() => setIsVisibilitySubmenuOpen(false)}
-                      className="absolute left-full top-0 ml-1 w-64 bg-popover border border-border rounded-xl shadow-xl z-50 py-1"
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-64 rounded-xl">
+                    <DropdownMenuItem
+                      onClick={() => setProjectVisibility("public")}
+                      className="rounded-lg flex-col items-start gap-1"
                     >
-                      <button
-                        onClick={() => {
-                          setProjectVisibility("public");
-                          setIsVisibilitySubmenuOpen(false);
-                          setIsProjectMenuOpen(false);
-                          // TODO: Update project visibility to public
-                        }}
-                        className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Globe className="w-4 h-4 text-muted-foreground" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium text-popover-foreground">
-                              Public
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Everyone can view
-                            </div>
-                          </div>
-                        </div>
-                      </button>
+                      <div className="flex items-center gap-3 w-full">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
+                        <div className="text-sm font-medium">Public</div>
+                      </div>
+                      <div className="text-xs text-muted-foreground ml-7">
+                        Everyone can view
+                      </div>
+                    </DropdownMenuItem>
 
-                      <button
-                        onClick={() => {
-                          setProjectVisibility("secret");
-                          setIsVisibilitySubmenuOpen(false);
-                          setIsProjectMenuOpen(false);
-                          // TODO: Update project visibility to secret
-                        }}
-                        className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Link2 className="w-4 h-4 text-muted-foreground" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium text-popover-foreground">
-                              Secret
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Accessible via shared URL
-                            </div>
-                          </div>
-                        </div>
-                      </button>
+                    <DropdownMenuItem
+                      onClick={() => setProjectVisibility("secret")}
+                      className="rounded-lg flex-col items-start gap-1"
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        <Link2 className="w-4 h-4 text-muted-foreground" />
+                        <div className="text-sm font-medium">Secret</div>
+                      </div>
+                      <div className="text-xs text-muted-foreground ml-7">
+                        Accessible via shared URL
+                      </div>
+                    </DropdownMenuItem>
 
-                      <button
-                        onClick={() => {
-                          setProjectVisibility("private");
-                          setIsVisibilitySubmenuOpen(false);
-                          setIsProjectMenuOpen(false);
-                          // TODO: Update project visibility to private
-                        }}
-                        className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Lock className="w-4 h-4 text-muted-foreground" />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium text-popover-foreground">
-                              Private
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Only owner can access
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    <DropdownMenuItem
+                      onClick={() => setProjectVisibility("private")}
+                      className="rounded-lg flex-col items-start gap-1"
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                        <div className="text-sm font-medium">Private</div>
+                      </div>
+                      <div className="text-xs text-muted-foreground ml-7">
+                        Only owner can access
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
 
-                <div className="border-t border-border my-1" />
+                <DropdownMenuSeparator />
 
-                <button
-                  onClick={() => {
-                    setIsProjectMenuOpen(false);
-                    // TODO: Implement share
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
-                >
+                <DropdownMenuItem className="rounded-lg">
                   <svg
-                    className="w-4 h-4"
+                    className="w-4 h-4 mr-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -634,17 +553,11 @@ export default function CodingInterface({
                     />
                   </svg>
                   <span>Share</span>
-                </button>
+                </DropdownMenuItem>
 
-                <button
-                  onClick={() => {
-                    setIsProjectMenuOpen(false);
-                    // TODO: Implement deploy
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/10 transition-colors flex items-center gap-3"
-                >
+                <DropdownMenuItem className="rounded-lg">
                   <svg
-                    className="w-4 h-4"
+                    className="w-4 h-4 mr-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -657,305 +570,340 @@ export default function CodingInterface({
                     />
                   </svg>
                   <span>Deploy</span>
-                </button>
-              </div>
-            )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </div>
 
-        {/* Center - URL Bar with View Switcher */}
-        <div className="flex items-center justify-center px-8">
-          {/* URL Bar - Always visible */}
-          <div className="flex items-center gap-2 max-w-xl w-full">
-            <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
-              {/* View Switcher - Left side of URL bar */}
-              <div className="relative flex-shrink-0" ref={viewMenuRef}>
-                <button
-                  onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
-                  className="px-2 py-1 text-xs font-medium text-foreground hover:bg-accent/10 rounded transition-colors flex items-center gap-1.5"
+          {/* Center - URL Bar with View Switcher */}
+          <div className="flex items-center justify-center px-8">
+            {/* URL Bar - Always visible */}
+            <div className="flex items-center gap-2 max-w-xl w-full">
+              <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
+                {/* View Switcher - Left side of URL bar */}
+                <DropdownMenu
+                  open={isViewMenuOpen}
+                  onOpenChange={setIsViewMenuOpen}
                 >
-                  {/* Show current view icon */}
-                  {allViews.find((view) => view.id === activeTab)?.icon && (
-                    <>
-                      {(() => {
-                        const Icon = allViews.find(
-                          (view) => view.id === activeTab
-                        )?.icon;
-                        return Icon ? <Icon className="w-3 h-3" /> : null;
-                      })()}
-                    </>
-                  )}
-                  {allViews.find((view) => view.id === activeTab)?.svg && (
-                    <div className="w-3 h-3">
-                      {allViews.find((view) => view.id === activeTab)?.svg}
-                    </div>
-                  )}
-                  <span className="text-xs">
-                    {allViews.find((view) => view.id === activeTab)?.label ||
-                      "View"}
-                  </span>
-                  <ChevronDown
-                    className={`w-3 h-3 transition-transform ${
-                      isViewMenuOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="px-2 py-1 text-xs font-medium h-auto rounded-md flex items-center gap-1.5"
+                    >
+                      {/* Show current view icon */}
+                      {allViews.find((view) => view.id === activeTab)?.icon && (
+                        <>
+                          {(() => {
+                            const Icon = allViews.find(
+                              (view) => view.id === activeTab
+                            )?.icon;
+                            return Icon ? <Icon className="w-3 h-3" /> : null;
+                          })()}
+                        </>
+                      )}
+                      {allViews.find((view) => view.id === activeTab)?.svg && (
+                        <div className="w-3 h-3">
+                          {allViews.find((view) => view.id === activeTab)?.svg}
+                        </div>
+                      )}
+                      <span className="text-xs">
+                        {allViews.find((view) => view.id === activeTab)
+                          ?.label || "View"}
+                      </span>
+                      <ChevronDown
+                        className={`w-3 h-3 transition-transform ${
+                          isViewMenuOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </Button>
+                  </DropdownMenuTrigger>
 
-                {isViewMenuOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-40 bg-popover border border-border rounded-xl shadow-lg z-50 py-1">
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-40 rounded-xl"
+                  >
                     {allViews.map((view, index) => (
                       <div key={view.id}>
-                        {index === 2 && (
-                          <div className="border-t border-border my-1" />
-                        )}
-                        <button
-                          onClick={() => {
-                            setActiveTab(view.id);
-                            setIsViewMenuOpen(false);
-                          }}
-                          className={`w-full px-3 py-2 text-left text-xs hover:bg-accent/10 transition-colors flex items-center gap-2 ${
-                            activeTab === view.id
-                              ? "text-foreground font-medium"
-                              : "text-muted-foreground"
+                        {index === 2 && <DropdownMenuSeparator />}
+                        <DropdownMenuItem
+                          onClick={() => setActiveTab(view.id)}
+                          className={`rounded-lg text-xs ${
+                            activeTab === view.id ? "font-medium" : ""
                           }`}
                         >
-                          {view.icon && <view.icon className="w-3.5 h-3.5" />}
+                          {view.icon && (
+                            <view.icon className="w-3.5 h-3.5 mr-2" />
+                          )}
                           {view.svg && (
-                            <div className="w-3.5 h-3.5">{view.svg}</div>
+                            <div className="w-3.5 h-3.5 mr-2">{view.svg}</div>
                           )}
                           <span>{view.label}</span>
-                        </button>
+                        </DropdownMenuItem>
                       </div>
                     ))}
-                  </div>
-                )}
-              </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
-              {/* Separator */}
-              <div className="h-4 w-px bg-border flex-shrink-0" />
+                {/* Separator */}
+                <Separator orientation="vertical" className="h-4" />
 
-              <input
-                type="text"
-                value={previewUrl}
-                onChange={(e) => setPreviewUrl(e.target.value)}
-                placeholder="/"
-                disabled={activeTab !== "preview"}
-                className="flex-1 bg-transparent text-xs text-foreground outline-none min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-
-              {/* Preview Controls - Inside URL Bar */}
-              <div className="flex items-center gap-0.5 border-l border-border pl-2">
-                <button
-                  onClick={() => {
-                    /* TODO: Implement reload */
-                  }}
+                <Input
+                  type="text"
+                  value={previewUrl}
+                  onChange={(e) => setPreviewUrl(e.target.value)}
+                  placeholder="/"
                   disabled={activeTab !== "preview"}
-                  className="p-1 text-muted-foreground hover:bg-accent/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                  title="Reload"
-                >
-                  <RotateCw className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    /* TODO: Implement open in new tab */
-                  }}
-                  disabled={activeTab !== "preview"}
-                  className="p-1 text-muted-foreground hover:bg-accent/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                  title="Open in new tab"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    setDeviceMode(
-                      deviceMode === "desktop" ? "mobile" : "desktop"
-                    );
-                  }}
-                  disabled={activeTab !== "preview"}
-                  className="p-1 text-muted-foreground hover:bg-accent/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                  title={`Current: ${
-                    deviceMode.charAt(0).toUpperCase() + deviceMode.slice(1)
-                  } - Click to switch`}
-                >
-                  {deviceMode === "desktop" ? (
-                    <Monitor className="w-3.5 h-3.5" />
-                  ) : (
-                    <Smartphone className="w-3.5 h-3.5" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setIsFullscreen(!isFullscreen);
-                  }}
-                  className="p-1 text-muted-foreground hover:bg-accent/10 rounded transition-colors"
-                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-                >
-                  {isFullscreen ? (
-                    <Minimize className="w-3.5 h-3.5" />
-                  ) : (
-                    <Maximize className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Spacer removed - URL bar always visible */}
-        </div>
-
-        {/* Right Side - Token Counter and User Profile */}
-        <div className="flex items-center justify-end gap-2">
-          {/* Token Counter */}
-          <TokenCounter onClickAction={() => setIsPricingModalOpen(true)} />
-
-          {/* User Profile Menu */}
-          {user && <UserMenu user={user} />}
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden bg-background px-2 pb-2 gap-2">
-        {/* Chat Panel - Left Side - Hide in fullscreen */}
-        {!isFullscreen && chatPosition === "left" && (
-          <div
-            className="flex overflow-hidden "
-            style={{ width: `${chatWidth}%` }}
-          >
-            {/* Chat Panel - Always Mounted */}
-            <div className="flex-1 overflow-hidden">
-              <ChatPanel
-                projectId={project.id}
-                projectDescription={project.description}
-                projectVersion={project.version}
-                projectFiles={projectFiles}
-                onFilesCreated={handleFilesCreated}
-                onStreamingFiles={handleStreamingFiles}
-                onGeneratingStatusChange={setIsGeneratingFiles}
-                onFileClick={handleFileClick}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Content Panel */}
-        <div className="flex-1 flex overflow-hidden bg-background">
-          <div className="flex-1 flex overflow-hidden">
-            {/* Main Panel */}
-            <main className="flex-1 overflow-hidden bg-card border border-border rounded-2xl relative">
-              {/* Keep PreviewPanel mounted to maintain sandbox across tab switches */}
-              <div className={activeTab === "preview" ? "h-full" : "hidden"}>
-                <PreviewPanel
-                  projectId={project.id}
-                  projectFiles={projectFiles}
-                  isGeneratingFiles={isGeneratingFiles}
-                  generationStatus={project.generationStatus}
-                  version={project.version}
-                  packages={pendingPackages}
-                  onPackagesInstalled={() => setPendingPackages([])}
-                  deviceMode={deviceMode}
-                  previewUrl={previewUrl}
-                  onRefreshProject={async () => {
-                    // Reload project files after restore
-                    const response = await fetch(
-                      `/api/files?projectId=${project.id}`
-                    );
-                    if (response.ok) {
-                      const data = await response.json();
-                      setProjectFiles(data.codeFiles || data.files || {});
-                    }
-                    // Refresh project data
-                    await refreshProject();
-                  }}
+                  className="flex-1 bg-transparent text-xs border-none shadow-none focus-visible:ring-0 min-w-0 h-auto p-0 disabled:opacity-50"
                 />
-              </div>
 
-              {activeTab === "code" && (
-                <CodeEditor
+                {/* Preview Controls - Inside URL Bar */}
+                <div className="flex items-center gap-0.5 border-l border-border pl-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => {
+                          /* TODO: Implement reload */
+                        }}
+                        disabled={activeTab !== "preview"}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-md"
+                      >
+                        <RotateCw className="w-3.5 h-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Reload</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => {
+                          /* TODO: Implement open in new tab */
+                        }}
+                        disabled={activeTab !== "preview"}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-md"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Open in new tab</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => {
+                          setDeviceMode(
+                            deviceMode === "desktop" ? "mobile" : "desktop"
+                          );
+                        }}
+                        disabled={activeTab !== "preview"}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-md"
+                      >
+                        {deviceMode === "desktop" ? (
+                          <Monitor className="w-3.5 h-3.5" />
+                        ) : (
+                          <Smartphone className="w-3.5 h-3.5" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {deviceMode.charAt(0).toUpperCase() +
+                          deviceMode.slice(1)}{" "}
+                        - Click to switch
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => {
+                          setIsFullscreen(!isFullscreen);
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-md"
+                      >
+                        {isFullscreen ? (
+                          <Minimize className="w-3.5 h-3.5" />
+                        ) : (
+                          <Maximize className="w-3.5 h-3.5" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isFullscreen ? "Exit fullscreen" : "Fullscreen"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            </div>
+
+            {/* Spacer removed - URL bar always visible */}
+          </div>
+
+          {/* Right Side - Token Counter and User Profile */}
+          <div className="flex items-center justify-end gap-2">
+            {/* Token Counter */}
+            <TokenCounter onClickAction={() => setIsPricingModalOpen(true)} />
+
+            {/* User Profile Menu */}
+            {user && <UserMenu user={user} />}
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex overflow-hidden bg-background px-2 pb-2 gap-2">
+          {/* Chat Panel - Left Side - Hide in fullscreen */}
+          {!isFullscreen && chatPosition === "left" && (
+            <div
+              className="flex overflow-hidden "
+              style={{ width: `${chatWidth}%` }}
+            >
+              {/* Chat Panel - Always Mounted */}
+              <div className="flex-1 overflow-hidden">
+                <ChatPanel
                   projectId={project.id}
+                  projectDescription={project.description}
+                  projectVersion={project.version}
                   projectFiles={projectFiles}
-                  streamingFiles={streamingFiles}
-                  isGenerating={isGeneratingFiles}
+                  onFilesCreated={handleFilesCreated}
+                  onStreamingFiles={handleStreamingFiles}
+                  onGeneratingStatusChange={setIsGeneratingFiles}
                   onFileClick={handleFileClick}
-                  selectedFileFromChat={selectedFileFromChat}
-                  onFileSelected={() => setSelectedFileFromChat(null)}
                 />
-              )}
+              </div>
+            </div>
+          )}
 
-              {activeTab === "database" && (
-                <div className="h-full overflow-auto">
-                  <DatabasePanel projectId={project.id} />
-                </div>
-              )}
-
-              {activeTab === "analytics" && (
-                <div className="h-full overflow-auto">
-                  <AnalyticsPanel projectId={project.id} />
-                </div>
-              )}
-
-              {activeTab === "logs" && (
-                <div className="h-full overflow-auto">
-                  <LogsPanel projectId={project.id} />
-                </div>
-              )}
-
-              {activeTab === "api" && (
-                <div className="h-full overflow-auto">
-                  <ApiPanel projectId={project.id} />
-                </div>
-              )}
-
-              {activeTab === "settings" && (
-                <div className="h-full overflow-auto">
-                  <SettingsPanel
+          {/* Content Panel */}
+          <div className="flex-1 flex overflow-hidden bg-background">
+            <div className="flex-1 flex overflow-hidden">
+              {/* Main Panel */}
+              <main className="flex-1 overflow-hidden bg-card border border-border rounded-2xl relative">
+                {/* Keep PreviewPanel mounted to maintain sandbox across tab switches */}
+                <div className={activeTab === "preview" ? "h-full" : "hidden"}>
+                  <PreviewPanel
                     projectId={project.id}
-                    onProjectUpdate={refreshProject}
+                    projectFiles={projectFiles}
+                    isGeneratingFiles={isGeneratingFiles}
+                    generationStatus={project.generationStatus}
+                    version={project.version}
+                    packages={pendingPackages}
+                    onPackagesInstalled={() => setPendingPackages([])}
+                    deviceMode={deviceMode}
+                    previewUrl={previewUrl}
+                    onRefreshProject={async () => {
+                      // Reload project files after restore
+                      const response = await fetch(
+                        `/api/files?projectId=${project.id}`
+                      );
+                      if (response.ok) {
+                        const data = await response.json();
+                        setProjectFiles(data.codeFiles || data.files || {});
+                      }
+                      // Refresh project data
+                      await refreshProject();
+                    }}
                   />
                 </div>
-              )}
 
-              {activeTab === "auth" && (
-                <div className="h-full overflow-auto">
-                  <AuthPanel projectId={project.id} />
-                </div>
-              )}
-            </main>
-          </div>
-        </div>
+                {activeTab === "code" && (
+                  <CodeEditor
+                    projectId={project.id}
+                    projectFiles={projectFiles}
+                    streamingFiles={streamingFiles}
+                    isGenerating={isGeneratingFiles}
+                    onFileClick={handleFileClick}
+                    selectedFileFromChat={selectedFileFromChat}
+                    onFileSelected={() => setSelectedFileFromChat(null)}
+                  />
+                )}
 
-        {/* Chat Panel - Right Side - Hide in fullscreen */}
-        {!isFullscreen && chatPosition === "right" && (
-          <div
-            className="flex overflow-hidden bg-background"
-            style={{ width: `${chatWidth}%` }}
-          >
-            {/* Chat Panel - Always Mounted */}
-            <div className="flex-1 overflow-hidden">
-              <ChatPanel
-                projectId={project.id}
-                projectDescription={project.description}
-                projectVersion={project.version}
-                projectFiles={projectFiles}
-                onFilesCreated={handleFilesCreated}
-                onStreamingFiles={handleStreamingFiles}
-                onGeneratingStatusChange={setIsGeneratingFiles}
-                onFileClick={handleFileClick}
-              />
+                {activeTab === "database" && (
+                  <div className="h-full overflow-auto">
+                    <DatabasePanel projectId={project.id} />
+                  </div>
+                )}
+
+                {activeTab === "analytics" && (
+                  <div className="h-full overflow-auto">
+                    <AnalyticsPanel projectId={project.id} />
+                  </div>
+                )}
+
+                {activeTab === "logs" && (
+                  <div className="h-full overflow-auto">
+                    <LogsPanel projectId={project.id} />
+                  </div>
+                )}
+
+                {activeTab === "api" && (
+                  <div className="h-full overflow-auto">
+                    <ApiPanel projectId={project.id} />
+                  </div>
+                )}
+
+                {activeTab === "settings" && (
+                  <div className="h-full overflow-auto">
+                    <SettingsPanel
+                      projectId={project.id}
+                      onProjectUpdate={refreshProject}
+                    />
+                  </div>
+                )}
+
+                {activeTab === "auth" && (
+                  <div className="h-full overflow-auto">
+                    <AuthPanel projectId={project.id} />
+                  </div>
+                )}
+              </main>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Pricing Modal */}
-      <PricingModal
-        isOpen={isPricingModalOpen}
-        onClose={() => setIsPricingModalOpen(false)}
-        currentPlan={planName}
-        showTokensOnly={true}
-      />
-    </div>
+          {/* Chat Panel - Right Side - Hide in fullscreen */}
+          {!isFullscreen && chatPosition === "right" && (
+            <div
+              className="flex overflow-hidden bg-background"
+              style={{ width: `${chatWidth}%` }}
+            >
+              {/* Chat Panel - Always Mounted */}
+              <div className="flex-1 overflow-hidden">
+                <ChatPanel
+                  projectId={project.id}
+                  projectDescription={project.description}
+                  projectVersion={project.version}
+                  projectFiles={projectFiles}
+                  onFilesCreated={handleFilesCreated}
+                  onStreamingFiles={handleStreamingFiles}
+                  onGeneratingStatusChange={setIsGeneratingFiles}
+                  onFileClick={handleFileClick}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pricing Modal */}
+        <PricingModal
+          isOpen={isPricingModalOpen}
+          onClose={() => setIsPricingModalOpen(false)}
+          currentPlan={planName}
+          showTokensOnly={true}
+        />
+      </div>
+    </TooltipProvider>
   );
 }
