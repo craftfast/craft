@@ -1038,7 +1038,7 @@ export default function ChatPanel({
   return (
     <div className="h-full flex flex-col bg-white dark:bg-neutral-900 overflow-x-hidden">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 scrollbar-minimal">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-0 py-6 scrollbar-minimal">
         <div className="max-w-3xl mx-auto space-y-6">
           {messages.map((message: Message, index: number) => {
             // Calculate version number based on how many messages with file changes
@@ -1307,9 +1307,9 @@ export default function ChatPanel({
       </div>
 
       {/* Input Area */}
-      <div className="border-neutral-200 dark:border-neutral-800 p-2 pl-4">
+      <div className="border-neutral-200 dark:border-neutral-800 px-0">
         <div className="max-w-3xl mx-auto">
-          <div className="rounded-2xl px-2 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm hover:shadow-md focus-within:shadow-lg transition-shadow">
+          <div className="rounded-2xl px-2 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 transition-shadow">
             {/* Image Attachments - Above the textarea */}
             {selectedImages.length > 0 && (
               <div className="flex flex-wrap gap-2 pb-2">

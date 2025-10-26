@@ -426,7 +426,7 @@ export default function CodingInterface({
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-neutral-50 dark:bg-neutral-950">
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-white dark:bg-neutral-900">
       {/* Header */}
       <header className="h-12 bg-white dark:bg-neutral-900 grid grid-cols-3 items-center px-4 flex-shrink-0">
         {/* Left Side - Logo and Project Name */}
@@ -817,11 +817,11 @@ export default function CodingInterface({
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden bg-white dark:bg-neutral-900 px-2 pb-2 gap-2">
         {/* Chat Panel - Left Side - Hide in fullscreen */}
         {!isFullscreen && chatPosition === "left" && (
           <div
-            className="flex overflow-hidden bg-white dark:bg-neutral-900"
+            className="flex overflow-hidden "
             style={{ width: `${chatWidth}%` }}
           >
             {/* Chat Panel - Always Mounted */}
@@ -841,7 +841,7 @@ export default function CodingInterface({
         )}
 
         {/* Content Panel */}
-        <div className="flex-1 flex overflow-hidden bg-white dark:bg-neutral-900 px-2 pb-2">
+        <div className="flex-1 flex overflow-hidden bg-white dark:bg-neutral-900">
           <div className="flex-1 flex overflow-hidden">
             {/* Main Panel */}
             <main className="flex-1 overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl relative">
