@@ -64,7 +64,14 @@ export default async function ProjectCodingPage({ params }: PageProps) {
 
   return (
     <CodingInterface
-      project={project}
+      project={{
+        ...project,
+        visibility: project.visibility as
+          | "public"
+          | "secret"
+          | "private"
+          | undefined,
+      }}
       user={session.user}
       planName={planName}
     />

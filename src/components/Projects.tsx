@@ -323,7 +323,7 @@ export default function Projects() {
                         {getRelativeTime(project.createdAt)}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-foreground mb-2">
+                    <h3 className="font-semibold text-foreground mb-2 line-clamp-1 break-words">
                       {project.name}
                     </h3>
                     <p className="text-sm text-stone-600 dark:text-neutral-400 line-clamp-2">
@@ -349,7 +349,7 @@ export default function Projects() {
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground mb-1">
+                      <h3 className="font-semibold text-foreground mb-1 truncate">
                         {project.name}
                       </h3>
                       <p className="text-sm text-stone-600 dark:text-neutral-400 truncate">

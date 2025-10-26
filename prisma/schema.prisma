@@ -71,6 +71,7 @@ model Project {
   description      String?
   type             String           @default("document")
   status           String           @default("active")
+  visibility       String           @default("private") // "public" | "secret" | "private"
   userId           String
   version          Int              @default(0) // v0 = template, v1+ = AI updates (for billing & history)
   generationStatus String           @default("template") // "template" | "generating" | "ready"

@@ -136,7 +136,7 @@ export default function RecentProjects() {
                   {getRelativeTime(project.createdAt)}
                 </span>
               </div>
-              <h3 className="font-semibold text-card-foreground mb-2">
+              <h3 className="font-semibold text-card-foreground mb-2 line-clamp-1 break-words">
                 {project.name}
               </h3>
               <p className="text-sm text-muted-foreground line-clamp-2">

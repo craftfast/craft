@@ -88,7 +88,7 @@ export async function PATCH(
         }
 
         const body = await req.json();
-        const { name, description } = body;
+        const { name, description, visibility } = body;
 
         const updatedProject = await prisma.project.update({
             where: { id },
@@ -97,6 +97,7 @@ export async function PATCH(
                 ...(description !== undefined && {
                     description: description?.trim() || null,
                 }),
+                ...(visibility !== undefined && { visibility }),
             },
         });
 

@@ -27,14 +27,8 @@ import UserMenu from "./UserMenu";
 import TokenCounter from "./TokenCounter";
 import PricingModal from "./PricingModal";
 import ChatPanel from "./coding-interface/ChatPanel";
-import PreviewPanel from "./coding-interface/PreviewPanel";
+import PreviewPanel, { PreviewPanelRef } from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
-import DatabasePanel from "./coding-interface/DatabasePanel";
-import AnalyticsPanel from "./coding-interface/AnalyticsPanel";
-import LogsPanel from "./coding-interface/LogsPanel";
-import ApiPanel from "./coding-interface/ApiPanel";
-import SettingsPanel from "./coding-interface/SettingsPanel";
-import AuthPanel from "./coding-interface/AuthPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -47,6 +41,14 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -69,6 +71,7 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
+  visibility?: "public" | "secret" | "private";
   version?: number; // v0 = template, v1+ = AI updates
   generationStatus?: string; // "template" | "generating" | "ready"
   lastCodeUpdateAt?: Date | null;
@@ -105,7 +108,7 @@ export default function CodingInterface({
   const [isVisibilitySubmenuOpen, setIsVisibilitySubmenuOpen] = useState(false);
   const [projectVisibility, setProjectVisibility] = useState<
     "public" | "secret" | "private"
-  >("private");
+  >(project.visibility || "private");
   const [previewUrl, setPreviewUrl] = useState("/");
   const [deviceMode, setDeviceMode] = useState<"desktop" | "mobile">("desktop");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -114,6 +117,16 @@ export default function CodingInterface({
     {}
   ); // Files being generated in real-time
   const [pendingPackages, setPendingPackages] = useState<string[]>([]); // Packages to install on next preview
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareUrlCopied, setShareUrlCopied] = useState(false);
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false);
   const chatWidth = 30; // Fixed at 30%
 
   // Auto-switch to code tab when AI starts generating files
@@ -197,6 +210,159 @@ export default function CodingInterface({
       console.error("Error refreshing project:", error);
     }
     return null;
+  };
+
+  // Function to handle project rename
+  const handleRenameProject = async () => {
+    if (!newProjectName.trim() || newProjectName.trim() === project.name) {
+      setIsRenameDialogOpen(false);
+      return;
+    }
+
+    setIsRenaming(true);
+    try {
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: newProjectName.trim() }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProject(data.project);
+        setIsRenameDialogOpen(false);
+        setNewProjectName("");
+      } else {
+        console.error("Failed to rename project");
+      }
+    } catch (error) {
+      console.error("Error renaming project:", error);
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  // Function to handle project duplication
+  const handleDuplicateProject = async () => {
+    setIsDuplicating(true);
+    try {
+      const response = await fetch(`/api/projects/${project.id}/duplicate`, {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Redirect to the duplicated project
+        router.push(`/chat/${data.project.id}`);
+      } else {
+        console.error("Failed to duplicate project");
+      }
+    } catch (error) {
+      console.error("Error duplicating project:", error);
+    } finally {
+      setIsDuplicating(false);
+    }
+  };
+
+  // Function to handle project export
+  const handleExportProject = () => {
+    // Create a simple text representation of the project files
+    let exportContent = `# ${project.name}\n\n`;
+    if (project.description) {
+      exportContent += `${project.description}\n\n`;
+    }
+    exportContent += `## Files\n\n`;
+
+    // Add each file with its content
+    Object.entries(projectFiles).forEach(([path, content]) => {
+      exportContent += `### ${path}\n\`\`\`\n${content}\n\`\`\`\n\n`;
+    });
+
+    // Create a blob and download it
+    const blob = new Blob([exportContent], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${project.name.replace(/[^a-z0-9]/gi, "-")}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Function to handle visibility change
+  const handleVisibilityChange = async (
+    newVisibility: "public" | "secret" | "private"
+  ) => {
+    const previousVisibility = projectVisibility;
+    setProjectVisibility(newVisibility);
+
+    try {
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ visibility: newVisibility }),
+      });
+
+      if (!response.ok) {
+        // Revert on error
+        setProjectVisibility(previousVisibility);
+        console.error("Failed to update visibility");
+      }
+    } catch (error) {
+      // Revert on error
+      setProjectVisibility(previousVisibility);
+      console.error("Error updating visibility:", error);
+    }
+  };
+
+  // Function to copy share URL
+  const handleCopyShareUrl = () => {
+    const shareUrl = `${window.location.origin}/project/${project.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    setShareUrlCopied(true);
+    setTimeout(() => setShareUrlCopied(false), 2000);
+  };
+
+  // Function to load version history
+  const loadVersionHistory = async () => {
+    setIsLoadingVersions(true);
+    try {
+      const response = await fetch(`/api/projects/${project.id}/versions`);
+      if (response.ok) {
+        const data = await response.json();
+        setVersions(data.versions || []);
+      }
+    } catch (error) {
+      console.error("Error loading versions:", error);
+    } finally {
+      setIsLoadingVersions(false);
+    }
+  };
+
+  // Function to restore a version
+  const handleRestoreVersion = async (versionId: string) => {
+    try {
+      const response = await fetch(
+        `/api/projects/${project.id}/versions/${versionId}`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (response.ok) {
+        // Reload the page to show restored version
+        window.location.reload();
+      } else {
+        console.error("Failed to restore version");
+      }
+    } catch (error) {
+      console.error("Error restoring version:", error);
+    }
   };
 
   // Function to handle files created from chat
@@ -283,6 +449,9 @@ export default function CodingInterface({
     string | null
   >(null);
 
+  // Ref to trigger PreviewPanel actions
+  const previewPanelRef = useRef<PreviewPanelRef | null>(null);
+
   const allViews = [
     {
       id: "preview" as const,
@@ -299,7 +468,7 @@ export default function CodingInterface({
       label: "Database",
       svg: (
         <svg
-          className="w-4 h-4"
+          className="w-3.5 h-3.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -318,7 +487,7 @@ export default function CodingInterface({
       label: "Analytics",
       svg: (
         <svg
-          className="w-4 h-4"
+          className="w-3.5 h-3.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -337,7 +506,7 @@ export default function CodingInterface({
       label: "Logs",
       svg: (
         <svg
-          className="w-4 h-4"
+          className="w-3.5 h-3.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -356,7 +525,7 @@ export default function CodingInterface({
       label: "API",
       svg: (
         <svg
-          className="w-4 h-4"
+          className="w-3.5 h-3.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -375,7 +544,7 @@ export default function CodingInterface({
       label: "Settings",
       svg: (
         <svg
-          className="w-4 h-4"
+          className="w-3.5 h-3.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -400,7 +569,7 @@ export default function CodingInterface({
       label: "Auth",
       svg: (
         <svg
-          className="w-4 h-4"
+          className="w-3.5 h-3.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -458,22 +627,49 @@ export default function CodingInterface({
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="start" className="w-64 rounded-xl">
-                <DropdownMenuItem className="rounded-lg">
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
+                    loadVersionHistory();
+                    setIsVersionHistoryOpen(true);
+                    setIsProjectMenuOpen(false);
+                  }}
+                >
                   <History className="w-4 h-4 mr-3" />
                   <span>Version history</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem className="rounded-lg">
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
+                    setNewProjectName(project.name);
+                    setIsRenameDialogOpen(true);
+                    setIsProjectMenuOpen(false);
+                  }}
+                >
                   <Edit className="w-4 h-4 mr-3" />
                   <span>Rename...</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem className="rounded-lg">
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
+                    handleDuplicateProject();
+                    setIsProjectMenuOpen(false);
+                  }}
+                  disabled={isDuplicating}
+                >
                   <Copy className="w-4 h-4 mr-3" />
-                  <span>Duplicate</span>
+                  <span>{isDuplicating ? "Duplicating..." : "Duplicate"}</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem className="rounded-lg">
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
+                    handleExportProject();
+                    setIsProjectMenuOpen(false);
+                  }}
+                >
                   <Download className="w-4 h-4 mr-3" />
                   <span>Export</span>
                 </DropdownMenuItem>
@@ -492,7 +688,7 @@ export default function CodingInterface({
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="w-64 rounded-xl">
                     <DropdownMenuItem
-                      onClick={() => setProjectVisibility("public")}
+                      onClick={() => handleVisibilityChange("public")}
                       className="rounded-lg flex-col items-start gap-1"
                     >
                       <div className="flex items-center gap-3 w-full">
@@ -505,7 +701,7 @@ export default function CodingInterface({
                     </DropdownMenuItem>
 
                     <DropdownMenuItem
-                      onClick={() => setProjectVisibility("secret")}
+                      onClick={() => handleVisibilityChange("secret")}
                       className="rounded-lg flex-col items-start gap-1"
                     >
                       <div className="flex items-center gap-3 w-full">
@@ -518,7 +714,7 @@ export default function CodingInterface({
                     </DropdownMenuItem>
 
                     <DropdownMenuItem
-                      onClick={() => setProjectVisibility("private")}
+                      onClick={() => handleVisibilityChange("private")}
                       className="rounded-lg flex-col items-start gap-1"
                     >
                       <div className="flex items-center gap-3 w-full">
@@ -534,7 +730,13 @@ export default function CodingInterface({
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem className="rounded-lg">
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
+                    setIsShareDialogOpen(true);
+                    setIsProjectMenuOpen(false);
+                  }}
+                >
                   <svg
                     className="w-4 h-4 mr-3"
                     fill="none"
@@ -551,7 +753,13 @@ export default function CodingInterface({
                   <span>Share</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem className="rounded-lg">
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
+                    setIsDeployDialogOpen(true);
+                    setIsProjectMenuOpen(false);
+                  }}
+                >
                   <svg
                     className="w-4 h-4 mr-3"
                     fill="none"
@@ -575,7 +783,7 @@ export default function CodingInterface({
           <div className="flex items-center justify-center px-8">
             {/* URL Bar - Always visible */}
             <div className="flex items-center gap-2 max-w-xl w-full">
-              <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5">
+              <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-2 py-1">
                 {/* View Switcher - Left side of URL bar */}
                 <DropdownMenu
                   open={isViewMenuOpen}
@@ -598,7 +806,7 @@ export default function CodingInterface({
                         </>
                       )}
                       {allViews.find((view) => view.id === activeTab)?.svg && (
-                        <div className="w-3 h-3">
+                        <div className="flex items-center justify-center">
                           {allViews.find((view) => view.id === activeTab)?.svg}
                         </div>
                       )}
@@ -631,7 +839,9 @@ export default function CodingInterface({
                             <view.icon className="w-3.5 h-3.5 mr-2" />
                           )}
                           {view.svg && (
-                            <div className="w-3.5 h-3.5 mr-2">{view.svg}</div>
+                            <div className="mr-2 flex items-center justify-center">
+                              {view.svg}
+                            </div>
                           )}
                           <span>{view.label}</span>
                         </DropdownMenuItem>
@@ -647,18 +857,26 @@ export default function CodingInterface({
                   type="text"
                   value={previewUrl}
                   onChange={(e) => setPreviewUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && activeTab === "preview") {
+                      // Navigate to the new URL
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="/"
                   disabled={activeTab !== "preview"}
                   className="flex-1 bg-transparent text-xs border-none shadow-none focus-visible:ring-0 min-w-0 h-auto p-0 disabled:opacity-50"
                 />
 
                 {/* Preview Controls - Inside URL Bar */}
-                <div className="flex items-center gap-0.5 border-l border-border pl-2">
+                <div className="flex items-center gap-0.5 pl-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         onClick={() => {
-                          /* TODO: Implement reload */
+                          if (previewPanelRef.current) {
+                            previewPanelRef.current.refresh();
+                          }
                         }}
                         disabled={activeTab !== "preview"}
                         variant="ghost"
@@ -677,7 +895,12 @@ export default function CodingInterface({
                     <TooltipTrigger asChild>
                       <Button
                         onClick={() => {
-                          /* TODO: Implement open in new tab */
+                          if (previewPanelRef.current) {
+                            const url = previewPanelRef.current.getPreviewUrl();
+                            if (url) {
+                              window.open(url, "_blank", "noopener,noreferrer");
+                            }
+                          }
                         }}
                         disabled={activeTab !== "preview"}
                         variant="ghost"
@@ -791,6 +1014,7 @@ export default function CodingInterface({
                 {/* Keep PreviewPanel mounted to maintain sandbox across tab switches */}
                 <div className={activeTab === "preview" ? "h-full" : "hidden"}>
                   <PreviewPanel
+                    ref={previewPanelRef}
                     projectId={project.id}
                     projectFiles={projectFiles}
                     isGeneratingFiles={isGeneratingFiles}
@@ -800,6 +1024,7 @@ export default function CodingInterface({
                     onPackagesInstalled={() => setPendingPackages([])}
                     deviceMode={deviceMode}
                     previewUrl={previewUrl}
+                    onUrlChange={setPreviewUrl}
                     onRefreshProject={async () => {
                       // Reload project files after restore
                       const response = await fetch(
@@ -828,41 +1053,86 @@ export default function CodingInterface({
                 )}
 
                 {activeTab === "database" && (
-                  <div className="h-full overflow-auto">
-                    <DatabasePanel projectId={project.id} />
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="text-6xl mb-2">🔨</div>
+                      <h3 className="text-xl font-semibold text-foreground">
+                        Coming Soon
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        Database management features are under development
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {activeTab === "analytics" && (
-                  <div className="h-full overflow-auto">
-                    <AnalyticsPanel projectId={project.id} />
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="text-6xl mb-2">🔨</div>
+                      <h3 className="text-xl font-semibold text-foreground">
+                        Coming Soon
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        Analytics dashboard is under development
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {activeTab === "logs" && (
-                  <div className="h-full overflow-auto">
-                    <LogsPanel projectId={project.id} />
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="text-6xl mb-2">🔨</div>
+                      <h3 className="text-xl font-semibold text-foreground">
+                        Coming Soon
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        Logs viewer is under development
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {activeTab === "api" && (
-                  <div className="h-full overflow-auto">
-                    <ApiPanel projectId={project.id} />
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="text-6xl mb-2">🔨</div>
+                      <h3 className="text-xl font-semibold text-foreground">
+                        Coming Soon
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        API management features are under development
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {activeTab === "settings" && (
-                  <div className="h-full overflow-auto">
-                    <SettingsPanel
-                      projectId={project.id}
-                      onProjectUpdate={refreshProject}
-                    />
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="text-6xl mb-2">🔨</div>
+                      <h3 className="text-xl font-semibold text-foreground">
+                        Coming Soon
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        Project settings are under development
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {activeTab === "auth" && (
-                  <div className="h-full overflow-auto">
-                    <AuthPanel projectId={project.id} />
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="text-6xl mb-2">🔨</div>
+                      <h3 className="text-xl font-semibold text-foreground">
+                        Coming Soon
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        Authentication features are under development
+                      </p>
+                    </div>
                   </div>
                 )}
               </main>
@@ -899,6 +1169,265 @@ export default function CodingInterface({
           currentPlan={planName}
           showTokensOnly={true}
         />
+
+        {/* Rename Project Dialog */}
+        <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+          <DialogContent className="rounded-2xl sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Rename project</DialogTitle>
+              <DialogDescription>
+                Enter a new name for your project.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Input
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder="Project name"
+                className="rounded-lg"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isRenaming) {
+                    handleRenameProject();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => setIsRenameDialogOpen(false)}
+                disabled={isRenaming}
+                className="rounded-lg"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRenameProject}
+                disabled={
+                  isRenaming ||
+                  !newProjectName.trim() ||
+                  newProjectName.trim() === project.name
+                }
+                className="rounded-lg"
+              >
+                {isRenaming ? "Renaming..." : "Rename"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Share Project Dialog */}
+        <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+          <DialogContent className="rounded-2xl sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Share project</DialogTitle>
+              <DialogDescription>
+                Anyone with this link can view your project.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={`${
+                    typeof window !== "undefined" ? window.location.origin : ""
+                  }/project/${project.id}`}
+                  readOnly
+                  className="rounded-lg flex-1"
+                />
+                <Button
+                  onClick={handleCopyShareUrl}
+                  className="rounded-lg"
+                  variant={shareUrlCopied ? "secondary" : "default"}
+                >
+                  {shareUrlCopied ? "Copied!" : "Copy"}
+                </Button>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Current visibility:{" "}
+                <span className="capitalize font-medium">
+                  {projectVisibility}
+                </span>
+                {projectVisibility === "private" && (
+                  <span className="block mt-1">
+                    This project is private. Change visibility to share it.
+                  </span>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => setIsShareDialogOpen(false)}
+                className="rounded-lg"
+              >
+                Done
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Version History Dialog */}
+        <Dialog
+          open={isVersionHistoryOpen}
+          onOpenChange={setIsVersionHistoryOpen}
+        >
+          <DialogContent className="rounded-2xl sm:max-w-[600px] max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Version History</DialogTitle>
+              <DialogDescription>
+                View and restore previous versions of your project.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 max-h-[60vh] overflow-y-auto">
+              {isLoadingVersions ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading versions...
+                </div>
+              ) : versions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No version history yet. Versions are created automatically as
+                  you make changes.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {versions.map((version) => (
+                    <div
+                      key={version.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            Version {version.version}
+                          </span>
+                          {version.name && (
+                            <span className="text-sm text-muted-foreground">
+                              - {version.name}
+                            </span>
+                          )}
+                          {version.isBookmarked && (
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                              Bookmarked
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {new Date(version.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRestoreVersion(version.id)}
+                        className="rounded-lg"
+                      >
+                        Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => setIsVersionHistoryOpen(false)}
+                className="rounded-lg"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Deploy Dialog */}
+        <Dialog open={isDeployDialogOpen} onOpenChange={setIsDeployDialogOpen}>
+          <DialogContent className="rounded-2xl sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Deploy Project</DialogTitle>
+              <DialogDescription>
+                Deploy your project to production with Vercel or other
+                platforms.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-6">
+              {/* Vercel Option */}
+              <div className="border rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <span className="text-white dark:text-black font-bold text-sm">
+                      ▲
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Deploy to Vercel</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Recommended for Next.js projects
+                    </p>
+                  </div>
+                </div>
+                <ol className="text-sm space-y-2 text-muted-foreground ml-11">
+                  <li>1. Export your project files</li>
+                  <li>2. Create a Git repository</li>
+                  <li>3. Push your code to GitHub/GitLab</li>
+                  <li>4. Connect your repo to Vercel</li>
+                  <li>5. Deploy with one click</li>
+                </ol>
+                <Button
+                  onClick={handleExportProject}
+                  variant="outline"
+                  className="w-full rounded-lg ml-11"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Project Files
+                </Button>
+                <Button
+                  onClick={() =>
+                    window.open("https://vercel.com/new", "_blank")
+                  }
+                  className="w-full rounded-lg ml-11"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open Vercel
+                </Button>
+              </div>
+
+              {/* Other Options */}
+              <div className="border rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold">Other Platforms</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={() =>
+                      window.open("https://www.netlify.com/", "_blank")
+                    }
+                    variant="outline"
+                    className="rounded-lg"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Netlify
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      window.open("https://railway.app/", "_blank")
+                    }
+                    variant="outline"
+                    className="rounded-lg"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Railway
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => setIsDeployDialogOpen(false)}
+                className="rounded-lg"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );
