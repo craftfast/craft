@@ -12,8 +12,6 @@ export interface PlanDetails {
     description: string | null;
     priceMonthlyUsd: number;
     maxProjects: number | null;
-    databaseSizeGb: number;
-    storageSizeGb: number;
     features: string[];
     isActive: boolean;
     sortOrder: number;
@@ -101,16 +99,12 @@ export async function hasUnlimitedProjects(
  */
 export async function getPlanLimits(planName: string): Promise<{
     maxProjects: number | null;
-    databaseSizeGb: number;
-    storageSizeGb: number;
 } | null> {
     const plan = await getPlanByName(planName);
     if (!plan) return null;
 
     return {
         maxProjects: plan.maxProjects,
-        databaseSizeGb: plan.databaseSizeGb,
-        storageSizeGb: plan.storageSizeGb,
     };
 }
 

@@ -128,8 +128,8 @@ export default function TermsOfService() {
                   <li>• Up to 3 projects</li>
                   <li>• AI-powered chat interface</li>
                   <li>• Live preview environment</li>
-                  <li>• Integrated database & storage</li>
-                  <li>• Authentication</li>
+                  <li>• Supabase integration (database & storage)</li>
+                  <li>• Vercel deployment</li>
                   <li>• Craft branding on projects</li>
                   <li>• Community support</li>
                 </ul>
@@ -145,8 +145,9 @@ export default function TermsOfService() {
                     (expire 1 year after purchase)
                   </li>
                   <li>• Import from Figma & GitHub</li>
+                  <li>• Supabase integration (database & storage)</li>
+                  <li>• Vercel deployment</li>
                   <li>• Remove Craft branding</li>
-                  <li>• Pay-as-you-go for infrastructure</li>
                   <li>• Priority email support</li>
                 </ul>
               </div>
@@ -160,7 +161,8 @@ export default function TermsOfService() {
                   <li>• Expert oversight & review</li>
                   <li>• Background task execution</li>
                   <li>• Architecture & design review</li>
-                  <li>• 2 GB database + 5 GB storage</li>
+                  <li>• Supabase integration (database & storage)</li>
+                  <li>• Vercel deployment</li>
                   <li>• Dedicated support</li>
                 </ul>
               </div>
@@ -313,8 +315,11 @@ export default function TermsOfService() {
               <li>Create and develop web applications</li>
               <li>Use AI assistance for code generation and problem-solving</li>
               <li>Collaborate with team members on projects</li>
-              <li>Integrate with supported third-party services</li>
-              <li>Store and manage project data within your storage limits</li>
+              <li>
+                Integrate with supported third-party services (Supabase, Vercel,
+                GitHub, Figma)
+              </li>
+              <li>Deploy projects to your own infrastructure</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
@@ -494,27 +499,32 @@ export default function TermsOfService() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">7. Data and Storage</h2>
+            <h2 className="text-2xl font-semibold mb-4">
+              7. Data and Third-Party Services
+            </h2>
 
-            <h3 className="text-xl font-semibold mb-3">7.1 Storage Limits</h3>
+            <h3 className="text-xl font-semibold mb-3">
+              7.1 Your Own Infrastructure
+            </h3>
             <ul className="space-y-2">
               <li>
-                <strong>Hobby:</strong> 50MB database + 100MB storage, up to 3
-                projects
+                <strong>Database & Storage:</strong> You connect your own
+                Supabase account for database and storage. Craft does not
+                provide or bill for database/storage infrastructure.
               </li>
               <li>
-                <strong>Pro:</strong> 500MB database + 1GB storage, unlimited
-                projects
+                <strong>Deployment:</strong> You can deploy to your own Vercel
+                account. Craft facilitates the deployment but does not bill for
+                hosting.
               </li>
               <li>
-                <strong>Agent:</strong> 2GB database + 5GB storage, unlimited
-                projects
+                <strong>Responsibility:</strong> You are responsible for
+                managing and paying for your own Supabase and Vercel accounts
+                directly with those providers.
               </li>
               <li>
-                Exceeding storage limits may result in service interruption
-              </li>
-              <li>
-                We may delete data exceeding limits after reasonable notice
+                <strong>Storage Limits:</strong> Any storage or usage limits are
+                determined by your Supabase plan, not Craft.
               </li>
             </ul>
 
@@ -522,11 +532,18 @@ export default function TermsOfService() {
               7.2 Data Backups
             </h3>
             <ul className="space-y-2">
-              <li>You are responsible for backing up your data</li>
               <li>
-                We perform regular backups but do not guarantee data recovery
+                You are responsible for backing up your data in your Supabase
+                account
               </li>
-              <li>Pro and Agent users have enhanced backup options</li>
+              <li>
+                Craft stores project code and configuration but not your
+                database content
+              </li>
+              <li>
+                We perform regular backups of project code but do not guarantee
+                data recovery
+              </li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
@@ -535,6 +552,10 @@ export default function TermsOfService() {
             <ul className="space-y-2">
               <li>You can delete projects and data at any time</li>
               <li>Account deletion requests are processed within 30 days</li>
+              <li>
+                Deleting your Craft account does not delete data in your
+                Supabase or Vercel accounts - you must manage those separately
+              </li>
               <li>
                 Some data may be retained as required by law or for legitimate
                 business purposes

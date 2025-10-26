@@ -43,18 +43,17 @@ function FAQSection() {
       question: "How does billing work?",
       answer: (
         <>
-          <strong>Hobby:</strong> Free forever with up to 3 projects, 100k AI
-          tokens/month, and fixed infrastructure limits. Perfect for trying out
-          Craft. <strong>Pro:</strong> $50/month with unlimited projects, 10M AI
-          tokens, Figma/GitHub imports, and pay-as-you-go for overages. Need
-          more tokens? Check out our{" "}
+          <strong>Hobby:</strong> Free forever with up to 3 projects and 100k AI
+          tokens/month. Perfect for trying out Craft. <strong>Pro:</strong>{" "}
+          $50/month with unlimited projects, 10M AI tokens, and Figma/GitHub
+          integrations. Need more tokens? Check out our{" "}
           <a
             href="#token-packages"
             className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
           >
             token packages
           </a>
-          .
+          . Connect your own Supabase account for database and storage.
         </>
       ),
     },
@@ -121,12 +120,12 @@ function FAQSection() {
     {
       question: "What's included in the Agent plan?",
       answer:
-        "The Agent plan ($5,000/month) includes everything in Pro plus: 100M tokens/month, ability to delegate long-running tasks with expert oversight, background task execution, architecture & design review, 2GB database + 5GB storage, and dedicated support.",
+        "The Agent plan ($5,000/month) includes everything in Pro plus: 100M tokens/month, ability to delegate long-running tasks with expert oversight, background task execution, architecture & design review, and dedicated support.",
     },
     {
       question: "Can I use my own infrastructure?",
       answer:
-        "Currently, Craft manages the infrastructure for you including database, storage, and deployment. This ensures optimal performance and seamless integration. For custom infrastructure needs, please contact our sales team about the Agent plan.",
+        "Yes! Craft is a pure coding tool. You can connect your own Supabase account for database and storage. We support integrations with Figma (for design imports), GitHub (for code sync), and Vercel (for deployment). This gives you full control over your infrastructure while enjoying Craft's AI-powered development experience.",
     },
     {
       question: "What payment methods do you accept?",
@@ -139,9 +138,9 @@ function FAQSection() {
         "Yes! New users can start a free trial of Pro to experience unlimited projects and advanced features. No credit card required to start. You can upgrade to Pro at any time to unlock the full experience.",
     },
     {
-      question: "How is infrastructure billed?",
+      question: "How do integrations work?",
       answer:
-        "Infrastructure is pay-as-you-go on Pro and Agent plans. Database storage: $0.10/GB/month after free tier. Object storage: $0.02/GB/month after free tier. Network egress: $0.09/GB after free tier. Hobby plan has fixed limits with no overages.",
+        "Craft integrates with best-in-class tools: Supabase for database & storage, Figma for design imports, GitHub for code sync, and Vercel for deployment. Pro and Agent plans include full access to these integrations. Simply connect your accounts and Craft handles the rest.",
     },
     {
       question: "Can I get a refund?",
@@ -373,8 +372,7 @@ export default function PricingPage() {
         { text: "Up to 3 projects", included: true },
         { text: "AI-powered chat interface", included: true },
         { text: "Live preview environment", included: true },
-        { text: "Integrated database & storage", included: true },
-        { text: "Authentication", included: true },
+        { text: "Supabase integration (database & storage)", included: true },
         { text: "Craft branding on projects", included: true },
         { text: "Community support", included: true },
       ],
@@ -410,12 +408,12 @@ export default function PricingPage() {
           highlight: false,
         },
         {
-          text: "Remove Craft branding",
+          text: "Deploy to Vercel",
           included: true,
           highlight: false,
         },
         {
-          text: "Pay-as-you-go for infrastructure",
+          text: "Remove Craft branding",
           included: true,
           highlight: false,
         },
@@ -442,7 +440,7 @@ export default function PricingPage() {
         { text: "Expert oversight & review", included: true },
         { text: "Background task execution", included: true },
         { text: "Architecture & design review", included: true },
-        { text: "2 GB database + 5 GB storage", included: true },
+        { text: "Advanced integrations setup", included: true },
         { text: "Dedicated support", included: true },
       ],
     },
@@ -732,121 +730,6 @@ export default function PricingPage() {
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
                         Create as many as you need
-                      </div>
-                    </td>
-                  </tr>
-                  {/* Infrastructure Section */}
-                  <tr className="bg-neutral-50/50 dark:bg-neutral-800/30">
-                    <td
-                      colSpan={4}
-                      className="p-3 sm:p-4 font-semibold text-sm text-neutral-700 dark:text-neutral-300 uppercase tracking-wide"
-                    >
-                      Infrastructure & Resources
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
-                        Database Storage
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        PostgreSQL database storage
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        50 MB
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        Fixed limit (upgrade to Pro for more)
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        500 MB free
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400 mb-1">
-                        <span className="font-semibold">$0.10/GB/month</span>{" "}
-                        after
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        2 GB free
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400 mb-1">
-                        <span className="font-semibold">$0.10/GB/month</span>{" "}
-                        after
-                      </div>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
-                        Object Storage
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        S3-compatible file storage
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        100 MB
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        Fixed limit (upgrade to Pro for more)
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        1 GB free
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400 mb-1">
-                        <span className="font-semibold">$0.05/GB/month</span>{" "}
-                        after
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        5 GB free
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400 mb-1">
-                        <span className="font-semibold">$0.05/GB/month</span>{" "}
-                        after
-                      </div>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
-                        Authentication
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Monthly active users (MAU)
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        <span className="font-semibold">Unlimited</span>
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        No MAU limits
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        <span className="font-semibold">Unlimited</span>
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        No MAU limits
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="font-medium text-foreground mb-1">
-                        <span className="font-semibold">Unlimited</span>
-                      </div>
-                      <div className="text-neutral-600 dark:text-neutral-400">
-                        No MAU limits
                       </div>
                     </td>
                   </tr>
@@ -1244,23 +1127,13 @@ export default function PricingPage() {
                       </div>
                     </td>
                   </tr>
-
-                  {/* Backend Services Section */}
-                  <tr className="bg-neutral-50/50 dark:bg-neutral-800/30">
-                    <td
-                      colSpan={4}
-                      className="p-3 sm:p-4 font-semibold text-sm text-neutral-700 dark:text-neutral-300 uppercase tracking-wide"
-                    >
-                      Backend Services
-                    </td>
-                  </tr>
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="p-4 sm:p-6">
                       <div className="font-semibold text-foreground mb-1">
-                        PostgreSQL Database
+                        Supabase Integration
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Managed PostgreSQL database
+                        Connect your Supabase for database & storage
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -1321,202 +1194,10 @@ export default function PricingPage() {
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="p-4 sm:p-6">
                       <div className="font-semibold text-foreground mb-1">
-                        Prisma ORM
+                        Vercel Deployment
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Type-safe database toolkit
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
-                        File Storage
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        S3-compatible object storage
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
-                        Email/Password Authentication
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Built-in credential authentication
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                    <td className="p-4 sm:p-6 text-xs sm:text-sm">
-                      <div className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="font-semibold">Included</span>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="p-4 sm:p-6">
-                      <div className="font-semibold text-foreground mb-1">
-                        OAuth Providers
-                      </div>
-                      <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Google, GitHub social login
+                        Deploy directly to Vercel with one click
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">

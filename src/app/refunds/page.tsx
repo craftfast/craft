@@ -73,10 +73,27 @@ export default function RefundPolicy() {
                 1 year after purchase if not used)
               </li>
               <li>Automatically renews monthly unless cancelled</li>
+              <li>
+                Infrastructure (database & storage) managed through your own
+                Supabase account - not billed by Craft
+              </li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mb-3 mt-6">1.3 Agent Plan</h3>
+            <ul className="space-y-2">
+              <li>Pricing: $5,000/month</li>
+              <li>Includes 100M AI tokens per month</li>
+              <li>Unlimited projects with advanced capabilities</li>
+              <li>Long-running task delegation and expert oversight</li>
+              <li>Dedicated support</li>
+              <li>
+                Infrastructure (database & storage) managed through your own
+                Supabase account - not billed by Craft
+              </li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              1.3 Enterprise Plan
+              1.4 Enterprise Plan
             </h3>
             <ul className="space-y-2">
               <li>Custom pricing and terms</li>
@@ -340,17 +357,88 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              5. Payment Processing &amp; Timeline
+              5. Third-Party Services & Integrations
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">5.1 Payment Gateway</h3>
+            <h3 className="text-xl font-semibold mb-3">
+              5.1 Your Own Infrastructure
+            </h3>
+            <p className="mb-3">
+              Craft is a development platform that integrates with third-party
+              services:
+            </p>
+            <ul className="space-y-2">
+              <li>
+                <strong>Supabase:</strong> Database and storage are provided
+                through your own Supabase account
+              </li>
+              <li>
+                <strong>Vercel:</strong> Deployment services through your own
+                Vercel account
+              </li>
+              <li>
+                <strong>GitHub:</strong> Code synchronization through your own
+                GitHub account
+              </li>
+              <li>
+                <strong>Figma:</strong> Design imports through your own Figma
+                account
+              </li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mb-3 mt-6">
+              5.2 Third-Party Billing
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                Craft does not bill for database, storage, or deployment
+                infrastructure
+              </li>
+              <li>
+                Any charges from Supabase, Vercel, GitHub, or Figma are billed
+                directly by those providers
+              </li>
+              <li>
+                Refunds for third-party services must be requested directly from
+                those providers
+              </li>
+              <li>
+                Craft subscription fees cover only AI development assistance and
+                platform features
+              </li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mb-3 mt-6">
+              5.3 Integration Support
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                We provide support for connecting and configuring integrations
+              </li>
+              <li>
+                We are not responsible for service availability or billing of
+                third-party providers
+              </li>
+              <li>
+                Issues with third-party services should be reported to the
+                respective provider
+              </li>
+            </ul>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">
+              6. Payment Processing &amp; Timeline
+            </h2>
+
+            <h3 className="text-xl font-semibold mb-3">6.1 Payment Gateway</h3>
             <p className="mb-3">
               All payments are securely processed through Polar.sh. We do not
               store your complete payment information on our servers.
             </p>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              5.2 Refund Processing Time
+              6.2 Refund Processing Time
             </h3>
             <ul className="space-y-2">
               <li>Approved refunds are processed within 5-10 business days</li>
@@ -365,7 +453,7 @@ export default function RefundPolicy() {
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              5.3 Currency &amp; Conversion
+              6.3 Currency &amp; Conversion
             </h3>
             <ul className="space-y-2">
               <li>Refunds are issued in the original transaction currency</li>
@@ -381,10 +469,10 @@ export default function RefundPolicy() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">6. Billing Disputes</h2>
+            <h2 className="text-2xl font-semibold mb-4">7. Billing Disputes</h2>
 
             <h3 className="text-xl font-semibold mb-3">
-              6.1 Dispute Resolution
+              7.1 Dispute Resolution
             </h3>
             <p className="mb-3">
               If you believe you have been incorrectly charged:
@@ -404,7 +492,7 @@ export default function RefundPolicy() {
               <li>Most billing issues can be resolved quickly</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">6.2 Chargebacks</h3>
+            <h3 className="text-xl font-semibold mb-3 mt-6">7.2 Chargebacks</h3>
             <p className="mb-3">Unauthorized chargebacks may result in:</p>
             <ul className="space-y-2">
               <li>Immediate suspension of your account</li>
@@ -422,10 +510,10 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              7. Automatic Renewal &amp; Price Changes
+              8. Automatic Renewal &amp; Price Changes
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">7.1 Auto-Renewal</h3>
+            <h3 className="text-xl font-semibold mb-3">8.1 Auto-Renewal</h3>
             <ul className="space-y-2">
               <li>
                 Pro subscriptions automatically renew monthly unless cancelled
@@ -436,7 +524,7 @@ export default function RefundPolicy() {
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              7.2 Price Changes
+              8.2 Price Changes
             </h3>
             <ul className="space-y-2">
               <li>We reserve the right to change our pricing at any time</li>
@@ -454,7 +542,7 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              8. Enterprise &amp; Custom Agreements
+              9. Enterprise &amp; Custom Agreements
             </h2>
 
             <p className="mb-3">
@@ -475,10 +563,10 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              9. Consumer Rights &amp; Legal Compliance
+              10. Consumer Rights &amp; Legal Compliance
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">9.1 India</h3>
+            <h3 className="text-xl font-semibold mb-3">10.1 India</h3>
             <p className="mb-3">
               For customers in India, this policy complies with:
             </p>
@@ -490,7 +578,7 @@ export default function RefundPolicy() {
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              9.2 International Customers
+              10.2 International Customers
             </h3>
             <p className="mb-3">
               International customers may have additional rights under their
@@ -511,7 +599,7 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              10. Data Retention After Cancellation
+              11. Data Retention After Cancellation
             </h2>
 
             <ul className="space-y-2">
@@ -575,7 +663,7 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              11. Changes to This Policy
+              12. Changes to This Policy
             </h2>
 
             <p className="mb-3">

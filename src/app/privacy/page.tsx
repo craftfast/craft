@@ -115,12 +115,16 @@ export default function PrivacyPolicy() {
                 generated responses.
               </li>
               <li>
-                <strong>Database Content:</strong> Data stored in your Craft
-                databases and storage systems.
+                <strong>Third-Party Service Integration Data:</strong> When you
+                connect third-party services (Supabase, Vercel, GitHub, Figma)
+                to your Craft account, we may access limited data from those
+                services as necessary to provide integration functionality.
+                Database content and storage are managed directly in your
+                Supabase account, not on Craft servers.
               </li>
               <li>
                 <strong>Integrations:</strong> Data from connected services like
-                GitHub, Figma, and Vercel.
+                GitHub, Figma, Vercel, and Supabase to enable platform features.
               </li>
             </ul>
           </section>
@@ -192,8 +196,8 @@ export default function PrivacyPolicy() {
                 processing (they have their own privacy policies).
               </li>
               <li>
-                <strong>Cloud Infrastructure:</strong> Vercel for hosting
-                services.
+                <strong>Cloud Infrastructure:</strong> Vercel for hosting the
+                Craft platform.
               </li>
               <li>
                 <strong>AI Services:</strong> Third-party AI model providers for
@@ -204,8 +208,10 @@ export default function PrivacyPolicy() {
                 statistics and performance monitoring.
               </li>
               <li>
-                <strong>Database Services:</strong> PostgreSQL hosting providers
-                for data storage.
+                <strong>Database Services:</strong> Neon (PostgreSQL) for
+                storing Craft platform data (user accounts, project metadata,
+                billing records). Your application databases are managed in your
+                own Supabase account.
               </li>
             </ul>
 
@@ -252,7 +258,9 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Projects and Code:</strong> Stored indefinitely unless
-                you delete them or close your account.
+                you delete them or close your account. Note that code deployed
+                to your Vercel account or stored in your GitHub repository is
+                managed by those services according to their retention policies.
               </li>
               <li>
                 <strong>AI Conversations:</strong> Retained as needed to retrain
@@ -270,9 +278,17 @@ export default function PrivacyPolicy() {
                 may be retained indefinitely.
               </li>
               <li>
+                <strong>Third-Party Data:</strong> Database content in your
+                Supabase account, deployed applications on Vercel, and code in
+                GitHub are retained according to those services&apos; policies.
+                Deleting your Craft account does not automatically delete data
+                in connected third-party services.
+              </li>
+              <li>
                 <strong>Deletion:</strong> You can request deletion of your data
                 by contacting support. Some data may be retained as required by
-                law.
+                law. You are responsible for managing data deletion in your
+                connected third-party accounts (Supabase, Vercel, etc.).
               </li>
             </ul>
           </section>
@@ -406,9 +422,48 @@ export default function PrivacyPolicy() {
 
             <p>
               Our platform may contain links to third-party websites and
-              integrate with external services (GitHub, Figma, Vercel, etc.). We
-              are not responsible for the privacy practices of these third
-              parties. We encourage you to review their privacy policies.
+              integrate with external services (GitHub, Figma, Vercel, Supabase,
+              etc.). We are not responsible for the privacy practices of these
+              third parties. We encourage you to review their privacy policies.
+            </p>
+
+            <h3 className="text-xl font-semibold mb-3 mt-6">
+              9.1 Infrastructure Services
+            </h3>
+            <p className="mb-3">
+              Craft integrates with third-party services for infrastructure
+              needs:
+            </p>
+            <ul className="space-y-2">
+              <li>
+                <strong>Supabase:</strong> When you connect your Supabase
+                account, your application databases and storage are managed
+                directly by Supabase in your account. Craft accesses this data
+                only as necessary to provide development features. Your database
+                content is subject to Supabase&apos;s privacy policy, not stored
+                on Craft servers.
+              </li>
+              <li>
+                <strong>Vercel:</strong> When you connect your Vercel account
+                for deployment, your deployed applications run on Vercel&apos;s
+                infrastructure. Deployment logs and runtime data are managed by
+                Vercel according to their privacy policy.
+              </li>
+              <li>
+                <strong>GitHub:</strong> Code synchronization and version
+                control data are managed by GitHub according to their privacy
+                policy.
+              </li>
+              <li>
+                <strong>Figma:</strong> Design import and sync data are managed
+                by Figma according to their privacy policy.
+              </li>
+            </ul>
+            <p className="mt-3">
+              You are responsible for understanding and complying with the
+              privacy policies of these third-party services. Craft only stores
+              connection credentials (encrypted) and minimal metadata needed for
+              integration functionality.
             </p>
           </section>
 

@@ -167,11 +167,9 @@ model Plan {
   description       String? // Plan description
   priceMonthlyUsd   Float // Monthly price in USD (0 for Hobby, 25 for Pro)
   features          Json // JSON array of plan features
-  maxProjects       Int? // Max projects allowed (3 for Hobby, unlimited for Pro/Enterprise)
-  databaseSizeGb    Float // Database storage in GB (50MB for Hobby, 500MB for Pro)
-  storageSizeGb     Float // File storage in GB (100MB for Hobby, 1GB for Pro)
-  monthlyTokenLimit Int? // Monthly AI token limit (100k for Hobby, 10M for Pro, null for Enterprise = unlimited)
-  canPurchaseTokens Boolean            @default(false) // Can purchase additional tokens beyond limit (Pro & Enterprise only)
+  maxProjects       Int? // Max projects allowed (3 for Hobby, unlimited for Pro/Agent)
+  monthlyTokenLimit Int? // Monthly AI token limit (100k for Hobby, 10M for Pro, null for Agent = unlimited)
+  canPurchaseTokens Boolean            @default(false) // Can purchase additional tokens beyond limit (Pro & Agent only)
   isActive          Boolean            @default(true)
   sortOrder         Int                @default(0)
   createdAt         DateTime           @default(now())
@@ -232,38 +230,23 @@ model AITokenUsage {
 }
 
 // ============================================================================
-// INFRASTRUCTURE USAGE TRACKING
+// AI USAGE TRACKING
 // ============================================================================
 
 model UsageRecord {
-  id                      String           @id @default(cuid())
-  userId                  String
-  subscriptionId          String
-  billingPeriodStart      DateTime
-  billingPeriodEnd        DateTime
+  id                 String           @id @default(cuid())
+  userId             String
+  subscriptionId     String
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
   // AI Usage
-  aiTokensUsed            Int              @default(0)
-  aiCostUsd               Float            @default(0)
-  // Database Usage
-  databaseSizeGb          Float            @default(0)
-  databaseCostUsd         Float            @default(0)
-  // Storage Usage
-  storageSizeGb           Float            @default(0)
-  storageCostUsd          Float            @default(0)
-  // Bandwidth Usage
-  bandwidthGb             Float            @default(0)
-  bandwidthCostUsd        Float            @default(0)
-  // Auth Usage (MAU - Monthly Active Users)
-  authMau                 Int              @default(0)
-  authCostUsd             Float            @default(0)
-  // Edge Function Invocations
-  edgeFunctionInvocations Int              @default(0)
-  edgeFunctionCostUsd     Float            @default(0)
+  aiTokensUsed       Int              @default(0)
+  aiCostUsd          Float            @default(0)
   // Total
-  totalCostUsd            Float            @default(0)
-  createdAt               DateTime         @default(now())
-  updatedAt               DateTime         @updatedAt
-  subscription            UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  totalCostUsd       Float            @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  subscription       UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@unique([subscriptionId, billingPeriodStart]) // One record per billing period
   @@index([userId, billingPeriodStart])
@@ -276,34 +259,29 @@ model UsageRecord {
 // ============================================================================
 
 model Invoice {
-  id                  String           @id @default(cuid())
-  userId              String
-  subscriptionId      String
-  invoiceNumber       String           @unique // e.g., "INV-2025-001"
-  status              String           @default("draft") // "draft", "issued", "paid", "failed", "refunded"
-  billingPeriodStart  DateTime
-  billingPeriodEnd    DateTime
+  id                 String           @id @default(cuid())
+  userId             String
+  subscriptionId     String
+  invoiceNumber      String           @unique // e.g., "INV-2025-001"
+  status             String           @default("draft") // "draft", "issued", "paid", "failed", "refunded"
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
   // Line Items
-  subscriptionFeeUsd  Float            @default(0) // Base plan fee
-  aiUsageCostUsd      Float            @default(0)
-  databaseCostUsd     Float            @default(0)
-  storageCostUsd      Float            @default(0)
-  bandwidthCostUsd    Float            @default(0)
-  authCostUsd         Float            @default(0)
-  edgeFunctionCostUsd Float            @default(0)
+  subscriptionFeeUsd Float            @default(0) // Base plan fee
+  aiUsageCostUsd     Float            @default(0)
   // Totals
-  subtotalUsd         Float            @default(0)
-  taxUsd              Float            @default(0)
-  totalUsd            Float            @default(0)
-  currency            String           @default("USD") // "USD" or "EUR"
+  subtotalUsd        Float            @default(0)
+  taxUsd             Float            @default(0)
+  totalUsd           Float            @default(0)
+  currency           String           @default("USD") // "USD" or "EUR"
   // Payment Details
-  polarCheckoutId     String?
-  polarPaymentId      String?
-  paidAt              DateTime?
-  dueDate             DateTime?
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
-  subscription        UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  polarCheckoutId    String?
+  polarPaymentId     String?
+  paidAt             DateTime?
+  dueDate            DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  subscription       UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([subscriptionId])

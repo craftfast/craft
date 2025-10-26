@@ -49,9 +49,9 @@ export default function AgentPage() {
     },
     {
       icon: Database,
-      title: "2GB Database + 5GB Storage",
+      title: "Supabase & Vercel Integration",
       description:
-        "Enhanced infrastructure capacity for larger, more complex applications",
+        "Connect your own Supabase database and deploy to Vercel with one click",
     },
     {
       icon: HeadphonesIcon,
@@ -70,12 +70,12 @@ export default function AgentPage() {
     "Long-running task delegation",
     "Background task execution",
     "Architecture & design review",
-    "2GB database storage",
-    "5GB object storage",
+    "Supabase integration (database & storage)",
+    "Vercel deployment",
     "Dedicated support channel",
     "Direct engineering team access",
-    "Custom infrastructure options",
     "Priority feature requests",
+    "Custom workflows & automations",
   ];
 
   return (

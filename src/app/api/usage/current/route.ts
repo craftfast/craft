@@ -32,7 +32,7 @@ export async function GET() {
         // Get AI usage for current period
         const aiUsage = await getCurrentPeriodAIUsage(user.id);
 
-        // Get infrastructure usage for current period
+        // Get usage record for current period
         const usageRecord = await getCurrentUsageRecord(user.id);
 
         // Get subscription details
@@ -50,21 +50,6 @@ export async function GET() {
                 totalTokens: aiUsage.totalTokens,
                 totalCostUsd: aiUsage.totalCostUsd,
                 byModel: aiUsage.byModel,
-            },
-
-            // Infrastructure Usage
-            infrastructure: {
-                databaseSizeGb: usageRecord?.databaseSizeGb || 0,
-                databaseCostUsd: usageRecord?.databaseCostUsd || 0,
-                storageSizeGb: usageRecord?.storageSizeGb || 0,
-                storageCostUsd: usageRecord?.storageCostUsd || 0,
-                bandwidthGb: usageRecord?.bandwidthGb || 0,
-                bandwidthCostUsd: usageRecord?.bandwidthCostUsd || 0,
-                authMau: usageRecord?.authMau || 0,
-                authCostUsd: usageRecord?.authCostUsd || 0,
-                edgeFunctionInvocations: usageRecord?.edgeFunctionInvocations || 0,
-                edgeFunctionCostUsd: usageRecord?.edgeFunctionCostUsd || 0,
-                totalCostUsd: usageRecord?.totalCostUsd || 0,
             },
 
             // Subscription & Limits

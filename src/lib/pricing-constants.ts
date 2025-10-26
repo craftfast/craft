@@ -2,6 +2,7 @@
  * Pricing Constants
  * Centralized pricing information for the Craft platform
  * Pro plan includes generous AI usage allocation - code without anxiety
+ * Users connect their own Supabase for database and storage
  */
 
 export const PRICING = {
@@ -9,8 +10,6 @@ export const PRICING = {
         name: "Hobby",
         priceMonthly: 0,
         displayPriceMonthly: "Free",
-        databaseStorageGB: 0.05, // 50 MB
-        fileStorageGB: 0.1, // 100 MB
         maxProjects: 3, // Limited to 3 projects
         monthlyTokens: 100000, // 100k tokens/month
         features: {
@@ -18,7 +17,8 @@ export const PRICING = {
             unlimitedProjects: false,
             figmaImport: false,
             githubSync: false,
-            databaseAccess: "limited",
+            supabaseIntegration: true,
+            vercelDeployment: true,
             customDomain: false,
             privateProjects: false,
             support: "community",
@@ -28,7 +28,6 @@ export const PRICING = {
             sso: false,
             dedicatedSupport: false,
             canPurchaseTokens: false, // Cannot purchase tokens on Hobby
-            payAsYouGo: false,
             craftBranding: true, // Craft branding on projects
         },
     },
@@ -36,8 +35,6 @@ export const PRICING = {
         name: "Pro",
         priceMonthly: 50,
         displayPriceMonthly: "$50/mo",
-        databaseStorageGB: 0.5, // 500 MB free
-        fileStorageGB: 1, // 1 GB free
         maxProjects: 999, // Unlimited
         monthlyTokens: 10000000, // 10M tokens/month
         features: {
@@ -45,7 +42,8 @@ export const PRICING = {
             unlimitedProjects: true,
             figmaImport: true,
             githubSync: true,
-            databaseAccess: "full",
+            supabaseIntegration: true,
+            vercelDeployment: true,
             customDomain: false, // Not implemented yet
             privateProjects: true,
             support: "priority",
@@ -55,15 +53,12 @@ export const PRICING = {
             sso: false,
             dedicatedSupport: false,
             canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
-            payAsYouGo: true, // Pay-as-you-go for infrastructure
         },
     },
     AGENT: {
         name: "Agent",
         priceMonthly: 5000,
         displayPriceMonthly: "$5,000/mo",
-        databaseStorageGB: 2, // 2 GB
-        fileStorageGB: 5, // 5 GB
         maxProjects: null, // Unlimited
         monthlyTokens: 100000000, // 100M tokens/month
         features: {
@@ -71,7 +66,8 @@ export const PRICING = {
             unlimitedProjects: true,
             figmaImport: true,
             githubSync: true,
-            databaseAccess: "unlimited",
+            supabaseIntegration: true,
+            vercelDeployment: true,
             customDomain: false, // Not implemented yet
             privateProjects: true,
             support: "dedicated",
@@ -81,7 +77,6 @@ export const PRICING = {
             sso: false,
             dedicatedSupport: true,
             canPurchaseTokens: true,
-            payAsYouGo: true,
             craftBranding: false,
             // Agent-specific features
             longRunningTasks: true, // Can delegate long-running tasks

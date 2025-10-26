@@ -16,8 +16,6 @@ async function main() {
             description: "Try Craft with basic features. Limited to 3 projects.",
             priceMonthlyUsd: 0,
             maxProjects: 3, // Limited to 3 projects
-            databaseSizeGb: 0.05, // 50 MB
-            storageSizeGb: 0.1, // 100 MB
             monthlyTokenLimit: 100000, // 100k tokens per month
             canPurchaseTokens: false, // Cannot purchase additional tokens on Hobby
             sortOrder: 0,
@@ -26,8 +24,7 @@ async function main() {
                 "Up to 3 projects",
                 "AI-powered chat interface",
                 "Live preview environment",
-                "Integrated database & storage",
-                "Authentication",
+                "Supabase integration (database & storage)",
                 "Craft branding on projects",
                 "Community support",
             ],
@@ -38,8 +35,6 @@ async function main() {
             description: "Everything you need to build and scale your app.",
             priceMonthlyUsd: 50,
             maxProjects: 999, // Unlimited projects
-            databaseSizeGb: 0.5, // 500 MB free
-            storageSizeGb: 1, // 1 GB free
             monthlyTokenLimit: 10000000, // 10M tokens per month
             canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
             sortOrder: 1,
@@ -49,8 +44,7 @@ async function main() {
                 "Unlimited projects",
                 "Purchase additional AI credits at $5 per million tokens",
                 "Import from Figma & GitHub",
-                "Remove Craft branding",
-                "Pay-as-you-go for infrastructure",
+                "Deploy to vercel",
                 "Priority email support",
             ],
         },
@@ -60,8 +54,6 @@ async function main() {
             description: "Delegate long-running tasks with expert oversight.",
             priceMonthlyUsd: 5000,
             maxProjects: 999999, // Unlimited
-            databaseSizeGb: 2, // 2 GB
-            storageSizeGb: 5, // 5 GB
             monthlyTokenLimit: 100000000, // 100M tokens per month
             canPurchaseTokens: true,
             sortOrder: 2,
@@ -72,7 +64,6 @@ async function main() {
                 "Expert oversight & review",
                 "Background task execution",
                 "Architecture & design review",
-                "2 GB database + 5 GB storage",
                 "Dedicated support",
             ],
         },

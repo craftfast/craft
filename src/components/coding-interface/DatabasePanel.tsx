@@ -28,7 +28,7 @@ export default function DatabasePanel({ projectId }: DatabasePanelProps) {
           Database Integration Coming Soon
         </h3>
         <p className="text-sm text-muted-foreground mb-6">
-          Get a free PostgreSQL database powered by Neon for your project.
+          Connect your Supabase account for PostgreSQL database and storage.
         </p>
       </div>
     </div>
