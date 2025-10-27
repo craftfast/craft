@@ -9,6 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import SubscriptionModal from "./SubscriptionModal";
+import TokenPurchaseModal from "./TokenPurchaseModal";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -47,6 +56,103 @@ interface TokenUsageData {
   };
 }
 
+interface SubscriptionData {
+  plan: {
+    name: string;
+    displayName: string;
+    priceMonthlyUsd: number;
+    maxProjects: number | null;
+    monthlyTokenLimit: number | null;
+    canPurchaseTokens: boolean;
+    features: Record<string, unknown>;
+  };
+  status: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd: boolean;
+}
+
+interface TokenBalanceData {
+  totalAvailable: number;
+  monthly: {
+    limit: number;
+    used: number;
+    remaining: number;
+    resetDate: Date;
+    daysUntilReset: number;
+  };
+  purchased: {
+    total: number;
+    remaining: number;
+  };
+  gifted: {
+    remaining: number;
+  };
+  plan: {
+    name: string;
+    displayName: string;
+    canPurchaseTokens: boolean;
+  };
+}
+
+interface SubscriptionHistoryData {
+  currentSubscription: {
+    id: string;
+    planName: string;
+    planDisplayName: string;
+    status: string;
+    currentPeriodStart: Date;
+    currentPeriodEnd: Date;
+    cancelAtPeriodEnd: boolean;
+    cancelledAt: Date | null;
+    createdAt: Date;
+    priceMonthlyUsd: number;
+  } | null;
+  usageRecords: Array<{
+    id: string;
+    billingPeriodStart: Date;
+    billingPeriodEnd: Date;
+    aiTokensUsed: number;
+    aiCostUsd: number;
+    totalCostUsd: number;
+    createdAt: Date;
+  }>;
+  invoices: Array<{
+    id: string;
+    invoiceNumber: string;
+    status: string;
+    billingPeriodStart: Date;
+    billingPeriodEnd: Date;
+    subscriptionFeeUsd: number;
+    aiUsageCostUsd: number;
+    totalUsd: number;
+    paidAt: Date | null;
+    createdAt: Date;
+  }>;
+}
+
+interface TokenPurchaseHistoryData {
+  purchases: Array<{
+    id: string;
+    tokenAmount: number;
+    priceUsd: number;
+    currency: string;
+    status: string;
+    polarCheckoutId: string | null;
+    polarPaymentId: string | null;
+    purchasedAt: Date;
+    expiresAt: Date | null;
+    tokensRemaining: number;
+    createdAt: Date;
+  }>;
+  summary: {
+    totalPurchased: number;
+    totalSpent: number;
+    tokensRemaining: number;
+    activePurchases: number;
+  };
+}
+
 type SettingsTab = "general" | "billing" | "usage" | "account" | "integrations";
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
@@ -63,6 +169,22 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   );
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
 
+  // Billing state
+  const [subscriptionData, setSubscriptionData] =
+    useState<SubscriptionData | null>(null);
+  const [tokenBalanceData, setTokenBalanceData] =
+    useState<TokenBalanceData | null>(null);
+  const [subscriptionHistory, setSubscriptionHistory] =
+    useState<SubscriptionHistoryData | null>(null);
+  const [tokenPurchaseHistory, setTokenPurchaseHistory] =
+    useState<TokenPurchaseHistoryData | null>(null);
+  const [isLoadingBilling, setIsLoadingBilling] = useState(false);
+  const [showTokenPurchaseModal, setShowTokenPurchaseModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [targetPlan, setTargetPlan] = useState<
+    "HOBBY" | "PRO" | "AGENT" | undefined
+  >(undefined);
+
   // Filters and pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProject, setSelectedProject] = useState<string>("");
@@ -73,6 +195,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // This would be set based on the user's authentication method from the database
   // For now, we'll assume false (OAuth user). Set to true for email+password users.
   const hasEmailPassword = false;
+
+  // Fetch billing data when billing tab is active
+  useEffect(() => {
+    if (activeTab === "billing") {
+      fetchBillingData();
+    }
+  }, [activeTab]);
 
   // Fetch usage data when usage tab is active
   useEffect(() => {
@@ -87,6 +216,43 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     startDate,
     endDate,
   ]);
+
+  const fetchBillingData = async () => {
+    setIsLoadingBilling(true);
+    try {
+      // Fetch subscription details
+      const subRes = await fetch("/api/billing/subscription");
+      const subData = await subRes.json();
+      if (subRes.ok) {
+        setSubscriptionData(subData);
+      }
+
+      // Fetch token balance
+      const balanceRes = await fetch("/api/billing/token-balance");
+      const balanceData = await balanceRes.json();
+      if (balanceRes.ok) {
+        setTokenBalanceData(balanceData);
+      }
+
+      // Fetch subscription history
+      const historyRes = await fetch("/api/billing/subscription-history");
+      const historyData = await historyRes.json();
+      if (historyRes.ok) {
+        setSubscriptionHistory(historyData);
+      }
+
+      // Fetch token purchase history
+      const purchaseRes = await fetch("/api/billing/token-purchase-history");
+      const purchaseData = await purchaseRes.json();
+      if (purchaseRes.ok) {
+        setTokenPurchaseHistory(purchaseData);
+      }
+    } catch (error) {
+      console.error("Error fetching billing data:", error);
+    } finally {
+      setIsLoadingBilling(false);
+    }
+  };
 
   const fetchTokenUsage = () => {
     setIsLoadingUsage(true);
@@ -611,286 +777,646 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             {/* Billing Tab */}
             {activeTab === "billing" && (
               <div className="space-y-6">
-                {/* Current Plan */}
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
-                    Current Plan
-                  </h3>
-                  <div className="p-5 bg-muted/50 rounded-xl border border-border">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h4 className="text-base font-semibold text-foreground">
-                          Free Plan
-                        </h4>
-                        <p className="text-2xl font-bold text-foreground mt-1">
-                          $0
-                          <span className="text-sm font-normal text-muted-foreground">
-                            /mo
-                          </span>
-                        </p>
-                      </div>
-                      <span className="px-3 py-1 text-xs font-semibold bg-secondary text-secondary-foreground rounded-full">
-                        Active
-                      </span>
+                {isLoadingBilling ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="w-8 h-8 border-4 border-neutral-200 dark:border-neutral-800 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin mx-auto mb-3"></div>
+                      <p className="text-sm text-muted-foreground">
+                        Loading billing information...
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Includes 100,000 tokens every month.
-                    </p>
-                    <Button className="w-full mt-4 rounded-xl">
-                      Upgrade Plan
-                    </Button>
                   </div>
-                </div>
-
-                {/* Token Balance */}
-                <div className="border-t border-border pt-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    Token Balance
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Your monthly tokens reset in 23 days. Tokens are used in the
-                    following order: gifted, monthly, purchased.
-                  </p>
-
-                  <div className="space-y-3">
-                    {/* Total Available */}
-                    <div className="p-4 bg-primary rounded-xl">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-primary-foreground/70">
-                          Total Available Tokens
-                        </span>
-                        <span className="text-2xl font-bold text-primary-foreground">
-                          98,000
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Gifted Tokens */}
-                    <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Gifted Tokens
-                        </span>
-                        <span className="text-sm font-semibold text-foreground">
-                          0
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Monthly Tokens */}
-                    <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Monthly Tokens
-                        </span>
-                        <span className="text-sm font-semibold text-foreground">
-                          98,000 / 100,000
-                        </span>
-                      </div>
-                      <div className="w-full bg-secondary rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all"
-                          style={{ width: "98%" }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Purchased Tokens */}
-                    <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Purchased Tokens
-                        </span>
-                        <span className="text-sm font-semibold text-foreground">
-                          0
-                        </span>
-                      </div>
-                    </div>
-
-                    <Button variant="secondary" className="w-full rounded-xl">
-                      Purchase More Tokens
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Payment Method */}
-                <div className="border-t border-border pt-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
-                    Payment Method
-                  </h3>
-                  <div className="p-4 bg-muted/50 rounded-xl border border-input">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                          <svg
-                            className="w-6 h-6 text-muted-foreground"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                ) : (
+                  <>
+                    {/* Current Plan */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Current Plan</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="text-base font-semibold text-foreground">
+                              {subscriptionData?.plan.displayName || "Hobby"}
+                            </h4>
+                            <p className="text-2xl font-bold text-foreground mt-1">
+                              ${subscriptionData?.plan.priceMonthlyUsd || 0}
+                              <span className="text-sm font-normal text-muted-foreground">
+                                /mo
+                              </span>
+                            </p>
+                          </div>
+                          <span
+                            className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                              subscriptionData?.status === "active"
+                                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                : "bg-secondary text-secondary-foreground"
+                            }`}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                            />
-                          </svg>
+                            {subscriptionData?.status === "active"
+                              ? "Active"
+                              : subscriptionData?.status || "Unknown"}
+                          </span>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            No payment method
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Add a payment method to purchase tokens
-                          </p>
-                        </div>
-                      </div>
-                      <Button size="sm" className="rounded-lg">
-                        Add
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Payments are processed securely through Polar.
-                  </p>
-                </div>
+                        <p className="text-sm text-muted-foreground">
+                          {subscriptionData?.plan.monthlyTokenLimit
+                            ? `Includes ${(
+                                subscriptionData.plan.monthlyTokenLimit /
+                                1000000
+                              ).toFixed(1)}M tokens every month.`
+                            : "Unlimited tokens."}
+                        </p>
 
-                {/* Usage Code */}
-                <div className="border-t border-border pt-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
-                    Redeem a Usage Code
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Redeem a usage code to claim your gifted tokens.
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Enter code"
-                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-input bg-white dark:bg-neutral-900 text-foreground placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-50 focus:border-transparent text-sm"
+                        {/* Plan Action Buttons */}
+                        <div className="space-y-2">
+                          {subscriptionData?.plan.name === "HOBBY" && (
+                            <>
+                              <Button
+                                className="w-full rounded-xl"
+                                onClick={() => {
+                                  setTargetPlan("PRO");
+                                  setShowSubscriptionModal(true);
+                                }}
+                              >
+                                Upgrade to Pro ($50/mo)
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="w-full rounded-xl"
+                                onClick={() => {
+                                  setTargetPlan("AGENT");
+                                  setShowSubscriptionModal(true);
+                                }}
+                              >
+                                Upgrade to Agent ($5,000/mo)
+                              </Button>
+                            </>
+                          )}
+                          {subscriptionData?.plan.name === "PRO" && (
+                            <>
+                              <Button
+                                className="w-full rounded-xl"
+                                onClick={() => {
+                                  setTargetPlan("AGENT");
+                                  setShowSubscriptionModal(true);
+                                }}
+                              >
+                                Upgrade to Agent ($5,000/mo)
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="w-full rounded-xl"
+                                onClick={async () => {
+                                  if (
+                                    confirm(
+                                      "Are you sure you want to downgrade to Hobby? This will take effect at the end of your billing period."
+                                    )
+                                  ) {
+                                    try {
+                                      const res = await fetch(
+                                        "/api/billing/change-plan",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            targetPlan: "HOBBY",
+                                          }),
+                                        }
+                                      );
+                                      const data = await res.json();
+                                      if (
+                                        data.action === "scheduled_downgrade"
+                                      ) {
+                                        alert(data.message);
+                                        fetchBillingData(); // Refresh data
+                                      }
+                                    } catch (error) {
+                                      console.error(
+                                        "Error downgrading:",
+                                        error
+                                      );
+                                    }
+                                  }
+                                }}
+                              >
+                                Downgrade to Hobby
+                              </Button>
+                            </>
+                          )}
+                          {subscriptionData?.plan.name === "AGENT" && (
+                            <>
+                              <Button
+                                variant="outline"
+                                className="w-full rounded-xl"
+                                onClick={async () => {
+                                  if (
+                                    confirm(
+                                      "Are you sure you want to downgrade to Pro? This will take effect at the end of your billing period."
+                                    )
+                                  ) {
+                                    try {
+                                      const res = await fetch(
+                                        "/api/billing/change-plan",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            targetPlan: "PRO",
+                                          }),
+                                        }
+                                      );
+                                      const data = await res.json();
+                                      if (
+                                        data.action === "scheduled_downgrade"
+                                      ) {
+                                        alert(data.message);
+                                        fetchBillingData();
+                                      }
+                                    } catch (error) {
+                                      console.error(
+                                        "Error changing plan:",
+                                        error
+                                      );
+                                    }
+                                  }
+                                }}
+                              >
+                                Downgrade to Pro
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="w-full rounded-xl"
+                                onClick={async () => {
+                                  if (
+                                    confirm(
+                                      "Are you sure you want to downgrade to Hobby? This will take effect at the end of your billing period."
+                                    )
+                                  ) {
+                                    try {
+                                      const res = await fetch(
+                                        "/api/billing/change-plan",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            targetPlan: "HOBBY",
+                                          }),
+                                        }
+                                      );
+                                      const data = await res.json();
+                                      if (
+                                        data.action === "scheduled_downgrade"
+                                      ) {
+                                        alert(data.message);
+                                        fetchBillingData();
+                                      }
+                                    } catch (error) {
+                                      console.error(
+                                        "Error downgrading:",
+                                        error
+                                      );
+                                    }
+                                  }
+                                }}
+                              >
+                                Downgrade to Hobby
+                              </Button>
+                            </>
+                          )}
+                        </div>
+
+                        {/* View All Plans Link */}
+                        <div className="mt-3 text-center">
+                          <button
+                            onClick={() => {
+                              setTargetPlan(undefined); // Show all plans equally
+                              setShowSubscriptionModal(true);
+                            }}
+                            className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                          >
+                            View all plan details and features
+                          </button>
+                        </div>
+
+                        {/* Manage Subscription Button for Pro/Agent users */}
+                        {(subscriptionData?.plan.name === "PRO" ||
+                          subscriptionData?.plan.name === "AGENT") && (
+                          <Card className="mt-4">
+                            <CardContent className="pt-6">
+                              <p className="text-xs text-muted-foreground mb-3">
+                                Manage your subscription: Cancel, update payment
+                                method, or view billing history.
+                              </p>
+                              <Button
+                                variant="outline"
+                                className="w-full rounded-xl"
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(
+                                      "/api/billing/portal",
+                                      {
+                                        method: "POST",
+                                      }
+                                    );
+                                    const data = await response.json();
+                                    if (response.ok) {
+                                      window.location.href = data.url;
+                                    }
+                                  } catch (error) {
+                                    console.error(
+                                      "Error opening billing portal:",
+                                      error
+                                    );
+                                  }
+                                }}
+                              >
+                                Open Billing Portal
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {subscriptionData?.cancelAtPeriodEnd && (
+                          <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                              Your plan will change at the end of the current
+                              billing period (
+                              {new Date(
+                                subscriptionData.currentPeriodEnd
+                              ).toLocaleDateString()}
+                              ).
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Token Balance */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Token Balance</CardTitle>
+                        <CardDescription>
+                          Your monthly tokens reset in{" "}
+                          {tokenBalanceData?.monthly.daysUntilReset || 0} days.
+                          Tokens are used in the following order: gifted,
+                          monthly, purchased.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {/* Total Available */}
+                        <div className="p-4 bg-primary rounded-xl">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-primary-foreground/70">
+                              Total Available Tokens
+                            </span>
+                            <span className="text-2xl font-bold text-primary-foreground">
+                              {(
+                                (tokenBalanceData?.totalAvailable || 0) / 1000
+                              ).toLocaleString()}
+                              K
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Gifted Tokens */}
+                        {(tokenBalanceData?.gifted?.remaining ?? 0) > 0 && (
+                          <div className="p-3 bg-muted/50 rounded-xl border border-input">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Gifted Tokens
+                              </span>
+                              <span className="text-sm font-semibold text-foreground">
+                                {(
+                                  (tokenBalanceData?.gifted.remaining || 0) /
+                                  1000
+                                ).toLocaleString()}
+                                K
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Monthly Tokens */}
+                        <div className="p-3 bg-muted/50 rounded-xl border border-input">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Monthly Tokens
+                            </span>
+                            <span className="text-sm font-semibold text-foreground">
+                              {(
+                                (tokenBalanceData?.monthly.remaining || 0) /
+                                1000
+                              ).toLocaleString()}
+                              K /{" "}
+                              {(
+                                (tokenBalanceData?.monthly.limit || 0) / 1000
+                              ).toLocaleString()}
+                              K
+                            </span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="bg-primary h-2 rounded-full transition-all"
+                              style={{
+                                width: `${
+                                  tokenBalanceData &&
+                                  tokenBalanceData.monthly &&
+                                  (tokenBalanceData.monthly.limit ?? 0) > 0
+                                    ? ((tokenBalanceData.monthly.remaining ??
+                                        0) /
+                                        tokenBalanceData.monthly.limit) *
+                                      100
+                                    : 0
+                                }%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* Purchased Tokens */}
+                        {(tokenBalanceData?.purchased.remaining || 0) > 0 && (
+                          <div className="p-3 bg-muted/50 rounded-xl border border-input">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Purchased Tokens
+                              </span>
+                              <span className="text-sm font-semibold text-foreground">
+                                {(
+                                  (tokenBalanceData?.purchased.remaining || 0) /
+                                  1000
+                                ).toLocaleString()}
+                                K
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Purchase Tokens Button - Only for Pro/Agent */}
+                        {subscriptionData?.plan.canPurchaseTokens && (
+                          <Button
+                            variant="secondary"
+                            className="w-full rounded-xl"
+                            onClick={() => setShowTokenPurchaseModal(true)}
+                          >
+                            <svg
+                              className="w-4 h-4 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                              />
+                            </svg>
+                            Purchase More Tokens
+                          </Button>
+                        )}
+
+                        {!subscriptionData?.plan.canPurchaseTokens && (
+                          <Card>
+                            <CardContent className="pt-6 text-center">
+                              <p className="text-sm text-muted-foreground mb-3">
+                                Upgrade to Pro or Agent to purchase additional
+                                tokens
+                              </p>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setTargetPlan("PRO"); // Default to Pro when upgrading for tokens
+                                  setShowSubscriptionModal(true);
+                                }}
+                                className="rounded-lg"
+                              >
+                                View Plans
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Token Purchase History */}
+                    {tokenPurchaseHistory &&
+                      tokenPurchaseHistory.purchases.length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Token Purchase History</CardTitle>
+                            <CardDescription>
+                              View all your token purchases. Purchased tokens
+                              never expire.
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {/* Summary */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-3 bg-muted/50 rounded-xl border border-input">
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  Total Purchased
+                                </p>
+                                <p className="text-lg font-semibold text-foreground">
+                                  {(
+                                    tokenPurchaseHistory.summary
+                                      .totalPurchased / 1000000
+                                  ).toFixed(1)}
+                                  M
+                                </p>
+                              </div>
+                              <div className="p-3 bg-muted/50 rounded-xl border border-input">
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  Total Spent
+                                </p>
+                                <p className="text-lg font-semibold text-foreground">
+                                  $
+                                  {tokenPurchaseHistory.summary.totalSpent.toFixed(
+                                    2
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Purchase List */}
+                            <div className="space-y-2">
+                              {tokenPurchaseHistory.purchases
+                                .slice(0, 5)
+                                .map((purchase) => (
+                                  <div
+                                    key={purchase.id}
+                                    className="p-3 bg-muted/50 rounded-xl border border-input"
+                                  >
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-semibold text-foreground">
+                                          {(
+                                            purchase.tokenAmount / 1000000
+                                          ).toFixed(1)}
+                                          M tokens
+                                        </span>
+                                        <span
+                                          className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                                            purchase.status === "completed"
+                                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                              : purchase.status === "pending"
+                                              ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
+                                              : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                                          }`}
+                                        >
+                                          {purchase.status}
+                                        </span>
+                                      </div>
+                                      <span className="text-sm font-bold text-foreground">
+                                        ${purchase.priceUsd.toFixed(2)}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                      <span>
+                                        {new Date(
+                                          purchase.purchasedAt
+                                        ).toLocaleDateString()}
+                                      </span>
+                                      {purchase.tokensRemaining > 0 && (
+                                        <span>
+                                          {(
+                                            purchase.tokensRemaining / 1000000
+                                          ).toFixed(1)}
+                                          M remaining
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+
+                            {tokenPurchaseHistory.purchases.length > 5 && (
+                              <p className="text-xs text-muted-foreground text-center mt-3">
+                                Showing 5 of{" "}
+                                {tokenPurchaseHistory.purchases.length}{" "}
+                                purchases
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+
+                    {/* Subscription History */}
+                    {subscriptionHistory && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Subscription History</CardTitle>
+                          <CardDescription>
+                            View your billing periods and usage history.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* Usage Records */}
+                          {subscriptionHistory.usageRecords.length > 0 && (
+                            <div className="space-y-2">
+                              <h4 className="text-sm font-semibold text-foreground mb-2">
+                                Recent Billing Periods
+                              </h4>
+                              {subscriptionHistory.usageRecords
+                                .slice(0, 3)
+                                .map((record) => (
+                                  <div
+                                    key={record.id}
+                                    className="p-3 bg-muted/50 rounded-xl border border-input"
+                                  >
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-medium text-foreground">
+                                        {new Date(
+                                          record.billingPeriodStart
+                                        ).toLocaleDateString()}{" "}
+                                        -{" "}
+                                        {new Date(
+                                          record.billingPeriodEnd
+                                        ).toLocaleDateString()}
+                                      </span>
+                                      <span className="text-sm font-bold text-foreground">
+                                        ${record.totalCostUsd.toFixed(2)}
+                                      </span>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {(
+                                        record.aiTokensUsed / 1000
+                                      ).toLocaleString()}
+                                      K tokens used
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+
+                          {/* Invoices */}
+                          {subscriptionHistory.invoices.length > 0 && (
+                            <div className="mt-4 space-y-2">
+                              <h4 className="text-sm font-semibold text-foreground mb-2">
+                                Recent Invoices
+                              </h4>
+                              {subscriptionHistory.invoices
+                                .slice(0, 3)
+                                .map((invoice) => (
+                                  <div
+                                    key={invoice.id}
+                                    className="p-3 bg-muted/50 rounded-xl border border-input"
+                                  >
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-foreground">
+                                          {invoice.invoiceNumber}
+                                        </span>
+                                        <span
+                                          className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                                            invoice.status === "paid"
+                                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                              : invoice.status === "issued"
+                                              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                                              : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-400"
+                                          }`}
+                                        >
+                                          {invoice.status}
+                                        </span>
+                                      </div>
+                                      <span className="text-sm font-bold text-foreground">
+                                        ${invoice.totalUsd.toFixed(2)}
+                                      </span>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {new Date(
+                                        invoice.createdAt
+                                      ).toLocaleDateString()}
+                                      {invoice.paidAt && (
+                                        <span className="ml-2">
+                                          • Paid{" "}
+                                          {new Date(
+                                            invoice.paidAt
+                                          ).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Token Purchase Modal */}
+                    <TokenPurchaseModal
+                      isOpen={showTokenPurchaseModal}
+                      onClose={() => setShowTokenPurchaseModal(false)}
+                      currentPlan={subscriptionData?.plan.name || "HOBBY"}
                     />
-                    <button className="px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors whitespace-nowrap">
-                      Redeem
-                    </button>
-                  </div>
-                </div>
-
-                {/* Subscription Management (for paid plans) */}
-                <div className="border-t border-border pt-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
-                    Subscription Management
-                  </h3>
-                  <div className="p-4 bg-muted/50 rounded-xl border border-input">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      You&apos;re currently on the Free plan. Upgrade to access
-                      subscription management features.
-                    </p>
-                    {/* This section would show when user has a paid subscription:
-                    <div className="space-y-2">
-                      <button className="w-full px-4 py-2.5 text-sm font-medium bg-accent text-foreground rounded-xl hover:bg-accent/80 transition-colors">
-                        Manage Subscription
-                      </button>
-                      <button className="w-full px-4 py-2.5 text-sm font-medium text-muted-foreground border border-input rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                        Cancel Subscription
-                      </button>
-                    </div>
-                    */}
-                  </div>
-                </div>
-
-                {/* Invoices */}
-                <div className="border-t border-border pt-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
-                    Invoices
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    View and download your billing history.
-                  </p>
-
-                  {/* No invoices state */}
-                  <div className="p-6 bg-muted/50 rounded-xl border border-input text-center">
-                    <svg
-                      className="w-12 h-12 text-neutral-400 dark:text-neutral-600 mx-auto mb-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <p className="text-sm font-medium text-foreground mb-1">
-                      No invoices yet
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Your invoices will appear here after purchases or
-                      subscription payments.
-                    </p>
-                  </div>
-
-                  {/* Example invoices (commented out - will show when user has invoices)
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            Pro Plan - January 2025
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Issued on Jan 1, 2025 • $29.00
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-1 text-xs font-medium bg-secondary text-muted-foreground rounded-full">
-                          Paid
-                        </span>
-                        <button className="p-2 text-muted-foreground hover:bg-accent/80 rounded-lg transition-colors">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            Token Purchase - 500K tokens
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Issued on Dec 15, 2024 • $49.00
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-1 text-xs font-medium bg-secondary text-muted-foreground rounded-full">
-                          Paid
-                        </span>
-                        <button className="p-2 text-muted-foreground hover:bg-accent/80 rounded-lg transition-colors">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  */}
-                </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -1599,7 +2125,26 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     </div>
   );
 
-  return typeof window !== "undefined"
-    ? createPortal(modalContent, document.body)
-    : null;
+  return (
+    <>
+      {typeof window !== "undefined"
+        ? createPortal(modalContent, document.body)
+        : null}
+
+      {/* Subscription Modal for upgrades */}
+      <SubscriptionModal
+        isOpen={showSubscriptionModal}
+        onClose={() => {
+          setShowSubscriptionModal(false);
+          setTargetPlan(undefined); // Reset target plan
+          // Refresh billing data after modal closes
+          if (activeTab === "billing") {
+            fetchBillingData();
+          }
+        }}
+        currentPlan={subscriptionData?.plan.name || "HOBBY"}
+        targetPlan={targetPlan}
+      />
+    </>
+  );
 }

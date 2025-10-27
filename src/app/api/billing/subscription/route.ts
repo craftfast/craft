@@ -1,0 +1,111 @@
+/**
+ * API Route: Get User Subscription
+ * GET /api/billing/subscription
+ * 
+ * Returns the user's current subscription plan, status, and billing details
+ */
+
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+
+export async function GET() {
+    try {
+        const session = await getServerSession(authOptions);
+
+        if (!session?.user?.email) {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        // Get user with subscription and plan details
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            include: {
+                subscription: {
+                    include: {
+                        plan: true,
+                    },
+                },
+            },
+        });
+
+        if (!user) {
+            return NextResponse.json(
+                { error: "User not found" },
+                { status: 404 }
+            );
+        }
+
+        // If no subscription exists, create a default HOBBY plan
+        if (!user.subscription) {
+            const hobbyPlan = await prisma.plan.findUnique({
+                where: { name: "HOBBY" },
+            });
+
+            if (!hobbyPlan) {
+                return NextResponse.json(
+                    { error: "Default plan not found" },
+                    { status: 500 }
+                );
+            }
+
+            // Create subscription with HOBBY plan
+            const subscription = await prisma.userSubscription.create({
+                data: {
+                    userId: user.id,
+                    planId: hobbyPlan.id,
+                    status: "active",
+                    currentPeriodStart: new Date(),
+                    currentPeriodEnd: new Date(
+                        new Date().setMonth(new Date().getMonth() + 1)
+                    ),
+                },
+                include: {
+                    plan: true,
+                },
+            });
+
+            return NextResponse.json({
+                plan: {
+                    name: subscription.plan.name,
+                    displayName: subscription.plan.displayName,
+                    priceMonthlyUsd: subscription.plan.priceMonthlyUsd,
+                    maxProjects: subscription.plan.maxProjects,
+                    monthlyTokenLimit: subscription.plan.monthlyTokenLimit,
+                    canPurchaseTokens: subscription.plan.canPurchaseTokens,
+                    features: subscription.plan.features,
+                },
+                status: subscription.status,
+                currentPeriodStart: subscription.currentPeriodStart,
+                currentPeriodEnd: subscription.currentPeriodEnd,
+                cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+            });
+        }
+
+        return NextResponse.json({
+            plan: {
+                name: user.subscription.plan.name,
+                displayName: user.subscription.plan.displayName,
+                priceMonthlyUsd: user.subscription.plan.priceMonthlyUsd,
+                maxProjects: user.subscription.plan.maxProjects,
+                monthlyTokenLimit: user.subscription.plan.monthlyTokenLimit,
+                canPurchaseTokens: user.subscription.plan.canPurchaseTokens,
+                features: user.subscription.plan.features,
+            },
+            status: user.subscription.status,
+            currentPeriodStart: user.subscription.currentPeriodStart,
+            currentPeriodEnd: user.subscription.currentPeriodEnd,
+            cancelAtPeriodEnd: user.subscription.cancelAtPeriodEnd,
+        });
+    } catch (error) {
+        console.error("Error fetching subscription:", error);
+        return NextResponse.json(
+            { error: "Failed to fetch subscription details" },
+            { status: 500 }
+        );
+    }
+}
