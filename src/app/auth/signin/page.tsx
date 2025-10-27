@@ -10,6 +10,7 @@ function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const planParam = searchParams.get("plan"); // Capture plan parameter
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +45,15 @@ function SignInContent() {
         return;
       }
 
-      router.push(callbackUrl);
+      // Construct final redirect URL with plan parameter if present
+      let finalRedirectUrl = callbackUrl;
+      if (planParam) {
+        const url = new URL(callbackUrl, window.location.origin);
+        url.searchParams.set("plan", planParam);
+        finalRedirectUrl = url.pathname + url.search;
+      }
+
+      router.push(finalRedirectUrl);
       router.refresh();
     } catch {
       setError("Something went wrong");
@@ -81,7 +90,16 @@ function SignInContent() {
 
   const handleOAuthSignIn = async (provider: "google" | "github") => {
     setLoading(true);
-    await signIn(provider, { callbackUrl });
+
+    // Construct callback URL with plan parameter if present
+    let finalCallbackUrl = callbackUrl;
+    if (planParam) {
+      const url = new URL(callbackUrl, window.location.origin);
+      url.searchParams.set("plan", planParam);
+      finalCallbackUrl = url.pathname + url.search;
+    }
+
+    await signIn(provider, { callbackUrl: finalCallbackUrl });
   };
 
   return (
@@ -229,7 +247,16 @@ function SignInContent() {
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
               Don&apos;t have an account?{" "}
               <Link
-                href="/auth/signup"
+                href={`/auth/signup${
+                  callbackUrl !== "/" || planParam
+                    ? `?${new URLSearchParams({
+                        ...(callbackUrl !== "/" && {
+                          callbackUrl: callbackUrl,
+                        }),
+                        ...(planParam && { plan: planParam }),
+                      }).toString()}`
+                    : ""
+                }`}
                 className="text-neutral-900 dark:text-neutral-100 hover:underline font-medium"
               >
                 Sign up

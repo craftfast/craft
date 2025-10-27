@@ -1,10 +1,12 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import DashboardHeader from "@/components/DashboardHeader";
 import CraftInput from "@/components/CraftInput";
 import RecentProjects from "@/components/RecentProjects";
 import PaymentSuccessHandler from "@/components/PaymentSuccessHandler";
+import PlanRedirectHandler from "@/components/PlanRedirectHandler";
 import { getUserSubscription } from "@/lib/subscription";
 import type { Session } from "next-auth";
 
@@ -23,6 +25,13 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
       {/* Payment Success Handler - Updates credits when returning from checkout */}
       <PaymentSuccessHandler />
+
+      {/* Plan Redirect Handler - Shows subscription modal when redirected from pricing with plan parameter */}
+      <Suspense fallback={null}>
+        <PlanRedirectHandler
+          currentPlan={subscription?.plan?.name || "HOBBY"}
+        />
+      </Suspense>
 
       {/* Header - Fixed */}
       <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">

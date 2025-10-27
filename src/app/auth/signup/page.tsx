@@ -9,6 +9,7 @@ import Logo from "@/components/Logo";
 function SignUpContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const planParam = searchParams.get("plan"); // Capture plan parameter
 
   const [step, setStep] = useState(1); // 1 for email, 2 for name/password, 3 for verification message
   const [name, setName] = useState("");
@@ -76,7 +77,16 @@ function SignUpContent() {
 
   const handleOAuthSignUp = async (provider: "google" | "github") => {
     setLoading(true);
-    await signIn(provider, { callbackUrl });
+
+    // Construct callback URL with plan parameter if present
+    let finalCallbackUrl = callbackUrl;
+    if (planParam) {
+      const url = new URL(callbackUrl, window.location.origin);
+      url.searchParams.set("plan", planParam);
+      finalCallbackUrl = url.pathname + url.search;
+    }
+
+    await signIn(provider, { callbackUrl: finalCallbackUrl });
   };
 
   return (
@@ -343,7 +353,16 @@ function SignUpContent() {
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
                 Already have an account?{" "}
                 <Link
-                  href="/auth/signin"
+                  href={`/auth/signin${
+                    callbackUrl !== "/" || planParam
+                      ? `?${new URLSearchParams({
+                          ...(callbackUrl !== "/" && {
+                            callbackUrl: callbackUrl,
+                          }),
+                          ...(planParam && { plan: planParam }),
+                        }).toString()}`
+                      : ""
+                  }`}
                   className="text-neutral-900 dark:text-neutral-100 hover:underline font-medium"
                 >
                   Log in

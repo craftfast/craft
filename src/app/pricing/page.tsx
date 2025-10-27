@@ -320,7 +320,7 @@ export default function PricingPage() {
   const handleProPayment = async () => {
     // Redirect to signup if not authenticated
     if (!session?.user) {
-      router.push("/auth/signup");
+      router.push("/auth/signup?callbackUrl=/dashboard&plan=pro");
       return;
     }
 
@@ -371,7 +371,7 @@ export default function PricingPage() {
 
   const handleAgentPayment = async () => {
     if (!session?.user) {
-      router.push("/auth/signup");
+      router.push("/auth/signup?callbackUrl=/dashboard&plan=agent");
       return;
     }
 
@@ -417,7 +417,7 @@ export default function PricingPage() {
         : userPlan === "hobby"
         ? "Current plan"
         : "Start Crafting",
-      action: () => router.push("/auth/signup"),
+      action: () => router.push("/auth/signup?callbackUrl=/dashboard"),
       features: [
         { text: "100k AI tokens per month", included: true, highlight: true },
         { text: "Up to 3 projects", included: true },
@@ -443,7 +443,7 @@ export default function PricingPage() {
         : "Upgrade now",
       popular: true,
       action: !session
-        ? () => router.push("/auth/signup")
+        ? () => router.push("/auth/signup?callbackUrl=/dashboard&plan=pro")
         : userPlan === "pro"
         ? () => {} // No action for current plan
         : handleProPayment,
