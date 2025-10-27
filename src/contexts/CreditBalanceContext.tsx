@@ -7,6 +7,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { useSession } from "next-auth/react";
 
 interface CreditBalance {
   totalAvailable: number;
@@ -42,6 +43,7 @@ export function CreditBalanceProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session, status } = useSession();
   const [balance, setBalance] = useState<CreditBalance | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,10 +71,15 @@ export function CreditBalanceProvider({
     }
   }, []);
 
-  // Initial fetch
+  // Initial fetch - only when session is authenticated
   useEffect(() => {
-    fetchBalance();
-  }, [fetchBalance]);
+    if (status === "authenticated" && session) {
+      fetchBalance();
+    } else if (status === "unauthenticated") {
+      setIsLoading(false);
+      setBalance(null);
+    }
+  }, [status, session, fetchBalance]);
 
   // Listen for custom credit update events
   useEffect(() => {
