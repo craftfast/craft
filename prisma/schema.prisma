@@ -464,3 +464,17 @@ model Deployment {
   @@index([createdAt])
   @@map("deployments")
 }
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String?
+  name      String?
+  message   String   @db.Text
+  sentiment String? // "positive", "neutral", "negative"
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("feedback")
+}

@@ -215,7 +215,7 @@ export default function Projects() {
 
           {/* New Project Button */}
           <Link
-            href="/new-project"
+            href="/dashboard"
             className="px-4 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-all flex items-center gap-2 shadow-sm border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
           >
             <svg
