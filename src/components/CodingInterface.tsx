@@ -60,6 +60,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useChatPosition } from "@/contexts/ChatPositionContext";
 
 type TabType = "preview" | "code";
 
@@ -175,25 +176,6 @@ export default function CodingInterface({
 
     loadProjectFiles();
   }, [project.id]);
-
-  // Load user's preferred chat position on mount
-  useEffect(() => {
-    const loadChatPosition = async () => {
-      try {
-        const response = await fetch("/api/user/settings");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.preferredChatPosition) {
-            setChatPosition(data.preferredChatPosition);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading chat position:", error);
-      }
-    };
-
-    loadChatPosition();
-  }, []);
 
   // Function to refresh project data
   const refreshProject = async () => {
@@ -409,7 +391,7 @@ export default function CodingInterface({
   // Use ref to avoid creating new function references that cause re-renders
   const streamingFilesRef = useRef<Record<string, string>>({});
   const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [chatPosition, setChatPosition] = useState<"left" | "right">("right");
+  const { chatPosition } = useChatPosition();
 
   const handleStreamingFiles = useCallback((files: Record<string, string>) => {
     // Merge new files with existing streaming files

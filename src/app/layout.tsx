@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SessionProvider } from "@/components/SessionProvider";
 import { CreditBalanceProvider } from "@/contexts/CreditBalanceContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ChatPositionProvider } from "@/contexts/ChatPositionContext";
 import Script from "next/script";
 import "./globals.css";
 
@@ -87,7 +88,9 @@ export default function RootLayout({
       >
         <SessionProvider>
           <ThemeProvider>
-            <CreditBalanceProvider>{children}</CreditBalanceProvider>
+            <ChatPositionProvider>
+              <CreditBalanceProvider>{children}</CreditBalanceProvider>
+            </ChatPositionProvider>
           </ThemeProvider>
         </SessionProvider>
         <SpeedInsights />

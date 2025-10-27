@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useChatPosition } from "@/contexts/ChatPositionContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,8 +52,8 @@ type SettingsTab = "general" | "billing" | "usage" | "account" | "integrations";
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+  const { chatPosition, setChatPosition } = useChatPosition();
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
-  const [chatPosition, setChatPosition] = useState<"left" | "right">("left");
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
   const [soundNotifications, setSoundNotifications] = useState(false);
   const [location, setLocation] = useState("");
@@ -72,50 +73,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // This would be set based on the user's authentication method from the database
   // For now, we'll assume false (OAuth user). Set to true for email+password users.
   const hasEmailPassword = false;
-  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
-
-  // Load user settings on mount - only once when modal opens
-  useEffect(() => {
-    const loadUserSettings = async () => {
-      try {
-        const response = await fetch("/api/user/settings");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.preferredChatPosition) {
-            setChatPosition(data.preferredChatPosition);
-          }
-          setHasLoadedSettings(true);
-        }
-      } catch (error) {
-        console.error("Error loading user settings:", error);
-      }
-    };
-
-    if (isOpen && !hasLoadedSettings) {
-      loadUserSettings();
-    }
-  }, [isOpen, hasLoadedSettings]);
-
-  // Save chat position preference
-  const handleChatPositionChange = async (position: "left" | "right") => {
-    setChatPosition(position);
-
-    try {
-      const response = await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ preferredChatPosition: position }),
-      });
-
-      if (!response.ok) {
-        console.error("Failed to save chat position preference");
-      }
-    } catch (error) {
-      console.error("Error saving chat position:", error);
-    }
-  };
 
   // Fetch usage data when usage tab is active
   useEffect(() => {
@@ -563,14 +520,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </p>
                   <div className="flex gap-3">
                     <Button
-                      onClick={() => handleChatPositionChange("left")}
+                      onClick={() => setChatPosition("left")}
                       variant={chatPosition === "left" ? "default" : "outline"}
                       className="flex-1 rounded-xl"
                     >
                       Left
                     </Button>
                     <Button
-                      onClick={() => handleChatPositionChange("right")}
+                      onClick={() => setChatPosition("right")}
                       variant={chatPosition === "right" ? "default" : "outline"}
                       className="flex-1 rounded-xl"
                     >

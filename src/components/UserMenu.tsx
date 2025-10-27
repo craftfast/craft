@@ -6,6 +6,8 @@ import { signOut } from "next-auth/react";
 import Image from "next/image";
 import SettingsModal from "./SettingsModal";
 import FeedbackModal from "./FeedbackModal";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useChatPosition } from "@/contexts/ChatPositionContext";
 
 interface User {
   id?: string;
@@ -21,6 +23,8 @@ interface UserMenuProps {
 
 export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const { chatPosition, setChatPosition } = useChatPosition();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -84,6 +88,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               {user.email}
             </p>
           </div>
+
           <div className="py-1">
             <button
               onClick={() => {
@@ -242,10 +247,116 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               Feedback
             </button>
           </div>
+
+          <div className="border-t border-border"></div>
+
+          {/* Theme & Chat Selectors */}
+          <div className="px-4 py-3 border-b border-border space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-popover-foreground">Theme</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    theme === "light"
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent/50 text-muted-foreground"
+                  }`}
+                  title="Light"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    theme === "dark"
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent/50 text-muted-foreground"
+                  }`}
+                  title="Dark"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setTheme("system")}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    theme === "system"
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent/50 text-muted-foreground"
+                  }`}
+                  title="System"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-popover-foreground">Chat</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setChatPosition("left")}
+                  className={`px-2.5 py-1.5 text-xs rounded-lg transition-colors ${
+                    chatPosition === "left"
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent/50 text-muted-foreground"
+                  }`}
+                >
+                  Left
+                </button>
+                <button
+                  onClick={() => setChatPosition("right")}
+                  className={`px-2.5 py-1.5 text-xs rounded-lg transition-colors ${
+                    chatPosition === "right"
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent/50 text-muted-foreground"
+                  }`}
+                >
+                  Right
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="border-t border-border py-1">
             <button
               onClick={handleSignOut}
-              className="w-full px-4 py-2 text-left text-sm text-destructive hover:bg-destructive/10 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
             >
               <svg
                 className="w-4 h-4"
