@@ -36,6 +36,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [showTokensModal, setShowTokensModal] = useState(false);
+  const [targetPlan, setTargetPlan] = useState<"HOBBY" | "PRO" | "AGENT">();
   const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "AGENT" | null>(
     null
   );
@@ -340,6 +341,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               <button
                 onClick={() => {
                   setIsUserMenuOpen(false);
+                  setTargetPlan("PRO");
                   setIsPricingModalOpen(true);
                   setShowTokensModal(false);
                 }}
@@ -532,6 +534,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
           isOpen={isPricingModalOpen}
           onClose={() => setIsPricingModalOpen(false)}
           currentPlan={userPlan || "HOBBY"}
+          targetPlan={targetPlan}
         />
       )}
 

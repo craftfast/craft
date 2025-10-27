@@ -33,6 +33,7 @@ export default function DashboardHeader({
   const [pricingModalMode, setPricingModalMode] = useState<
     "all" | "tokens" | "pro"
   >("all");
+  const [targetPlan, setTargetPlan] = useState<"HOBBY" | "PRO" | "AGENT">();
   const { balance } = useCreditBalance(); // Only for mobile menu detailed breakdown
 
   const showPlanBadge =
@@ -104,6 +105,7 @@ export default function DashboardHeader({
             <button
               onClick={() => {
                 setPricingModalMode("pro");
+                setTargetPlan("PRO");
                 setIsPricingModalOpen(true);
               }}
               className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
@@ -156,6 +158,7 @@ export default function DashboardHeader({
             <button
               onClick={() => {
                 setPricingModalMode("pro");
+                setTargetPlan("PRO");
                 setIsPricingModalOpen(true);
               }}
               className="flex items-center leading-tight gap-2 px-3 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
@@ -413,6 +416,7 @@ export default function DashboardHeader({
                   <button
                     onClick={() => {
                       setPricingModalMode("pro");
+                      setTargetPlan("PRO");
                       setIsPricingModalOpen(true);
                       setIsMobileMenuOpen(false);
                     }}
@@ -457,6 +461,7 @@ export default function DashboardHeader({
           isOpen={isPricingModalOpen}
           onClose={() => setIsPricingModalOpen(false)}
           currentPlan={planName}
+          targetPlan={targetPlan}
         />
       )}
 
