@@ -2,32 +2,72 @@
 
 import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 
 function SignUpContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
+  const [step, setStep] = useState(1); // 1 for email, 2 for name/password, 3 for verification message
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleEmailSignUp = async (e: React.FormEvent) => {
+  const handleEmailContinue = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    // Move to step 2
+    setStep(2);
+  };
+
+  const handleCompleteSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // For now, just redirect to a page where they can complete registration
-      // In a real implementation, you might send a magic link or show a password form
-      router.push(
-        `/auth/signup/complete?email=${encodeURIComponent(
-          email
-        )}&callbackUrl=${encodeURIComponent(callbackUrl)}`
-      );
+      // Call the register API
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          name: name || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Something went wrong");
+        setLoading(false);
+        return;
+      }
+
+      // Show verification message (step 3)
+      setStep(3);
+      setLoading(false);
     } catch {
       setError("Something went wrong");
       setLoading(false);
@@ -120,60 +160,212 @@ function SignUpContent() {
             </div>
           </div>
 
-          {/* Email/Password Form */}
-          <form onSubmit={handleEmailSignUp} className="space-y-3">
-            {error && (
-              <div className="p-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-700 dark:text-neutral-300 text-sm">
-                {error}
+          {/* Step 1: Email */}
+          {step === 1 && (
+            <form onSubmit={handleEmailContinue} className="space-y-3">
+              {error && (
+                <div className="p-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-700 dark:text-neutral-300 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 focus:border-transparent transition-all text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
+                  placeholder="Email address"
+                />
               </div>
-            )}
 
-            <div>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 focus:border-transparent transition-all text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
-                placeholder="Email address"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-3 rounded-full font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Continuing..." : "Continue"}
-            </button>
-          </form>
-
-          {/* Footer text */}
-          <div className="text-center mt-8">
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Already have an account?{" "}
-              <Link
-                href="/auth/signin"
-                className="text-neutral-900 dark:text-neutral-100 hover:underline font-medium"
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-3 rounded-full font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Log in
-              </Link>
-            </p>
-          </div>
+                Continue
+              </button>
+            </form>
+          )}
 
-          {/* Terms and Privacy */}
-          <div className="text-center mt-6">
-            <div className="flex items-center justify-center gap-4 text-xs text-neutral-500 dark:text-neutral-500">
-              <Link href="/terms" className="hover:underline">
-                Terms of Use
-              </Link>
-              <span>|</span>
-              <Link href="/privacy" className="hover:underline">
-                Privacy Policy
-              </Link>
+          {/* Step 2: Name and Password */}
+          {step === 2 && (
+            <form onSubmit={handleCompleteSignUp} className="space-y-3">
+              {error && (
+                <div className="p-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-700 dark:text-neutral-300 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Show email (read-only) */}
+              <div>
+                <input
+                  type="email"
+                  value={email}
+                  disabled
+                  className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-full text-neutral-600 dark:text-neutral-400"
+                />
+              </div>
+
+              <div>
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 focus:border-transparent transition-all text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
+                  placeholder="Full name (optional)"
+                />
+              </div>
+
+              <div>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 focus:border-transparent transition-all text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
+                  placeholder="Password (min. 6 characters)"
+                />
+              </div>
+
+              <div>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 focus:border-transparent transition-all text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
+                  placeholder="Confirm password"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(1);
+                    setError("");
+                  }}
+                  disabled={loading}
+                  className="px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-neutral-900 dark:text-neutral-100 font-medium"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-3 rounded-full font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Creating account..." : "Create account"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Step 3: Verification Message */}
+          {step === 3 && (
+            <div className="space-y-6 text-center">
+              <div className="flex justify-center">
+                <div className="w-16 h-16 bg-neutral-900 dark:bg-neutral-100 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-8 h-8 text-white dark:text-neutral-900"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                  Check your email
+                </h2>
+                <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+                  We&apos;ve sent a verification link to
+                </p>
+                <p className="text-neutral-900 dark:text-neutral-100 font-medium">
+                  {email}
+                </p>
+              </div>
+
+              <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4">
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 text-left">
+                  Click the link in the email to verify your account. The link
+                  will expire in 24 hours.
+                </p>
+              </div>
+
+              <div className="pt-4">
+                <Link
+                  href="/auth/signin"
+                  className="inline-block px-6 py-3 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all"
+                >
+                  Go to Sign In
+                </Link>
+              </div>
+
+              <div className="text-sm text-neutral-500 dark:text-neutral-500">
+                Didn&apos;t receive the email? Check your spam folder or{" "}
+                <button
+                  onClick={() => {
+                    setStep(1);
+                    setEmail("");
+                    setPassword("");
+                    setConfirmPassword("");
+                    setName("");
+                  }}
+                  className="text-neutral-900 dark:text-neutral-100 hover:underline font-medium"
+                >
+                  try again
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Footer text - only show in steps 1 and 2 */}
+          {step !== 3 && (
+            <div className="text-center mt-8">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                Already have an account?{" "}
+                <Link
+                  href="/auth/signin"
+                  className="text-neutral-900 dark:text-neutral-100 hover:underline font-medium"
+                >
+                  Log in
+                </Link>
+              </p>
+            </div>
+          )}
+
+          {/* Terms and Privacy - only show in steps 1 and 2 */}
+          {step !== 3 && (
+            <div className="text-center mt-6">
+              <div className="flex items-center justify-center gap-4 text-xs text-neutral-500 dark:text-neutral-500">
+                <Link href="/terms" className="hover:underline">
+                  Terms of Use
+                </Link>
+                <span>|</span>
+                <Link href="/privacy" className="hover:underline">
+                  Privacy Policy
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

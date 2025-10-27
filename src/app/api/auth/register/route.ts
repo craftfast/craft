@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { assignPlanToUser } from "@/lib/subscription";
+import { sendVerificationEmail } from "@/lib/email";
+import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
     try {
@@ -30,16 +32,31 @@ export async function POST(request: NextRequest) {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
 
+        // Generate verification token
+        const verificationToken = crypto.randomBytes(32).toString("hex");
+        const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
         // Create user (no team needed - direct user subscriptions)
         const user = await prisma.user.create({
             data: {
                 email,
                 name: name || null,
                 password: hashedPassword,
+                verificationToken,
+                verificationTokenExpiry,
             },
         });
 
         console.log(`✅ User created: ${user.email}`);
+
+        // Send verification email
+        try {
+            await sendVerificationEmail(user.email, verificationToken);
+            console.log(`✅ Verification email sent to: ${user.email}`);
+        } catch (emailError) {
+            console.error("Error sending verification email:", emailError);
+            // Don't fail registration if email fails
+        }
 
         // Assign default Hobby plan to new user
         try {
@@ -58,6 +75,7 @@ export async function POST(request: NextRequest) {
                     email: user.email,
                     name: user.name,
                 },
+                message: "Registration successful. Please check your email to verify your account.",
             },
             { status: 201 }
         );

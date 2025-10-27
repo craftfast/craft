@@ -240,9 +240,30 @@ export default function DashboardHeader({
                   <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
                     {session.user.name}
                   </p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                    {session.user.email}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                      {session.user.email}
+                    </p>
+                    {(session.user as any).hasPassword &&
+                      !(session.user as any).emailVerified && (
+                        <span
+                          className="shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-yellow-500/20 border border-yellow-500/40"
+                          title="Email not verified"
+                        >
+                          <svg
+                            className="w-2.5 h-2.5 text-yellow-600 dark:text-yellow-500"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </span>
+                      )}
+                  </div>
                   {balance && (
                     <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
                       <div className="flex items-center justify-between mb-1">

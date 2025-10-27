@@ -518,15 +518,98 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Email
                       </label>
-                      <input
-                        type="email"
-                        value={session?.user?.email || ""}
-                        readOnly
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-muted text-foreground cursor-not-allowed text-sm"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1.5">
-                        Your email address
-                      </p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="email"
+                            value={session?.user?.email || ""}
+                            readOnly
+                            className="flex-1 px-3.5 py-2.5 rounded-xl border border-input bg-muted text-foreground cursor-not-allowed text-sm"
+                          />
+                          {(session?.user as any)?.hasPassword &&
+                            !(session?.user as any)?.emailVerified && (
+                              <span
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-700 dark:text-yellow-400 text-xs font-medium"
+                                title="Email not verified"
+                              >
+                                <svg
+                                  className="w-3.5 h-3.5"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                Not Verified
+                              </span>
+                            )}
+                          {(session?.user as any)?.hasPassword &&
+                            (session?.user as any)?.emailVerified && (
+                              <span
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-xs font-medium"
+                                title="Email verified"
+                              >
+                                <svg
+                                  className="w-3.5 h-3.5"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                Verified
+                              </span>
+                            )}
+                        </div>
+                        {(session?.user as any)?.hasPassword &&
+                          !(session?.user as any)?.emailVerified && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(
+                                    "/api/auth/resend-verification",
+                                    {
+                                      method: "POST",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({
+                                        email: session?.user?.email,
+                                      }),
+                                    }
+                                  );
+                                  if (response.ok) {
+                                    alert(
+                                      "Verification email sent! Please check your inbox."
+                                    );
+                                  } else {
+                                    const data = await response.json();
+                                    alert(
+                                      data.error ||
+                                        "Failed to send verification email"
+                                    );
+                                  }
+                                } catch {
+                                  alert("Failed to send verification email");
+                                }
+                              }}
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              Resend verification email
+                            </button>
+                          )}
+                        <p className="text-xs text-muted-foreground">
+                          {(session?.user as any)?.hasPassword
+                            ? "Your email address"
+                            : "Managed by your authentication provider (OAuth)"}
+                        </p>
+                      </div>
                     </div>
 
                     <div>

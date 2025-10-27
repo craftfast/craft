@@ -15,10 +15,14 @@ function SignInContent() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setNeedsVerification(false);
     setLoading(true);
 
     try {
@@ -29,7 +33,13 @@ function SignInContent() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        // Check if error is about email verification
+        if (result.error.includes("verify your email")) {
+          setNeedsVerification(true);
+          setError(result.error);
+        } else {
+          setError("Invalid email or password");
+        }
         setLoading(false);
         return;
       }
@@ -39,6 +49,33 @@ function SignInContent() {
     } catch {
       setError("Something went wrong");
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendingVerification(true);
+    setResendMessage("");
+
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setResendMessage("Verification email sent! Please check your inbox.");
+      } else {
+        setResendMessage(data.error || "Failed to send verification email");
+      }
+    } catch {
+      setResendMessage("Something went wrong");
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -131,6 +168,26 @@ function SignInContent() {
             {error && (
               <div className="p-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-700 dark:text-neutral-300 text-sm">
                 {error}
+                {needsVerification && (
+                  <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resendingVerification}
+                      className="text-sm text-neutral-900 dark:text-neutral-100 hover:underline font-medium disabled:opacity-50"
+                    >
+                      {resendingVerification
+                        ? "Sending..."
+                        : "Resend verification email"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {resendMessage && (
+              <div className="p-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-700 dark:text-neutral-300 text-sm">
+                {resendMessage}
               </div>
             )}
 

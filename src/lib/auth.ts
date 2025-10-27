@@ -43,6 +43,11 @@ export const authOptions = {
                     throw new Error("Invalid credentials");
                 }
 
+                // Check if email is verified
+                if (!user.emailVerified) {
+                    throw new Error("Please verify your email before signing in");
+                }
+
                 const isPasswordValid = await bcrypt.compare(
                     credentials.password,
                     user.password
@@ -87,6 +92,8 @@ export const authOptions = {
         async jwt({ token, user }: any) {
             if (user) {
                 token.id = user.id;
+                token.emailVerified = user.emailVerified;
+                token.hasPassword = !!user.password;
             }
             return token;
         },
@@ -94,6 +101,8 @@ export const authOptions = {
         async session({ session, token }: any) {
             if (session.user) {
                 session.user.id = token.id as string;
+                session.user.emailVerified = token.emailVerified as Date | null;
+                session.user.hasPassword = token.hasPassword as boolean;
             }
             return session;
         },
