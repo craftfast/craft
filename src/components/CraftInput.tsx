@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import PricingModal from "./PricingModal";
+import SubscriptionModal from "./SubscriptionModal";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -857,14 +857,13 @@ export default function CraftInput() {
         </div>
       )}
 
-      {/* Pricing Modal */}
-      <PricingModal
+      {/* Subscription Modal */}
+      <SubscriptionModal
         isOpen={showPricingModal}
         onClose={() => {
           setShowPricingModal(false);
           setErrorMessage(null);
         }}
-        showProOnly={true}
       />
     </div>
   );

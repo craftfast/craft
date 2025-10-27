@@ -6,7 +6,8 @@ import { signOut } from "next-auth/react";
 import Image from "next/image";
 import SettingsModal from "./SettingsModal";
 import FeedbackModal from "./FeedbackModal";
-import PricingModal from "./PricingModal";
+import TokenPurchaseModal from "./TokenPurchaseModal";
+import SubscriptionModal from "./SubscriptionModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
 import { useCreditBalance } from "@/contexts/CreditBalanceContext";
@@ -32,6 +33,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [showTokensModal, setShowTokensModal] = useState(false);
   const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "AGENT" | null>(
     null
   );
@@ -313,11 +315,12 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               )}
             </div>
             {userPlan === "HOBBY" ? (
-              <a
-                href="https://craftfast.dev/pricing"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setIsUserMenuOpen(false)}
+              <button
+                onClick={() => {
+                  setIsUserMenuOpen(false);
+                  setIsPricingModalOpen(true);
+                  setShowTokensModal(false);
+                }}
                 className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
               >
                 <svg
@@ -334,12 +337,13 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
                   />
                 </svg>
                 Upgrade to Pro
-              </a>
+              </button>
             ) : (
               <button
                 onClick={() => {
                   setIsUserMenuOpen(false);
                   setIsPricingModalOpen(true);
+                  setShowTokensModal(true);
                 }}
                 className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
               >
@@ -500,13 +504,23 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
         onClose={() => setIsFeedbackModalOpen(false)}
       />
 
-      {/* Pricing Modal */}
-      <PricingModal
-        isOpen={isPricingModalOpen}
-        onClose={() => setIsPricingModalOpen(false)}
-        currentPlan={userPlan || "HOBBY"}
-        showTokensOnly={true}
-      />
+      {/* Subscription Modal */}
+      {!showTokensModal && (
+        <SubscriptionModal
+          isOpen={isPricingModalOpen}
+          onClose={() => setIsPricingModalOpen(false)}
+          currentPlan={userPlan || "HOBBY"}
+        />
+      )}
+
+      {/* Token Purchase Modal */}
+      {showTokensModal && (
+        <TokenPurchaseModal
+          isOpen={isPricingModalOpen}
+          onClose={() => setIsPricingModalOpen(false)}
+          currentPlan={userPlan || "HOBBY"}
+        />
+      )}
     </div>
   );
 }

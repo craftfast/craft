@@ -7,7 +7,8 @@ import UserMenu from "./UserMenu";
 import Logo from "./Logo";
 import TokenCounter from "./TokenCounter";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
-import PricingModal from "./PricingModal";
+import SubscriptionModal from "./SubscriptionModal";
+import TokenPurchaseModal from "./TokenPurchaseModal";
 
 interface DashboardHeaderProps {
   planName?: string;
@@ -429,14 +430,23 @@ export default function DashboardHeader({
         </div>
       )}
 
-      {/* Pricing Modal */}
-      <PricingModal
-        isOpen={isPricingModalOpen}
-        onClose={() => setIsPricingModalOpen(false)}
-        currentPlan={planName}
-        showTokensOnly={pricingModalMode === "tokens"}
-        showProOnly={pricingModalMode === "pro"}
-      />
+      {/* Subscription Modal */}
+      {pricingModalMode !== "tokens" && (
+        <SubscriptionModal
+          isOpen={isPricingModalOpen}
+          onClose={() => setIsPricingModalOpen(false)}
+          currentPlan={planName}
+        />
+      )}
+
+      {/* Token Purchase Modal */}
+      {pricingModalMode === "tokens" && (
+        <TokenPurchaseModal
+          isOpen={isPricingModalOpen}
+          onClose={() => setIsPricingModalOpen(false)}
+          currentPlan={planName}
+        />
+      )}
     </>
   );
 }

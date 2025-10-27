@@ -26,7 +26,7 @@ import {
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import TokenCounter from "./TokenCounter";
-import PricingModal from "./PricingModal";
+import TokenPurchaseModal from "./TokenPurchaseModal";
 import ChatPanel from "./coding-interface/ChatPanel";
 import PreviewPanel, { PreviewPanelRef } from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
@@ -963,12 +963,11 @@ export default function CodingInterface({
           )}
         </div>
 
-        {/* Pricing Modal */}
-        <PricingModal
+        {/* Token Purchase Modal */}
+        <TokenPurchaseModal
           isOpen={isPricingModalOpen}
           onClose={() => setIsPricingModalOpen(false)}
           currentPlan={planName}
-          showTokensOnly={true}
         />
 
         {/* Rename Project Dialog */}

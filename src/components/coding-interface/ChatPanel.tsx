@@ -8,7 +8,7 @@ import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.min.css";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
-import PricingModal from "../PricingModal";
+import SubscriptionModal from "../SubscriptionModal";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -1636,11 +1636,10 @@ export default function ChatPanel({
         </div>
       )}
 
-      {/* Pricing Modal */}
-      <PricingModal
+      {/* Subscription Modal */}
+      <SubscriptionModal
         isOpen={showPricingModal}
         onClose={() => setShowPricingModal(false)}
-        showProOnly={false}
       />
     </div>
   );
