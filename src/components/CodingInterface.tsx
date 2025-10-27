@@ -452,7 +452,7 @@ export default function CodingInterface({
         <header className="h-12 bg-background grid grid-cols-3 items-center px-4 flex-shrink-0">
           {/* Left Side - Logo and Project Name */}
           <div className="flex items-center justify-start">
-            <Logo variant="full" className="!h-5" href="/dashboard" />
+            <Logo variant="extended" className="!h-5" href="/dashboard" />
             <Separator orientation="vertical" className="h-6 mx-1 ml-3" />
 
             {/* Project Name with Dropdown */}
