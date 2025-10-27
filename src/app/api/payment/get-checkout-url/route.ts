@@ -1,7 +1,7 @@
 /**
  * Helper endpoint to build Polar checkout URL
  * This endpoint constructs the URL to redirect to /api/checkout with proper query params
- * Required because we need to access server-side environment variables (POLAR_PRO_PRICE_ID)
+ * Required because we need to access server-side environment variables (POLAR_PRO_PRODUCT_ID)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -11,13 +11,12 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { email, successUrl } = body;
 
-        // Get the price ID from environment variables (server-side)
-        const priceId = process.env.POLAR_PRO_PRICE_ID || process.env.POLAR_PRODUCT_PRICE_ID;
+        // Get the product ID from environment variables (server-side)
+        const productId = process.env.POLAR_PRO_PRODUCT_ID;
 
-        if (!priceId) {
-            console.error("Polar price ID not configured");
-            console.error("POLAR_PRO_PRICE_ID:", process.env.POLAR_PRO_PRICE_ID ? "SET" : "NOT SET");
-            console.error("POLAR_PRODUCT_PRICE_ID:", process.env.POLAR_PRODUCT_PRICE_ID ? "SET" : "NOT SET");
+        if (!productId) {
+            console.error("Polar product ID not configured");
+            console.error("POLAR_PRO_PRODUCT_ID:", process.env.POLAR_PRO_PRODUCT_ID ? "SET" : "NOT SET");
             return NextResponse.json(
                 {
                     error: "Payment system configuration error",
@@ -31,8 +30,8 @@ export async function POST(request: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
         const checkoutUrl = new URL("/api/checkout", baseUrl);
 
-        // Required: Product price ID
-        checkoutUrl.searchParams.set("products", priceId);
+        // Required: Product ID (Polar will use the default price for this product)
+        checkoutUrl.searchParams.set("products", productId);
 
         // Optional: Customer email
         if (email) {
@@ -45,7 +44,7 @@ export async function POST(request: NextRequest) {
         }
 
         console.log("=== Building Checkout URL ===");
-        console.log("Price ID:", priceId);
+        console.log("Product ID:", productId);
         console.log("Customer Email:", email || "Not provided");
         console.log("Success URL:", successUrl || "Using default");
         console.log("Final Checkout URL:", checkoutUrl.toString());

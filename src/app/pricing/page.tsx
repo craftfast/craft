@@ -266,7 +266,9 @@ function FAQSection() {
 export default function PricingPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [userPlan, setUserPlan] = useState<"hobby" | "pro" | null>(null);
+  const [userPlan, setUserPlan] = useState<"hobby" | "pro" | "agent" | null>(
+    null
+  );
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const hasFetchedRef = useRef(false);
 
@@ -288,7 +290,14 @@ export default function PricingPage() {
         if (response.ok) {
           const data = await response.json();
           // Map plan names to lowercase for consistency
-          setUserPlan(data.plan === "PRO" ? "pro" : "hobby");
+          const planName = data.plan?.toLowerCase();
+          setUserPlan(
+            planName === "pro"
+              ? "pro"
+              : planName === "agent"
+              ? "agent"
+              : "hobby"
+          );
           hasFetchedRef.current = true; // Mark as fetched
         } else {
           // Default to hobby if fetch fails
@@ -309,6 +318,12 @@ export default function PricingPage() {
   }, [session, status]);
 
   const handleProPayment = async () => {
+    // Redirect to signup if not authenticated
+    if (!session?.user) {
+      router.push("/auth/signup");
+      return;
+    }
+
     const amount = 50; // $50/month for Pro
 
     try {
@@ -354,6 +369,40 @@ export default function PricingPage() {
     }
   };
 
+  const handleAgentPayment = async () => {
+    if (!session?.user) {
+      router.push("/auth/signup");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/billing/upgrade-to-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ billingPeriod: "MONTHLY" }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout");
+      }
+
+      window.location.href = data.checkoutUrl;
+    } catch (error) {
+      console.error("Agent upgrade error:", error);
+      alert(
+        "❌ Failed to initiate Agent plan upgrade\n\n" +
+          (error instanceof Error
+            ? error.message
+            : "An unexpected error occurred") +
+          "\n\n" +
+          "Please try again or contact sales:\n" +
+          "📧 sales@craft.fast"
+      );
+    }
+  };
+
   const plans: PricingPlan[] = [
     {
       name: "Hobby",
@@ -362,6 +411,8 @@ export default function PricingPage() {
       cta: isLoadingPlan
         ? "Loading..."
         : userPlan === "pro"
+        ? "Downgrade"
+        : userPlan === "agent"
         ? "Downgrade"
         : userPlan === "hobby"
         ? "Current plan"
@@ -387,12 +438,15 @@ export default function PricingPage() {
         ? "Start a free trial"
         : userPlan === "pro"
         ? "Current plan"
+        : userPlan === "agent"
+        ? "Downgrade to Pro"
         : "Upgrade now",
       popular: true,
-      action:
-        userPlan === "pro"
-          ? () => {} // No action for current plan
-          : handleProPayment,
+      action: !session
+        ? () => router.push("/auth/signup")
+        : userPlan === "pro"
+        ? () => {} // No action for current plan
+        : handleProPayment,
       features: [
         { text: "Everything in hobby, plus:", included: true, highlight: true },
         { text: "10M AI tokens per month", included: true, highlight: true },
@@ -424,11 +478,14 @@ export default function PricingPage() {
       name: "Agent",
       price: "$5,000/mo",
       description: "Delegate longer tasks with expert oversight.",
-      cta: "Contact Sales",
-      action: () => {
-        window.location.href =
-          "mailto:sales@craft.fast?subject=Agent Plan Inquiry";
-      },
+      cta: isLoadingPlan
+        ? "Loading..."
+        : !session
+        ? "Sign up to subscribe"
+        : userPlan === "agent"
+        ? "Current plan"
+        : "Subscribe now",
+      action: handleAgentPayment,
       features: [
         {
           text: "All Pro features, plus:",
@@ -523,12 +580,14 @@ export default function PricingPage() {
                     disabled={
                       isLoadingPlan ||
                       (plan.name === "Pro" && userPlan === "pro") ||
-                      (plan.name === "Hobby" && userPlan === "hobby")
+                      (plan.name === "Hobby" && userPlan === "hobby") ||
+                      (plan.name === "Agent" && userPlan === "agent")
                     }
                     className={`w-full px-6 py-3 rounded-full font-medium transition-all duration-200 ${
                       isLoadingPlan ||
                       (plan.name === "Pro" && userPlan === "pro") ||
-                      (plan.name === "Hobby" && userPlan === "hobby")
+                      (plan.name === "Hobby" && userPlan === "hobby") ||
+                      (plan.name === "Agent" && userPlan === "agent")
                         ? "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-not-allowed"
                         : plan.popular
                         ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-md hover:shadow-lg"

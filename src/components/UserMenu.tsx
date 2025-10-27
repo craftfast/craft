@@ -185,11 +185,11 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               Settings
             </button>
 
-            <a
-              href="https://craftfast.dev/pricing"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setIsUserMenuOpen(false)}
+            <button
+              onClick={() => {
+                setIsUserMenuOpen(false);
+                router.push("/pricing");
+              }}
               className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
             >
               <svg
@@ -219,9 +219,9 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
                   d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                 />
               </svg>
-            </a>
+            </button>
             <a
-              href="https://discord.gg/craftfast"
+              href="https://discord.gg/YvPKxcCV"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsUserMenuOpen(false)}
@@ -256,7 +256,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               </svg>
             </a>
             <a
-              href="https://craftfast.dev/updates"
+              href="https://x.com/craftdotfast"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsUserMenuOpen(false)}
