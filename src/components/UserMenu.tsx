@@ -122,7 +122,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
 
       {/* Dropdown Menu */}
       {isUserMenuOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-popover rounded-xl shadow-lg border border-border z-[101]">
+        <div className="absolute right-0 mt-2 w-56 bg-popover rounded-xl shadow-lg border border-border z-[50]">
           <div className="px-4 py-2 border-b border-border">
             <p className="text-sm font-semibold text-popover-foreground truncate">
               {user.name || "User"}

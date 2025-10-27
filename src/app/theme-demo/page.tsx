@@ -480,7 +480,7 @@ export default function ThemeDemo() {
                 </button>
 
                 {isDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="absolute top-full left-0 mt-2 w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-[50] overflow-hidden">
                     {models.map((model) => (
                       <button
                         key={model.id}
@@ -541,7 +541,7 @@ export default function ThemeDemo() {
                 </button>
 
                 {isVisibilityDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="absolute top-full left-0 mt-2 w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg z-[50] overflow-hidden">
                     {visibilityOptions.map((option) => (
                       <button
                         key={option.id}

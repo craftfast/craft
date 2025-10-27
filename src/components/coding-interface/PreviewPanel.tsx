@@ -641,7 +641,7 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
     return (
       <div
         className={`h-full flex flex-col bg-background ${
-          isFullscreen ? "fixed inset-0 z-50" : ""
+          isFullscreen ? "fixed inset-0 z-[60]" : ""
         }`}
       >
         {/* Preview Toolbar - Hidden since controls moved to main header */}

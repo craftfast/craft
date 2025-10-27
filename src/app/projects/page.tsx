@@ -23,7 +23,7 @@ export default async function ProjectsPage() {
       <div className="absolute inset-0 bg-background" />
 
       {/* Header - Fixed */}
-      <header className="flex-shrink-0 relative z-50 bg-background/80 backdrop-blur-md">
+      <header className="flex-shrink-0 relative z-[40] bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
           <DashboardHeader
             planName={subscription?.plan?.name}

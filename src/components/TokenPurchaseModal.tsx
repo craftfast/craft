@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Sparkles, AlertCircle, Zap, Info } from "lucide-react";
 import { getCreditTiers } from "@/lib/pricing-constants";
 import {
@@ -39,23 +39,6 @@ export default function TokenPurchaseModal({
   // Determine if user can purchase tokens
   const isOnHobby = currentPlan === "HOBBY";
   const canPurchaseTokens = !isOnHobby; // Only Pro and Agent can purchase
-
-  // Fix z-index for dialog overlay when component mounts
-  useEffect(() => {
-    if (isOpen) {
-      // Find the dialog overlay and update its z-index
-      const timer = setTimeout(() => {
-        const overlays = document.querySelectorAll(
-          "[data-radix-dialog-overlay]"
-        );
-        overlays.forEach((overlay) => {
-          const htmlElement = overlay as HTMLElement;
-          htmlElement.style.zIndex = "100000";
-        });
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
 
   const handlePurchaseTokens = async (tokens: number) => {
     if (!canPurchaseTokens) return;
@@ -114,7 +97,7 @@ export default function TokenPurchaseModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto z-[100000] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/30">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/30">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5" />

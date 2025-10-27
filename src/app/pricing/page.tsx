@@ -449,7 +449,7 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header - Fixed */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
+      <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 py-2">
           <div className="relative flex items-center justify-between">
             <Logo

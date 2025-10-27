@@ -232,7 +232,7 @@ export default function DashboardHeader({
 
       {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed top-16 left-0 right-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 shadow-lg z-50 max-h-[calc(100vh-4rem)] overflow-y-auto">
+        <div className="md:hidden fixed top-16 left-0 right-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 shadow-lg z-[40] max-h-[calc(100vh-4rem)] overflow-y-auto">
           <nav className="flex flex-col p-4 space-y-2">
             {session?.user && (
               <>

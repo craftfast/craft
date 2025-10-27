@@ -763,7 +763,7 @@ export default function CraftInput() {
       {/* Image Preview Modal */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
           onClick={() => setPreviewImage(null)}
         >
           <div
@@ -817,7 +817,7 @@ export default function CraftInput() {
       {/* Error Message Display */}
       {errorMessage && !showPricingModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setErrorMessage(null)}
         >
           <div
