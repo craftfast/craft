@@ -138,6 +138,7 @@ export async function POST(req: Request) {
                         inputTokens: usageData.inputTokens,
                         outputTokens: usageData.outputTokens,
                         endpoint: '/api/chat',
+                        callType: 'chat', // This is a chat interaction
                     });
                     console.log(`✅ Usage tracked - User: ${user.id}, Tokens: ${usageData.totalTokens}`);
                 } catch (trackingError) {

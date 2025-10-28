@@ -52,6 +52,7 @@ export interface AIUsageRecord {
     inputTokens: number;
     outputTokens: number;
     endpoint?: string;
+    callType?: "agent" | "edit" | "chat"; // Type of AI interaction (defaults to "agent")
 }
 
 /**
@@ -93,6 +94,7 @@ export async function trackAIUsage(
             totalTokens,
             costUsd,
             endpoint: usage.endpoint,
+            callType: usage.callType || "agent", // Default to "agent" if not specified
         },
     });
 
@@ -237,6 +239,106 @@ export async function getUserAIUsage(
 // ============================================================================
 
 /**
+ * Credit conversion constants
+ */
+export const TOKENS_PER_CREDIT = 10000;
+
+/**
+ * Model-based credit multipliers
+ * These multipliers adjust credit consumption based on model capability/cost
+ * 
+ * Base rate: 1.0x = 10,000 tokens per credit
+ * 
+ * Allowed Models:
+ * - gpt-5-mini: 0.25x (cheap)
+ * - claude-haiku-4.5: 0.5x (fast)
+ * - gpt-5: 1.0x (standard/default)
+ * - claude-sonnet-4.5: 1.5x (premium)
+ */
+const MODEL_CREDIT_MULTIPLIERS: Record<string, number> = {
+    // Cheap tier
+    "gpt-5-mini": 0.25,
+    "openai/gpt-5-mini": 0.25,
+
+    // Fast tier
+    "claude-haiku-4-5": 0.5,
+    "anthropic/claude-haiku-4.5": 0.5,
+
+    // Standard tier (default)
+    "gpt-5": 1.0,
+    "openai/gpt-5": 1.0,
+
+    // Premium tier
+    "claude-sonnet-4.5": 1.5,
+    "anthropic/claude-sonnet-4.5": 1.5,
+
+    // Default fallback - Standard tier
+    default: 1.0,
+};
+
+/**
+ * Get credit multiplier for a specific model
+ */
+export function getModelCreditMultiplier(model: string): number {
+    return MODEL_CREDIT_MULTIPLIERS[model] || MODEL_CREDIT_MULTIPLIERS.default;
+}
+
+/**
+ * Convert tokens to credits with model-based multiplier (rounded to 2 decimal places)
+ * 
+ * @param tokens - Number of tokens used
+ * @param model - AI model name (optional, defaults to 1.0x multiplier)
+ * @returns Credits consumed (rounded to 2 decimal places, e.g., 0.25, 1.50, 2.00)
+ * 
+ * Supported Models:
+ * - gpt-5-mini: 0.25x (cheap)
+ * - claude-haiku-4.5: 0.5x (fast)
+ * - gpt-5: 1.0x (standard/default)
+ * - claude-sonnet-4.5: 1.5x (premium)
+ * 
+ * @example tokensToCredits(10000) => 1.00 credit (default 1.0x)
+ * @example tokensToCredits(2500, "gpt-5-mini") => 0.06 credits (0.25x: 2500 * 0.25 / 10000 = 0.0625 -> 0.06)
+ * @example tokensToCredits(5000, "claude-haiku-4.5") => 0.25 credits (0.5x: 5000 * 0.5 / 10000 = 0.25)
+ * @example tokensToCredits(10000, "gpt-5") => 1.00 credit (1.0x: 10000 * 1.0 / 10000 = 1.0)
+ * @example tokensToCredits(10000, "claude-sonnet-4.5") => 1.50 credits (1.5x: 10000 * 1.5 / 10000 = 1.5)
+ */
+export function tokensToCredits(tokens: number, model?: string): number {
+    const multiplier = model ? getModelCreditMultiplier(model) : 1.0;
+    const adjustedTokens = tokens * multiplier;
+    const credits = adjustedTokens / TOKENS_PER_CREDIT;
+    // Round to 2 decimal places
+    return Math.round(credits * 100) / 100;
+}
+
+/**
+ * Convert credits to tokens
+ * @example creditsToTokens(1) => 10000 tokens
+ */
+export function creditsToTokens(credits: number): number {
+    return credits * TOKENS_PER_CREDIT;
+}
+
+/**
+ * Estimate credits needed for a message (with model-based multiplier)
+ * This is a rough estimate - actual usage may vary
+ * 
+ * @param messageLength - Length of the input message
+ * @param expectedResponseLength - Expected length of response (default: 2000)
+ * @param model - AI model name (optional, for accurate multiplier)
+ */
+export function estimateCreditsForMessage(
+    messageLength: number,
+    expectedResponseLength: number = 2000,
+    model?: string
+): number {
+    // Rough estimation: ~4 characters per token (common approximation)
+    const estimatedInputTokens = Math.ceil(messageLength / 4);
+    const estimatedOutputTokens = Math.ceil(expectedResponseLength / 4);
+    const totalTokens = estimatedInputTokens + estimatedOutputTokens;
+    return tokensToCredits(totalTokens, model);
+}
+
+/**
  * Reset daily credits if needed (called before checking availability)
  */
 async function resetDailyCreditsIfNeeded(userId: string): Promise<void> {
@@ -297,9 +399,11 @@ export async function checkUserCreditAvailability(
         dailyCreditsLimit = 1;
     }
 
-    const dailyCreditsUsed = subscription?.dailyCreditsUsed || 0;
+    const dailyCreditsUsed = subscription?.dailyCreditsUsed
+        ? Number(subscription.dailyCreditsUsed)
+        : 0;
     const creditsRemaining = dailyCreditsLimit !== null
-        ? Math.max(0, dailyCreditsLimit - dailyCreditsUsed)
+        ? Math.round(Math.max(0, dailyCreditsLimit - dailyCreditsUsed) * 100) / 100
         : Infinity;
 
     // Check if usage is allowed
@@ -322,6 +426,7 @@ export async function checkUserCreditAvailability(
 
 /**
  * Process AI usage: track it and deduct from daily credits
+ * Credits are calculated based on model tier multipliers
  */
 export async function processAIUsage(params: {
     userId: string;
@@ -330,18 +435,21 @@ export async function processAIUsage(params: {
     inputTokens: number;
     outputTokens: number;
     endpoint?: string;
+    callType?: "agent" | "edit" | "chat"; // Type of AI interaction (defaults to "agent")
 }): Promise<{
     success: boolean;
     usageId: string;
     costUsd: number;
     creditsUsed: number;
+    modelMultiplier: number; // Added for transparency
 }> {
     // Track the usage
     const usage = await trackAIUsage(params);
 
-    // Calculate credits used (1 credit = 10,000 tokens)
+    // Calculate credits used with model-based multiplier
     const totalTokens = params.inputTokens + params.outputTokens;
-    const creditsUsed = Math.ceil(totalTokens / 10000);
+    const creditsUsed = tokensToCredits(totalTokens, params.model);
+    const modelMultiplier = getModelCreditMultiplier(params.model);
 
     // Reset credits if it's a new day
     await resetDailyCreditsIfNeeded(params.userId);
@@ -361,5 +469,60 @@ export async function processAIUsage(params: {
         usageId: usage.id,
         costUsd: usage.costUsd,
         creditsUsed,
+        modelMultiplier,
+    };
+}
+/**
+ * Get detailed credit usage statistics
+ */
+export async function getCreditUsageStats(userId: string): Promise<{
+    today: {
+        creditsUsed: number;
+        creditsLimit: number | null;
+        creditsRemaining: number;
+        tokensUsed: number;
+        percentUsed: number;
+    };
+    thisMonth: {
+        totalCredits: number;
+        totalTokens: number;
+        totalCostUsd: number;
+    };
+}> {
+    // Get current credit status
+    const creditAvailability = await checkUserCreditAvailability(userId);
+
+    // Get usage for today
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+
+    const todayUsage = await getUserAIUsageInRange(userId, todayStart, todayEnd);
+
+    // Get usage for current month
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const monthUsage = await getUserAIUsageInRange(userId, monthStart, monthEnd);
+
+    // Calculate percentage used
+    const percentUsed = creditAvailability.dailyCreditsLimit
+        ? (creditAvailability.dailyCreditsUsed / creditAvailability.dailyCreditsLimit) * 100
+        : 0;
+
+    return {
+        today: {
+            creditsUsed: creditAvailability.dailyCreditsUsed,
+            creditsLimit: creditAvailability.dailyCreditsLimit,
+            creditsRemaining: creditAvailability.creditsRemaining,
+            tokensUsed: todayUsage.totalTokens,
+            percentUsed: Math.round(percentUsed * 100) / 100,
+        },
+        thisMonth: {
+            totalCredits: tokensToCredits(monthUsage.totalTokens),
+            totalTokens: monthUsage.totalTokens,
+            totalCostUsd: monthUsage.totalCostUsd,
+        },
     };
 }

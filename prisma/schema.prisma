@@ -195,7 +195,7 @@ model UserSubscription {
   polarCheckoutId    String? // Last Polar checkout ID
   polarPaymentId     String? // Last Polar payment ID
   // Credit tracking
-  dailyCreditsUsed   Int           @default(0) // Credits used today
+  dailyCreditsUsed   Decimal       @default(0) @db.Decimal(10, 2) // Credits used today (supports 2 decimal places)
   lastCreditReset    DateTime      @default(now()) // Last time daily credits were reset
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -225,11 +225,13 @@ model AITokenUsage {
   totalTokens  Int // inputTokens + outputTokens
   costUsd      Float // Cost in USD for this usage
   endpoint     String? // "chat", "code-generation", "image-analysis", etc.
+  callType     String   @default("agent") // "agent" | "edit" | "chat" - type of AI interaction
   createdAt    DateTime @default(now())
 
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
   @@index([model, createdAt])
+  @@index([callType, createdAt]) // For analytics by call type
   @@index([createdAt]) // For billing period queries
   @@map("ai_token_usage")
 }
@@ -245,7 +247,7 @@ model UsageRecord {
   billingPeriodStart DateTime
   billingPeriodEnd   DateTime
   // AI Usage (credits-based)
-  aiCreditsUsed      Int              @default(0) // Total credits used in this period
+  aiCreditsUsed      Decimal          @default(0) @db.Decimal(10, 2) // Total credits used in this period (supports 2 decimal places)
   aiCostUsd          Float            @default(0)
   // Total
   totalCostUsd       Float            @default(0)
