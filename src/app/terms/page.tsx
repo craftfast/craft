@@ -153,17 +153,16 @@ export default function TermsOfService() {
               </div>
 
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
-                <p className="font-semibold mb-2">Agent Plan</p>
+                <p className="font-semibold mb-2">Enterprise Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• $5,000 per month</li>
-                  <li>• 100M AI tokens per month</li>
-                  <li>• Delegate long-running tasks</li>
-                  <li>• Expert oversight & review</li>
-                  <li>• Background task execution</li>
-                  <li>• Architecture & design review</li>
-                  <li>• Supabase integration (database & storage)</li>
-                  <li>• Vercel deployment</li>
-                  <li>• Dedicated support</li>
+                  <li>• Contact sales for pricing</li>
+                  <li>• Custom AI token allocation</li>
+                  <li>• Dedicated account manager</li>
+                  <li>• Priority support & SLA</li>
+                  <li>• Custom integrations</li>
+                  <li>• Advanced security features</li>
+                  <li>• Volume discounts</li>
+                  <li>• Custom contract terms</li>
                 </ul>
               </div>
             </div>
@@ -177,8 +176,9 @@ export default function TermsOfService() {
                 securely through Polar.sh
               </li>
               <li>
-                <strong>Subscription Renewals:</strong> Pro and Agent
-                subscriptions auto-renew monthly unless cancelled
+                <strong>Subscription Renewals:</strong> Pro and Enterprise
+                subscriptions auto-renew monthly unless cancelled (Enterprise
+                terms may vary per agreement)
               </li>
               <li>
                 <strong>Token Usage:</strong> AI tokens are used for AI
@@ -238,8 +238,8 @@ export default function TermsOfService() {
             <ul className="space-y-2 mb-4">
               <li>
                 <strong>Monthly Allocations:</strong> Tokens included with your
-                subscription plan (100k for Hobby, 10M for Pro, 100M for Agent)
-                that reset each billing cycle.
+                subscription plan (100k for Hobby, 10M for Pro, custom for
+                Enterprise) that reset each billing cycle.
               </li>
               <li>
                 <strong>Purchased Token Packages:</strong> Additional tokens
@@ -296,7 +296,7 @@ export default function TermsOfService() {
               </li>
               <li>
                 <strong>Plan Requirements:</strong> Purchased token packages
-                require an active Pro or Agent plan subscription. If you
+                require an active Pro or Enterprise plan subscription. If you
                 downgrade to Hobby or cancel your subscription, purchased tokens
                 will remain in your account but cannot be used until you upgrade
                 again.
@@ -472,8 +472,8 @@ export default function TermsOfService() {
                 limits
               </li>
               <li>
-                <strong>Agent Users:</strong> 100M AI tokens per month for
-                long-running tasks with expert oversight and review
+                <strong>Enterprise Users:</strong> Custom AI token allocation
+                based on agreement terms - contact sales for details
               </li>
               <li>
                 We reserve the right to implement rate limits to ensure fair use
@@ -616,7 +616,10 @@ export default function TermsOfService() {
               <li>
                 We may modify, suspend, or discontinue features with notice
               </li>
-              <li>Agent users have dedicated support with priority access</li>
+              <li>
+                Enterprise users have dedicated account managers with priority
+                access and SLA
+              </li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">9.2 Support</h3>
@@ -630,7 +633,8 @@ export default function TermsOfService() {
                 response time
               </li>
               <li>
-                <strong>Agent:</strong> Dedicated support with priority access
+                <strong>Enterprise:</strong> Dedicated support with priority
+                access and guaranteed SLA
               </li>
             </ul>
           </section>

@@ -115,12 +115,12 @@ function FAQSection() {
     {
       question: "Do unused tokens roll over?",
       answer:
-        "Monthly token allocations (100k for Hobby, 10M for Pro, 100M for Agent) reset each billing cycle and don't roll over. However, purchased token packages remain available for 1 year from the date of purchase.",
+        "Monthly token allocations (100k for Hobby, 10M for Pro) reset each billing cycle and don't roll over. However, purchased token packages remain available for 1 year from the date of purchase. Enterprise plans have custom token allocation terms.",
     },
     {
-      question: "What's included in the Agent plan?",
+      question: "What's included in the Enterprise plan?",
       answer:
-        "The Agent plan ($5,000/month) includes everything in Pro plus: 100M tokens/month, ability to delegate long-running tasks with expert oversight, background task execution, architecture & design review, and dedicated support.",
+        "The Enterprise plan includes everything in Pro plus: custom AI token allocation, dedicated account manager, priority support with SLA, custom integrations, advanced security features, volume discounts, and custom contract terms. Contact sales@craft.fast for pricing and details.",
     },
     {
       question: "Can I use my own infrastructure?",
@@ -140,7 +140,7 @@ function FAQSection() {
     {
       question: "How do integrations work?",
       answer:
-        "Craft integrates with best-in-class tools: Supabase for database & storage, Figma for design imports, GitHub for code sync, and Vercel for deployment. Pro and Agent plans include full access to these integrations. Simply connect your accounts and Craft handles the rest.",
+        "Craft integrates with best-in-class tools: Supabase for database & storage, Figma for design imports, GitHub for code sync, and Vercel for deployment. Pro and Enterprise plans include full access to these integrations. Simply connect your accounts and Craft handles the rest.",
     },
     {
       question: "Can I get a refund?",
@@ -155,7 +155,7 @@ function FAQSection() {
     {
       question: "What happens to purchased tokens if I downgrade or cancel?",
       answer:
-        "Purchased token packages require an active Pro or Agent subscription to use. If you downgrade to Hobby or cancel, your purchased tokens will remain in your account but cannot be used until you upgrade again. Remember, purchased tokens expire 1 year from purchase date.",
+        "Purchased token packages require an active Pro or Enterprise subscription to use. If you downgrade to Hobby or cancel, your purchased tokens will remain in your account but cannot be used until you upgrade again. Remember, purchased tokens expire 1 year from purchase date.",
     },
     {
       question: "What happens to my projects if I downgrade?",
@@ -165,12 +165,12 @@ function FAQSection() {
     {
       question: "Do you offer discounts for annual plans?",
       answer:
-        "Currently, we offer monthly billing only. However, purchasing larger token packages provides significant discounts (up to 45% off). Contact sales@craft.fast for information about annual contracts for Agent plans.",
+        "Currently, we offer monthly billing only. However, purchasing larger token packages provides significant discounts (up to 45% off). Contact sales@craft.fast for information about annual contracts for Enterprise plans.",
     },
     {
       question: "What kind of support do you provide?",
       answer:
-        "Hobby plan includes community support via our Discord and documentation. Pro plan includes priority email support with 24-48 hour response time. Agent plan includes dedicated support with direct access to our engineering team.",
+        "Hobby plan includes community support via our Discord and documentation. Pro plan includes priority email support with 24-48 hour response time. Enterprise plan includes dedicated support with direct access to our engineering team and guaranteed SLA.",
     },
     {
       question: "Can I transfer projects between accounts?",
@@ -266,9 +266,9 @@ function FAQSection() {
 export default function PricingPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [userPlan, setUserPlan] = useState<"hobby" | "pro" | "agent" | null>(
-    null
-  );
+  const [userPlan, setUserPlan] = useState<
+    "hobby" | "pro" | "enterprise" | null
+  >(null);
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const hasFetchedRef = useRef(false);
 
@@ -294,8 +294,8 @@ export default function PricingPage() {
           setUserPlan(
             planName === "pro"
               ? "pro"
-              : planName === "agent"
-              ? "agent"
+              : planName === "enterprise"
+              ? "enterprise"
               : "hobby"
           );
           hasFetchedRef.current = true; // Mark as fetched
@@ -369,38 +369,9 @@ export default function PricingPage() {
     }
   };
 
-  const handleAgentPayment = async () => {
-    if (!session?.user) {
-      router.push("/auth/signup?callbackUrl=/dashboard&plan=agent");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/billing/upgrade-to-agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billingPeriod: "MONTHLY" }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create checkout");
-      }
-
-      window.location.href = data.checkoutUrl;
-    } catch (error) {
-      console.error("Agent upgrade error:", error);
-      alert(
-        "❌ Failed to initiate Agent plan upgrade\n\n" +
-          (error instanceof Error
-            ? error.message
-            : "An unexpected error occurred") +
-          "\n\n" +
-          "Please try again or contact sales:\n" +
-          "📧 sales@craft.fast"
-      );
-    }
+  const handleEnterpriseContact = () => {
+    window.location.href =
+      "mailto:sales@craft.fast?subject=Enterprise Plan Inquiry";
   };
 
   const plans: PricingPlan[] = [
@@ -412,7 +383,7 @@ export default function PricingPage() {
         ? "Loading..."
         : userPlan === "pro"
         ? "Downgrade"
-        : userPlan === "agent"
+        : userPlan === "enterprise"
         ? "Downgrade"
         : userPlan === "hobby"
         ? "Current plan"
@@ -438,7 +409,7 @@ export default function PricingPage() {
         ? "Start a free trial"
         : userPlan === "pro"
         ? "Current plan"
-        : userPlan === "agent"
+        : userPlan === "enterprise"
         ? "Downgrade to Pro"
         : "Upgrade now",
       popular: true,
@@ -475,30 +446,24 @@ export default function PricingPage() {
       ],
     },
     {
-      name: "Agent",
-      price: "$5,000/mo",
-      description: "Delegate longer tasks with expert oversight.",
-      cta: isLoadingPlan
-        ? "Loading..."
-        : !session
-        ? "Sign up to subscribe"
-        : userPlan === "agent"
-        ? "Current plan"
-        : "Subscribe now",
-      action: handleAgentPayment,
+      name: "Enterprise",
+      price: "Custom",
+      description: "Custom solutions for large teams and organizations.",
+      cta: "Contact Sales",
+      action: handleEnterpriseContact,
       features: [
         {
           text: "All Pro features, plus:",
           included: true,
           highlight: true,
         },
-        { text: "100M AI tokens per month", included: true, highlight: true },
-        { text: "Delegate long-running tasks", included: true },
-        { text: "Expert oversight & review", included: true },
-        { text: "Background task execution", included: true },
-        { text: "Architecture & design review", included: true },
-        { text: "Advanced integrations setup", included: true },
-        { text: "Dedicated support", included: true },
+        { text: "Custom AI token allocation", included: true, highlight: true },
+        { text: "Dedicated account manager", included: true },
+        { text: "Priority support & SLA", included: true },
+        { text: "Custom integrations", included: true },
+        { text: "Advanced security features", included: true },
+        { text: "Volume discounts", included: true },
+        { text: "Custom contract terms", included: true },
       ],
     },
   ];
@@ -581,13 +546,13 @@ export default function PricingPage() {
                       isLoadingPlan ||
                       (plan.name === "Pro" && userPlan === "pro") ||
                       (plan.name === "Hobby" && userPlan === "hobby") ||
-                      (plan.name === "Agent" && userPlan === "agent")
+                      (plan.name === "Enterprise" && userPlan === "enterprise")
                     }
                     className={`w-full px-6 py-3 rounded-full font-medium transition-all duration-200 ${
                       isLoadingPlan ||
                       (plan.name === "Pro" && userPlan === "pro") ||
                       (plan.name === "Hobby" && userPlan === "hobby") ||
-                      (plan.name === "Agent" && userPlan === "agent")
+                      (plan.name === "Enterprise" && userPlan === "enterprise")
                         ? "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-not-allowed"
                         : plan.popular
                         ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-md hover:shadow-lg"
@@ -698,7 +663,7 @@ export default function PricingPage() {
                       Pro
                     </th>
                     <th className="text-left p-4 sm:p-6 font-bold text-foreground w-1/4">
-                      Agent
+                      Enterprise
                     </th>
                   </tr>
                 </thead>
@@ -744,15 +709,10 @@ export default function PricingPage() {
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
                       <div className="font-medium text-foreground mb-1">
-                        100M tokens/month
+                        Custom allocation
                       </div>
                       <div className="text-neutral-600 dark:text-neutral-400">
-                        <a
-                          href="#token-packages"
-                          className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
-                        >
-                          Purchase more
-                        </a>
+                        Contact sales for details
                       </div>
                     </td>
                   </tr>
@@ -1315,22 +1275,22 @@ export default function PricingPage() {
                     </td>
                   </tr>
 
-                  {/* Agent Plan Exclusive Features */}
+                  {/* Enterprise Plan Exclusive Features */}
                   <tr className="bg-neutral-50/50 dark:bg-neutral-800/30">
                     <td
                       colSpan={4}
                       className="p-3 sm:p-4 font-semibold text-sm text-neutral-700 dark:text-neutral-300 uppercase tracking-wide"
                     >
-                      Agent Plan Exclusive Features
+                      Enterprise Plan Exclusive Features
                     </td>
                   </tr>
                   <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="p-4 sm:p-6">
                       <div className="font-semibold text-foreground mb-1">
-                        Long-Running Task Delegation
+                        Dedicated Account Manager
                       </div>
                       <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">
-                        Delegate tasks that take hours or days
+                        Personal point of contact for your team
                       </div>
                     </td>
                     <td className="p-4 sm:p-6 text-xs sm:text-sm">
@@ -1816,7 +1776,8 @@ export default function PricingPage() {
                 Token packages are one-time purchases that add to your account
                 balance and expire 1 year after purchase if not used.
                 <br />
-                All purchases require an active Pro or Agent plan subscription.
+                All purchases require an active Pro or Enterprise plan
+                subscription.
               </p>
             </div>
           </div>
@@ -1859,7 +1820,7 @@ export default function PricingPage() {
               <button
                 onClick={() =>
                   (window.location.href =
-                    "mailto:sales@craft.fast?subject=Agent Plan Inquiry")
+                    "mailto:sales@craft.fast?subject=Enterprise Plan Inquiry")
                 }
                 className="inline-flex items-center gap-2 px-8 py-3 bg-neutral-100 dark:bg-neutral-800 text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full font-medium transition-colors border border-neutral-300 dark:border-neutral-600"
               >

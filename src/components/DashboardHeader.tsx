@@ -33,11 +33,13 @@ export default function DashboardHeader({
   const [pricingModalMode, setPricingModalMode] = useState<
     "all" | "tokens" | "pro"
   >("all");
-  const [targetPlan, setTargetPlan] = useState<"HOBBY" | "PRO" | "AGENT">();
+  const [targetPlan, setTargetPlan] = useState<
+    "HOBBY" | "PRO" | "ENTERPRISE"
+  >();
   const { balance } = useCreditBalance(); // Only for mobile menu detailed breakdown
 
   const showPlanBadge =
-    planName === "HOBBY" || planName === "PRO" || planName === "AGENT";
+    planName === "HOBBY" || planName === "PRO" || planName === "ENTERPRISE";
 
   // Format credits for display (only for mobile menu)
   const formatCredits = (credits: number): string => {
@@ -70,9 +72,9 @@ export default function DashboardHeader({
         className:
           "px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700",
       };
-    } else if (planName === "AGENT") {
+    } else if (planName === "ENTERPRISE") {
       return {
-        displayName: "Agent",
+        displayName: "Enterprise",
         className:
           "px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700",
       };

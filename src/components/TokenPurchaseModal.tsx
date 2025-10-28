@@ -38,7 +38,7 @@ export default function TokenPurchaseModal({
 
   // Determine if user can purchase tokens
   const isOnHobby = currentPlan === "HOBBY";
-  const canPurchaseTokens = !isOnHobby; // Only Pro and Agent can purchase
+  const canPurchaseTokens = !isOnHobby; // Only Pro and Enterprise can purchase
 
   const handlePurchaseTokens = async (tokens: number) => {
     if (!canPurchaseTokens) return;
@@ -128,7 +128,8 @@ export default function TokenPurchaseModal({
                   <div>
                     <CardTitle>Upgrade to Purchase Tokens</CardTitle>
                     <CardDescription>
-                      Token purchases are only available for Pro and Agent plans
+                      Token purchases are only available for Pro and Enterprise
+                      plans
                     </CardDescription>
                   </div>
                 </div>

@@ -79,26 +79,14 @@ export default function RefundPolicy() {
               </li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">1.3 Agent Plan</h3>
-            <ul className="space-y-2">
-              <li>Pricing: $5,000/month</li>
-              <li>Includes 100M AI tokens per month</li>
-              <li>Unlimited projects with advanced capabilities</li>
-              <li>Long-running task delegation and expert oversight</li>
-              <li>Dedicated support</li>
-              <li>
-                Infrastructure (database & storage) managed through your own
-                Supabase account - not billed by Craft
-              </li>
-            </ul>
-
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              1.4 Enterprise Plan
+              1.3 Enterprise Plan
             </h3>
             <ul className="space-y-2">
               <li>Custom pricing and terms</li>
               <li>Subject to separate Enterprise Agreement</li>
               <li>Refund terms as specified in the Enterprise Agreement</li>
+              <li>Contact sales@craft.fast for details</li>
             </ul>
           </section>
 
@@ -306,8 +294,8 @@ export default function RefundPolicy() {
             </h3>
             <ul className="space-y-2">
               <li>
-                Purchased token packages require an active Pro or Agent plan to
-                use
+                Purchased token packages require an active Pro or Enterprise
+                plan to use
               </li>
               <li>
                 If you cancel or downgrade your subscription, purchased tokens

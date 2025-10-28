@@ -17,7 +17,9 @@ export default function PlanRedirectHandler({
 }: PlanRedirectHandlerProps) {
   const searchParams = useSearchParams();
   const [showModal, setShowModal] = useState(false);
-  const [targetPlan, setTargetPlan] = useState<"PRO" | "AGENT" | null>(null);
+  const [targetPlan, setTargetPlan] = useState<"PRO" | "ENTERPRISE" | null>(
+    null
+  );
 
   useEffect(() => {
     const planParam = searchParams.get("plan");
@@ -27,8 +29,8 @@ export default function PlanRedirectHandler({
     if (planParam) {
       const uppercasePlan = planParam.toUpperCase();
 
-      if (uppercasePlan === "PRO" || uppercasePlan === "AGENT") {
-        setTargetPlan(uppercasePlan as "PRO" | "AGENT");
+      if (uppercasePlan === "PRO" || uppercasePlan === "ENTERPRISE") {
+        setTargetPlan(uppercasePlan as "PRO" | "ENTERPRISE");
         setShowModal(true);
 
         // Clean up URL by removing the plan parameter after reading it

@@ -13,7 +13,6 @@ export default function HeaderNav() {
   const navigationLinks = [
     { href: "/pricing", label: "Pricing" },
     { href: "/help", label: "Help" },
-    { href: "/agent", label: "Agent" },
     {
       href: "https://discord.gg/YvPKxcCV",
       label: "Community",

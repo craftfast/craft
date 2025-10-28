@@ -36,10 +36,12 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [showTokensModal, setShowTokensModal] = useState(false);
-  const [targetPlan, setTargetPlan] = useState<"HOBBY" | "PRO" | "AGENT">();
-  const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "AGENT" | null>(
-    null
-  );
+  const [targetPlan, setTargetPlan] = useState<
+    "HOBBY" | "PRO" | "ENTERPRISE"
+  >();
+  const [userPlan, setUserPlan] = useState<
+    "HOBBY" | "PRO" | "ENTERPRISE" | null
+  >(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {

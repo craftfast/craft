@@ -2,7 +2,7 @@
  * API Route: Change Plan
  * POST /api/billing/change-plan
  * 
- * Handles plan upgrades and downgrades (HOBBY <-> PRO <-> AGENT)
+ * Handles plan upgrades and downgrades (HOBBY <-> PRO <-> ENTERPRISE)
  * For upgrades to paid plans, redirects to Polar checkout
  * For downgrades, schedules change at end of current billing period
  */
@@ -24,9 +24,9 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { targetPlan } = body; // "HOBBY" | "PRO" | "AGENT"
+        const { targetPlan } = body; // "HOBBY" | "PRO" | "ENTERPRISE"
 
-        if (!["HOBBY", "PRO", "AGENT"].includes(targetPlan)) {
+        if (!["HOBBY", "PRO", "ENTERPRISE"].includes(targetPlan)) {
             return NextResponse.json(
                 { error: "Invalid plan" },
                 { status: 400 }
@@ -74,12 +74,18 @@ export async function POST(request: Request) {
             );
         }
 
-        // UPGRADE FLOW: User wants a paid plan (PRO or AGENT)
-        if (targetPlan === "PRO" || targetPlan === "AGENT") {
-            // Get Polar price ID from environment
-            const polarPriceId = targetPlan === "PRO"
-                ? process.env.POLAR_PRO_PRICE_ID
-                : process.env.POLAR_AGENT_PRICE_ID;
+        // UPGRADE FLOW: User wants a paid plan (PRO or ENTERPRISE)
+        if (targetPlan === "PRO" || targetPlan === "ENTERPRISE") {
+            // Enterprise plans require contacting sales
+            if (targetPlan === "ENTERPRISE") {
+                return NextResponse.json(
+                    { error: "Enterprise plans require contacting sales. Please email sales@craft.fast" },
+                    { status: 400 }
+                );
+            }
+
+            // Get Polar price ID from environment for Pro plan
+            const polarPriceId = process.env.POLAR_PRO_PRICE_ID;
 
             if (!polarPriceId) {
                 console.error(`Missing Polar price ID for ${targetPlan}`);

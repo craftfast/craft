@@ -49,22 +49,23 @@ async function main() {
             ],
         },
         {
-            name: "AGENT",
-            displayName: "Agent",
-            description: "Delegate long-running tasks with expert oversight.",
-            priceMonthlyUsd: 5000,
+            name: "ENTERPRISE",
+            displayName: "Enterprise",
+            description: "Custom solutions for large teams and organizations.",
+            priceMonthlyUsd: 0, // Contact sales for pricing
             maxProjects: 999999, // Unlimited
-            monthlyTokenLimit: 100000000, // 100M tokens per month
+            monthlyTokenLimit: null, // Custom allocation
             canPurchaseTokens: true,
             sortOrder: 2,
             features: [
                 "All Pro features, plus:",
-                "100M AI tokens per month",
-                "Delegate long-running tasks",
-                "Expert oversight & review",
-                "Background task execution",
-                "Architecture & design review",
-                "Dedicated support",
+                "Custom AI token allocation",
+                "Dedicated account manager",
+                "Priority support & SLA",
+                "Custom integrations",
+                "Advanced security features",
+                "Volume discounts",
+                "Custom contract terms",
             ],
         },
     ];
@@ -82,7 +83,7 @@ async function main() {
     console.log("\nPlan Summary:");
     console.log("- HOBBY: Free forever, 100k tokens/month, up to 3 projects");
     console.log("- PRO: $50/month, 10M tokens/month, unlimited projects, purchase more at $5/1M");
-    console.log("- AGENT: $5,000/month, 100M tokens/month, long-running tasks, expert oversight");
+    console.log("- ENTERPRISE: Contact sales, custom token allocation, dedicated support");
 }
 
 main()

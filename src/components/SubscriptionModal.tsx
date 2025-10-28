@@ -12,10 +12,10 @@ interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentPlan?: string;
-  targetPlan?: "HOBBY" | "PRO" | "AGENT"; // The plan user clicked to upgrade to
+  targetPlan?: "HOBBY" | "PRO" | "ENTERPRISE"; // The plan user clicked to upgrade to
 }
 
-type PlanType = "HOBBY" | "PRO" | "AGENT";
+type PlanType = "HOBBY" | "PRO" | "ENTERPRISE";
 
 export default function SubscriptionModal({
   isOpen,
@@ -40,7 +40,7 @@ export default function SubscriptionModal({
 
   const isOnHobby = currentPlan === "HOBBY";
   const isOnPro = currentPlan === "PRO";
-  const isOnAgent = currentPlan === "AGENT";
+  const isOnEnterprise = currentPlan === "ENTERPRISE";
 
   const handleUpgradeToPro = async () => {
     try {
@@ -48,32 +48,6 @@ export default function SubscriptionModal({
       setError(null);
 
       const response = await fetch("/api/billing/upgrade-to-pro", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billingPeriod: "MONTHLY" }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create checkout");
-      }
-
-      window.location.href = data.checkoutUrl;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to initiate upgrade"
-      );
-      setIsLoading(false);
-    }
-  };
-
-  const handleUpgradeToAgent = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch("/api/billing/upgrade-to-agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ billingPeriod: "MONTHLY" }),
@@ -144,17 +118,17 @@ export default function SubscriptionModal({
         "Advanced features",
       ],
     },
-    AGENT: {
-      name: "Agent",
-      price: "$5,000",
-      period: "/month",
+    ENTERPRISE: {
+      name: "Enterprise",
+      price: "Contact Sales",
+      period: "",
       features: [
-        "100M AI tokens per month",
+        "Custom AI token allocation",
         "Unlimited projects",
-        "Delegate long-running tasks",
-        "Expert oversight & review",
-        "Architecture & design review",
-        "Dedicated support",
+        "Dedicated account manager",
+        "Priority support & SLA",
+        "Custom integrations",
+        "Advanced security",
       ],
     },
   };
@@ -207,10 +181,10 @@ export default function SubscriptionModal({
               <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="HOBBY">Hobby</TabsTrigger>
                 <TabsTrigger value="PRO">Pro</TabsTrigger>
-                <TabsTrigger value="AGENT">Agent</TabsTrigger>
+                <TabsTrigger value="ENTERPRISE">Enterprise</TabsTrigger>
               </TabsList>
 
-              {(["HOBBY", "PRO", "AGENT"] as PlanType[]).map((plan) => (
+              {(["HOBBY", "PRO", "ENTERPRISE"] as PlanType[]).map((plan) => (
                 <TabsContent key={plan} value={plan}>
                   <Card>
                     <CardHeader>
@@ -247,21 +221,23 @@ export default function SubscriptionModal({
                           } else if (plan === "PRO") {
                             if (isOnHobby) {
                               handleUpgradeToPro();
-                            } else if (isOnAgent) {
-                              // Downgrade from Agent to Pro
+                            } else if (isOnEnterprise) {
+                              // Downgrade from Enterprise to Pro
                               handleManageSubscription();
                             } else {
                               handleManageSubscription();
                             }
-                          } else if (plan === "AGENT") {
-                            if (isOnHobby || isOnPro) {
-                              handleUpgradeToAgent();
-                            } else {
-                              handleManageSubscription();
-                            }
+                          } else if (plan === "ENTERPRISE") {
+                            // Enterprise requires contacting sales
+                            window.location.href =
+                              "mailto:sales@craft.fast?subject=Enterprise Plan Inquiry";
                           }
                         }}
-                        disabled={isLoading || currentPlan === plan}
+                        disabled={
+                          isLoading ||
+                          currentPlan === plan ||
+                          plan === "ENTERPRISE"
+                        }
                         className="w-full"
                         size="lg"
                       >
@@ -269,14 +245,14 @@ export default function SubscriptionModal({
                           ? "Processing..."
                           : currentPlan === plan
                           ? "Current Plan"
-                          : plan === "HOBBY" && (isOnPro || isOnAgent)
+                          : plan === "HOBBY" && (isOnPro || isOnEnterprise)
                           ? "Downgrade to Hobby"
-                          : plan === "PRO" && isOnAgent
+                          : plan === "PRO" && isOnEnterprise
                           ? "Downgrade to Pro"
                           : plan === "PRO" && isOnHobby
                           ? "Upgrade to Pro"
-                          : plan === "AGENT" && (isOnHobby || isOnPro)
-                          ? "Upgrade to Agent"
+                          : plan === "ENTERPRISE"
+                          ? "Contact Sales"
                           : "Manage Subscription"}
                       </Button>
                     </CardContent>

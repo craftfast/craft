@@ -182,7 +182,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [showTokenPurchaseModal, setShowTokenPurchaseModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [targetPlan, setTargetPlan] = useState<
-    "HOBBY" | "PRO" | "AGENT" | undefined
+    "HOBBY" | "PRO" | "ENTERPRISE" | undefined
   >(undefined);
 
   // Filters and pagination
@@ -927,24 +927,25 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                 variant="outline"
                                 className="w-full rounded-xl"
                                 onClick={() => {
-                                  setTargetPlan("AGENT");
-                                  setShowSubscriptionModal(true);
+                                  window.location.href =
+                                    "mailto:sales@craft.fast?subject=Enterprise Plan Inquiry";
                                 }}
                               >
-                                Upgrade to Agent ($5,000/mo)
+                                Contact Sales for Enterprise
                               </Button>
                             </>
                           )}
                           {subscriptionData?.plan.name === "PRO" && (
                             <>
                               <Button
+                                variant="outline"
                                 className="w-full rounded-xl"
                                 onClick={() => {
-                                  setTargetPlan("AGENT");
-                                  setShowSubscriptionModal(true);
+                                  window.location.href =
+                                    "mailto:sales@craft.fast?subject=Enterprise Plan Inquiry";
                                 }}
                               >
-                                Upgrade to Agent ($5,000/mo)
+                                Contact Sales for Enterprise
                               </Button>
                               <Button
                                 variant="outline"
@@ -988,88 +989,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               </Button>
                             </>
                           )}
-                          {subscriptionData?.plan.name === "AGENT" && (
+                          {subscriptionData?.plan.name === "ENTERPRISE" && (
                             <>
-                              <Button
-                                variant="outline"
-                                className="w-full rounded-xl"
-                                onClick={async () => {
-                                  if (
-                                    confirm(
-                                      "Are you sure you want to downgrade to Pro? This will take effect at the end of your billing period."
-                                    )
-                                  ) {
-                                    try {
-                                      const res = await fetch(
-                                        "/api/billing/change-plan",
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                          },
-                                          body: JSON.stringify({
-                                            targetPlan: "PRO",
-                                          }),
-                                        }
-                                      );
-                                      const data = await res.json();
-                                      if (
-                                        data.action === "scheduled_downgrade"
-                                      ) {
-                                        alert(data.message);
-                                        fetchBillingData();
-                                      }
-                                    } catch (error) {
-                                      console.error(
-                                        "Error changing plan:",
-                                        error
-                                      );
-                                    }
-                                  }
-                                }}
-                              >
-                                Downgrade to Pro
-                              </Button>
-                              <Button
-                                variant="outline"
-                                className="w-full rounded-xl"
-                                onClick={async () => {
-                                  if (
-                                    confirm(
-                                      "Are you sure you want to downgrade to Hobby? This will take effect at the end of your billing period."
-                                    )
-                                  ) {
-                                    try {
-                                      const res = await fetch(
-                                        "/api/billing/change-plan",
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                          },
-                                          body: JSON.stringify({
-                                            targetPlan: "HOBBY",
-                                          }),
-                                        }
-                                      );
-                                      const data = await res.json();
-                                      if (
-                                        data.action === "scheduled_downgrade"
-                                      ) {
-                                        alert(data.message);
-                                        fetchBillingData();
-                                      }
-                                    } catch (error) {
-                                      console.error(
-                                        "Error downgrading:",
-                                        error
-                                      );
-                                    }
-                                  }
-                                }}
-                              >
-                                Downgrade to Hobby
-                              </Button>
+                              <p className="text-sm text-muted-foreground">
+                                For plan changes, please contact
+                                sales@craft.fast
+                              </p>
                             </>
                           )}
                         </div>
@@ -1087,9 +1012,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </button>
                         </div>
 
-                        {/* Manage Subscription Button for Pro/Agent users */}
+                        {/* Manage Subscription Button for Pro/Enterprise users */}
                         {(subscriptionData?.plan.name === "PRO" ||
-                          subscriptionData?.plan.name === "AGENT") && (
+                          subscriptionData?.plan.name === "ENTERPRISE") && (
                           <Card className="mt-4">
                             <CardContent className="pt-6">
                               <p className="text-xs text-muted-foreground mb-3">
@@ -1240,7 +1165,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </div>
                         )}
 
-                        {/* Purchase Tokens Button - Only for Pro/Agent */}
+                        {/* Purchase Tokens Button - Only for Pro/Enterprise */}
                         {subscriptionData?.plan.canPurchaseTokens && (
                           <Button
                             variant="secondary"
@@ -1268,8 +1193,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <Card>
                             <CardContent className="pt-6 text-center">
                               <p className="text-sm text-muted-foreground mb-3">
-                                Upgrade to Pro or Agent to purchase additional
-                                tokens
+                                Upgrade to Pro or Enterprise to purchase
+                                additional tokens
                               </p>
                               <Button
                                 size="sm"

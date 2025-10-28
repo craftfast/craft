@@ -164,14 +164,14 @@ model ProjectVersion {
 
 model Plan {
   id                String             @id @default(cuid())
-  name              String             @unique // "HOBBY", "PRO", "AGENT"
-  displayName       String // "Hobby", "Pro", "Agent"
+  name              String             @unique // "HOBBY", "PRO", "ENTERPRISE"
+  displayName       String // "Hobby", "Pro", "Enterprise"
   description       String? // Plan description
-  priceMonthlyUsd   Float // Monthly price in USD (0 for Hobby, 25 for Pro)
+  priceMonthlyUsd   Float // Monthly price in USD (0 for Hobby, 50 for Pro, 0 for Enterprise = contact sales)
   features          Json // JSON array of plan features
-  maxProjects       Int? // Max projects allowed (3 for Hobby, unlimited for Pro/Agent)
-  monthlyTokenLimit Int? // Monthly AI token limit (100k for Hobby, 10M for Pro, null for Agent = unlimited)
-  canPurchaseTokens Boolean            @default(false) // Can purchase additional tokens beyond limit (Pro & Agent only)
+  maxProjects       Int? // Max projects allowed (3 for Hobby, unlimited for Pro/Enterprise)
+  monthlyTokenLimit Int? // Monthly AI token limit (100k for Hobby, 10M for Pro, null for Enterprise = custom)
+  canPurchaseTokens Boolean            @default(false) // Can purchase additional tokens beyond limit (Pro & Enterprise only)
   isActive          Boolean            @default(true)
   sortOrder         Int                @default(0)
   createdAt         DateTime           @default(now())

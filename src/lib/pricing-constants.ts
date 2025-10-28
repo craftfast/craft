@@ -55,12 +55,12 @@ export const PRICING = {
             canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
         },
     },
-    AGENT: {
-        name: "Agent",
-        priceMonthly: 5000,
-        displayPriceMonthly: "$5,000/mo",
+    ENTERPRISE: {
+        name: "Enterprise",
+        priceMonthly: 0, // Contact sales for pricing
+        displayPriceMonthly: "Contact Sales",
         maxProjects: null, // Unlimited
-        monthlyTokens: 100000000, // 100M tokens/month
+        monthlyTokens: null, // Custom allocation
         features: {
             aiChat: true,
             unlimitedProjects: true,
@@ -68,23 +68,24 @@ export const PRICING = {
             githubSync: true,
             supabaseIntegration: true,
             vercelDeployment: true,
-            customDomain: false, // Not implemented yet
+            customDomain: true,
             privateProjects: true,
             support: "dedicated",
             prioritySupport: true,
             removeBranding: true,
-            trainingOptOut: false,
-            sso: false,
+            trainingOptOut: true,
+            sso: true,
             dedicatedSupport: true,
             canPurchaseTokens: true,
             craftBranding: false,
-            // Agent-specific features
-            longRunningTasks: true, // Can delegate long-running tasks
-            expertOversight: true, // Expert review and oversight
-            backgroundExecution: true, // Tasks execute in background
-            featureDelegation: true, // Can delegate entire features
-            advancedCodeGeneration: true, // Advanced AI capabilities
-            architectureReview: true, // Architecture and design review
+            // Enterprise-specific features
+            customTokenAllocation: true, // Custom AI token allocation
+            dedicatedAccountManager: true, // Personal point of contact
+            prioritySLA: true, // Priority support with SLA
+            customIntegrations: true, // Custom integrations
+            advancedSecurity: true, // Advanced security features
+            volumeDiscounts: true, // Volume pricing available
+            customContracts: true, // Custom contract terms
         },
     },
 } as const;

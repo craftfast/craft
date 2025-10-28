@@ -2,7 +2,7 @@
  * API Route: Purchase Tokens
  * POST /api/billing/purchase-tokens
  * 
- * Allows Pro and Agent users to purchase additional tokens
+ * Allows Pro and Enterprise users to purchase additional tokens
  * Redirects to Polar checkout for payment
  */
 
@@ -52,11 +52,11 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if user can purchase tokens (Pro or Agent plans only)
+        // Check if user can purchase tokens (Pro or Enterprise plans only)
         const currentPlan = user.subscription?.plan;
         if (!currentPlan?.canPurchaseTokens) {
             return NextResponse.json(
-                { error: "Your current plan does not allow purchasing additional tokens. Please upgrade to Pro or Agent." },
+                { error: "Your current plan does not allow purchasing additional tokens. Please upgrade to Pro or Enterprise." },
                 { status: 403 }
             );
         }
