@@ -10,13 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import SubscriptionModal from "./SubscriptionModal";
+import { PRO_TIERS } from "@/lib/pricing-constants";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -31,19 +32,20 @@ interface ExtendedUser {
   image?: string | null;
 }
 
-interface TokenUsageRecord {
+interface CreditUsageRecord {
   id: string;
   projectId: string;
   projectName: string;
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  creditsUsed: number;
   endpoint: string;
   createdAt: string;
 }
 
-interface TokenUsageData {
-  records: TokenUsageRecord[];
+interface CreditUsageData {
+  records: CreditUsageRecord[];
   pagination: {
     page: number;
     limit: number;
@@ -161,9 +163,8 @@ export default function SettingsModal({
   const [soundNotifications, setSoundNotifications] = useState(false);
   const [location, setLocation] = useState("");
   const [profileLink, setProfileLink] = useState("");
-  const [tokenUsageData, setTokenUsageData] = useState<TokenUsageData | null>(
-    null
-  );
+  const [creditUsageData, setCreditUsageData] =
+    useState<CreditUsageData | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
 
   // Billing state
@@ -178,6 +179,8 @@ export default function SettingsModal({
   const [targetPlan, setTargetPlan] = useState<
     "HOBBY" | "PRO" | "ENTERPRISE" | undefined
   >(undefined);
+  const [selectedProTierIndex, setSelectedProTierIndex] = useState<number>(0); // Default to first Pro tier (10 credits/day)
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Filters and pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -207,7 +210,7 @@ export default function SettingsModal({
   // Fetch usage data when usage tab is active
   useEffect(() => {
     if (activeTab === "usage") {
-      fetchTokenUsage();
+      fetchCreditUsage();
     }
   }, [
     activeTab,
@@ -226,6 +229,16 @@ export default function SettingsModal({
       const subData = await subRes.json();
       if (subRes.ok) {
         setSubscriptionData(subData);
+
+        // Set current Pro tier index if user is on Pro plan
+        if (subData.plan?.name === "PRO" && subData.plan?.dailyCredits) {
+          const currentTierIndex = PRO_TIERS.findIndex(
+            (tier) => tier.dailyCredits === subData.plan.dailyCredits
+          );
+          if (currentTierIndex !== -1) {
+            setSelectedProTierIndex(currentTierIndex);
+          }
+        }
       }
 
       // Fetch credit balance
@@ -248,7 +261,7 @@ export default function SettingsModal({
     }
   };
 
-  const fetchTokenUsage = () => {
+  const fetchCreditUsage = () => {
     setIsLoadingUsage(true);
 
     const params = new URLSearchParams({
@@ -261,21 +274,21 @@ export default function SettingsModal({
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
 
-    fetch(`/api/usage/tokens?${params.toString()}`)
+    fetch(`/api/usage/credits?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         // Only set data if it has the expected structure
         if (data && data.records && data.pagination && data.filters) {
-          setTokenUsageData(data);
+          setCreditUsageData(data);
         } else {
-          console.error("Invalid token usage data:", data);
-          setTokenUsageData(null);
+          console.error("Invalid credit usage data:", data);
+          setCreditUsageData(null);
         }
         setIsLoadingUsage(false);
       })
       .catch((error) => {
         console.error("Error fetching usage:", error);
-        setTokenUsageData(null);
+        setCreditUsageData(null);
         setIsLoadingUsage(false);
       });
   };
@@ -866,11 +879,12 @@ export default function SettingsModal({
                 ) : (
                   <>
                     {/* Current Plan */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Current Plan</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-4">
+                        Current Plan
+                      </h3>
+                      <div className="space-y-6">
+                        {/* Plan Details */}
                         <div className="flex items-start justify-between">
                           <div>
                             <h4 className="text-base font-semibold text-foreground">
@@ -881,6 +895,19 @@ export default function SettingsModal({
                               <span className="text-sm font-normal text-muted-foreground">
                                 /mo
                               </span>
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              {subscriptionData?.plan.dailyCredits
+                                ? `Includes ${
+                                    subscriptionData.plan.dailyCredits
+                                  } credit${
+                                    subscriptionData.plan.dailyCredits > 1
+                                      ? "s"
+                                      : ""
+                                  } per day (~${
+                                    subscriptionData.plan.monthlyCredits
+                                  } credits/month).`
+                                : "Custom credit allocation."}
                             </p>
                           </div>
                           <span
@@ -895,60 +922,124 @@ export default function SettingsModal({
                               : subscriptionData?.status || "Unknown"}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {subscriptionData?.plan.dailyCredits
-                            ? `Includes ${
-                                subscriptionData.plan.dailyCredits
-                              } credit${
-                                subscriptionData.plan.dailyCredits > 1
-                                  ? "s"
-                                  : ""
-                              } per day (~${
-                                subscriptionData.plan.monthlyCredits
-                              } credits/month).`
-                            : "Custom credit allocation."}
-                        </p>
 
-                        {/* Plan Action Buttons */}
-                        <div className="space-y-2">
-                          {subscriptionData?.plan.name === "HOBBY" && (
-                            <>
+                        {subscriptionData?.plan.name === "PRO" && (
+                          <div className="space-y-4 pt-6 border-t border-border">
+                            <div className="flex items-center gap-3 pb-3">
+                              <div className="h-px flex-1 bg-border"></div>
+                              <h4 className="text-sm font-semibold text-foreground">
+                                Manage Pro Plan
+                              </h4>
+                              <div className="h-px flex-1 bg-border"></div>
+                            </div>
+
+                            {/* Pro Plan Tier Switcher */}
+                            <div className="space-y-3 bg-muted/30 p-5 rounded-2xl border border-border">
+                              <Label
+                                htmlFor="pro-tier-change"
+                                className="text-sm font-medium"
+                              >
+                                Change Pro Tier
+                              </Label>
+                              <Select
+                                value={selectedProTierIndex.toString()}
+                                onValueChange={(value) =>
+                                  setSelectedProTierIndex(parseInt(value))
+                                }
+                              >
+                                <SelectTrigger className="w-full rounded-full h-12 px-6 text-base bg-background">
+                                  <SelectValue placeholder="Select a different tier" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[100001] rounded-2xl">
+                                  {PRO_TIERS.map((tier, index) => (
+                                    <SelectItem
+                                      key={index}
+                                      value={index.toString()}
+                                      className="text-base py-3"
+                                    >
+                                      {tier.dailyCredits} credits/day{" "}
+                                      <span className="text-muted-foreground">
+                                        - {tier.displayPrice}
+                                      </span>
+                                      {tier.dailyCredits ===
+                                        subscriptionData?.plan.dailyCredits &&
+                                        " (Current)"}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <p className="text-xs text-muted-foreground">
+                                Switch to a different Pro tier to adjust your
+                                daily credit allocation.
+                              </p>
+
                               <Button
-                                className="w-full rounded-xl"
-                                onClick={() => {
-                                  setTargetPlan("PRO");
-                                  setShowSubscriptionModal(true);
+                                className="w-full rounded-full h-12 text-base font-semibold mt-4"
+                                disabled={
+                                  isPurchasing ||
+                                  PRO_TIERS[selectedProTierIndex]
+                                    .dailyCredits ===
+                                    subscriptionData?.plan.dailyCredits
+                                }
+                                onClick={async () => {
+                                  setIsPurchasing(true);
+                                  try {
+                                    const selectedTier =
+                                      PRO_TIERS[selectedProTierIndex];
+                                    const response = await fetch(
+                                      "/api/billing/upgrade-to-pro",
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                          dailyCredits:
+                                            selectedTier.dailyCredits,
+                                        }),
+                                      }
+                                    );
+                                    const data = await response.json();
+                                    if (response.ok && data.checkoutUrl) {
+                                      window.location.href = data.checkoutUrl;
+                                    } else {
+                                      throw new Error(
+                                        data.error ||
+                                          "Failed to create checkout"
+                                      );
+                                    }
+                                  } catch (error) {
+                                    console.error(
+                                      "Error changing Pro tier:",
+                                      error
+                                    );
+                                    alert(
+                                      "Failed to change tier. Please try again."
+                                    );
+                                  } finally {
+                                    setIsPurchasing(false);
+                                  }
                                 }}
                               >
-                                Upgrade to Pro ($50/mo)
+                                {isPurchasing ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                                    Processing...
+                                  </>
+                                ) : PRO_TIERS[selectedProTierIndex]
+                                    .dailyCredits ===
+                                  subscriptionData?.plan.dailyCredits ? (
+                                  "Current Tier"
+                                ) : (
+                                  `Change to ${PRO_TIERS[selectedProTierIndex].displayPrice}`
+                                )}
                               </Button>
+                            </div>
+
+                            <div className="bg-muted/30 p-5 rounded-2xl border border-border">
                               <Button
                                 variant="outline"
-                                className="w-full rounded-xl"
-                                onClick={() => {
-                                  window.location.href =
-                                    "mailto:sales@craft.fast?subject=Enterprise Plan Inquiry";
-                                }}
-                              >
-                                Contact Sales for Enterprise
-                              </Button>
-                            </>
-                          )}
-                          {subscriptionData?.plan.name === "PRO" && (
-                            <>
-                              <Button
-                                variant="outline"
-                                className="w-full rounded-xl"
-                                onClick={() => {
-                                  window.location.href =
-                                    "mailto:sales@craft.fast?subject=Enterprise Plan Inquiry";
-                                }}
-                              >
-                                Contact Sales for Enterprise
-                              </Button>
-                              <Button
-                                variant="outline"
-                                className="w-full rounded-xl"
+                                className="w-full rounded-full h-12 text-base"
                                 onClick={async () => {
                                   if (
                                     confirm(
@@ -986,67 +1077,62 @@ export default function SettingsModal({
                               >
                                 Downgrade to Hobby
                               </Button>
-                            </>
-                          )}
-                          {subscriptionData?.plan.name === "ENTERPRISE" && (
-                            <>
-                              <p className="text-sm text-muted-foreground">
+                            </div>
+                          </div>
+                        )}
+
+                        {subscriptionData?.plan.name === "ENTERPRISE" && (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-3 pb-3">
+                              <div className="h-px flex-1 bg-border"></div>
+                              <h4 className="text-sm font-semibold text-foreground">
+                                Enterprise Plan
+                              </h4>
+                              <div className="h-px flex-1 bg-border"></div>
+                            </div>
+                            <div className="bg-muted/30 p-5 rounded-2xl border border-border">
+                              <p className="text-sm text-muted-foreground text-center">
                                 For plan changes, please contact
                                 sales@craft.fast
                               </p>
-                            </>
-                          )}
-                        </div>
-
-                        {/* View All Plans Link */}
-                        <div className="mt-3 text-center">
-                          <button
-                            onClick={() => {
-                              setTargetPlan(undefined); // Show all plans equally
-                              setShowSubscriptionModal(true);
-                            }}
-                            className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                          >
-                            View all plan details and features
-                          </button>
-                        </div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Manage Subscription Button for Pro/Enterprise users */}
                         {(subscriptionData?.plan.name === "PRO" ||
                           subscriptionData?.plan.name === "ENTERPRISE") && (
-                          <Card className="mt-4">
-                            <CardContent className="pt-6">
-                              <p className="text-xs text-muted-foreground mb-3">
-                                Manage your subscription: Cancel, update payment
-                                method, or view billing history.
-                              </p>
-                              <Button
-                                variant="outline"
-                                className="w-full rounded-xl"
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch(
-                                      "/api/billing/portal",
-                                      {
-                                        method: "POST",
-                                      }
-                                    );
-                                    const data = await response.json();
-                                    if (response.ok) {
-                                      window.location.href = data.url;
+                          <div className="mt-6 pt-6 border-t border-border">
+                            <p className="text-xs text-muted-foreground mb-3">
+                              Manage your subscription: Cancel, update payment
+                              method, or view billing history.
+                            </p>
+                            <Button
+                              variant="outline"
+                              className="w-full rounded-full h-12 text-base"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(
+                                    "/api/billing/portal",
+                                    {
+                                      method: "POST",
                                     }
-                                  } catch (error) {
-                                    console.error(
-                                      "Error opening billing portal:",
-                                      error
-                                    );
+                                  );
+                                  const data = await response.json();
+                                  if (response.ok) {
+                                    window.location.href = data.url;
                                   }
-                                }}
-                              >
-                                Open Billing Portal
-                              </Button>
-                            </CardContent>
-                          </Card>
+                                } catch (error) {
+                                  console.error(
+                                    "Error opening billing portal:",
+                                    error
+                                  );
+                                }
+                              }}
+                            >
+                              Open Billing Portal
+                            </Button>
+                          </div>
                         )}
 
                         {subscriptionData?.cancelAtPeriodEnd && (
@@ -1061,106 +1147,182 @@ export default function SettingsModal({
                             </p>
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
 
-                    {/* Daily Credit Balance */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Daily Credit Balance</CardTitle>
-                        <CardDescription>
-                          Your daily credits reset in{" "}
-                          {creditBalanceData?.daily.hoursUntilReset || 0} hours
-                          at midnight UTC. 1 credit = 10,000 AI tokens.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {/* Daily Credits */}
-                        <div className="p-4 bg-primary rounded-xl">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-primary-foreground/70">
-                              Credits Remaining Today
-                            </span>
-                            <span className="text-2xl font-bold text-primary-foreground">
-                              {creditBalanceData?.daily.remaining || 0} /{" "}
-                              {creditBalanceData?.daily.limit || 0}
-                            </span>
+                        {/* Daily Credit Balance within Current Plan */}
+                        <div className="mt-6 pt-6 border-t border-border space-y-3">
+                          <div className="mb-3">
+                            <h4 className="text-sm font-semibold text-foreground mb-1">
+                              Daily Credit Balance
+                            </h4>
+                            <p className="text-xs text-muted-foreground">
+                              Your daily credits reset in{" "}
+                              {creditBalanceData?.daily.hoursUntilReset || 0}{" "}
+                              hours at midnight UTC.
+                            </p>
                           </div>
-                          <div className="w-full bg-primary-foreground/20 rounded-full h-2">
-                            <div
-                              className="bg-primary-foreground h-2 rounded-full transition-all"
-                              style={{
-                                width: `${
-                                  creditBalanceData &&
-                                  (creditBalanceData.daily.limit ?? 0) > 0
-                                    ? ((creditBalanceData.daily.remaining ??
-                                        0) /
-                                        creditBalanceData.daily.limit) *
-                                      100
-                                    : 0
-                                }%`,
-                              }}
-                            ></div>
-                          </div>
-                        </div>
 
-                        {/* Credits Used */}
-                        <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Credits Used Today
-                            </span>
-                            <span className="text-sm font-semibold text-foreground">
-                              {creditBalanceData?.daily.used || 0}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Change Tier Info for Pro Users */}
-                        {subscriptionData?.plan.name === "PRO" && (
-                          <Card>
-                            <CardContent className="pt-6 text-center">
-                              <p className="text-sm text-muted-foreground mb-3">
-                                Need more daily credits? Select a different Pro
-                                tier below
-                              </p>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        {/* Upgrade to Pro for Hobby Users */}
-                        {subscriptionData?.plan.name === "HOBBY" && (
-                          <Card>
-                            <CardContent className="pt-6 text-center">
-                              <p className="text-sm text-muted-foreground mb-3">
-                                Upgrade to Pro to get more daily credits
-                              </p>
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  setTargetPlan("PRO");
-                                  setShowSubscriptionModal(true);
+                          {/* Daily Credits Progress */}
+                          <div className="p-4 bg-muted/50 rounded-xl border border-input">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Credits Remaining Today
+                              </span>
+                              <span className="text-2xl font-bold text-foreground">
+                                {creditBalanceData?.daily.remaining || 0} /{" "}
+                                {creditBalanceData?.daily.limit || 0}
+                              </span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2">
+                              <div
+                                className="bg-neutral-700 dark:bg-neutral-300 h-2 rounded-full transition-all"
+                                style={{
+                                  width: `${
+                                    creditBalanceData &&
+                                    (creditBalanceData.daily.limit ?? 0) > 0
+                                      ? ((creditBalanceData.daily.remaining ??
+                                          0) /
+                                          creditBalanceData.daily.limit) *
+                                        100
+                                      : 0
+                                  }%`,
                                 }}
-                                className="rounded-lg"
-                              >
-                                Upgrade to Pro
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </CardContent>
-                    </Card>
+                              ></div>
+                            </div>
+                          </div>
+
+                          {/* Credits Used */}
+                          <div className="p-3 bg-muted/50 rounded-xl border border-input">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Credits Used Today
+                              </span>
+                              <span className="text-sm font-semibold text-foreground">
+                                {creditBalanceData?.daily.used || 0}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Upgrade to Pro - Only for Hobby users */}
+                    {subscriptionData?.plan.name === "HOBBY" && (
+                      <div className="border-t border-border pt-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-semibold text-foreground">
+                            Upgrade to Pro
+                          </h3>
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">
+                            Recommended
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Get more daily credits and unlock unlimited projects
+                          with priority support
+                        </p>
+                        <div className="space-y-4">
+                          <div className="space-y-3">
+                            <Select
+                              value={selectedProTierIndex.toString()}
+                              onValueChange={(value) =>
+                                setSelectedProTierIndex(parseInt(value))
+                              }
+                            >
+                              <SelectTrigger className="w-full rounded-full h-12 px-6 text-base">
+                                <SelectValue placeholder="Select a Pro tier" />
+                              </SelectTrigger>
+                              <SelectContent className="z-[100001] rounded-2xl">
+                                {PRO_TIERS.map((tier, index) => (
+                                  <SelectItem
+                                    key={index}
+                                    value={index.toString()}
+                                    className="text-base py-3"
+                                  >
+                                    {tier.dailyCredits} credits per day{" "}
+                                    <span className="text-muted-foreground">
+                                      - {tier.displayPrice}
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <Button
+                            className="w-full rounded-full h-12 text-base font-semibold"
+                            disabled={isPurchasing}
+                            onClick={async () => {
+                              setIsPurchasing(true);
+                              try {
+                                const selectedTier =
+                                  PRO_TIERS[selectedProTierIndex];
+                                const response = await fetch(
+                                  "/api/billing/upgrade-to-pro",
+                                  {
+                                    method: "POST",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      dailyCredits: selectedTier.dailyCredits,
+                                    }),
+                                  }
+                                );
+                                const data = await response.json();
+                                if (response.ok && data.checkoutUrl) {
+                                  window.location.href = data.checkoutUrl;
+                                } else {
+                                  throw new Error(
+                                    data.error || "Failed to create checkout"
+                                  );
+                                }
+                              } catch (error) {
+                                console.error(
+                                  "Error purchasing Pro plan:",
+                                  error
+                                );
+                                alert(
+                                  "Failed to initiate purchase. Please try again."
+                                );
+                              } finally {
+                                setIsPurchasing(false);
+                              }
+                            }}
+                          >
+                            {isPurchasing ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                                Processing...
+                              </>
+                            ) : (
+                              `Purchase Pro - ${PRO_TIERS[selectedProTierIndex].displayPrice}`
+                            )}
+                          </Button>
+
+                          <div className="pt-4 text-center">
+                            <a
+                              href="/pricing"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                            >
+                              View all plan details and features
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Subscription History */}
                     {subscriptionHistory && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Subscription History</CardTitle>
-                          <CardDescription>
-                            View your billing periods and usage history.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+                      <div className="border-t border-border pt-6">
+                        <h3 className="text-lg font-semibold text-foreground mb-2">
+                          Subscription History
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          View your billing periods and usage history.
+                        </p>
+                        <div className="space-y-4">
                           {/* Usage Records */}
                           {subscriptionHistory.usageRecords.length > 0 && (
                             <div className="space-y-2">
@@ -1250,8 +1412,8 @@ export default function SettingsModal({
                                 ))}
                             </div>
                           )}
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     )}
                   </>
                 )}
@@ -1264,10 +1426,10 @@ export default function SettingsModal({
                 {/* Header */}
                 <div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">
-                    Token Usage History
+                    Credit Usage History
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    View detailed breakdown of token consumption for each
+                    View detailed breakdown of credit consumption for each
                     interaction
                   </p>
                 </div>
@@ -1289,7 +1451,7 @@ export default function SettingsModal({
                         className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-white dark:bg-neutral-800 text-foreground focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       >
                         <option value="">All Projects</option>
-                        {tokenUsageData?.filters?.projects?.map((project) => (
+                        {creditUsageData?.filters?.projects?.map((project) => (
                           <option key={project.id} value={project.id}>
                             {project.name}
                           </option>
@@ -1311,11 +1473,13 @@ export default function SettingsModal({
                         className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-white dark:bg-neutral-800 text-foreground focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       >
                         <option value="">All Types</option>
-                        {tokenUsageData?.filters?.endpoints?.map((endpoint) => (
-                          <option key={endpoint} value={endpoint}>
-                            {endpoint}
-                          </option>
-                        )) || null}
+                        {creditUsageData?.filters?.endpoints?.map(
+                          (endpoint) => (
+                            <option key={endpoint} value={endpoint}>
+                              {endpoint}
+                            </option>
+                          )
+                        ) || null}
                       </select>
                     </div>
 
@@ -1371,7 +1535,7 @@ export default function SettingsModal({
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 dark:border-neutral-50"></div>
                   </div>
-                ) : tokenUsageData && tokenUsageData.records.length > 0 ? (
+                ) : creditUsageData && creditUsageData.records.length > 0 ? (
                   <>
                     {/* Table */}
                     <div className="border border-input rounded-xl overflow-hidden">
@@ -1389,10 +1553,7 @@ export default function SettingsModal({
                                 Type
                               </th>
                               <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Input Tokens
-                              </th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Output Tokens
+                                Credits Used
                               </th>
                               <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Total Tokens
@@ -1400,7 +1561,7 @@ export default function SettingsModal({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                            {tokenUsageData.records.map((record, index) => (
+                            {creditUsageData.records.map((record, index) => (
                               <tr
                                 key={record.id}
                                 className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
@@ -1427,13 +1588,10 @@ export default function SettingsModal({
                                 <td className="px-4 py-3 text-sm text-muted-foreground capitalize">
                                   {record.endpoint}
                                 </td>
-                                <td className="px-4 py-3 text-sm text-right font-mono text-foreground">
-                                  {record.inputTokens.toLocaleString()}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-right font-mono text-foreground">
-                                  {record.outputTokens.toLocaleString()}
-                                </td>
                                 <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-foreground">
+                                  {record.creditsUsed.toFixed(4)}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-right font-mono text-muted-foreground">
                                   {record.totalTokens.toLocaleString()}
                                 </td>
                               </tr>
@@ -1449,9 +1607,9 @@ export default function SettingsModal({
                         Showing {(currentPage - 1) * 10 + 1} to{" "}
                         {Math.min(
                           currentPage * 10,
-                          tokenUsageData.pagination.totalCount
+                          creditUsageData.pagination.totalCount
                         )}{" "}
-                        of {tokenUsageData.pagination.totalCount} records
+                        of {creditUsageData.pagination.totalCount} records
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -1470,21 +1628,21 @@ export default function SettingsModal({
                             {
                               length: Math.min(
                                 5,
-                                tokenUsageData.pagination.totalPages
+                                creditUsageData.pagination.totalPages
                               ),
                             },
                             (_, i) => {
                               let pageNum;
-                              if (tokenUsageData.pagination.totalPages <= 5) {
+                              if (creditUsageData.pagination.totalPages <= 5) {
                                 pageNum = i + 1;
                               } else if (currentPage <= 3) {
                                 pageNum = i + 1;
                               } else if (
                                 currentPage >=
-                                tokenUsageData.pagination.totalPages - 2
+                                creditUsageData.pagination.totalPages - 2
                               ) {
                                 pageNum =
-                                  tokenUsageData.pagination.totalPages - 4 + i;
+                                  creditUsageData.pagination.totalPages - 4 + i;
                               } else {
                                 pageNum = currentPage - 2 + i;
                               }
@@ -1510,13 +1668,14 @@ export default function SettingsModal({
                           onClick={() =>
                             setCurrentPage(
                               Math.min(
-                                tokenUsageData.pagination.totalPages,
+                                creditUsageData.pagination.totalPages,
                                 currentPage + 1
                               )
                             )
                           }
                           disabled={
-                            currentPage === tokenUsageData.pagination.totalPages
+                            currentPage ===
+                            creditUsageData.pagination.totalPages
                           }
                           className="px-3 py-1.5 text-sm font-medium text-muted-foreground bg-white dark:bg-neutral-800 border border-input rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
@@ -1536,7 +1695,7 @@ export default function SettingsModal({
                       startDate ||
                       endDate
                         ? "Try adjusting your filters"
-                        : "Start using the platform to see your token usage here"}
+                        : "Start using the platform to see your credit usage here"}
                     </p>
                   </div>
                 )}

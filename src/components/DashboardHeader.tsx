@@ -107,9 +107,7 @@ export default function DashboardHeader({
           {planName === "HOBBY" && (
             <button
               onClick={() => {
-                setPricingModalMode("pro");
-                setTargetPlan("PRO");
-                setIsPricingModalOpen(true);
+                setIsSettingsOpen(true);
               }}
               className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
             >
@@ -167,9 +165,7 @@ export default function DashboardHeader({
           {planName === "HOBBY" && (
             <button
               onClick={() => {
-                setPricingModalMode("pro");
-                setTargetPlan("PRO");
-                setIsPricingModalOpen(true);
+                setIsSettingsOpen(true);
               }}
               className="flex items-center leading-tight gap-2 px-3 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
             >
@@ -192,10 +188,8 @@ export default function DashboardHeader({
           <CreditCounter
             onClickAction={() => {
               if (planName === "HOBBY") {
-                // Open subscription modal to upgrade
-                setPricingModalMode("pro");
-                setTargetPlan("PRO");
-                setIsPricingModalOpen(true);
+                // Open settings modal with billing tab
+                setIsSettingsOpen(true);
               } else {
                 // Open settings modal to billing tab
                 setIsSettingsOpen(true);
@@ -432,9 +426,7 @@ export default function DashboardHeader({
                 {planName === "HOBBY" && (
                   <button
                     onClick={() => {
-                      setPricingModalMode("pro");
-                      setTargetPlan("PRO");
-                      setIsPricingModalOpen(true);
+                      setIsSettingsOpen(true);
                       setIsMobileMenuOpen(false);
                     }}
                     className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors text-left"

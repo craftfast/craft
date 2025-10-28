@@ -102,6 +102,8 @@ export async function GET(request: Request) {
                 inputTokens: record.inputTokens,
                 outputTokens: record.outputTokens,
                 totalTokens: record.totalTokens,
+                // Calculate credits: 1 credit = 10,000 tokens
+                creditsUsed: Number((record.totalTokens / 10000).toFixed(4)),
                 endpoint: record.endpoint || "chat",
                 createdAt: record.createdAt,
             })),
@@ -119,9 +121,9 @@ export async function GET(request: Request) {
             },
         });
     } catch (error) {
-        console.error("Error fetching token usage:", error);
+        console.error("Error fetching credit usage:", error);
         return NextResponse.json(
-            { error: "Failed to fetch token usage data" },
+            { error: "Failed to fetch credit usage data" },
             { status: 500 }
         );
     }
