@@ -107,7 +107,6 @@ interface SubscriptionHistoryData {
     id: string;
     billingPeriodStart: Date;
     billingPeriodEnd: Date;
-    aiTokensUsed: number;
     aiCostUsd: number;
     totalCostUsd: number;
     createdAt: Date;
@@ -124,28 +123,6 @@ interface SubscriptionHistoryData {
     paidAt: Date | null;
     createdAt: Date;
   }>;
-}
-
-interface TokenPurchaseHistoryData {
-  purchases: Array<{
-    id: string;
-    tokenAmount: number;
-    priceUsd: number;
-    currency: string;
-    status: string;
-    polarCheckoutId: string | null;
-    polarPaymentId: string | null;
-    purchasedAt: Date;
-    expiresAt: Date | null;
-    tokensRemaining: number;
-    createdAt: Date;
-  }>;
-  summary: {
-    totalPurchased: number;
-    totalSpent: number;
-    tokensRemaining: number;
-    activePurchases: number;
-  };
 }
 
 type SettingsTab = "general" | "billing" | "usage" | "account" | "integrations";
@@ -1349,12 +1326,6 @@ export default function SettingsModal({
                                       <span className="text-sm font-bold text-foreground">
                                         ${record.totalCostUsd.toFixed(2)}
                                       </span>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {(
-                                        record.aiTokensUsed / 1000
-                                      ).toLocaleString()}
-                                      K tokens used
                                     </div>
                                   </div>
                                 ))}

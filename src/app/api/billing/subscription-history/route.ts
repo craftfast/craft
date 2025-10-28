@@ -71,7 +71,6 @@ export async function GET() {
                 id: record.id,
                 billingPeriodStart: record.billingPeriodStart,
                 billingPeriodEnd: record.billingPeriodEnd,
-                aiTokensUsed: record.aiTokensUsed,
                 aiCostUsd: record.aiCostUsd,
                 totalCostUsd: record.totalCostUsd,
                 createdAt: record.createdAt,

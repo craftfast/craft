@@ -1,13 +1,10 @@
 /**
  * Pricing Constants
  * Centralized pricing information for the Craft platform
- * Credit-based system: 1 credit = 10,000 tokens
+ * Credit-based system with daily credit allocation
  * Users get daily credit allocation based on their plan
  * Users connect their own Supabase for database and storage
  */
-
-// Credit to token conversion: 1 credit = 10,000 tokens
-export const CREDITS_TO_TOKENS = 10000;
 
 export const PRICING = {
     HOBBY: {
@@ -130,16 +127,6 @@ export function getProFeatures() {
 // Helper function to get Pro tier by daily credits
 export function getProTier(dailyCredits: number) {
     return PRO_TIERS.find(tier => tier.dailyCredits === dailyCredits);
-}
-
-// Helper function to convert credits to tokens
-export function creditsToTokens(credits: number): number {
-    return credits * CREDITS_TO_TOKENS;
-}
-
-// Helper function to convert tokens to credits
-export function tokensToCredits(tokens: number): number {
-    return Math.ceil(tokens / CREDITS_TO_TOKENS);
 }
 
 export const SUPPORT_EMAIL = "support@craft.fast";

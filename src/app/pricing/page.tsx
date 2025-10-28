@@ -63,7 +63,7 @@ function FAQSection() {
       answer: (
         <>
           <strong>Hobby:</strong> Limited to 3 projects, no Figma/GitHub
-          imports, includes Craft branding, and 1 credit per day (10k tokens).{" "}
+          imports, includes Craft branding, and 1 credit per day.{" "}
           <strong>Pro:</strong> Unlimited projects, Figma/GitHub imports,
           without branding, and 10-1000 credits per day based on your selected
           tier. You can change between Pro tiers anytime.
@@ -105,7 +105,7 @@ function FAQSection() {
     {
       question: "What AI models do you support?",
       answer:
-        "Craft supports leading AI models including GPT-4, GPT-4 Turbo, Claude 3.5 Sonnet, and other cutting-edge models. You can switch between models based on your needs, with credit usage calculated from total token consumption.",
+        "Craft supports leading AI models including GPT-4, GPT-4 Turbo, Claude 3.5 Sonnet, and other cutting-edge models. You can switch between models based on your needs, with credit usage calculated from AI usage.",
     },
     {
       question: "Do unused credits roll over?",

@@ -294,19 +294,15 @@ export default function DashboardHeader({
                           }`}
                         >
                           {isTokensExhausted
-                            ? "0 tokens"
+                            ? "0 credits"
                             : formatCredits(balance.totalAvailable)}
                           {isLowTokens && !isTokensExhausted && " ⚠️"}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
                         <span>
-                          Monthly:{" "}
-                          {formatCredits(balance.subscriptionTokensRemaining)}
-                        </span>
-                        <span>
-                          Purchased:{" "}
-                          {formatCredits(balance.purchasedTokensRemaining)}
+                          Daily credits:{" "}
+                          {formatCredits(balance.subscriptionCreditsRemaining)}
                         </span>
                       </div>
                     </div>

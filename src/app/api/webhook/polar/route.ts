@@ -8,7 +8,6 @@
 
 import { Webhooks } from "@polar-sh/nextjs";
 import { prisma } from "@/lib/db";
-import { getTokenAmountFromProductId } from "@/lib/polar-config";
 
 export const POST = Webhooks({
     webhookSecret: process.env.POLAR_WEBHOOK_SECRET!,
@@ -75,8 +74,8 @@ export const POST = Webhooks({
             // Handle subscription payment (initial, renewal, or update)
             await handleSubscriptionPayment(user.id, order);
         } else if (billingReason === 'purchase') {
-            // Handle one-time token purchase
-            await handleTokenPurchasePayment(user.id, order);
+            // One-time purchases (tokens) are no longer supported - user should upgrade to Pro tier
+            console.log("One-time token purchase no longer supported - user should upgrade to a higher Pro tier instead");
         } else {
             console.warn(" Unknown billing reason:", billingReason);
         }
@@ -237,13 +236,6 @@ async function handleSubscriptionPayment(userId: string, order: Record<string, u
     });
 
     console.log(`Subscription payment processed for user ${userId}: Pro ${dailyCredits} credits/day`);
-}
-
-// Token purchases are no longer supported - using daily credit allocations instead
-async function handleTokenPurchasePayment(userId: string, order: Record<string, unknown>) {
-    console.log("Token purchase no longer supported - user should upgrade to a higher Pro tier instead");
-    console.log("User:", userId, "Order:", order.id);
-    // No-op: Token purchases have been replaced with Pro tier subscriptions
 }
 
 async function handleSubscriptionActive(subscription: Record<string, unknown>) {

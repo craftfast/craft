@@ -1,6 +1,6 @@
 /**
- * AI Token Usage Tracking & Billing
- * Tracks AI token usage for billing
+ * AI Usage Tracking & Billing
+ * Tracks AI usage for billing
  */
 
 import { prisma } from "@/lib/db";
@@ -11,7 +11,6 @@ import { prisma } from "@/lib/db";
 export async function updateUsageRecord(
     userId: string,
     usage: {
-        aiTokensUsed?: number;
         aiCostUsd?: number;
     }
 ): Promise<void> {
@@ -42,9 +41,6 @@ export async function updateUsageRecord(
         await prisma.usageRecord.update({
             where: { id: existingRecord.id },
             data: {
-                ...(usage.aiTokensUsed !== undefined && {
-                    aiTokensUsed: usage.aiTokensUsed,
-                }),
                 ...(usage.aiCostUsd !== undefined && {
                     aiCostUsd: usage.aiCostUsd,
                 }),
@@ -59,7 +55,6 @@ export async function updateUsageRecord(
                 subscriptionId: subscription.id,
                 billingPeriodStart: subscription.currentPeriodStart,
                 billingPeriodEnd: subscription.currentPeriodEnd,
-                aiTokensUsed: usage.aiTokensUsed || 0,
                 aiCostUsd: usage.aiCostUsd || 0,
                 totalCostUsd,
             },

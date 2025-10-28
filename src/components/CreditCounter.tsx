@@ -164,7 +164,7 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
                   </span>
                 </div>
                 <span className="text-sm font-medium text-foreground">
-                  {formatFullNumber(balance.subscriptionTokensRemaining)}
+                  {formatFullNumber(balance.subscriptionCreditsRemaining)}
                 </span>
               </div>
 

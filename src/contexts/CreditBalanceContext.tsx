@@ -11,10 +11,9 @@ import { useSession } from "next-auth/react";
 
 interface CreditBalance {
   totalAvailable: number;
-  subscriptionTokensRemaining: number;
-  purchasedTokensRemaining: number;
-  subscriptionTokenLimit: number | null;
-  subscriptionTokensUsed: number;
+  subscriptionCreditsRemaining: number;
+  subscriptionCreditLimit: number | null;
+  subscriptionCreditsUsed: number;
 }
 
 interface CreditBalanceContextType {
