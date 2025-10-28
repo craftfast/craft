@@ -4,19 +4,21 @@
  * This is the single source of truth for all AI operations in Craft.
  * 
  * Model Configuration:
- * - GPT-5 Mini: 0.25x credit multiplier (cheap)
- * - Claude Haiku 4.5: 0.5x credit multiplier (fast)
- * - GPT-5: 1.0x credit multiplier (standard/default)
- * - Claude Sonnet 4.5: 1.5x credit multiplier (premium)
- * - Grok 4 Fast: Project naming and creative text generation
+ * - GPT-5 Mini: 0.25x credit multiplier (cheap) - All plans
+ * - Claude Haiku 4.5: 0.5x credit multiplier (fast) - All plans
+ * - GPT-5: 1.0x credit multiplier (standard/default) - All plans
+ * - Claude Sonnet 4.5: 1.5x credit multiplier (premium) - PRO+ only
  * 
- * The system supports dynamic model selection with credit-based pricing.
+ * The system supports dynamic model selection with credit-based pricing
+ * and plan-based restrictions.
  */
 
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, streamText } from "ai";
+import { canUserAccessModel } from "@/lib/models/config";
+import { getUserPlan } from "@/lib/subscription";
 
 // Create Anthropic client for Claude models
 const anthropic = createAnthropic({
@@ -58,6 +60,7 @@ interface CodingStreamOptions {
     projectFiles?: Record<string, string>;
     conversationHistory?: Array<{ role: string; content: string }>;
     model?: string; // Allow model selection (defaults to GPT-5)
+    userId?: string; // User ID for plan validation
     onFinish?: (params: {
         model: string;
         inputTokens: number;
@@ -111,9 +114,22 @@ function getModelProvider(modelId: string): { provider: any; modelPath: string; 
 /**
  * Stream coding responses with dynamic model selection
  * Supports: GPT-5 Mini, Claude Haiku 4.5, GPT-5, Claude Sonnet 4.5
+ * Validates plan-based access to premium models
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {
-    const { messages, systemPrompt, projectFiles = {}, model: requestedModel = "gpt-5", onFinish } = options;
+    const { messages, systemPrompt, projectFiles = {}, model: requestedModel = "gpt-5", userId, onFinish } = options;
+
+    // Validate user can access the requested model
+    if (userId && requestedModel) {
+        const userPlan = await getUserPlan(userId);
+        const hasAccess = canUserAccessModel(requestedModel, userPlan);
+
+        if (!hasAccess) {
+            throw new Error(
+                `Model ${requestedModel} requires Pro plan. Please upgrade to access premium models.`
+            );
+        }
+    }
 
     const { provider, modelPath, displayName } = getModelProvider(requestedModel);
 

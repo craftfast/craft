@@ -8,6 +8,7 @@ import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ModelSelector } from "@/components/ModelSelector";
+import { useSession } from "next-auth/react";
 
 interface ImageAttachment {
   id: string;
@@ -84,6 +85,29 @@ export default function CraftInput() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { balance } = useCreditBalance();
   const [selectedModel, setSelectedModel] = useState("gpt-5"); // Default to standard tier (1.0x)
+  const { data: session } = useSession();
+
+  // Fetch user's preferred model on mount
+  useEffect(() => {
+    const fetchPreferredModel = async () => {
+      if (!session?.user) return;
+
+      try {
+        const response = await fetch("/api/user/model-preferences");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.preferredModel) {
+            setSelectedModel(data.preferredModel);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch preferred model:", error);
+        // Keep default "gpt-5" on error
+      }
+    };
+
+    fetchPreferredModel();
+  }, [session?.user]);
 
   // Check if tokens are low or exhausted
   const isLowTokens =
@@ -304,6 +328,7 @@ export default function CraftInput() {
         body: JSON.stringify({
           name: "New Project", // Default name
           description: input,
+          selectedModel: selectedModel, // Save user's selected model
         }),
       });
 

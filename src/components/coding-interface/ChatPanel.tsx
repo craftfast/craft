@@ -138,6 +138,50 @@ export default function ChatPanel({
     return "gpt-5";
   });
 
+  // Fetch project's preferred model on mount
+  useEffect(() => {
+    const fetchProjectPreferredModel = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.project?.preferredModel) {
+            setSelectedModel(data.project.preferredModel);
+            // Update sessionStorage
+            sessionStorage.setItem(
+              `project-${projectId}-model`,
+              data.project.preferredModel
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch project preferred model:", error);
+        // Keep default or sessionStorage value
+      }
+    };
+
+    fetchProjectPreferredModel();
+  }, [projectId]);
+
+  // Save model to project when it changes
+  useEffect(() => {
+    const updateProjectModel = async () => {
+      try {
+        await fetch(`/api/projects/${projectId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ preferredModel: selectedModel }),
+        });
+        // Update sessionStorage
+        sessionStorage.setItem(`project-${projectId}-model`, selectedModel);
+      } catch (error) {
+        console.error("Failed to update project model:", error);
+      }
+    };
+
+    updateProjectModel();
+  }, [selectedModel, projectId]);
+
   // Check if tokens are low or exhausted
   const isLowTokens =
     balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;

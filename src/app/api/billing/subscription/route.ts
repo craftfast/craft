@@ -69,6 +69,20 @@ export async function GET() {
                 },
             });
 
+            // Calculate credit balance for new subscription
+            const now = new Date();
+            const resetTime = new Date(subscription.lastCreditReset);
+            resetTime.setDate(resetTime.getDate() + 1);
+
+            const hoursUntilReset = Math.max(
+                0,
+                Math.ceil((resetTime.getTime() - now.getTime()) / (1000 * 60 * 60))
+            );
+
+            const dailyCreditsUsed = Number(subscription.dailyCreditsUsed);
+            const dailyCreditsLimit = subscription.plan.dailyCredits || 0;
+            const dailyCreditsRemaining = Math.max(0, dailyCreditsLimit - dailyCreditsUsed);
+
             return NextResponse.json({
                 plan: {
                     name: subscription.plan.name,
@@ -83,8 +97,29 @@ export async function GET() {
                 currentPeriodStart: subscription.currentPeriodStart,
                 currentPeriodEnd: subscription.currentPeriodEnd,
                 cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+                daily: {
+                    limit: dailyCreditsLimit,
+                    used: dailyCreditsUsed,
+                    remaining: dailyCreditsRemaining,
+                    resetTime: resetTime,
+                    hoursUntilReset: hoursUntilReset,
+                },
             });
         }
+
+        // Calculate credit balance
+        const now = new Date();
+        const resetTime = new Date(user.subscription.lastCreditReset);
+        resetTime.setDate(resetTime.getDate() + 1);
+
+        const hoursUntilReset = Math.max(
+            0,
+            Math.ceil((resetTime.getTime() - now.getTime()) / (1000 * 60 * 60))
+        );
+
+        const dailyCreditsUsed = Number(user.subscription.dailyCreditsUsed);
+        const dailyCreditsLimit = user.subscription.plan.dailyCredits || 0;
+        const dailyCreditsRemaining = Math.max(0, dailyCreditsLimit - dailyCreditsUsed);
 
         return NextResponse.json({
             plan: {
@@ -100,6 +135,13 @@ export async function GET() {
             currentPeriodStart: user.subscription.currentPeriodStart,
             currentPeriodEnd: user.subscription.currentPeriodEnd,
             cancelAtPeriodEnd: user.subscription.cancelAtPeriodEnd,
+            daily: {
+                limit: dailyCreditsLimit,
+                used: dailyCreditsUsed,
+                remaining: dailyCreditsRemaining,
+                resetTime: resetTime,
+                hoursUntilReset: hoursUntilReset,
+            },
         });
     } catch (error) {
         console.error("Error fetching subscription:", error);

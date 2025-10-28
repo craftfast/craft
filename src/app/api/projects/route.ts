@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { name, description } = body;
+        const { name, description, selectedModel } = body;
 
         if (!name || name.trim() === "") {
             return NextResponse.json(
@@ -171,6 +171,7 @@ export async function POST(req: NextRequest) {
                 codeFiles: templateFiles, // Start with Next.js template
                 version: 0,
                 generationStatus: "template", // Status: template (ready for AI to customize)
+                preferredModel: selectedModel || "gpt-5", // Save user's selected model
             },
         });
 

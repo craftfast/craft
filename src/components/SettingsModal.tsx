@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import SubscriptionModal from "./SubscriptionModal";
 import { PRO_TIERS } from "@/lib/pricing-constants";
+import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -72,6 +73,13 @@ interface SubscriptionData {
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;
+  daily?: {
+    limit: number;
+    used: number;
+    remaining: number;
+    resetTime: Date;
+    hoursUntilReset: number;
+  };
 }
 
 interface CreditBalanceData {
@@ -144,6 +152,14 @@ export default function SettingsModal({
     useState<CreditUsageData | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
 
+  // Model preferences
+  const [preferredModel, setPreferredModel] = useState<string>("gpt-5");
+  const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
+    "HOBBY"
+  );
+  const [isLoadingModelPrefs, setIsLoadingModelPrefs] = useState(false);
+  const [isSavingModelPrefs, setIsSavingModelPrefs] = useState(false);
+
   // Billing state
   const [subscriptionData, setSubscriptionData] =
     useState<SubscriptionData | null>(null);
@@ -184,6 +200,13 @@ export default function SettingsModal({
     }
   }, [activeTab]);
 
+  // Fetch model preferences when general tab is active
+  useEffect(() => {
+    if (activeTab === "general") {
+      fetchModelPreferences();
+    }
+  }, [activeTab]);
+
   // Fetch usage data when usage tab is active
   useEffect(() => {
     if (activeTab === "usage") {
@@ -207,6 +230,19 @@ export default function SettingsModal({
       if (subRes.ok) {
         setSubscriptionData(subData);
 
+        // Set credit balance data from subscription response
+        if (subData.daily) {
+          setCreditBalanceData({
+            daily: subData.daily,
+            plan: {
+              name: subData.plan.name,
+              displayName: subData.plan.displayName,
+              dailyCredits: subData.plan.dailyCredits,
+              monthlyCredits: subData.plan.monthlyCredits,
+            },
+          });
+        }
+
         // Set current Pro tier index if user is on Pro plan
         if (subData.plan?.name === "PRO" && subData.plan?.dailyCredits) {
           const currentTierIndex = PRO_TIERS.findIndex(
@@ -216,13 +252,6 @@ export default function SettingsModal({
             setSelectedProTierIndex(currentTierIndex);
           }
         }
-      }
-
-      // Fetch credit balance
-      const balanceRes = await fetch("/api/billing/token-balance");
-      const balanceData = await balanceRes.json();
-      if (balanceRes.ok) {
-        setCreditBalanceData(balanceData);
       }
 
       // Fetch subscription history
@@ -235,6 +264,46 @@ export default function SettingsModal({
       console.error("Error fetching billing data:", error);
     } finally {
       setIsLoadingBilling(false);
+    }
+  };
+
+  const fetchModelPreferences = async () => {
+    setIsLoadingModelPrefs(true);
+    try {
+      const res = await fetch("/api/user/model-preferences");
+      if (res.ok) {
+        const data = await res.json();
+        setPreferredModel(data.preferredModel || "gpt-5");
+        setUserPlan(data.userPlan || "HOBBY");
+      }
+    } catch (error) {
+      console.error("Error fetching model preferences:", error);
+    } finally {
+      setIsLoadingModelPrefs(false);
+    }
+  };
+
+  const saveModelPreference = async (modelId: string) => {
+    setIsSavingModelPrefs(true);
+    try {
+      const res = await fetch("/api/user/model-preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferredModel: modelId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPreferredModel(data.preferredModel);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to update model preference");
+      }
+    } catch (error) {
+      console.error("Error saving model preference:", error);
+      alert("Failed to update model preference");
+    } finally {
+      setIsSavingModelPrefs(false);
     }
   };
 
@@ -767,6 +836,111 @@ export default function SettingsModal({
                       Right
                     </Button>
                   </div>
+                </div>
+
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
+                    Preferred AI Model
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Choose your default AI model for new projects. Premium
+                    models require a Pro plan.
+                  </p>
+
+                  {isLoadingModelPrefs ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-6 h-6 border-4 border-neutral-200 dark:border-neutral-800 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {Object.values(AVAILABLE_MODELS).map((model) => {
+                        const isAccessible =
+                          model.minPlanRequired === "HOBBY" ||
+                          (model.minPlanRequired === "PRO" &&
+                            (userPlan === "PRO" ||
+                              userPlan === "ENTERPRISE")) ||
+                          (model.minPlanRequired === "ENTERPRISE" &&
+                            userPlan === "ENTERPRISE");
+                        const isSelected = preferredModel === model.id;
+                        const isPremiumModel =
+                          model.minPlanRequired === "PRO" ||
+                          model.minPlanRequired === "ENTERPRISE";
+
+                        return (
+                          <button
+                            key={model.id}
+                            onClick={() => {
+                              if (isAccessible && !isSavingModelPrefs) {
+                                saveModelPreference(model.id);
+                              }
+                            }}
+                            disabled={!isAccessible || isSavingModelPrefs}
+                            className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                              isSelected
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-primary/50"
+                            } ${
+                              !isAccessible
+                                ? "opacity-50 cursor-not-allowed"
+                                : "cursor-pointer"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-semibold text-foreground">
+                                    {model.displayName}
+                                  </span>
+                                  {!isAccessible && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-700 dark:text-yellow-400 text-xs font-medium">
+                                      <svg
+                                        className="w-3 h-3"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      Pro
+                                    </span>
+                                  )}
+                                  {isSelected && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-medium">
+                                      <svg
+                                        className="w-3 h-3"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      Selected
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {model.description}
+                                  {!isAccessible &&
+                                    " • Upgrade to Pro to access"}
+                                </p>
+                              </div>
+                              <div className="flex-shrink-0 text-right">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  {model.creditMultiplier}× credits
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-border pt-6">

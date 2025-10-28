@@ -32,6 +32,9 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const { balance, isLoading } = useCreditBalance();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<
+    "general" | "billing" | "usage" | "account" | "integrations"
+  >("general");
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [targetPlan, setTargetPlan] = useState<
@@ -162,6 +165,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
             <button
               onClick={() => {
                 setIsUserMenuOpen(false);
+                setSettingsInitialTab("general");
                 setIsSettingsModalOpen(true);
               }}
               className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
@@ -344,6 +348,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               <button
                 onClick={() => {
                   setIsUserMenuOpen(false);
+                  setSettingsInitialTab("billing");
                   setIsSettingsModalOpen(true);
                 }}
                 className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
@@ -367,6 +372,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               <button
                 onClick={() => {
                   setIsUserMenuOpen(false);
+                  setSettingsInitialTab("billing");
                   setIsSettingsModalOpen(true);
                 }}
                 className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
@@ -520,6 +526,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+        initialTab={settingsInitialTab}
       />
 
       {/* Feedback Modal */}
@@ -534,13 +541,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
         onClose={() => setIsPricingModalOpen(false)}
         currentPlan={userPlan || "HOBBY"}
         targetPlan={targetPlan}
-      />
-
-      {/* Settings Modal with Billing Tab */}
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        initialTab="billing"
       />
     </div>
   );
