@@ -47,10 +47,11 @@ export default function SubscriptionModal({
       setIsLoading(true);
       setError(null);
 
+      // Default to 10 credits/day ($25/mo) for Pro tier
       const response = await fetch("/api/billing/upgrade-to-pro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billingPeriod: "MONTHLY" }),
+        body: JSON.stringify({ dailyCredits: 10 }),
       });
 
       const data = await response.json();
@@ -98,7 +99,7 @@ export default function SubscriptionModal({
       price: "$0",
       period: "/month",
       features: [
-        "100K AI tokens per month",
+        "1 credit per day (~30/month)",
         "Up to 3 projects",
         "AI code generation",
         "Live preview",
@@ -107,12 +108,12 @@ export default function SubscriptionModal({
     },
     PRO: {
       name: "Pro",
-      price: "$50",
+      price: "$25+",
       period: "/month",
       features: [
-        "10M AI tokens per month",
+        "10-1000 credits per day",
         "Unlimited projects",
-        "Buy tokens at $5/1M",
+        "Multiple pricing tiers",
         "Priority support",
         "No Craft branding",
         "Advanced features",
@@ -123,7 +124,7 @@ export default function SubscriptionModal({
       price: "Contact Sales",
       period: "",
       features: [
-        "Custom AI token allocation",
+        "Custom daily credit allocation",
         "Unlimited projects",
         "Dedicated account manager",
         "Priority support & SLA",

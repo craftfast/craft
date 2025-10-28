@@ -25,8 +25,7 @@ import {
 } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
-import TokenCounter from "./TokenCounter";
-import TokenPurchaseModal from "./TokenPurchaseModal";
+import CreditCounter from "./CreditCounter";
 import ChatPanel from "./coding-interface/ChatPanel";
 import PreviewPanel, { PreviewPanelRef } from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
@@ -857,10 +856,10 @@ export default function CodingInterface({
             {/* Spacer removed - URL bar always visible */}
           </div>
 
-          {/* Right Side - Token Counter and User Profile */}
+          {/* Right Side - Credit Counter and User Profile */}
           <div className="flex items-center justify-end gap-2">
-            {/* Token Counter */}
-            <TokenCounter onClickAction={() => setIsPricingModalOpen(true)} />
+            {/* Credit Counter */}
+            <CreditCounter onClickAction={() => setIsPricingModalOpen(true)} />
 
             {/* User Profile Menu */}
             {user && <UserMenu user={user} />}
@@ -964,11 +963,11 @@ export default function CodingInterface({
         </div>
 
         {/* Token Purchase Modal */}
-        <TokenPurchaseModal
+        {/* <TokenPurchaseModal
           isOpen={isPricingModalOpen}
           onClose={() => setIsPricingModalOpen(false)}
           currentPlan={planName}
-        />
+        /> */}
 
         {/* Rename Project Dialog */}
         <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>

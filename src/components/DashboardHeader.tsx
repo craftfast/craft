@@ -5,10 +5,10 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import UserMenu from "./UserMenu";
 import Logo from "./Logo";
-import TokenCounter from "./TokenCounter";
+import CreditCounter from "./CreditCounter";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import SubscriptionModal from "./SubscriptionModal";
-import TokenPurchaseModal from "./TokenPurchaseModal";
+import SettingsModal from "./SettingsModal";
 
 interface DashboardHeaderProps {
   planName?: string;
@@ -30,6 +30,7 @@ export default function DashboardHeader({
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [pricingModalMode, setPricingModalMode] = useState<
     "all" | "tokens" | "pro"
   >("all");
@@ -131,10 +132,17 @@ export default function DashboardHeader({
         </div>
         {/* Right column - Actions and user menu */}
         <div className="flex items-center gap-2 justify-end">
-          <TokenCounter
+          <CreditCounter
             onClickAction={() => {
-              setPricingModalMode(planName === "PRO" ? "tokens" : "all");
-              setIsPricingModalOpen(true);
+              if (planName === "HOBBY") {
+                // Open subscription modal to upgrade
+                setPricingModalMode("pro");
+                setTargetPlan("PRO");
+                setIsPricingModalOpen(true);
+              } else {
+                // Open settings modal to billing tab
+                setIsSettingsOpen(true);
+              }
             }}
           />
           {session?.user && <UserMenu user={session.user} />}
@@ -181,10 +189,17 @@ export default function DashboardHeader({
               <span className="hidden xl:inline">Upgrade to Pro</span>
             </button>
           )}
-          <TokenCounter
+          <CreditCounter
             onClickAction={() => {
-              setPricingModalMode(planName === "PRO" ? "tokens" : "all");
-              setIsPricingModalOpen(true);
+              if (planName === "HOBBY") {
+                // Open subscription modal to upgrade
+                setPricingModalMode("pro");
+                setTargetPlan("PRO");
+                setIsPricingModalOpen(true);
+              } else {
+                // Open settings modal to billing tab
+                setIsSettingsOpen(true);
+              }
             }}
           />
           {session?.user && <UserMenu user={session.user} />}
@@ -467,14 +482,12 @@ export default function DashboardHeader({
         />
       )}
 
-      {/* Token Purchase Modal */}
-      {pricingModalMode === "tokens" && (
-        <TokenPurchaseModal
-          isOpen={isPricingModalOpen}
-          onClose={() => setIsPricingModalOpen(false)}
-          currentPlan={planName}
-        />
-      )}
+      {/* Settings Modal (for billing/tier changes) */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        initialTab="billing"
+      />
     </>
   );
 }

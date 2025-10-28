@@ -1,9 +1,13 @@
 /**
  * Pricing Constants
  * Centralized pricing information for the Craft platform
- * Pro plan includes generous AI usage allocation - code without anxiety
+ * Credit-based system: 1 credit = 10,000 tokens
+ * Users get daily credit allocation based on their plan
  * Users connect their own Supabase for database and storage
  */
+
+// Credit to token conversion: 1 credit = 10,000 tokens
+export const CREDITS_TO_TOKENS = 10000;
 
 export const PRICING = {
     HOBBY: {
@@ -11,7 +15,8 @@ export const PRICING = {
         priceMonthly: 0,
         displayPriceMonthly: "Free",
         maxProjects: 3, // Limited to 3 projects
-        monthlyTokens: 100000, // 100k tokens/month
+        dailyCredits: 1, // 1 credit per day (~30 credits/month)
+        monthlyCredits: 30, // Approximate monthly credits
         features: {
             aiChat: true,
             unlimitedProjects: false,
@@ -27,16 +32,13 @@ export const PRICING = {
             trainingOptOut: false,
             sso: false,
             dedicatedSupport: false,
-            canPurchaseTokens: false, // Cannot purchase tokens on Hobby
             craftBranding: true, // Craft branding on projects
         },
     },
     PRO: {
         name: "Pro",
-        priceMonthly: 50,
-        displayPriceMonthly: "$50/mo",
-        maxProjects: 999, // Unlimited
-        monthlyTokens: 10000000, // 10M tokens/month
+        displayName: "Pro",
+        maxProjects: null, // Unlimited
         features: {
             aiChat: true,
             unlimitedProjects: true,
@@ -52,7 +54,7 @@ export const PRICING = {
             trainingOptOut: false,
             sso: false,
             dedicatedSupport: false,
-            canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
+            craftBranding: false,
         },
     },
     ENTERPRISE: {
@@ -60,7 +62,8 @@ export const PRICING = {
         priceMonthly: 0, // Contact sales for pricing
         displayPriceMonthly: "Contact Sales",
         maxProjects: null, // Unlimited
-        monthlyTokens: null, // Custom allocation
+        dailyCredits: null, // Custom allocation
+        monthlyCredits: null, // Custom allocation
         features: {
             aiChat: true,
             unlimitedProjects: true,
@@ -76,10 +79,9 @@ export const PRICING = {
             trainingOptOut: true,
             sso: true,
             dedicatedSupport: true,
-            canPurchaseTokens: true,
             craftBranding: false,
             // Enterprise-specific features
-            customTokenAllocation: true, // Custom AI token allocation
+            customCreditAllocation: true, // Custom AI credit allocation
             dedicatedAccountManager: true, // Personal point of contact
             prioritySLA: true, // Priority support with SLA
             customIntegrations: true, // Custom integrations
@@ -90,35 +92,72 @@ export const PRICING = {
     },
 } as const;
 
-export const TOKEN_PRICING = {
-    PAY_AS_YOU_GO: 5, // $5 per 1M tokens for top-up (both input and output included)
-} as const;
-
-export const CREDIT_TIERS = [
-    { tokens: 1000000, price: 5, display: "1M tokens - $5", polarEnvKey: "POLAR_TOKEN_1M_PRODUCT_ID" },
-    { tokens: 5000000, price: 22, display: "5M tokens - $22", polarEnvKey: "POLAR_TOKEN_5M_PRODUCT_ID" },
-    { tokens: 10000000, price: 42, display: "10M tokens - $42", polarEnvKey: "POLAR_TOKEN_10M_PRODUCT_ID" },
-    { tokens: 25000000, price: 100, display: "25M tokens - $100", polarEnvKey: "POLAR_TOKEN_25M_PRODUCT_ID" },
-    { tokens: 50000000, price: 187, display: "50M tokens - $187", polarEnvKey: "POLAR_TOKEN_50M_PRODUCT_ID" },
-    { tokens: 100000000, price: 350, display: "100M tokens - $350", polarEnvKey: "POLAR_TOKEN_100M_PRODUCT_ID" },
-    { tokens: 250000000, price: 812, display: "250M tokens - $812", polarEnvKey: "POLAR_TOKEN_250M_PRODUCT_ID" },
-    { tokens: 500000000, price: 1500, display: "500M tokens - $1,500", polarEnvKey: "POLAR_TOKEN_500M_PRODUCT_ID" },
-    { tokens: 1000000000, price: 2750, display: "1000M tokens - $2,750", polarEnvKey: "POLAR_TOKEN_1000M_PRODUCT_ID" },
+// Pro plan tiers with different daily credit allocations
+export const PRO_TIERS = [
+    { dailyCredits: 10, monthlyCredits: 300, priceMonthly: 25, displayPrice: "$25/mo", polarEnvKey: "POLAR_PRO_10_PRODUCT_ID" },
+    { dailyCredits: 20, monthlyCredits: 600, priceMonthly: 50, displayPrice: "$50/mo", polarEnvKey: "POLAR_PRO_20_PRODUCT_ID" },
+    { dailyCredits: 40, monthlyCredits: 1200, priceMonthly: 100, displayPrice: "$100/mo", polarEnvKey: "POLAR_PRO_40_PRODUCT_ID" },
+    { dailyCredits: 80, monthlyCredits: 2400, priceMonthly: 200, displayPrice: "$200/mo", polarEnvKey: "POLAR_PRO_80_PRODUCT_ID" },
+    { dailyCredits: 120, monthlyCredits: 3600, priceMonthly: 300, displayPrice: "$300/mo", polarEnvKey: "POLAR_PRO_120_PRODUCT_ID" },
+    { dailyCredits: 200, monthlyCredits: 6000, priceMonthly: 500, displayPrice: "$500/mo", polarEnvKey: "POLAR_PRO_200_PRODUCT_ID" },
+    { dailyCredits: 300, monthlyCredits: 9000, priceMonthly: 750, displayPrice: "$750/mo", polarEnvKey: "POLAR_PRO_300_PRODUCT_ID" },
+    { dailyCredits: 400, monthlyCredits: 12000, priceMonthly: 1000, displayPrice: "$1,000/mo", polarEnvKey: "POLAR_PRO_400_PRODUCT_ID" },
+    { dailyCredits: 500, monthlyCredits: 15000, priceMonthly: 1250, displayPrice: "$1,250/mo", polarEnvKey: "POLAR_PRO_500_PRODUCT_ID" },
+    { dailyCredits: 750, monthlyCredits: 22500, priceMonthly: 1875, displayPrice: "$1,875/mo", polarEnvKey: "POLAR_PRO_750_PRODUCT_ID" },
+    { dailyCredits: 1000, monthlyCredits: 30000, priceMonthly: 2500, displayPrice: "$2,500/mo", polarEnvKey: "POLAR_PRO_1000_PRODUCT_ID" },
 ] as const;
 
-export function getCreditTiers() {
-    return CREDIT_TIERS;
+// Get Pro tier features (same for all Pro tiers)
+export function getProFeatures() {
+    return {
+        aiChat: true,
+        unlimitedProjects: true,
+        figmaImport: true,
+        githubSync: true,
+        supabaseIntegration: true,
+        vercelDeployment: true,
+        customDomain: false, // Not implemented yet
+        privateProjects: true,
+        support: "priority",
+        prioritySupport: true,
+        removeBranding: true,
+        trainingOptOut: false,
+        sso: false,
+        dedicatedSupport: false,
+    };
+}
+
+// Helper function to get Pro tier by daily credits
+export function getProTier(dailyCredits: number) {
+    return PRO_TIERS.find(tier => tier.dailyCredits === dailyCredits);
+}
+
+// Helper function to convert credits to tokens
+export function creditsToTokens(credits: number): number {
+    return credits * CREDITS_TO_TOKENS;
+}
+
+// Helper function to convert tokens to credits
+export function tokensToCredits(tokens: number): number {
+    return Math.ceil(tokens / CREDITS_TO_TOKENS);
 }
 
 export const SUPPORT_EMAIL = "support@craft.fast";
 export const SALES_EMAIL = "sales@craft.fast";
 
-export type PlanName = keyof typeof PRICING;
+export type PlanName = "HOBBY" | "PRO" | "ENTERPRISE";
 
 /**
- * Get plan monthly price
+ * Get plan monthly price for a specific Pro tier
  */
-export function getPlanPrice(planName: PlanName): number {
+export function getPlanPrice(planName: PlanName, dailyCredits?: number): number {
+    if (planName === "PRO" && dailyCredits) {
+        const tier = getProTier(dailyCredits);
+        return tier?.priceMonthly ?? 50; // Default to $50 if tier not found
+    }
+    if (planName === "PRO") {
+        return 50; // Default Pro price
+    }
     const plan = PRICING[planName];
     return plan.priceMonthly ?? 0;
 }
@@ -126,7 +165,14 @@ export function getPlanPrice(planName: PlanName): number {
 /**
  * Get display price
  */
-export function getDisplayPrice(planName: PlanName): string {
+export function getDisplayPrice(planName: PlanName, dailyCredits?: number): string {
+    if (planName === "PRO" && dailyCredits) {
+        const tier = getProTier(dailyCredits);
+        return tier?.displayPrice ?? "$50/mo";
+    }
+    if (planName === "PRO") {
+        return "$50/mo"; // Default Pro price
+    }
     const plan = PRICING[planName];
     return plan.displayPriceMonthly;
 }
@@ -138,6 +184,10 @@ export function hasFeatureAccess(
     planName: PlanName,
     featureName: string
 ): boolean {
+    if (planName === "PRO") {
+        const proFeatures = getProFeatures();
+        return !!(proFeatures as Record<string, unknown>)[featureName];
+    }
     const plan = PRICING[planName];
     return !!(plan.features as Record<string, unknown>)[featureName];
 }

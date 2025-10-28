@@ -1,6 +1,6 @@
 /**
- * AI Token Usage Tracking
- * Tracks AI model usage and costs for billing
+ * AI Credit Usage Tracking
+ * Tracks AI model usage with daily credit limits (1 credit = 10,000 tokens)
  */
 
 import { prisma } from "@/lib/db";
@@ -233,259 +233,95 @@ export async function getUserAIUsage(
 }
 
 // ============================================================================
-// TOKEN PURCHASE TRACKING
+// DAILY CREDIT CHECKING (1 credit = 10,000 tokens)
 // ============================================================================
 
 /**
- * Record a token purchase
+ * Reset daily credits if needed (called before checking availability)
  */
-export async function recordTokenPurchase(params: {
-    userId: string;
-    tokenAmount: number;
-    priceUsd: number;
-    polarCheckoutId?: string;
-    polarPaymentId?: string;
-}): Promise<{ id: string; success: boolean; expiresAt: Date }> {
-    // Calculate expiration date: 1 year from purchase
-    const now = new Date();
-    const expiresAt = new Date(now);
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-
-    const purchase = await prisma.tokenPurchase.create({
-        data: {
-            userId: params.userId,
-            tokenAmount: params.tokenAmount,
-            priceUsd: params.priceUsd,
-            tokensRemaining: params.tokenAmount,
-            status: "completed",
-            polarCheckoutId: params.polarCheckoutId,
-            polarPaymentId: params.polarPaymentId,
-            expiresAt, // Tokens expire 1 year after purchase
-        },
+async function resetDailyCreditsIfNeeded(userId: string): Promise<void> {
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
     });
 
-    return {
-        id: purchase.id,
-        success: true,
-        expiresAt: purchase.expiresAt!,
-    };
-}
+    if (!subscription) return;
 
-/**
- * Get user's purchased token balance
- */
-export async function getUserTokenBalance(userId: string): Promise<{
-    totalPurchased: number;
-    totalUsed: number;
-    remaining: number;
-    expiringSoon: number; // Tokens expiring in next 30 days
-}> {
     const now = new Date();
-    const thirtyDaysFromNow = new Date(now);
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    const lastReset = new Date(subscription.lastCreditReset);
 
-    // Get all completed token purchases for the user (excluding expired ones)
-    const purchases = await prisma.tokenPurchase.findMany({
-        where: {
-            userId,
-            status: "completed",
-            OR: [
-                { expiresAt: null }, // Legacy purchases without expiration
-                { expiresAt: { gt: now } }, // Not expired yet
-            ],
-        },
-    });
+    // Check if it's a new day (UTC)
+    const isNewDay =
+        now.getUTCFullYear() !== lastReset.getUTCFullYear() ||
+        now.getUTCMonth() !== lastReset.getUTCMonth() ||
+        now.getUTCDate() !== lastReset.getUTCDate();
 
-    const totalPurchased = purchases.reduce(
-        (sum: number, p: typeof purchases[number]) => sum + p.tokenAmount,
-        0
-    );
-
-    const remaining = purchases.reduce((sum: number, p: typeof purchases[number]) => sum + p.tokensRemaining, 0);
-    const totalUsed = totalPurchased - remaining;
-
-    // Calculate tokens expiring soon
-    const expiringSoon = purchases
-        .filter(p => p.expiresAt && p.expiresAt <= thirtyDaysFromNow && p.tokensRemaining > 0)
-        .reduce((sum, p) => sum + p.tokensRemaining, 0);
-
-    return {
-        totalPurchased,
-        totalUsed,
-        remaining,
-        expiringSoon,
-    };
-}
-
-/**
- * Deduct tokens from purchased balance
- * This should be called after AI usage to reduce the purchased token balance
- */
-export async function deductPurchasedTokens(
-    userId: string,
-    tokensToDeduct: number
-): Promise<{ success: boolean; remaining: number }> {
-    const now = new Date();
-
-    // Get purchases with remaining tokens, oldest first (excluding expired)
-    const purchases = await prisma.tokenPurchase.findMany({
-        where: {
-            userId,
-            status: "completed",
-            tokensRemaining: {
-                gt: 0,
-            },
-            OR: [
-                { expiresAt: null }, // Legacy purchases without expiration
-                { expiresAt: { gt: now } }, // Not expired yet
-            ],
-        },
-        orderBy: {
-            purchasedAt: "asc", // Use oldest purchases first
-        },
-    });
-
-    let remainingToDeduct = tokensToDeduct;
-
-    // Deduct from purchases until we've used all tokens needed
-    for (const purchase of purchases) {
-        if (remainingToDeduct <= 0) break;
-
-        const deductFromThis = Math.min(
-            purchase.tokensRemaining,
-            remainingToDeduct
-        );
-
-        await prisma.tokenPurchase.update({
-            where: { id: purchase.id },
+    if (isNewDay) {
+        await prisma.userSubscription.update({
+            where: { userId },
             data: {
-                tokensRemaining: purchase.tokensRemaining - deductFromThis,
+                dailyCreditsUsed: 0,
+                lastCreditReset: now,
             },
         });
-
-        remainingToDeduct -= deductFromThis;
     }
-
-    const balance = await getUserTokenBalance(userId);
-
-    return {
-        success: remainingToDeduct === 0,
-        remaining: balance.remaining,
-    };
 }
 
 /**
- * Get token purchase history for a user
+ * Check if user can use AI based on daily credit limits
  */
-export async function getUserTokenPurchases(
-    userId: string
-): Promise<
-    Array<{
-        id: string;
-        tokenAmount: number;
-        priceUsd: number;
-        tokensRemaining: number;
-        purchasedAt: Date;
-        status: string;
-    }>
-> {
-    const purchases = await prisma.tokenPurchase.findMany({
-        where: { userId },
-        orderBy: {
-            purchasedAt: "desc",
-        },
-    });
-
-    return purchases.map((p: typeof purchases[number]) => ({
-        id: p.id,
-        tokenAmount: p.tokenAmount,
-        priceUsd: p.priceUsd,
-        tokensRemaining: p.tokensRemaining,
-        purchasedAt: p.purchasedAt,
-        status: p.status,
-    }));
-}
-
-// ============================================================================
-// TOKEN LIMIT CHECKING
-// ============================================================================
-
-/**
- * Check if user can use AI based on subscription limits and purchased tokens
- */
-export async function checkUserTokenAvailability(
+export async function checkUserCreditAvailability(
     userId: string
 ): Promise<{
     allowed: boolean;
     reason?: string;
-    subscriptionTokensUsed: number;
-    subscriptionTokenLimit: number | null;
-    purchasedTokensRemaining: number;
-    totalAvailable: number;
+    dailyCreditsUsed: number;
+    dailyCreditsLimit: number | null;
+    creditsRemaining: number;
 }> {
+    // Reset credits if it's a new day
+    await resetDailyCreditsIfNeeded(userId);
+
     // Get user's subscription with plan details
     const subscription = await prisma.userSubscription.findUnique({
         where: { userId },
         include: { plan: true },
     });
 
-    // Get current period usage
-    const currentUsage = await getCurrentPeriodAIUsage(userId);
-
-    // Get purchased token balance
-    const purchasedBalance = await getUserTokenBalance(userId);
-
-    // Determine subscription token limit from plan
-    let subscriptionLimit: number | null = null;
+    // Determine daily credit limit from plan
+    let dailyCreditsLimit: number | null = null;
 
     if (subscription?.plan) {
-        subscriptionLimit = subscription.plan.monthlyTokenLimit;
+        dailyCreditsLimit = subscription.plan.dailyCredits;
     } else {
-        // No subscription = free tier limits (100k tokens)
-        subscriptionLimit = 100000;
+        // No subscription = free tier limits (1 credit/day)
+        dailyCreditsLimit = 1;
     }
 
-    // Calculate available tokens
-    const subscriptionTokensUsed = currentUsage.totalTokens;
-    const subscriptionTokensRemaining = subscriptionLimit !== null
-        ? Math.max(0, subscriptionLimit - subscriptionTokensUsed)
+    const dailyCreditsUsed = subscription?.dailyCreditsUsed || 0;
+    const creditsRemaining = dailyCreditsLimit !== null
+        ? Math.max(0, dailyCreditsLimit - dailyCreditsUsed)
         : Infinity;
-
-    // Calculate total available - handle edge case where subscription is exceeded
-    let totalAvailable: number;
-    if (subscriptionTokensRemaining === Infinity) {
-        totalAvailable = Infinity;
-    } else {
-        // If subscription tokens are exhausted, only purchased tokens are available
-        totalAvailable = subscriptionTokensRemaining + purchasedBalance.remaining;
-        // Ensure totalAvailable is never negative
-        totalAvailable = Math.max(0, totalAvailable);
-    }
 
     // Check if usage is allowed
     let allowed = true;
     let reason: string | undefined;
 
-    if (subscriptionLimit !== null && subscriptionTokensUsed >= subscriptionLimit) {
-        // Subscription limit reached, check purchased tokens
-        if (purchasedBalance.remaining <= 0) {
-            allowed = false;
-            reason = "Monthly token limit reached. Purchase additional tokens to continue.";
-        }
+    if (dailyCreditsLimit !== null && dailyCreditsUsed >= dailyCreditsLimit) {
+        allowed = false;
+        reason = "Daily credit limit reached. Credits refresh daily at midnight UTC.";
     }
 
     return {
         allowed,
         reason,
-        subscriptionTokensUsed,
-        subscriptionTokenLimit: subscriptionLimit,
-        purchasedTokensRemaining: purchasedBalance.remaining,
-        totalAvailable: totalAvailable === Infinity ? -1 : totalAvailable,
+        dailyCreditsUsed,
+        dailyCreditsLimit,
+        creditsRemaining: creditsRemaining === Infinity ? -1 : creditsRemaining,
     };
 }
 
 /**
- * Process AI usage: track it and deduct from appropriate balance
+ * Process AI usage: track it and deduct from daily credits
  */
 export async function processAIUsage(params: {
     userId: string;
@@ -498,56 +334,32 @@ export async function processAIUsage(params: {
     success: boolean;
     usageId: string;
     costUsd: number;
-    deductedFromPurchased: number;
+    creditsUsed: number;
 }> {
     // Track the usage
     const usage = await trackAIUsage(params);
 
-    // Get user's subscription with plan details
-    const subscription = await prisma.userSubscription.findUnique({
-        where: { userId: params.userId },
-        include: { plan: true },
-    });
-
-    // Determine subscription token limit from plan
-    let subscriptionLimit: number | null = null;
-    if (subscription?.plan) {
-        subscriptionLimit = subscription.plan.monthlyTokenLimit;
-    } else {
-        subscriptionLimit = 100000; // Default to free tier (100k tokens)
-    }
-
-    // Get current period usage (before this request)
-    const currentUsage = await getCurrentPeriodAIUsage(params.userId);
-
+    // Calculate credits used (1 credit = 10,000 tokens)
     const totalTokens = params.inputTokens + params.outputTokens;
-    const newTotalUsage = currentUsage.totalTokens + totalTokens;
+    const creditsUsed = Math.ceil(totalTokens / 10000);
 
-    // Determine how many tokens to deduct from purchased balance
-    let tokensToDeductFromPurchased = 0;
+    // Reset credits if it's a new day
+    await resetDailyCreditsIfNeeded(params.userId);
 
-    if (subscriptionLimit !== null && newTotalUsage > subscriptionLimit) {
-        // Exceeded subscription limit, deduct overage from purchased tokens
-        tokensToDeductFromPurchased = totalTokens;
-
-        // If previous usage already exceeded limit, deduct all
-        // Otherwise, only deduct the overage
-        if (currentUsage.totalTokens < subscriptionLimit) {
-            tokensToDeductFromPurchased = newTotalUsage - subscriptionLimit;
-        }
-    }
-
-    // Deduct from purchased balance if needed
-    let deductedFromPurchased = 0;
-    if (tokensToDeductFromPurchased > 0) {
-        const result = await deductPurchasedTokens(params.userId, tokensToDeductFromPurchased);
-        deductedFromPurchased = result.success ? tokensToDeductFromPurchased : 0;
-    }
+    // Update daily credits used
+    await prisma.userSubscription.update({
+        where: { userId: params.userId },
+        data: {
+            dailyCreditsUsed: {
+                increment: creditsUsed,
+            },
+        },
+    });
 
     return {
         success: true,
         usageId: usage.id,
         costUsd: usage.costUsd,
-        deductedFromPurchased,
+        creditsUsed,
     };
 }

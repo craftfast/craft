@@ -2,17 +2,17 @@
  * API Route: Upgrade to Pro Plan
  * POST /api/billing/upgrade-to-pro
  * 
- * Creates a Polar checkout session for upgrading to Pro plan
- * Currently supports monthly billing only
+ * Creates a Polar checkout session for upgrading to Pro plan with specific tier
+ * Supports different Pro tiers based on daily credit allocation
  */
 
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { PRICING } from "@/lib/pricing-constants";
+import { PRO_TIERS, getProTier } from "@/lib/pricing-constants";
 
-export async function POST() {
+export async function POST(request: Request) {
     try {
         const session = await getServerSession(authOptions);
 
@@ -23,9 +23,19 @@ export async function POST() {
             );
         }
 
-        // Currently only monthly billing is supported
-        // Future: Add yearly billing when separate price ID is configured in Polar
-        const billingPeriod = "MONTHLY";
+        // Get the requested daily credits from the request body
+        const body = await request.json();
+        const { dailyCredits = 10 } = body; // Default to 10 credits/day ($25/mo)
+
+        // Find the Pro tier
+        const selectedTier = getProTier(dailyCredits);
+
+        if (!selectedTier) {
+            return NextResponse.json(
+                { error: "Invalid Pro tier selected" },
+                { status: 400 }
+            );
+        }
 
         // Get user and their subscription
         const user = await prisma.user.findUnique({
@@ -46,33 +56,28 @@ export async function POST() {
             );
         }
 
-        // Check if user is already on Pro plan
+        // Check if user is already on Pro plan with the same tier
         const currentPlan = user.subscription?.plan;
-        if (currentPlan?.name === "PRO") {
+        if (currentPlan?.name === "PRO" && currentPlan?.dailyCredits === dailyCredits) {
             return NextResponse.json(
-                { error: "You are already on the Pro plan" },
+                { error: `You are already on the Pro ${dailyCredits} credits/day plan` },
                 { status: 400 }
             );
         }
 
-        // Get the Polar product ID from environment
-        // Note: Currently only monthly billing is supported
-        // To add yearly billing: Create a separate product in Polar and add POLAR_PRO_YEARLY_PRODUCT_ID to .env
-        const polarProductId = process.env.POLAR_PRO_PRODUCT_ID;
+        // Get the Polar product ID from environment variable
+        const polarEnvKey = selectedTier.polarEnvKey;
+        const polarProductId = process.env[polarEnvKey];
 
         if (!polarProductId) {
-            console.error(`Missing POLAR_PRO_PRODUCT_ID`);
+            console.error(`Missing ${polarEnvKey} environment variable`);
             return NextResponse.json(
                 { error: "Payment configuration error. Please contact support." },
                 { status: 500 }
             );
         }
 
-        // Monthly pricing
-        const price = PRICING.PRO.priceMonthly;
-
         // Build checkout URL using the Polar Next.js adapter route
-        // This will create a proper Polar checkout session
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
         const checkoutUrl = new URL("/api/checkout", baseUrl);
 
@@ -84,14 +89,17 @@ export async function POST() {
         checkoutUrl.searchParams.set("metadata[userId]", user.id);
         checkoutUrl.searchParams.set("metadata[purchaseType]", "subscription");
         checkoutUrl.searchParams.set("metadata[planName]", "PRO");
-        checkoutUrl.searchParams.set("metadata[billingPeriod]", billingPeriod);
+        checkoutUrl.searchParams.set("metadata[dailyCredits]", dailyCredits.toString());
+        checkoutUrl.searchParams.set("metadata[billingPeriod]", "MONTHLY");
 
         return NextResponse.json({
             success: true,
             checkoutUrl: checkoutUrl.toString(),
             planName: "PRO",
-            billingPeriod,
-            price,
+            dailyCredits: selectedTier.dailyCredits,
+            monthlyCredits: selectedTier.monthlyCredits,
+            price: selectedTier.priceMonthly,
+            displayPrice: selectedTier.displayPrice,
         });
     } catch (error) {
         console.error("Pro upgrade error:", error);

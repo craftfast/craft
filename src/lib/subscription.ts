@@ -79,7 +79,7 @@ export async function assignPlanToUser(
     let subscription;
 
     if (existing) {
-        // Update existing subscription
+        // Update existing subscription and reset daily credits
         subscription = await prisma.userSubscription.update({
             where: { userId },
             data: {
@@ -87,13 +87,15 @@ export async function assignPlanToUser(
                 currentPeriodStart: periodStart,
                 currentPeriodEnd: periodEnd,
                 status: "active",
+                dailyCreditsUsed: 0,
+                lastCreditReset: new Date(),
             },
             include: {
                 plan: true,
             },
         });
     } else {
-        // Create new subscription
+        // Create new subscription with initialized daily credits
         subscription = await prisma.userSubscription.create({
             data: {
                 userId,
@@ -101,6 +103,8 @@ export async function assignPlanToUser(
                 currentPeriodStart: periodStart,
                 currentPeriodEnd: periodEnd,
                 status: "active",
+                dailyCreditsUsed: 0,
+                lastCreditReset: new Date(),
             },
             include: {
                 plan: true,

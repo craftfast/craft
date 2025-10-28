@@ -8,7 +8,7 @@ async function main() {
     // Update or create plans (upsert to avoid foreign key constraint issues)
     console.log("✅ Upserting plans...");
 
-    // Plan data based on current usage-based pricing model
+    // Plan data based on current credit-based pricing model
     const plans = [
         {
             name: "HOBBY",
@@ -16,11 +16,11 @@ async function main() {
             description: "Try Craft with basic features. Limited to 3 projects.",
             priceMonthlyUsd: 0,
             maxProjects: 3, // Limited to 3 projects
-            monthlyTokenLimit: 100000, // 100k tokens per month
-            canPurchaseTokens: false, // Cannot purchase additional tokens on Hobby
+            dailyCredits: 1, // 1 credit per day
+            monthlyCredits: 30, // Approximate: 1 credit/day * 30 days
             sortOrder: 0,
             features: [
-                "100k AI tokens per month",
+                "1 credit per day (~30 credits/month)",
                 "Up to 3 projects",
                 "AI-powered chat interface",
                 "Live preview environment",
@@ -33,16 +33,15 @@ async function main() {
             name: "PRO",
             displayName: "Pro",
             description: "Everything you need to build and scale your app.",
-            priceMonthlyUsd: 50,
+            priceMonthlyUsd: 25, // Base Pro tier starts at $25
             maxProjects: 999, // Unlimited projects
-            monthlyTokenLimit: 10000000, // 10M tokens per month
-            canPurchaseTokens: true, // Can purchase additional tokens at $5/1M
+            dailyCredits: 10, // Base Pro tier: 10 credits/day
+            monthlyCredits: 300, // Approximate: 10 credits/day * 30 days
             sortOrder: 1,
             features: [
                 "Everything in hobby, plus:",
-                "10M AI tokens per month",
+                "10-1000 credits per day (based on tier)",
                 "Unlimited projects",
-                "Purchase additional AI credits at $5 per million tokens",
                 "Import from Figma & GitHub",
                 "Deploy to vercel",
                 "Priority email support",
@@ -54,12 +53,12 @@ async function main() {
             description: "Custom solutions for large teams and organizations.",
             priceMonthlyUsd: 0, // Contact sales for pricing
             maxProjects: 999999, // Unlimited
-            monthlyTokenLimit: null, // Custom allocation
-            canPurchaseTokens: true,
+            dailyCredits: null, // Custom allocation
+            monthlyCredits: null, // Custom allocation
             sortOrder: 2,
             features: [
                 "All Pro features, plus:",
-                "Custom AI token allocation",
+                "Custom daily credit allocation",
                 "Dedicated account manager",
                 "Priority support & SLA",
                 "Custom integrations",
@@ -81,9 +80,9 @@ async function main() {
 
     console.log("\n🎉 Database seeding completed successfully!");
     console.log("\nPlan Summary:");
-    console.log("- HOBBY: Free forever, 100k tokens/month, up to 3 projects");
-    console.log("- PRO: $50/month, 10M tokens/month, unlimited projects, purchase more at $5/1M");
-    console.log("- ENTERPRISE: Contact sales, custom token allocation, dedicated support");
+    console.log("- HOBBY: Free forever, 1 credit/day (~30/month), up to 3 projects");
+    console.log("- PRO: $25-2500/month, 10-1000 credits/day, unlimited projects");
+    console.log("- ENTERPRISE: Contact sales, custom daily credit allocation, dedicated support");
 }
 
 main()

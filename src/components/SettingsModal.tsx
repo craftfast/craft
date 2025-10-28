@@ -17,11 +17,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import SubscriptionModal from "./SubscriptionModal";
-import TokenPurchaseModal from "./TokenPurchaseModal";
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: "general" | "billing" | "usage" | "account" | "integrations";
 }
 
 interface ExtendedUser {
@@ -62,8 +62,8 @@ interface SubscriptionData {
     displayName: string;
     priceMonthlyUsd: number;
     maxProjects: number | null;
-    monthlyTokenLimit: number | null;
-    canPurchaseTokens: boolean;
+    dailyCredits: number | null;
+    monthlyCredits: number | null;
     features: Record<string, unknown>;
   };
   status: string;
@@ -72,26 +72,19 @@ interface SubscriptionData {
   cancelAtPeriodEnd: boolean;
 }
 
-interface TokenBalanceData {
-  totalAvailable: number;
-  monthly: {
+interface CreditBalanceData {
+  daily: {
     limit: number;
     used: number;
     remaining: number;
-    resetDate: Date;
-    daysUntilReset: number;
-  };
-  purchased: {
-    total: number;
-    remaining: number;
-  };
-  gifted: {
-    remaining: number;
+    resetTime: Date;
+    hoursUntilReset: number;
   };
   plan: {
     name: string;
     displayName: string;
-    canPurchaseTokens: boolean;
+    dailyCredits: number | null;
+    monthlyCredits: number | null;
   };
 }
 
@@ -155,11 +148,15 @@ interface TokenPurchaseHistoryData {
 
 type SettingsTab = "general" | "billing" | "usage" | "account" | "integrations";
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export default function SettingsModal({
+  isOpen,
+  onClose,
+  initialTab = "general",
+}: SettingsModalProps) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const { chatPosition, setChatPosition } = useChatPosition();
-  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
   const [soundNotifications, setSoundNotifications] = useState(false);
   const [location, setLocation] = useState("");
@@ -172,14 +169,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Billing state
   const [subscriptionData, setSubscriptionData] =
     useState<SubscriptionData | null>(null);
-  const [tokenBalanceData, setTokenBalanceData] =
-    useState<TokenBalanceData | null>(null);
+  const [creditBalanceData, setCreditBalanceData] =
+    useState<CreditBalanceData | null>(null);
   const [subscriptionHistory, setSubscriptionHistory] =
     useState<SubscriptionHistoryData | null>(null);
-  const [tokenPurchaseHistory, setTokenPurchaseHistory] =
-    useState<TokenPurchaseHistoryData | null>(null);
   const [isLoadingBilling, setIsLoadingBilling] = useState(false);
-  const [showTokenPurchaseModal, setShowTokenPurchaseModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [targetPlan, setTargetPlan] = useState<
     "HOBBY" | "PRO" | "ENTERPRISE" | undefined
@@ -195,6 +189,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // This would be set based on the user's authentication method from the database
   // For now, we'll assume false (OAuth user). Set to true for email+password users.
   const hasEmailPassword = false;
+
+  // Reset to initial tab when modal opens
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   // Fetch billing data when billing tab is active
   useEffect(() => {
@@ -227,11 +228,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         setSubscriptionData(subData);
       }
 
-      // Fetch token balance
+      // Fetch credit balance
       const balanceRes = await fetch("/api/billing/token-balance");
       const balanceData = await balanceRes.json();
       if (balanceRes.ok) {
-        setTokenBalanceData(balanceData);
+        setCreditBalanceData(balanceData);
       }
 
       // Fetch subscription history
@@ -239,13 +240,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       const historyData = await historyRes.json();
       if (historyRes.ok) {
         setSubscriptionHistory(historyData);
-      }
-
-      // Fetch token purchase history
-      const purchaseRes = await fetch("/api/billing/token-purchase-history");
-      const purchaseData = await purchaseRes.json();
-      if (purchaseRes.ok) {
-        setTokenPurchaseHistory(purchaseData);
       }
     } catch (error) {
       console.error("Error fetching billing data:", error);
@@ -902,12 +896,17 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {subscriptionData?.plan.monthlyTokenLimit
-                            ? `Includes ${(
-                                subscriptionData.plan.monthlyTokenLimit /
-                                1000000
-                              ).toFixed(1)}M tokens every month.`
-                            : "Unlimited tokens."}
+                          {subscriptionData?.plan.dailyCredits
+                            ? `Includes ${
+                                subscriptionData.plan.dailyCredits
+                              } credit${
+                                subscriptionData.plan.dailyCredits > 1
+                                  ? "s"
+                                  : ""
+                              } per day (~${
+                                subscriptionData.plan.monthlyCredits
+                              } credits/month).`
+                            : "Custom credit allocation."}
                         </p>
 
                         {/* Plan Action Buttons */}
@@ -1065,80 +1064,38 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </CardContent>
                     </Card>
 
-                    {/* Token Balance */}
+                    {/* Daily Credit Balance */}
                     <Card>
                       <CardHeader>
-                        <CardTitle>Token Balance</CardTitle>
+                        <CardTitle>Daily Credit Balance</CardTitle>
                         <CardDescription>
-                          Your monthly tokens reset in{" "}
-                          {tokenBalanceData?.monthly.daysUntilReset || 0} days.
-                          Tokens are used in the following order: gifted,
-                          monthly, purchased.
+                          Your daily credits reset in{" "}
+                          {creditBalanceData?.daily.hoursUntilReset || 0} hours
+                          at midnight UTC. 1 credit = 10,000 AI tokens.
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {/* Total Available */}
+                        {/* Daily Credits */}
                         <div className="p-4 bg-primary rounded-xl">
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-primary-foreground/70">
-                              Total Available Tokens
+                              Credits Remaining Today
                             </span>
                             <span className="text-2xl font-bold text-primary-foreground">
-                              {(
-                                (tokenBalanceData?.totalAvailable || 0) / 1000
-                              ).toLocaleString()}
-                              K
+                              {creditBalanceData?.daily.remaining || 0} /{" "}
+                              {creditBalanceData?.daily.limit || 0}
                             </span>
                           </div>
-                        </div>
-
-                        {/* Gifted Tokens */}
-                        {(tokenBalanceData?.gifted?.remaining ?? 0) > 0 && (
-                          <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-muted-foreground">
-                                Gifted Tokens
-                              </span>
-                              <span className="text-sm font-semibold text-foreground">
-                                {(
-                                  (tokenBalanceData?.gifted.remaining || 0) /
-                                  1000
-                                ).toLocaleString()}
-                                K
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Monthly Tokens */}
-                        <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Monthly Tokens
-                            </span>
-                            <span className="text-sm font-semibold text-foreground">
-                              {(
-                                (tokenBalanceData?.monthly.remaining || 0) /
-                                1000
-                              ).toLocaleString()}
-                              K /{" "}
-                              {(
-                                (tokenBalanceData?.monthly.limit || 0) / 1000
-                              ).toLocaleString()}
-                              K
-                            </span>
-                          </div>
-                          <div className="w-full bg-secondary rounded-full h-2">
+                          <div className="w-full bg-primary-foreground/20 rounded-full h-2">
                             <div
-                              className="bg-primary h-2 rounded-full transition-all"
+                              className="bg-primary-foreground h-2 rounded-full transition-all"
                               style={{
                                 width: `${
-                                  tokenBalanceData &&
-                                  tokenBalanceData.monthly &&
-                                  (tokenBalanceData.monthly.limit ?? 0) > 0
-                                    ? ((tokenBalanceData.monthly.remaining ??
+                                  creditBalanceData &&
+                                  (creditBalanceData.daily.limit ?? 0) > 0
+                                    ? ((creditBalanceData.daily.remaining ??
                                         0) /
-                                        tokenBalanceData.monthly.limit) *
+                                        creditBalanceData.daily.limit) *
                                       100
                                     : 0
                                 }%`,
@@ -1147,172 +1104,52 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           </div>
                         </div>
 
-                        {/* Purchased Tokens */}
-                        {(tokenBalanceData?.purchased.remaining || 0) > 0 && (
-                          <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-muted-foreground">
-                                Purchased Tokens
-                              </span>
-                              <span className="text-sm font-semibold text-foreground">
-                                {(
-                                  (tokenBalanceData?.purchased.remaining || 0) /
-                                  1000
-                                ).toLocaleString()}
-                                K
-                              </span>
-                            </div>
+                        {/* Credits Used */}
+                        <div className="p-3 bg-muted/50 rounded-xl border border-input">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Credits Used Today
+                            </span>
+                            <span className="text-sm font-semibold text-foreground">
+                              {creditBalanceData?.daily.used || 0}
+                            </span>
                           </div>
-                        )}
+                        </div>
 
-                        {/* Purchase Tokens Button - Only for Pro/Enterprise */}
-                        {subscriptionData?.plan.canPurchaseTokens && (
-                          <Button
-                            variant="secondary"
-                            className="w-full rounded-xl"
-                            onClick={() => setShowTokenPurchaseModal(true)}
-                          >
-                            <svg
-                              className="w-4 h-4 mr-2"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                              />
-                            </svg>
-                            Purchase More Tokens
-                          </Button>
-                        )}
-
-                        {!subscriptionData?.plan.canPurchaseTokens && (
+                        {/* Change Tier Info for Pro Users */}
+                        {subscriptionData?.plan.name === "PRO" && (
                           <Card>
                             <CardContent className="pt-6 text-center">
                               <p className="text-sm text-muted-foreground mb-3">
-                                Upgrade to Pro or Enterprise to purchase
-                                additional tokens
+                                Need more daily credits? Select a different Pro
+                                tier below
+                              </p>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Upgrade to Pro for Hobby Users */}
+                        {subscriptionData?.plan.name === "HOBBY" && (
+                          <Card>
+                            <CardContent className="pt-6 text-center">
+                              <p className="text-sm text-muted-foreground mb-3">
+                                Upgrade to Pro to get more daily credits
                               </p>
                               <Button
                                 size="sm"
                                 onClick={() => {
-                                  setTargetPlan("PRO"); // Default to Pro when upgrading for tokens
+                                  setTargetPlan("PRO");
                                   setShowSubscriptionModal(true);
                                 }}
                                 className="rounded-lg"
                               >
-                                View Plans
+                                Upgrade to Pro
                               </Button>
                             </CardContent>
                           </Card>
                         )}
                       </CardContent>
                     </Card>
-
-                    {/* Token Purchase History */}
-                    {tokenPurchaseHistory &&
-                      tokenPurchaseHistory.purchases.length > 0 && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Token Purchase History</CardTitle>
-                            <CardDescription>
-                              View all your token purchases. Purchased tokens
-                              never expire.
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            {/* Summary */}
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                                <p className="text-xs text-muted-foreground mb-1">
-                                  Total Purchased
-                                </p>
-                                <p className="text-lg font-semibold text-foreground">
-                                  {(
-                                    tokenPurchaseHistory.summary
-                                      .totalPurchased / 1000000
-                                  ).toFixed(1)}
-                                  M
-                                </p>
-                              </div>
-                              <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                                <p className="text-xs text-muted-foreground mb-1">
-                                  Total Spent
-                                </p>
-                                <p className="text-lg font-semibold text-foreground">
-                                  $
-                                  {tokenPurchaseHistory.summary.totalSpent.toFixed(
-                                    2
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Purchase List */}
-                            <div className="space-y-2">
-                              {tokenPurchaseHistory.purchases
-                                .slice(0, 5)
-                                .map((purchase) => (
-                                  <div
-                                    key={purchase.id}
-                                    className="p-3 bg-muted/50 rounded-xl border border-input"
-                                  >
-                                    <div className="flex items-center justify-between mb-2">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-semibold text-foreground">
-                                          {(
-                                            purchase.tokenAmount / 1000000
-                                          ).toFixed(1)}
-                                          M tokens
-                                        </span>
-                                        <span
-                                          className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                                            purchase.status === "completed"
-                                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                                              : purchase.status === "pending"
-                                              ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
-                                              : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                                          }`}
-                                        >
-                                          {purchase.status}
-                                        </span>
-                                      </div>
-                                      <span className="text-sm font-bold text-foreground">
-                                        ${purchase.priceUsd.toFixed(2)}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                      <span>
-                                        {new Date(
-                                          purchase.purchasedAt
-                                        ).toLocaleDateString()}
-                                      </span>
-                                      {purchase.tokensRemaining > 0 && (
-                                        <span>
-                                          {(
-                                            purchase.tokensRemaining / 1000000
-                                          ).toFixed(1)}
-                                          M remaining
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
-
-                            {tokenPurchaseHistory.purchases.length > 5 && (
-                              <p className="text-xs text-muted-foreground text-center mt-3">
-                                Showing 5 of{" "}
-                                {tokenPurchaseHistory.purchases.length}{" "}
-                                purchases
-                              </p>
-                            )}
-                          </CardContent>
-                        </Card>
-                      )}
 
                     {/* Subscription History */}
                     {subscriptionHistory && (
@@ -1416,13 +1253,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         </CardContent>
                       </Card>
                     )}
-
-                    {/* Token Purchase Modal */}
-                    <TokenPurchaseModal
-                      isOpen={showTokenPurchaseModal}
-                      onClose={() => setShowTokenPurchaseModal(false)}
-                      currentPlan={subscriptionData?.plan.name || "HOBBY"}
-                    />
                   </>
                 )}
               </div>

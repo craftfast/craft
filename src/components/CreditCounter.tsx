@@ -126,7 +126,7 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
           <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
             <div className="mb-3">
               <p className="text-xs text-muted-foreground mb-1">
-                Total Balance
+                Available Today
               </p>
               <p
                 className={`text-2xl font-bold ${
@@ -139,10 +139,10 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
               >
                 {formatFullNumber(balance.totalAvailable)}
               </p>
-              <p className="text-xs text-muted-foreground">credits available</p>
+              <p className="text-xs text-muted-foreground">credits remaining</p>
             </div>
 
-            {/* Credit Breakdown */}
+            {/* Credit Info */}
             <div className="space-y-2 pt-3 border-t border-neutral-200 dark:border-neutral-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -160,7 +160,7 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
                     />
                   </svg>
                   <span className="text-sm text-accent-foreground">
-                    Monthly Credits
+                    Daily Limit
                   </span>
                 </div>
                 <span className="text-sm font-medium text-foreground">
@@ -180,15 +180,15 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                     />
                   </svg>
                   <span className="text-sm text-accent-foreground">
-                    Purchased Credits
+                    Resets Daily
                   </span>
                 </div>
-                <span className="text-sm font-medium text-foreground">
-                  {formatFullNumber(balance.purchasedTokensRemaining)}
+                <span className="text-sm font-medium text-muted-foreground">
+                  12:00 AM UTC
                 </span>
               </div>
             </div>
@@ -196,30 +196,6 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
 
           {/* Actions Section */}
           <div className="p-2 space-y-1">
-            <button
-              onClick={() => {
-                setIsDropdownOpen(false);
-                // TODO: Implement redeem code functionality
-                console.log("Redeem code clicked");
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-accent-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
-            >
-              <svg
-                className="w-4 h-4 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
-                />
-              </svg>
-              <span>Redeem Code</span>
-            </button>
-
             <Button
               onClick={() => {
                 setIsDropdownOpen(false);
@@ -237,10 +213,10 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
                 />
               </svg>
-              <span>Buy Credits</span>
+              <span>Upgrade Plan</span>
             </Button>
           </div>
         </div>

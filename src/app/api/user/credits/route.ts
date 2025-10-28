@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { checkUserTokenAvailability } from "@/lib/ai-usage";
+import { checkUserCreditAvailability } from "@/lib/ai-usage";
 
 export async function GET() {
     try {
@@ -11,21 +11,14 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const availability = await checkUserTokenAvailability(session.user.id);
+        const availability = await checkUserCreditAvailability(session.user.id);
 
         return NextResponse.json({
-            totalAvailable: availability.totalAvailable,
-            subscriptionTokensRemaining:
-                availability.subscriptionTokenLimit !== null
-                    ? Math.max(
-                        0,
-                        availability.subscriptionTokenLimit -
-                        availability.subscriptionTokensUsed
-                    )
-                    : 0,
-            purchasedTokensRemaining: availability.purchasedTokensRemaining,
-            subscriptionTokenLimit: availability.subscriptionTokenLimit,
-            subscriptionTokensUsed: availability.subscriptionTokensUsed,
+            dailyCreditsUsed: availability.dailyCreditsUsed,
+            dailyCreditsLimit: availability.dailyCreditsLimit,
+            creditsRemaining: availability.creditsRemaining,
+            allowed: availability.allowed,
+            reason: availability.reason,
         });
     } catch (error) {
         console.error("Error fetching credit balance:", error);

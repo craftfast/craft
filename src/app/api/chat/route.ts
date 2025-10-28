@@ -3,7 +3,7 @@ import { streamCodingResponse } from "@/lib/ai/agent";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { checkUserTokenAvailability, processAIUsage } from "@/lib/ai-usage";
+import { checkUserCreditAvailability, processAIUsage } from "@/lib/ai-usage";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -54,25 +54,25 @@ export async function POST(req: Request) {
             );
         }
 
-        // Check if user has available tokens before processing
-        const tokenAvailability = await checkUserTokenAvailability(user.id);
+        // Check if user has available credits before processing
+        const creditAvailability = await checkUserCreditAvailability(user.id);
 
-        if (!tokenAvailability.allowed) {
-            console.warn(`🚫 Token limit reached for user ${user.id}`);
+        if (!creditAvailability.allowed) {
+            console.warn(`🚫 Daily credit limit reached for user ${user.id}`);
             return new Response(
                 JSON.stringify({
-                    error: "Token limit reached",
-                    message: tokenAvailability.reason || "Monthly token limit exceeded. Please upgrade your plan or purchase additional tokens.",
-                    subscriptionTokensUsed: tokenAvailability.subscriptionTokensUsed,
-                    subscriptionTokenLimit: tokenAvailability.subscriptionTokenLimit,
-                    purchasedTokensRemaining: tokenAvailability.purchasedTokensRemaining,
+                    error: "Credit limit reached",
+                    message: creditAvailability.reason || "Daily credit limit reached. Credits refresh daily at midnight UTC.",
+                    dailyCreditsUsed: creditAvailability.dailyCreditsUsed,
+                    dailyCreditsLimit: creditAvailability.dailyCreditsLimit,
+                    creditsRemaining: creditAvailability.creditsRemaining,
                 }),
                 { status: 429, headers: { "Content-Type": "application/json" } }
             );
         }
 
-        // Log token availability
-        console.log(`💰 Token Availability - Used: ${tokenAvailability.subscriptionTokensUsed}/${tokenAvailability.subscriptionTokenLimit || 'unlimited'}, Purchased: ${tokenAvailability.purchasedTokensRemaining}`);
+        // Log credit availability
+        console.log(`💰 Credit Availability - Used: ${creditAvailability.dailyCreditsUsed}/${creditAvailability.dailyCreditsLimit || 'unlimited'}, Remaining: ${creditAvailability.creditsRemaining}`);
 
         // Get environment-aware system prompt with projectId
         const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles, projectId);

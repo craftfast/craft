@@ -6,7 +6,6 @@ import { signOut } from "next-auth/react";
 import Image from "next/image";
 import SettingsModal from "./SettingsModal";
 import FeedbackModal from "./FeedbackModal";
-import TokenPurchaseModal from "./TokenPurchaseModal";
 import SubscriptionModal from "./SubscriptionModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
@@ -35,7 +34,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
-  const [showTokensModal, setShowTokensModal] = useState(false);
   const [targetPlan, setTargetPlan] = useState<
     "HOBBY" | "PRO" | "ENTERPRISE"
   >();
@@ -66,7 +64,10 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   }, []);
 
   // Format credits for display (e.g., 1,234,567 -> "1.23M" or 5,000 -> "5K")
-  const formatCredits = (credits: number): string => {
+  const formatCredits = (credits: number | null | undefined): string => {
+    if (credits === null || credits === undefined) {
+      return "0";
+    }
     if (credits >= 1000000) {
       return `${(credits / 1000000).toFixed(2)}M`;
     } else if (credits >= 1000) {
@@ -75,12 +76,12 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
     return credits.toLocaleString();
   };
 
-  // Determine if tokens are low (less than 10k)
-  const isLowTokens =
+  // Determine if credits are low (less than 10k)
+  const isLowCredits =
     balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;
 
-  // Determine if tokens are exhausted
-  const isTokensExhausted = balance && balance.totalAvailable === 0;
+  // Determine if credits are exhausted
+  const isCreditsExhausted = balance && balance.totalAvailable === 0;
 
   // Handle click outside to close menu
   useEffect(() => {
@@ -318,16 +319,16 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
 
           <div className="border-t border-border"></div>
 
-          {/* Tokens Section */}
+          {/* Credits Section */}
           <div className="px-4 py-3 border-b border-border space-y-2.5">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-popover-foreground">Tokens</span>
+              <span className="text-sm text-popover-foreground">Credits</span>
               {!isLoading && balance && (
                 <span
                   className={`text-sm font-semibold ${
-                    isTokensExhausted
+                    isCreditsExhausted
                       ? "text-red-600 dark:text-red-400"
-                      : isLowTokens
+                      : isLowCredits
                       ? "text-yellow-600 dark:text-yellow-400"
                       : "text-muted-foreground"
                   }`}
@@ -345,7 +346,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
                   setIsUserMenuOpen(false);
                   setTargetPlan("PRO");
                   setIsPricingModalOpen(true);
-                  setShowTokensModal(false);
                 }}
                 className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
               >
@@ -368,8 +368,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               <button
                 onClick={() => {
                   setIsUserMenuOpen(false);
-                  setIsPricingModalOpen(true);
-                  setShowTokensModal(true);
+                  setIsSettingsModalOpen(true);
                 }}
                 className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
               >
@@ -386,7 +385,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
                     d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                   />
                 </svg>
-                Buy More Tokens
+                Buy More Credits
               </button>
             )}
           </div>
@@ -531,23 +530,19 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
       />
 
       {/* Subscription Modal */}
-      {!showTokensModal && (
-        <SubscriptionModal
-          isOpen={isPricingModalOpen}
-          onClose={() => setIsPricingModalOpen(false)}
-          currentPlan={userPlan || "HOBBY"}
-          targetPlan={targetPlan}
-        />
-      )}
+      <SubscriptionModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+        currentPlan={userPlan || "HOBBY"}
+        targetPlan={targetPlan}
+      />
 
-      {/* Token Purchase Modal */}
-      {showTokensModal && (
-        <TokenPurchaseModal
-          isOpen={isPricingModalOpen}
-          onClose={() => setIsPricingModalOpen(false)}
-          currentPlan={userPlan || "HOBBY"}
-        />
-      )}
+      {/* Settings Modal with Billing Tab */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        initialTab="billing"
+      />
     </div>
   );
 }

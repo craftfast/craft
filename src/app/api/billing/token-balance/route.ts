@@ -1,8 +1,8 @@
 /**
- * API Route: Get Token Balance
+ * API Route: Get Daily Credit Balance
  * GET /api/billing/token-balance
  * 
- * Returns user's current token balance and usage statistics
+ * Returns user's current daily credit balance and usage statistics
  */
 
 import { NextResponse } from "next/server";
@@ -43,84 +43,62 @@ export async function GET() {
         const subscription = user.subscription;
         const plan = subscription.plan;
 
-        // Calculate current billing period dates
-        const periodStart = subscription.currentPeriodStart;
-        const periodEnd = subscription.currentPeriodEnd;
-
-        // Get token usage for current billing period
-        const tokenUsage = await prisma.aITokenUsage.aggregate({
-            where: {
-                userId: user.id,
-                createdAt: {
-                    gte: periodStart,
-                    lte: periodEnd,
-                },
-            },
-            _sum: {
-                totalTokens: true,
-            },
-        });
-
-        const usedTokens = tokenUsage._sum.totalTokens || 0;
-
-        // Get purchased tokens from TokenPurchase model
-        const tokenPurchases = await prisma.tokenPurchase.aggregate({
-            where: {
-                userId: user.id,
-                status: "completed",
-                OR: [
-                    { expiresAt: null }, // Never expires
-                    { expiresAt: { gte: new Date() } }, // Not yet expired
-                ],
-            },
-            _sum: {
-                tokenAmount: true,
-                tokensRemaining: true,
-            },
-        });
-
-        const totalPurchasedTokens = tokenPurchases._sum.tokenAmount || 0;
-        const remainingPurchasedTokens = tokenPurchases._sum.tokensRemaining || 0;
-
-        // Calculate remaining monthly tokens
-        const monthlyTokenLimit = plan.monthlyTokenLimit || 0;
-        const remainingMonthlyTokens = Math.max(0, monthlyTokenLimit - usedTokens);
-
-        // Calculate days until reset
+        // Check if credits need to be reset (new day)
         const now = new Date();
-        const daysUntilReset = Math.ceil(
-            (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        const lastReset = new Date(subscription.lastCreditReset);
+
+        const isNewDay =
+            now.getUTCFullYear() !== lastReset.getUTCFullYear() ||
+            now.getUTCMonth() !== lastReset.getUTCMonth() ||
+            now.getUTCDate() !== lastReset.getUTCDate();
+
+        let dailyCreditsUsed = subscription.dailyCreditsUsed;
+        let lastCreditReset = subscription.lastCreditReset;
+
+        if (isNewDay) {
+            // Reset daily credits
+            await prisma.userSubscription.update({
+                where: { userId: user.id },
+                data: {
+                    dailyCreditsUsed: 0,
+                    lastCreditReset: now,
+                },
+            });
+            dailyCreditsUsed = 0;
+            lastCreditReset = now;
+        }
+
+        // Get daily credit limit from plan
+        const dailyCreditsLimit = plan.dailyCredits || 1; // Default to 1 for Hobby
+        const creditsRemaining = Math.max(0, dailyCreditsLimit - dailyCreditsUsed);
+
+        // Calculate hours until next reset (midnight UTC)
+        const tomorrow = new Date(now);
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        tomorrow.setUTCHours(0, 0, 0, 0);
+        const hoursUntilReset = Math.ceil(
+            (tomorrow.getTime() - now.getTime()) / (1000 * 60 * 60)
         );
 
-        // Total available tokens = purchased tokens + remaining monthly tokens
-        const totalAvailableTokens = remainingPurchasedTokens + remainingMonthlyTokens;
-
         return NextResponse.json({
-            totalAvailable: totalAvailableTokens,
-            monthly: {
-                limit: monthlyTokenLimit,
-                used: usedTokens,
-                remaining: remainingMonthlyTokens,
-                resetDate: periodEnd,
-                daysUntilReset,
-            },
-            purchased: {
-                total: totalPurchasedTokens,
-                remaining: remainingPurchasedTokens,
-            },
-            gifted: {
-                remaining: 0, // Future feature
+            daily: {
+                limit: dailyCreditsLimit,
+                used: dailyCreditsUsed,
+                remaining: creditsRemaining,
+                resetTime: tomorrow,
+                hoursUntilReset,
             },
             plan: {
                 name: plan.name,
                 displayName: plan.displayName,
-                canPurchaseTokens: plan.canPurchaseTokens,
+                dailyCredits: plan.dailyCredits,
+                monthlyCredits: plan.monthlyCredits,
             },
         });
     } catch (error) {
-        console.error("Error fetching token balance:", error);
+        console.error("Error fetching credit balance:", error);
         return NextResponse.json(
-            { error: "Failed to fetch token balance" },
+            { error: "Failed to fetch credit balance" },
             { status: 500 }
         );
     }

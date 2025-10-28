@@ -144,95 +144,89 @@ export const POST = Webhooks({
 
 async function handleSubscriptionPayment(userId: string, order: Record<string, unknown>) {
     console.log("Processing subscription payment for user:", userId);
-    const proPlan = await prisma.plan.findUnique({ where: { name: "PRO" } });
+
+    // Extract metadata to get daily credits tier
+    const metadata = order.metadata as Record<string, unknown> | undefined;
+    const dailyCredits = metadata?.dailyCredits ? Number(metadata.dailyCredits) : 10; // Default to 10 credits/day
+
+    console.log(`Pro tier: ${dailyCredits} credits/day`);
+
+    // Find or create the Pro plan with the specific daily credits
+    let proPlan = await prisma.plan.findFirst({
+        where: {
+            name: "PRO",
+            dailyCredits: dailyCredits,
+        },
+    });
+
+    // If plan doesn't exist for this tier, create it
     if (!proPlan) {
-        console.error("Pro plan not found in database");
-        return;
+        console.log(`Creating Pro plan for ${dailyCredits} credits/day`);
+        const { getProTier } = await import("@/lib/pricing-constants");
+        const tier = getProTier(dailyCredits);
+
+        if (!tier) {
+            console.error("Invalid Pro tier:", dailyCredits);
+            return;
+        }
+
+        proPlan = await prisma.plan.create({
+            data: {
+                name: "PRO",
+                displayName: "Pro",
+                description: `Everything you need to build and scale your app. ${tier.dailyCredits} credits/day.`,
+                priceMonthlyUsd: tier.priceMonthly,
+                maxProjects: 999,
+                dailyCredits: tier.dailyCredits,
+                monthlyCredits: tier.monthlyCredits,
+                isActive: true,
+                sortOrder: 1,
+                features: [
+                    "Everything in hobby, plus:",
+                    `${tier.dailyCredits} credits per day (~${tier.monthlyCredits}/month)`,
+                    "Unlimited projects",
+                    "Import from Figma & GitHub",
+                    "Deploy to vercel",
+                    "Priority email support",
+                ],
+            },
+        });
     }
+
     const currentPeriodStart = new Date();
     const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
     await prisma.userSubscription.upsert({
         where: { userId },
         create: {
-            userId, planId: proPlan.id, status: "active",
-            currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd: false,
-            polarCheckoutId: String(order.checkoutId), polarPaymentId: String(order.id),
-        },
-        update: {
-            planId: proPlan.id, status: "active", currentPeriodStart, currentPeriodEnd,
-            cancelAtPeriodEnd: false, polarPaymentId: String(order.id), cancelledAt: null,
-        },
-    });
-    await prisma.paymentTransaction.create({
-        data: {
-            userId, amount: Number(order.amount) / 100, currency: String(order.currency).toUpperCase(),
-            status: "completed", paymentMethod: "polar", polarCheckoutId: String(order.checkoutId),
-            polarPaymentId: String(order.id), metadata: JSON.parse(JSON.stringify(order)),
-        },
-    });
-    console.log("Subscription payment processed for user:", userId);
-}
-
-async function handleTokenPurchasePayment(userId: string, order: Record<string, unknown>) {
-    console.log("Processing token purchase payment for user:", userId);
-
-    // Use product ID instead of price ID (more stable, handles multiple prices per product)
-    const productId = order.productId as string | undefined;
-
-    if (!productId) {
-        console.error("No product ID in order:", order.id);
-        console.error("Order keys:", Object.keys(order));
-        return;
-    }
-
-    console.log("Product ID found:", productId);
-
-    const tokenAmount = getTokenAmountFromProductId(productId);
-    if (!tokenAmount) {
-        console.error("Unknown product ID:", productId);
-        console.error("This product ID is not mapped in POLAR_CONFIG.tokenPurchases");
-        console.error("Please add POLAR_TOKEN_*_PRODUCT_ID environment variable for product:", productId);
-        return;
-    }
-
-    console.log("Token amount for purchase:", tokenAmount);
-    const existingPurchase = await prisma.tokenPurchase.findFirst({
-        where: {
-            polarCheckoutId: String(order.checkoutId),
-            status: "completed"
-        },
-    });
-
-    if (existingPurchase) {
-        console.log("Token purchase already recorded:", order.checkoutId);
-        return;
-    }
-
-    // Calculate price in USD from totalAmount (in cents)
-    const priceUsd = Number(order.totalAmount) / 100;
-    console.log(`Creating token purchase: ${tokenAmount} tokens for $${priceUsd}`);
-
-    // Create token purchase record
-    await prisma.tokenPurchase.create({
-        data: {
-            userId: userId,
-            tokenAmount: tokenAmount,
-            priceUsd: priceUsd,
-            currency: String(order.currency).toUpperCase(),
-            status: "completed",
+            userId,
+            planId: proPlan.id,
+            status: "active",
+            currentPeriodStart,
+            currentPeriodEnd,
+            cancelAtPeriodEnd: false,
+            dailyCreditsUsed: 0,
+            lastCreditReset: new Date(),
             polarCheckoutId: String(order.checkoutId),
             polarPaymentId: String(order.id),
-            tokensRemaining: tokenAmount,
-            purchasedAt: new Date(),
-            metadata: JSON.parse(JSON.stringify(order)),
+        },
+        update: {
+            planId: proPlan.id,
+            status: "active",
+            currentPeriodStart,
+            currentPeriodEnd,
+            cancelAtPeriodEnd: false,
+            dailyCreditsUsed: 0,
+            lastCreditReset: new Date(),
+            polarPaymentId: String(order.id),
+            cancelledAt: null,
         },
     });
 
-    // Create payment transaction record
     await prisma.paymentTransaction.create({
         data: {
             userId,
-            amount: Number(order.totalAmount) / 100,
+            amount: Number(order.amount) / 100,
             currency: String(order.currency).toUpperCase(),
             status: "completed",
             paymentMethod: "polar",
@@ -242,7 +236,14 @@ async function handleTokenPurchasePayment(userId: string, order: Record<string, 
         },
     });
 
-    console.log(`Token purchase completed: ${tokenAmount} tokens for $${Number(order.totalAmount) / 100} - User: ${userId}`);
+    console.log(`Subscription payment processed for user ${userId}: Pro ${dailyCredits} credits/day`);
+}
+
+// Token purchases are no longer supported - using daily credit allocations instead
+async function handleTokenPurchasePayment(userId: string, order: Record<string, unknown>) {
+    console.log("Token purchase no longer supported - user should upgrade to a higher Pro tier instead");
+    console.log("User:", userId, "Order:", order.id);
+    // No-op: Token purchases have been replaced with Pro tier subscriptions
 }
 
 async function handleSubscriptionActive(subscription: Record<string, unknown>) {
@@ -378,15 +379,7 @@ async function handleOrderRefund(order: Record<string, unknown>) {
             data: { status: "refunded", updatedAt: new Date() },
         });
     }
-    const tokenPurchase = await prisma.tokenPurchase.findFirst({
-        where: { polarPaymentId: String(order.id) },
-    });
-    if (tokenPurchase) {
-        await prisma.tokenPurchase.update({
-            where: { id: tokenPurchase.id },
-            data: { status: "refunded", tokensRemaining: 0, updatedAt: new Date() },
-        });
-        console.log("Token purchase refunded:", tokenPurchase.id);
-    }
+
+    // Token purchases no longer exist - refund would downgrade subscription instead
     console.log("Order refund processed:", order.id);
 }
