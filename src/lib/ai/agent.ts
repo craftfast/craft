@@ -4,23 +4,31 @@
  * This is the single source of truth for all AI operations in Craft.
  * 
  * Model Configuration:
- * - Claude Haiku 4.5: All coding tasks (fast, cost-efficient)
+ * - GPT-5 Mini: 0.25x credit multiplier (cheap)
+ * - Claude Haiku 4.5: 0.5x credit multiplier (fast)
+ * - GPT-5: 1.0x credit multiplier (standard/default)
+ * - Claude Sonnet 4.5: 1.5x credit multiplier (premium)
  * - Grok 4 Fast: Project naming and creative text generation
  * 
- * The system is optimized to minimize costs while maintaining quality.
- * Future expansion: Add more specialized agents here (image generation, code review, etc.)
+ * The system supports dynamic model selection with credit-based pricing.
  */
 
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, streamText } from "ai";
 
-// Create Anthropic client for coding tasks
+// Create Anthropic client for Claude models
 const anthropic = createAnthropic({
     apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
-// Create OpenRouter client for other tasks
+// Create OpenAI client for GPT models
+const openai = createOpenAI({
+    apiKey: process.env.OPENAI_API_KEY || "",
+});
+
+// Create OpenRouter client for Grok and other models
 const openrouter = createOpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY || "",
 });
@@ -30,15 +38,18 @@ const openrouter = createOpenRouter({
 // ============================================================================
 
 const MODELS = {
-    // Primary coding model (direct Anthropic API)
-    CODING: "claude-haiku-4-5",      // Fast, efficient for all coding tasks
+    // Coding models (user-selectable)
+    GPT_5_MINI: "gpt-5-mini",                  // Cheap tier (0.25x)
+    CLAUDE_HAIKU: "claude-haiku-4-5",          // Fast tier (0.5x)
+    GPT_5: "gpt-5",                            // Standard tier (1.0x)
+    CLAUDE_SONNET: "claude-sonnet-4.5",        // Premium tier (1.5x)
 
     // Specialized models (via OpenRouter)
     NAMING: "x-ai/grok-4-fast",                // Project naming & creative text
 } as const;
 
 // ============================================================================
-// CODING AGENT (Claude Haiku 3.5)
+// CODING AGENT (Dynamic Model Selection)
 // ============================================================================
 
 interface CodingStreamOptions {
@@ -46,6 +57,7 @@ interface CodingStreamOptions {
     systemPrompt: string;
     projectFiles?: Record<string, string>;
     conversationHistory?: Array<{ role: string; content: string }>;
+    model?: string; // Allow model selection (defaults to GPT-5)
     onFinish?: (params: {
         model: string;
         inputTokens: number;
@@ -55,24 +67,68 @@ interface CodingStreamOptions {
 }
 
 /**
- * Stream coding responses using Claude Haiku 4.5
- * Fast and cost-efficient for all coding tasks
+ * Get the appropriate AI provider and model name for a given model ID
+ */
+function getModelProvider(modelId: string): { provider: any; modelPath: string; displayName: string } {
+    switch (modelId) {
+        case "claude-haiku-4.5":
+        case "claude-haiku-4-5":
+            return {
+                provider: anthropic,
+                modelPath: "claude-haiku-4-5",
+                displayName: "Claude Haiku 4.5"
+            };
+        case "claude-sonnet-4.5":
+        case "claude-sonnet-4-5":
+            return {
+                provider: anthropic,
+                modelPath: "claude-sonnet-4-5",
+                displayName: "Claude Sonnet 4.5"
+            };
+        case "gpt-5":
+            return {
+                provider: openai,
+                modelPath: "gpt-5",
+                displayName: "GPT-5"
+            };
+        case "gpt-5-mini":
+            return {
+                provider: openai,
+                modelPath: "gpt-5-mini",
+                displayName: "GPT-5 Mini"
+            };
+        default:
+            // Default to GPT-5 (standard tier)
+            console.warn(`⚠️ Unknown model: ${modelId}, defaulting to GPT-5`);
+            return {
+                provider: openai,
+                modelPath: "gpt-5",
+                displayName: "GPT-5"
+            };
+    }
+}
+
+/**
+ * Stream coding responses with dynamic model selection
+ * Supports: GPT-5 Mini, Claude Haiku 4.5, GPT-5, Claude Sonnet 4.5
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {
-    const { messages, systemPrompt, projectFiles = {}, onFinish } = options;
+    const { messages, systemPrompt, projectFiles = {}, model: requestedModel = "gpt-5", onFinish } = options;
 
-    const model = MODELS.CODING;
-    const modelName = 'Claude Haiku 4.5';
+    const { provider, modelPath, displayName } = getModelProvider(requestedModel);
 
-    console.log(`⚡ AI Agent: Using ${modelName}`);
+    console.log(`⚡ AI Agent: Using ${displayName} (${requestedModel})`);
 
     if (Object.keys(projectFiles).length > 0) {
         console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
     }
 
+    // Both Anthropic and OpenAI providers use the same call pattern
+    const modelInstance = provider(modelPath);
+
     // Stream the response with usage tracking
     const result = streamText({
-        model: anthropic(model), // Use direct Anthropic API
+        model: modelInstance,
         system: systemPrompt,
         messages: messages as never, // AI SDK will handle the validation
         onFinish: async ({ usage }) => {
@@ -103,7 +159,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
                 if (onFinish) {
                     try {
                         await onFinish({
-                            model,
+                            model: requestedModel, // Return the requested model ID
                             inputTokens,
                             outputTokens,
                             totalTokens,
@@ -113,7 +169,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
                     }
                 }
             } else {
-                console.warn('⚠️ No usage data available from Anthropic API');
+                console.warn('⚠️ No usage data available from API');
             }
         },
     });

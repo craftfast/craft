@@ -7,6 +7,7 @@ import SubscriptionModal from "./SubscriptionModal";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { ModelSelector } from "@/components/ModelSelector";
 
 interface ImageAttachment {
   id: string;
@@ -82,6 +83,7 @@ export default function CraftInput() {
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { balance } = useCreditBalance();
+  const [selectedModel, setSelectedModel] = useState("gpt-5"); // Default to standard tier (1.0x)
 
   // Check if tokens are low or exhausted
   const isLowTokens =
@@ -309,11 +311,19 @@ export default function CraftInput() {
         const data = await response.json();
         console.log("Project created:", data);
 
-        // Store images in sessionStorage if any were selected
-        if (selectedImages.length > 0 && data.project?.id) {
+        // Store images and selected model in sessionStorage if project was created
+        if (data.project?.id) {
+          if (selectedImages.length > 0) {
+            sessionStorage.setItem(
+              `project-${data.project.id}-images`,
+              JSON.stringify(selectedImages)
+            );
+          }
+
+          // Store selected model for the chat interface
           sessionStorage.setItem(
-            `project-${data.project.id}-images`,
-            JSON.stringify(selectedImages)
+            `project-${data.project.id}-model`,
+            selectedModel
           );
         }
 
@@ -516,7 +526,7 @@ export default function CraftInput() {
               className="hidden"
             />
 
-            {/* Image upload button */}
+            {/* Add button (for image upload) */}
             <Button
               type="button"
               variant="ghost"
@@ -542,6 +552,14 @@ export default function CraftInput() {
               </svg>
             </Button>
 
+            {/* Model Selector */}
+            <ModelSelector
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
             {/* Voice input button */}
             <Button
               type="button"
@@ -582,9 +600,7 @@ export default function CraftInput() {
                 </svg>
               )}
             </Button>
-          </div>
 
-          <div className="flex items-center gap-2">
             <Button
               type="button"
               size="icon"

@@ -9,6 +9,7 @@ import "highlight.js/styles/github-dark.min.css";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import SubscriptionModal from "../SubscriptionModal";
+import { ModelSelector } from "@/components/ModelSelector";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -127,6 +128,15 @@ export default function ChatPanel({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const { balance } = useCreditBalance();
+
+  // Initialize selected model from sessionStorage or default to "gpt-5"
+  const [selectedModel, setSelectedModel] = useState(() => {
+    if (typeof window !== "undefined") {
+      const storedModel = sessionStorage.getItem(`project-${projectId}-model`);
+      return storedModel || "gpt-5";
+    }
+    return "gpt-5";
+  });
 
   // Check if tokens are low or exhausted
   const isLowTokens =
@@ -738,6 +748,7 @@ export default function ChatPanel({
           taskType: "coding",
           projectFiles, // Send existing project files for context
           projectId, // Required for AI usage tracking
+          model: selectedModel, // Include selected model
         }),
       });
 
@@ -1397,7 +1408,7 @@ export default function ChatPanel({
                   className="hidden"
                 />
 
-                {/* Image upload button */}
+                {/* Add button (for image upload) */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -1423,6 +1434,14 @@ export default function ChatPanel({
                   </svg>
                 </Button>
 
+                {/* Model Selector */}
+                <ModelSelector
+                  selectedModel={selectedModel}
+                  onModelChange={setSelectedModel}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
                 {/* Voice input button */}
                 <Button
                   type="button"
@@ -1465,9 +1484,7 @@ export default function ChatPanel({
                     </svg>
                   )}
                 </Button>
-              </div>
 
-              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   size="icon"
