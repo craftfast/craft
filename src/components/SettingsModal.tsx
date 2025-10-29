@@ -862,7 +862,7 @@ export default function SettingsModal({
             {/* General Tab */}
             {activeTab === "general" && (
               <div className="space-y-6">
-                <div className="pt-6">
+                <div className="">
                   <h3 className="text-lg font-semibold text-foreground mb-4">
                     Appearance
                   </h3>
