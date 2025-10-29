@@ -3,6 +3,7 @@
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import CreditIcon from "@/components/CreditIcon";
 
 interface CreditCounterProps {
   onClickAction?: () => void;
@@ -12,6 +13,16 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
   const { balance } = useCreditBalance();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [, setCurrentTime] = useState(Date.now());
+
+  // Update time every minute to keep the reset countdown fresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -56,6 +67,29 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
     return num.toLocaleString();
   };
 
+  // Calculate time until next UTC midnight
+  const getTimeUntilReset = (): string => {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setUTCHours(24, 0, 0, 0); // Next UTC midnight
+
+    const diff = midnight.getTime() - now.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 1) {
+      return `in ${hours} hours`;
+    } else if (hours === 1) {
+      return `in 1 hour`;
+    } else if (minutes > 1) {
+      return `in ${minutes} minutes`;
+    } else if (minutes === 1) {
+      return `in 1 minute`;
+    } else {
+      return `in less than a minute`;
+    }
+  };
+
   // Determine if credits are low (less than 10k)
   const isLowCredits =
     balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;
@@ -66,44 +100,21 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
   return (
     <div className="relative" ref={dropdownRef}>
       <div
-        className={`px-3 py-2 rounded-full border flex items-center gap-1.5 cursor-pointer transition-colors ${
-          isCreditsExhausted
-            ? "bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900"
-            : isLowCredits
-            ? "bg-amber-50 dark:bg-amber-950 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900"
-            : "bg-accent text-accent-foreground border-border hover:bg-accent/80"
-        }`}
+        className="px-3 py-2 rounded-full border bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 flex items-center gap-1.5 cursor-pointer transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
-        <svg
-          className="w-3.5 h-3.5 flex-shrink-0"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+        <CreditIcon className="w-3.5 h-3.5 flex-shrink-0" />
+        <span
+          className={`text-xs font-medium whitespace-nowrap ${
+            isCreditsExhausted
+              ? "text-red-600 dark:text-red-400"
+              : "text-neutral-700 dark:text-neutral-300"
+          }`}
         >
-          {isCreditsExhausted || isLowCredits ? (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          ) : (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          )}
-        </svg>
-        <span className="text-xs font-medium whitespace-nowrap">
-          {isCreditsExhausted
-            ? "0 credits"
-            : formatCredits(balance.totalAvailable)}
+          {isCreditsExhausted ? "0" : formatCredits(balance.totalAvailable)}
         </span>
         <svg
-          className={`w-3 h-3 flex-shrink-0 transition-transform ${
+          className={`w-3 h-3 flex-shrink-0 text-neutral-600 dark:text-neutral-400 transition-transform ${
             isDropdownOpen ? "rotate-180" : ""
           }`}
           fill="none"
@@ -131,9 +142,7 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
               <p
                 className={`text-2xl font-bold ${
                   isCreditsExhausted
-                    ? "text-red-700 dark:text-red-300"
-                    : isLowCredits
-                    ? "text-amber-700 dark:text-amber-300"
+                    ? "text-red-600 dark:text-red-400"
                     : "text-foreground"
                 }`}
               >
@@ -164,7 +173,7 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
                   </span>
                 </div>
                 <span className="text-sm font-medium text-foreground">
-                  {formatFullNumber(balance.subscriptionCreditsRemaining)}
+                  {formatFullNumber(balance.subscriptionCreditLimit)}
                 </span>
               </div>
 
@@ -188,7 +197,7 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
                   </span>
                 </div>
                 <span className="text-sm font-medium text-muted-foreground">
-                  12:00 AM UTC
+                  {getTimeUntilReset()}
                 </span>
               </div>
             </div>

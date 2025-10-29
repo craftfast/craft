@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import SubscriptionModal from "./SubscriptionModal";
+import SettingsModal from "./SettingsModal";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,10 @@ export default function CraftInput() {
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<
+    "general" | "billing" | "usage" | "account" | "integrations"
+  >("general");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { balance } = useCreditBalance();
   const [selectedModel, setSelectedModel] = useState("gpt-5"); // Default to standard tier (1.0x)
@@ -389,9 +394,10 @@ export default function CraftInput() {
       // User is authenticated - check if tokens are exhausted
       if (isTokensExhausted) {
         setErrorMessage(
-          "You've run out of AI tokens. Please upgrade to Pro or purchase additional tokens to continue."
+          "Out of credits for today. Upgrade to Pro to continue."
         );
-        setShowPricingModal(true);
+        setSettingsInitialTab("billing");
+        setShowSettingsModal(true);
         setIsCreating(false);
         return;
       }
@@ -443,7 +449,8 @@ export default function CraftInput() {
         // Check if it's a project limit error
         if (errorData.code === "PROJECT_LIMIT_REACHED") {
           setErrorMessage(errorData.error);
-          setShowPricingModal(true);
+          setSettingsInitialTab("billing");
+          setShowSettingsModal(true);
         } else {
           // Show generic error message
           setErrorMessage(
@@ -544,6 +551,47 @@ export default function CraftInput() {
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="rounded-3xl px-2 py-2 bg-card border border-border shadow-sm hover:shadow-md focus-within:shadow-lg transition-shadow">
+        {/* Low Token Warning */}
+        {isLowTokens && !isTokensExhausted && (
+          <div className="mb-2 px-4 py-2 bg-muted/50 border-b border-border -mx-2 -mt-2 rounded-t-3xl">
+            <p className="text-xs text-muted-foreground">
+              {balance?.totalAvailable.toLocaleString()} credits remaining
+              today.{" "}
+              <button
+                onClick={() => {
+                  setSettingsInitialTab("billing");
+                  setShowSettingsModal(true);
+                }}
+                className="text-foreground underline hover:no-underline font-medium"
+              >
+                {balance?.planName === "PRO"
+                  ? "Upgrade your plan"
+                  : "Upgrade to Pro"}
+              </button>
+            </p>
+          </div>
+        )}
+
+        {/* Exhausted Token Warning */}
+        {isTokensExhausted && (
+          <div className="mb-2 px-4 py-2 bg-muted/50 border-b border-border -mx-2 -mt-2 rounded-t-3xl">
+            <p className="text-xs text-muted-foreground">
+              Out of credits for today.{" "}
+              <button
+                onClick={() => {
+                  setSettingsInitialTab("billing");
+                  setShowSettingsModal(true);
+                }}
+                className="text-foreground underline hover:no-underline font-medium"
+              >
+                {balance?.planName === "PRO"
+                  ? "Upgrade your plan for more daily credits"
+                  : "Upgrade to Pro"}
+              </button>
+            </p>
+          </div>
+        )}
+
         {/* Image Previews */}
         {selectedImages.length > 0 && (
           <div className="flex flex-wrap gap-2 pb-2">
@@ -762,93 +810,6 @@ export default function CraftInput() {
         </div>
       </div>
 
-      {/* Low Token Warning */}
-      {isLowTokens && !isTokensExhausted && (
-        <div className="mt-3 px-4 py-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/50 rounded-2xl">
-          <div className="flex items-start gap-3">
-            <svg
-              className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                Low on AI tokens
-              </p>
-              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                You have {balance?.totalAvailable.toLocaleString()} tokens
-                remaining.{" "}
-                <button
-                  onClick={() => setShowPricingModal(true)}
-                  className="underline hover:no-underline font-medium"
-                >
-                  Purchase more tokens
-                </button>{" "}
-                or{" "}
-                <button
-                  onClick={() => setShowPricingModal(true)}
-                  className="underline hover:no-underline font-medium"
-                >
-                  upgrade to Pro
-                </button>
-                .
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Exhausted Token Warning */}
-      {isTokensExhausted && (
-        <div className="mt-3 px-4 py-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-800/50 rounded-2xl">
-          <div className="flex items-start gap-3">
-            <svg
-              className="w-5 h-5 text-red-600 dark:text-red-500 flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-red-900 dark:text-red-200">
-                Out of AI tokens
-              </p>
-              <p className="text-xs text-red-700 dark:text-red-400 mt-1">
-                You&apos;ve used all your AI tokens.{" "}
-                <button
-                  onClick={() => setShowPricingModal(true)}
-                  className="underline hover:no-underline font-medium"
-                >
-                  Purchase additional tokens
-                </button>{" "}
-                or{" "}
-                <button
-                  onClick={() => setShowPricingModal(true)}
-                  className="underline hover:no-underline font-medium"
-                >
-                  upgrade to Pro
-                </button>{" "}
-                to continue.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Quick options */}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <span className="text-sm text-muted-foreground">or import from</span>
@@ -953,9 +914,9 @@ export default function CraftInput() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-red-600 dark:text-red-500"
+                  className="w-5 h-5 text-destructive"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -992,6 +953,13 @@ export default function CraftInput() {
           setShowPricingModal(false);
           setErrorMessage(null);
         }}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        initialTab={settingsInitialTab}
       />
     </div>
   );

@@ -287,16 +287,13 @@ export default function DashboardHeader({
                         <span
                           className={`text-xs font-semibold ${
                             isTokensExhausted
-                              ? "text-red-700 dark:text-red-300"
-                              : isLowTokens
-                              ? "text-amber-700 dark:text-amber-300"
+                              ? "text-red-600 dark:text-red-400"
                               : "text-neutral-900 dark:text-neutral-100"
                           }`}
                         >
                           {isTokensExhausted
                             ? "0 credits"
                             : formatCredits(balance.totalAvailable)}
-                          {isLowTokens && !isTokensExhausted && " ⚠️"}
                         </span>
                       </div>
                       <div className="text-xs text-neutral-500 dark:text-neutral-400">

@@ -14,6 +14,12 @@ export async function GET() {
         const availability = await checkUserCreditAvailability(session.user.id);
 
         return NextResponse.json({
+            totalAvailable: availability.creditsRemaining,
+            subscriptionCreditsRemaining: availability.creditsRemaining,
+            subscriptionCreditLimit: availability.dailyCreditsLimit,
+            subscriptionCreditsUsed: availability.dailyCreditsUsed,
+            planName: availability.planName, // Added: user's subscription plan
+            // Legacy fields for backwards compatibility
             dailyCreditsUsed: availability.dailyCreditsUsed,
             dailyCreditsLimit: availability.dailyCreditsLimit,
             creditsRemaining: availability.creditsRemaining,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -9,6 +10,7 @@ import "highlight.js/styles/github-dark.min.css";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import SubscriptionModal from "../SubscriptionModal";
+import SettingsModal from "../SettingsModal";
 import { ModelSelector } from "@/components/ModelSelector";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -110,6 +112,7 @@ export default function ChatPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasLoadedMessages = useRef(false); // Track if we've already loaded messages
   const hasTriggeredAutoSend = useRef(false); // Track if we've triggered auto-send
+  const router = useRouter();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -127,6 +130,10 @@ export default function ChatPanel({
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<
+    "general" | "billing" | "usage" | "account" | "integrations"
+  >("general");
   const { balance } = useCreditBalance();
 
   // Initialize selected model from sessionStorage or default to "gpt-5"
@@ -703,7 +710,8 @@ export default function ChatPanel({
 
     // Check if tokens are exhausted
     if (isTokensExhausted) {
-      setShowPricingModal(true);
+      setSettingsInitialTab("billing");
+      setShowSettingsModal(true);
       return;
     }
 
@@ -1367,6 +1375,47 @@ export default function ChatPanel({
       <div className="border-border px-0">
         <div className="max-w-3xl mx-auto">
           <div className="rounded-2xl px-2 py-2 bg-card border border-border transition-shadow">
+            {/* Low Token Warning */}
+            {isLowTokens && !isTokensExhausted && (
+              <div className="mb-2 px-4 py-2 bg-muted/50 border-b border-border -mx-2 -mt-2 rounded-t-2xl">
+                <p className="text-xs text-muted-foreground">
+                  {balance?.totalAvailable.toLocaleString()} credits remaining
+                  today.{" "}
+                  <button
+                    onClick={() => {
+                      setSettingsInitialTab("billing");
+                      setShowSettingsModal(true);
+                    }}
+                    className="text-foreground underline hover:no-underline font-medium"
+                  >
+                    {balance?.planName === "PRO"
+                      ? "Upgrade your plan"
+                      : "Upgrade to Pro"}
+                  </button>
+                </p>
+              </div>
+            )}
+
+            {/* Exhausted Token Warning */}
+            {isTokensExhausted && (
+              <div className="mb-2 px-3 py-2 bg-muted/50 border-b border-border -mx-2 -mt-2 rounded-t-2xl">
+                <p className="text-xs text-muted-foreground">
+                  Out of credits for today.{" "}
+                  <button
+                    onClick={() => {
+                      setSettingsInitialTab("billing");
+                      setShowSettingsModal(true);
+                    }}
+                    className="text-foreground underline hover:no-underline font-medium"
+                  >
+                    {balance?.planName === "PRO"
+                      ? "Upgrade your plan for more daily credits"
+                      : "Upgrade to Pro"}
+                  </button>
+                </p>
+              </div>
+            )}
+
             {/* Image Attachments - Above the textarea */}
             {selectedImages.length > 0 && (
               <div className="flex flex-wrap gap-2 pb-2">
@@ -1576,71 +1625,6 @@ export default function ChatPanel({
                 </Button>
               </div>
             </div>
-
-            {/* Low Token Warning */}
-            {isLowTokens && !isTokensExhausted && (
-              <div className="mt-3 px-3 py-2 bg-muted border border-border rounded-xl">
-                <div className="flex items-start gap-2">
-                  <svg
-                    className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-foreground">
-                      Low on AI tokens (
-                      {balance?.totalAvailable.toLocaleString()} remaining).{" "}
-                      <button
-                        onClick={() => setShowPricingModal(true)}
-                        className="underline hover:no-underline"
-                      >
-                        Get more
-                      </button>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Exhausted Token Warning */}
-            {isTokensExhausted && (
-              <div className="mt-3 px-3 py-2 bg-muted border border-border rounded-xl">
-                <div className="flex items-start gap-2">
-                  <svg
-                    className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-foreground">
-                      Out of AI tokens.{" "}
-                      <button
-                        onClick={() => setShowPricingModal(true)}
-                        className="underline hover:no-underline"
-                      >
-                        Purchase tokens or upgrade
-                      </button>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -1701,6 +1685,13 @@ export default function ChatPanel({
       <SubscriptionModal
         isOpen={showPricingModal}
         onClose={() => setShowPricingModal(false)}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        initialTab={settingsInitialTab}
       />
     </div>
   );

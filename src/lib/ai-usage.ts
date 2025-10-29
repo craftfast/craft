@@ -379,6 +379,7 @@ export async function checkUserCreditAvailability(
     dailyCreditsUsed: number;
     dailyCreditsLimit: number | null;
     creditsRemaining: number;
+    planName: "HOBBY" | "PRO" | "ENTERPRISE";
 }> {
     // Reset credits if it's a new day
     await resetDailyCreditsIfNeeded(userId);
@@ -391,12 +392,15 @@ export async function checkUserCreditAvailability(
 
     // Determine daily credit limit from plan
     let dailyCreditsLimit: number | null = null;
+    let planName: "HOBBY" | "PRO" | "ENTERPRISE" = "HOBBY"; // Default to HOBBY
 
     if (subscription?.plan) {
         dailyCreditsLimit = subscription.plan.dailyCredits;
+        planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
     } else {
         // No subscription = free tier limits (1 credit/day)
         dailyCreditsLimit = 1;
+        planName = "HOBBY";
     }
 
     const dailyCreditsUsed = subscription?.dailyCreditsUsed
@@ -421,6 +425,7 @@ export async function checkUserCreditAvailability(
         dailyCreditsUsed,
         dailyCreditsLimit,
         creditsRemaining: creditsRemaining === Infinity ? -1 : creditsRemaining,
+        planName,
     };
 }
 

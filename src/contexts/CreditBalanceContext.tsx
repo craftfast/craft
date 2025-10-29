@@ -14,6 +14,7 @@ interface CreditBalance {
   subscriptionCreditsRemaining: number;
   subscriptionCreditLimit: number | null;
   subscriptionCreditsUsed: number;
+  planName?: "HOBBY" | "PRO" | "ENTERPRISE"; // User's subscription plan
 }
 
 interface CreditBalanceContextType {
