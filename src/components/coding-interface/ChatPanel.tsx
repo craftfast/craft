@@ -19,6 +19,7 @@ import {
   getAllPackages,
   hasDependencyCommands,
 } from "@/lib/ai/extract-deps";
+import { notifyCreditUpdate } from "@/lib/credit-events";
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -934,6 +935,9 @@ export default function ChatPanel({
           const contentToSave = fullContent.trim() || "Response received";
           await saveMessage("assistant", contentToSave);
         }
+
+        // Trigger credit balance update after successful response
+        notifyCreditUpdate();
       }
     } catch (error) {
       console.error("Error sending message:", error);
