@@ -1209,6 +1209,145 @@ export default function SettingsModal({
                           </span>
                         </div>
 
+                        {/* Daily Credit Balance */}
+                        <div className="mt-4 space-y-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Daily Credits
+                              </span>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Resets in{" "}
+                                {creditBalanceData?.daily.hoursUntilReset || 0}h
+                              </p>
+                            </div>
+                            <span className="text-2xl font-bold text-foreground">
+                              {(
+                                creditBalanceData?.daily.remaining || 0
+                              ).toFixed(2)}{" "}
+                              <span className="text-base text-muted-foreground font-normal">
+                                /{" "}
+                                {(creditBalanceData?.daily.limit || 0).toFixed(
+                                  2
+                                )}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="w-full h-2 relative rounded-full overflow-hidden">
+                            <div
+                              className="bg-neutral-700 dark:bg-neutral-300 h-full rounded-full transition-all"
+                              style={{
+                                width: `${
+                                  creditBalanceData &&
+                                  (creditBalanceData.daily.limit ?? 0) > 0
+                                    ? ((creditBalanceData.daily.remaining ??
+                                        0) /
+                                        creditBalanceData.daily.limit) *
+                                      100
+                                    : 0
+                                }%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* Upgrade to Pro - Only for Hobby users */}
+                        {subscriptionData?.plan.name === "HOBBY" && (
+                          <div className="mt-6 pt-6 border-t border-border">
+                            <div className="flex items-center gap-2 mb-3">
+                              <h3 className="text-base font-semibold text-foreground">
+                                Upgrade to Pro
+                              </h3>
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">
+                                Recommended
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-4">
+                              Get more daily credits and unlock unlimited
+                              projects
+                            </p>
+                            <div className="space-y-3">
+                              <Select
+                                value={selectedProTierIndex.toString()}
+                                onValueChange={(value) =>
+                                  setSelectedProTierIndex(parseInt(value))
+                                }
+                              >
+                                <SelectTrigger className="w-full rounded-full h-12 px-6 text-base">
+                                  <SelectValue placeholder="Select a Pro tier" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[100001] rounded-2xl max-h-[300px] overflow-y-auto">
+                                  {PRO_TIERS.map((tier, index) => (
+                                    <SelectItem
+                                      key={index}
+                                      value={index.toString()}
+                                      className="text-base py-3"
+                                    >
+                                      {tier.dailyCredits} credits per day{" "}
+                                      <span className="text-muted-foreground">
+                                        - {tier.displayPrice}
+                                      </span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              <Button
+                                className="w-full rounded-full h-12 text-base font-semibold"
+                                disabled={isPurchasing}
+                                onClick={async () => {
+                                  setIsPurchasing(true);
+                                  try {
+                                    const selectedTier =
+                                      PRO_TIERS[selectedProTierIndex];
+                                    const response = await fetch(
+                                      "/api/billing/upgrade-to-pro",
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                          dailyCredits:
+                                            selectedTier.dailyCredits,
+                                        }),
+                                      }
+                                    );
+                                    const data = await response.json();
+                                    if (response.ok && data.checkoutUrl) {
+                                      window.location.href = data.checkoutUrl;
+                                    } else {
+                                      throw new Error(
+                                        data.error ||
+                                          "Failed to create checkout"
+                                      );
+                                    }
+                                  } catch (error) {
+                                    console.error(
+                                      "Error purchasing Pro plan:",
+                                      error
+                                    );
+                                    toast.error(
+                                      "Failed to initiate purchase. Please try again."
+                                    );
+                                  } finally {
+                                    setIsPurchasing(false);
+                                  }
+                                }}
+                              >
+                                {isPurchasing ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                                    Processing...
+                                  </>
+                                ) : (
+                                  `Upgrade - ${PRO_TIERS[selectedProTierIndex].displayPrice}`
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
                         {subscriptionData?.plan.name === "PRO" && (
                           <div className="space-y-4 pt-6 border-t border-border">
                             <div className="flex items-center gap-3 pb-3">
@@ -1236,7 +1375,7 @@ export default function SettingsModal({
                                 <SelectTrigger className="w-full rounded-full h-12 px-6 text-base bg-background">
                                   <SelectValue placeholder="Select a different tier" />
                                 </SelectTrigger>
-                                <SelectContent className="z-[100001] rounded-2xl">
+                                <SelectContent className="z-[100001] rounded-2xl max-h-[300px] overflow-y-auto">
                                   {PRO_TIERS.map((tier, index) => (
                                     <SelectItem
                                       key={index}
@@ -1442,222 +1581,68 @@ export default function SettingsModal({
                             </p>
                           </div>
                         )}
-
-                        {/* Daily Credit Balance within Current Plan */}
-                        <div className="mt-6 pt-6 border-t border-border space-y-3">
-                          <div className="mb-3">
-                            <h4 className="text-sm font-semibold text-foreground mb-1">
-                              Daily Credit Balance
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              Your daily credits reset in{" "}
-                              {creditBalanceData?.daily.hoursUntilReset || 0}{" "}
-                              hours at midnight UTC.
-                            </p>
-                          </div>
-
-                          {/* Daily Credits Progress */}
-                          <div className="p-4 bg-muted/50 rounded-xl border border-input">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-muted-foreground">
-                                Credits Remaining Today
-                              </span>
-                              <span className="text-2xl font-bold text-foreground">
-                                {(
-                                  creditBalanceData?.daily.remaining || 0
-                                ).toFixed(2)}{" "}
-                                /{" "}
-                                {(creditBalanceData?.daily.limit || 0).toFixed(
-                                  2
-                                )}
-                              </span>
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-2">
-                              <div
-                                className="bg-neutral-700 dark:bg-neutral-300 h-2 rounded-full transition-all"
-                                style={{
-                                  width: `${
-                                    creditBalanceData &&
-                                    (creditBalanceData.daily.limit ?? 0) > 0
-                                      ? ((creditBalanceData.daily.remaining ??
-                                          0) /
-                                          creditBalanceData.daily.limit) *
-                                        100
-                                      : 0
-                                  }%`,
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-
-                          {/* Credits Used */}
-                          <div className="p-3 bg-muted/50 rounded-xl border border-input">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-muted-foreground">
-                                Credits Used Today
-                              </span>
-                              <span className="text-sm font-semibold text-foreground">
-                                {(creditBalanceData?.daily.used || 0).toFixed(
-                                  2
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
                       </div>
                     </div>
-
-                    {/* Upgrade to Pro - Only for Hobby users */}
-                    {subscriptionData?.plan.name === "HOBBY" && (
-                      <div className="border-t border-border pt-6">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold text-foreground">
-                            Upgrade to Pro
-                          </h3>
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">
-                            Recommended
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Get more daily credits and unlock unlimited projects
-                          with priority support
-                        </p>
-                        <div className="space-y-4">
-                          <div className="space-y-3">
-                            <Select
-                              value={selectedProTierIndex.toString()}
-                              onValueChange={(value) =>
-                                setSelectedProTierIndex(parseInt(value))
-                              }
-                            >
-                              <SelectTrigger className="w-full rounded-full h-12 px-6 text-base">
-                                <SelectValue placeholder="Select a Pro tier" />
-                              </SelectTrigger>
-                              <SelectContent className="z-[100001] rounded-2xl">
-                                {PRO_TIERS.map((tier, index) => (
-                                  <SelectItem
-                                    key={index}
-                                    value={index.toString()}
-                                    className="text-base py-3"
-                                  >
-                                    {tier.dailyCredits} credits per day{" "}
-                                    <span className="text-muted-foreground">
-                                      - {tier.displayPrice}
-                                    </span>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <Button
-                            className="w-full rounded-full h-12 text-base font-semibold"
-                            disabled={isPurchasing}
-                            onClick={async () => {
-                              setIsPurchasing(true);
-                              try {
-                                const selectedTier =
-                                  PRO_TIERS[selectedProTierIndex];
-                                const response = await fetch(
-                                  "/api/billing/upgrade-to-pro",
-                                  {
-                                    method: "POST",
-                                    headers: {
-                                      "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                      dailyCredits: selectedTier.dailyCredits,
-                                    }),
-                                  }
-                                );
-                                const data = await response.json();
-                                if (response.ok && data.checkoutUrl) {
-                                  window.location.href = data.checkoutUrl;
-                                } else {
-                                  throw new Error(
-                                    data.error || "Failed to create checkout"
-                                  );
-                                }
-                              } catch (error) {
-                                console.error(
-                                  "Error purchasing Pro plan:",
-                                  error
-                                );
-                                toast.error(
-                                  "Failed to initiate purchase. Please try again."
-                                );
-                              } finally {
-                                setIsPurchasing(false);
-                              }
-                            }}
-                          >
-                            {isPurchasing ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                                Processing...
-                              </>
-                            ) : (
-                              `Purchase Pro - ${PRO_TIERS[selectedProTierIndex].displayPrice}`
-                            )}
-                          </Button>
-
-                          <div className="pt-4 text-center">
-                            <a
-                              href="/pricing"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                            >
-                              View all plan details and features
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Subscription History */}
                     {subscriptionHistory && (
                       <div className="border-t border-border pt-6">
                         <h3 className="text-lg font-semibold text-foreground mb-2">
-                          Subscription History
+                          Subscription Details
                         </h3>
                         <p className="text-sm text-muted-foreground mb-4">
-                          View your billing periods and usage history.
+                          Your current subscription information.
                         </p>
                         <div className="space-y-4">
-                          {/* Usage Records */}
-                          {subscriptionHistory.usageRecords.length > 0 && (
-                            <div className="space-y-2">
-                              <h4 className="text-sm font-semibold text-foreground mb-2">
-                                Recent Billing Periods
-                              </h4>
-                              {subscriptionHistory.usageRecords
-                                .slice(0, 3)
-                                .map((record) => (
-                                  <div
-                                    key={record.id}
-                                    className="p-3 bg-muted/50 rounded-xl border border-input"
-                                  >
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="text-sm font-medium text-foreground">
-                                        {new Date(
-                                          record.billingPeriodStart
-                                        ).toLocaleDateString()}{" "}
-                                        -{" "}
-                                        {new Date(
-                                          record.billingPeriodEnd
-                                        ).toLocaleDateString()}
-                                      </span>
-                                      <span className="text-sm font-bold text-foreground">
-                                        ${record.totalCostUsd.toFixed(2)}
-                                      </span>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {Number(record.aiCreditsUsed).toFixed(2)}{" "}
-                                      credits used
-                                    </div>
-                                  </div>
-                                ))}
+                          {/* Current Subscription Info */}
+                          {subscriptionHistory.currentSubscription && (
+                            <div className="p-4 bg-muted/50 rounded-xl border border-input">
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  <h4 className="text-sm font-semibold text-foreground">
+                                    {
+                                      subscriptionHistory.currentSubscription
+                                        .planDisplayName
+                                    }
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Active since{" "}
+                                    {new Date(
+                                      subscriptionHistory.currentSubscription.createdAt
+                                    ).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <span className="text-lg font-bold text-foreground">
+                                  $
+                                  {subscriptionHistory.currentSubscription.priceMonthlyUsd.toFixed(
+                                    2
+                                  )}
+                                  /mo
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">
+                                  Current Period
+                                </span>
+                                <span className="text-foreground font-medium">
+                                  {new Date(
+                                    subscriptionHistory.currentSubscription.currentPeriodStart
+                                  ).toLocaleDateString()}{" "}
+                                  -{" "}
+                                  {new Date(
+                                    subscriptionHistory.currentSubscription.currentPeriodEnd
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+                              {subscriptionHistory.currentSubscription
+                                .cancelAtPeriodEnd && (
+                                <div className="mt-3 pt-3 border-t border-border">
+                                  <p className="text-xs text-orange-600 dark:text-orange-400">
+                                    ⚠️ This subscription will be cancelled at
+                                    the end of the current period
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           )}
 
