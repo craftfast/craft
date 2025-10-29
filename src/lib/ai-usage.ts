@@ -71,8 +71,11 @@ function calculateCost(
     const outputCost = (outputTokens / 1000000) * pricing.output;
 
     return inputCost + outputCost;
-}/**
- * Track AI token usage
+}
+
+/**
+ * Track AI credit usage
+ * Records token usage and converts to credits based on model multiplier
  */
 export async function trackAIUsage(
     usage: AIUsageRecord
@@ -84,7 +87,11 @@ export async function trackAIUsage(
         usage.outputTokens
     );
 
-    const record = await prisma.aITokenUsage.create({
+    // Calculate credits and model multiplier
+    const creditsUsed = tokensToCredits(totalTokens, usage.model);
+    const modelMultiplier = getModelCreditMultiplier(usage.model);
+
+    const record = await prisma.aICreditUsage.create({
         data: {
             userId: usage.userId,
             projectId: usage.projectId,
@@ -93,6 +100,8 @@ export async function trackAIUsage(
             outputTokens: usage.outputTokens,
             totalTokens,
             costUsd,
+            creditsUsed,
+            modelMultiplier,
             endpoint: usage.endpoint,
             callType: usage.callType || "agent", // Default to "agent" if not specified
         },
@@ -116,7 +125,7 @@ export async function getUserAIUsageInRange(
     totalCostUsd: number;
     byModel: Record<string, { tokens: number; costUsd: number }>;
 }> {
-    const records = await prisma.aITokenUsage.findMany({
+    const records = await prisma.aICreditUsage.findMany({
         where: {
             userId,
             createdAt: {
@@ -185,7 +194,7 @@ export async function getProjectAIUsage(
     totalTokens: number;
     totalCostUsd: number;
 }> {
-    const records = await prisma.aITokenUsage.findMany({
+    const records = await prisma.aICreditUsage.findMany({
         where: {
             projectId,
             createdAt: {
@@ -215,7 +224,7 @@ export async function getUserAIUsage(
     totalTokens: number;
     totalCostUsd: number;
 }> {
-    const records = await prisma.aITokenUsage.findMany({
+    const records = await prisma.aICreditUsage.findMany({
         where: {
             userId,
             createdAt: {
@@ -459,6 +468,15 @@ export async function processAIUsage(params: {
     // Reset credits if it's a new day
     await resetDailyCreditsIfNeeded(params.userId);
 
+    // Get user's subscription
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId: params.userId },
+    });
+
+    if (!subscription) {
+        throw new Error("No subscription found for user");
+    }
+
     // Update daily credits used
     await prisma.userSubscription.update({
         where: { userId: params.userId },
@@ -468,6 +486,47 @@ export async function processAIUsage(params: {
             },
         },
     });
+
+    // Update or create usage record for current billing period
+    const existingUsageRecord = await prisma.usageRecord.findUnique({
+        where: {
+            subscriptionId_billingPeriodStart: {
+                subscriptionId: subscription.id,
+                billingPeriodStart: subscription.currentPeriodStart,
+            },
+        },
+    });
+
+    if (existingUsageRecord) {
+        // Update existing record - just increment credits and cost
+        await prisma.usageRecord.update({
+            where: { id: existingUsageRecord.id },
+            data: {
+                aiCreditsUsed: {
+                    increment: creditsUsed,
+                },
+                aiCostUsd: {
+                    increment: usage.costUsd,
+                },
+                totalCostUsd: {
+                    increment: usage.costUsd,
+                },
+            },
+        });
+    } else {
+        // Create new record for this billing period
+        await prisma.usageRecord.create({
+            data: {
+                userId: params.userId,
+                subscriptionId: subscription.id,
+                billingPeriodStart: subscription.currentPeriodStart,
+                billingPeriodEnd: subscription.currentPeriodEnd,
+                aiCreditsUsed: creditsUsed,
+                aiCostUsd: usage.costUsd,
+                totalCostUsd: usage.costUsd,
+            },
+        });
+    }
 
     return {
         success: true,

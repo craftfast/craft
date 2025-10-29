@@ -37,10 +37,13 @@ interface CreditUsageRecord {
   id: string;
   projectId: string;
   projectName: string;
+  model: string;
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  costUsd: number;
   creditsUsed: number;
+  callType: "agent" | "chat" | "edit";
   endpoint: string;
   createdAt: string;
 }
@@ -115,6 +118,7 @@ interface SubscriptionHistoryData {
     id: string;
     billingPeriodStart: Date;
     billingPeriodEnd: Date;
+    aiCreditsUsed: number;
     aiCostUsd: number;
     totalCostUsd: number;
     createdAt: Date;
@@ -1501,6 +1505,10 @@ export default function SettingsModal({
                                         ${record.totalCostUsd.toFixed(2)}
                                       </span>
                                     </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {Number(record.aiCreditsUsed).toFixed(2)}{" "}
+                                      credits used
+                                    </div>
                                   </div>
                                 ))}
                             </div>
@@ -1695,13 +1703,13 @@ export default function SettingsModal({
                                 Project
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Model
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Type
                               </th>
                               <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Credits Used
-                              </th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Total Tokens
                               </th>
                             </tr>
                           </thead>
@@ -1730,14 +1738,24 @@ export default function SettingsModal({
                                     </span>
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-muted-foreground capitalize">
-                                  {record.endpoint}
+                                <td className="px-4 py-3 text-sm text-foreground">
+                                  {record.model}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                                      record.callType === "agent"
+                                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                                        : record.callType === "chat"
+                                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                        : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+                                    }`}
+                                  >
+                                    {record.callType}
+                                  </span>
                                 </td>
                                 <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-foreground">
                                   {record.creditsUsed.toFixed(4)}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-right font-mono text-muted-foreground">
-                                  {record.totalTokens.toLocaleString()}
                                 </td>
                               </tr>
                             ))}

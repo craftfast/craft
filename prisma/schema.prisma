@@ -216,33 +216,37 @@ model UserSubscription {
 }
 
 // ============================================================================
-// AI TOKEN USAGE TRACKING
+// AI CREDIT USAGE TRACKING
 // ============================================================================
 
-model AITokenUsage {
-  id           String   @id @default(cuid())
-  userId       String
-  projectId    String
-  model        String // "claude-sonnet-4.5", "gpt-5", "gemini-2.5-pro", etc.
-  inputTokens  Int // Tokens in the prompt/input
-  outputTokens Int // Tokens in the response/output
-  totalTokens  Int // inputTokens + outputTokens
-  costUsd      Float // Cost in USD for this usage
-  endpoint     String? // "chat", "code-generation", "image-analysis", etc.
-  callType     String   @default("agent") // "agent" | "edit" | "chat" - type of AI interaction
-  createdAt    DateTime @default(now())
+model AICreditUsage {
+  id              String   @id @default(cuid())
+  userId          String
+  projectId       String
+  model           String // "claude-sonnet-4.5", "gpt-5", "gemini-2.5-pro", etc.
+  inputTokens     Int // Tokens in the prompt/input
+  outputTokens    Int // Tokens in the response/output
+  totalTokens     Int // inputTokens + outputTokens
+  costUsd         Float // Cost in USD for this usage
+  creditsUsed     Decimal  @default(0) @db.Decimal(10, 4) // Credits consumed (with model multiplier applied)
+  modelMultiplier Float    @default(1.0) // Model-based credit multiplier (0.25, 0.5, 1.0, 1.5, etc.)
+  endpoint        String? // "chat", "code-generation", "image-analysis", etc.
+  callType        String   @default("agent") // "agent" | "edit" | "chat" - type of AI interaction
+  createdAt       DateTime @default(now())
 
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
   @@index([model, createdAt])
   @@index([callType, createdAt]) // For analytics by call type
   @@index([createdAt]) // For billing period queries
-  @@map("ai_token_usage")
+  @@map("ai_credit_usage")
 }
 
 // ============================================================================
-// AI USAGE TRACKING
+// BILLING PERIOD USAGE TRACKING
 // ============================================================================
+// One record per billing period to track aggregated usage for invoicing
+// Detailed per-call tracking is in AICreditUsage model
 
 model UsageRecord {
   id                 String           @id @default(cuid())
@@ -250,11 +254,10 @@ model UsageRecord {
   subscriptionId     String
   billingPeriodStart DateTime
   billingPeriodEnd   DateTime
-  // AI Usage (credits-based)
-  aiCreditsUsed      Decimal          @default(0) @db.Decimal(10, 2) // Total credits used in this period (supports 2 decimal places)
-  aiCostUsd          Float            @default(0)
-  // Total
-  totalCostUsd       Float            @default(0)
+  // Aggregated AI Usage (for billing)
+  aiCreditsUsed      Decimal          @default(0) @db.Decimal(10, 2) // Total credits used in this billing period
+  aiCostUsd          Float            @default(0) // Total AI cost in USD
+  totalCostUsd       Float            @default(0) // Total cost (currently just AI, but could include other services)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   subscription       UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)

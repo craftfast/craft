@@ -59,10 +59,10 @@ export async function GET(request: Request) {
         }
 
         // Get total count for pagination
-        const totalCount = await prisma.aITokenUsage.count({ where });
+        const totalCount = await prisma.aICreditUsage.count({ where });
 
         // Get paginated records
-        const records = await prisma.aITokenUsage.findMany({
+        const records = await prisma.aICreditUsage.findMany({
             where,
             orderBy: { createdAt: "desc" },
             skip,
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
         });
 
         // Get unique endpoints for filter
-        const endpoints = await prisma.aITokenUsage.findMany({
+        const endpoints = await prisma.aICreditUsage.findMany({
             where: { userId: user.id, endpoint: { not: null } },
             select: { endpoint: true },
             distinct: ["endpoint"],
@@ -99,11 +99,15 @@ export async function GET(request: Request) {
                 id: record.id,
                 projectId: record.projectId,
                 projectName: projectMap.get(record.projectId) || "Unknown Project",
+                model: record.model,
                 inputTokens: record.inputTokens,
                 outputTokens: record.outputTokens,
                 totalTokens: record.totalTokens,
-                // Calculate credits: 1 credit = 10,000 tokens
-                creditsUsed: Number((record.totalTokens / 10000).toFixed(4)),
+                costUsd: record.costUsd,
+                // Credits with model-based multipliers (now stored in DB)
+                creditsUsed: Number(record.creditsUsed),
+                modelMultiplier: record.modelMultiplier,
+                callType: record.callType || "agent",
                 endpoint: record.endpoint || "chat",
                 createdAt: record.createdAt,
             })),
