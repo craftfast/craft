@@ -16,6 +16,9 @@ model User {
   password                String?
   verificationToken       String?           @unique
   verificationTokenExpiry DateTime?
+  // Password reset
+  passwordResetToken      String?           @unique
+  passwordResetExpiry     DateTime?
   preferredChatPosition   String            @default("right") // "left" or "right"
   preferredTheme          String            @default("dark") // "light" | "dark" | "system"
   // AI Model Preferences
@@ -28,8 +31,35 @@ model User {
   sessions                Session[]
   files                   File[] // All files uploaded by this user
   subscription            UserSubscription?
+  userEmails              UserEmail[] // Alternate email addresses
 
   @@map("users")
+}
+
+// ============================================================================
+// EMAIL MANAGEMENT (ALTERNATE EMAILS)
+// ============================================================================
+// Users can add up to 3 email addresses and set one as primary
+// Provider-based emails (Google/GitHub) are protected from deletion
+
+model UserEmail {
+  id                 String    @id @default(cuid())
+  userId             String
+  email              String    @unique
+  isPrimary          Boolean   @default(false)
+  isVerified         Boolean   @default(false)
+  verificationToken  String?   @unique
+  verificationExpiry DateTime?
+  provider           String?   @default("credentials") // "credentials", "google", "github" - identifies the source
+  providerAccountId  String? // Provider account ID if from OAuth
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
+  @@index([isPrimary])
+  @@map("user_emails")
 }
 
 model Account {

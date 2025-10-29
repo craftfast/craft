@@ -6,6 +6,7 @@ import { SessionProvider } from "@/components/SessionProvider";
 import { CreditBalanceProvider } from "@/contexts/CreditBalanceContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ChatPositionProvider } from "@/contexts/ChatPositionContext";
+import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 import "./globals.css";
 
@@ -93,6 +94,7 @@ export default function RootLayout({
             </ChatPositionProvider>
           </ThemeProvider>
         </SessionProvider>
+        <Toaster />
         <SpeedInsights />
         <Analytics />
       </body>

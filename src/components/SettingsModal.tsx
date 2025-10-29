@@ -16,14 +16,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 import SubscriptionModal from "./SubscriptionModal";
+import EmailManagement from "./EmailManagement";
 import { PRO_TIERS } from "@/lib/pricing-constants";
 import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: "general" | "billing" | "usage" | "account" | "integrations";
+  initialTab?:
+    | "general"
+    | "billing"
+    | "usage"
+    | "account"
+    | "integrations"
+    | "personalization";
 }
 
 interface ExtendedUser {
@@ -137,14 +145,20 @@ interface SubscriptionHistoryData {
   }>;
 }
 
-type SettingsTab = "general" | "billing" | "usage" | "account" | "integrations";
+type SettingsTab =
+  | "general"
+  | "billing"
+  | "usage"
+  | "account"
+  | "integrations"
+  | "personalization";
 
 export default function SettingsModal({
   isOpen,
   onClose,
   initialTab = "general",
 }: SettingsModalProps) {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const { theme, setTheme } = useTheme();
   const { chatPosition, setChatPosition } = useChatPosition();
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
@@ -186,9 +200,30 @@ export default function SettingsModal({
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  // This would be set based on the user's authentication method from the database
-  // For now, we'll assume false (OAuth user). Set to true for email+password users.
-  const hasEmailPassword = false;
+  // Profile management state
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [hasOAuthAccount, setHasOAuthAccount] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Linked accounts state
+  interface LinkedAccounts {
+    google: { email: string | null; connected: boolean } | null;
+    github: { email: string | null; connected: boolean } | null;
+    credentials: { email: string | null; connected: boolean } | null;
+  }
+  const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccounts | null>(
+    null
+  );
+  const [isLoadingLinkedAccounts, setIsLoadingLinkedAccounts] = useState(false);
+  const [showPasswordSetupModal, setShowPasswordSetupModal] = useState(false);
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLinkingProvider, setIsLinkingProvider] = useState(false);
 
   // Reset to initial tab when modal opens
   useEffect(() => {
@@ -204,9 +239,12 @@ export default function SettingsModal({
     }
   }, [activeTab]);
 
-  // Fetch model preferences when general tab is active
+  // Fetch model preferences when general or personalization tab is active
   useEffect(() => {
     if (activeTab === "general") {
+      fetchUserProfile();
+    }
+    if (activeTab === "general" || activeTab === "personalization") {
       fetchModelPreferences();
     }
   }, [activeTab]);
@@ -224,6 +262,13 @@ export default function SettingsModal({
     startDate,
     endDate,
   ]);
+
+  // Fetch linked accounts when account tab is active
+  useEffect(() => {
+    if (activeTab === "account") {
+      fetchLinkedAccounts();
+    }
+  }, [activeTab]);
 
   const fetchBillingData = async () => {
     setIsLoadingBilling(true);
@@ -299,15 +344,264 @@ export default function SettingsModal({
       if (res.ok) {
         const data = await res.json();
         setPreferredModel(data.preferredModel);
+        toast.success("Model preference updated successfully");
       } else {
         const error = await res.json();
-        alert(error.error || "Failed to update model preference");
+        toast.error(error.error || "Failed to update model preference");
       }
     } catch (error) {
       console.error("Error saving model preference:", error);
-      alert("Failed to update model preference");
+      toast.error("Failed to update model preference");
     } finally {
       setIsSavingModelPrefs(false);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    setIsLoadingProfile(true);
+    try {
+      const res = await fetch("/api/user/profile");
+      if (res.ok) {
+        const data = await res.json();
+        setUserName(data.name || "");
+        setUserEmail(data.email || "");
+        setProfileImage(data.image);
+        setHasOAuthAccount(data.hasOAuthAccount);
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!userName.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: userName }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserName(data.user.name || "");
+        // Update the NextAuth session to reflect the name change
+        await update({ name: data.user.name });
+        toast.success("Profile updated successfully");
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast.error("Failed to update profile");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    toast.loading("Uploading profile picture...", { id: "upload-avatar" });
+
+    try {
+      // Create FormData and append file
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/user/upload-avatar", {
+        method: "POST",
+        body: formData, // Send FormData directly (no Content-Type header needed)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setProfileImage(data.user.image);
+        // Update the NextAuth session to reflect the image change
+        await update({ image: data.user.image });
+        toast.success("Profile picture updated successfully", {
+          id: "upload-avatar",
+        });
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to upload profile picture", {
+          id: "upload-avatar",
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload profile picture", {
+        id: "upload-avatar",
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    setIsUploadingImage(true);
+    toast.loading("Removing profile picture...", { id: "remove-avatar" });
+
+    try {
+      const res = await fetch("/api/user/profile/image", {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setProfileImage(null);
+        // Update the NextAuth session to reflect the image removal
+        await update({ image: null });
+        toast.success("Profile picture removed successfully", {
+          id: "remove-avatar",
+        });
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to remove profile picture", {
+          id: "remove-avatar",
+        });
+      }
+    } catch (error) {
+      console.error("Error removing image:", error);
+      toast.error("Failed to remove profile picture", { id: "remove-avatar" });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const fetchLinkedAccounts = async () => {
+    setIsLoadingLinkedAccounts(true);
+    try {
+      const res = await fetch("/api/auth/linked-accounts");
+      if (res.ok) {
+        const data = await res.json();
+        setLinkedAccounts(data.accounts);
+      } else {
+        console.error("Failed to fetch linked accounts");
+      }
+    } catch (error) {
+      console.error("Error fetching linked accounts:", error);
+    } finally {
+      setIsLoadingLinkedAccounts(false);
+    }
+  };
+
+  const handleSetPassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters long");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setIsSettingPassword(true);
+    try {
+      const res = await fetch("/api/auth/set-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      if (res.ok) {
+        toast.success(
+          "Password set successfully! You can now sign in with email and password."
+        );
+        setShowPasswordSetupModal(false);
+        setNewPassword("");
+        setConfirmPassword("");
+        // Refresh linked accounts
+        await fetchLinkedAccounts();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to set password");
+      }
+    } catch (error) {
+      console.error("Error setting password:", error);
+      toast.error("Failed to set password");
+    } finally {
+      setIsSettingPassword(false);
+    }
+  };
+
+  const handleLinkProvider = async (provider: "google" | "github") => {
+    setIsLinkingProvider(true);
+    try {
+      // Redirect to OAuth provider with callback to link account
+      const callbackUrl = `${window.location.origin}/auth/link-callback?provider=${provider}`;
+      window.location.href = `/api/auth/signin/${provider}?callbackUrl=${encodeURIComponent(
+        callbackUrl
+      )}`;
+    } catch (error) {
+      console.error("Error linking provider:", error);
+      toast.error("Failed to link account");
+      setIsLinkingProvider(false);
+    }
+  };
+
+  const handleUnlinkProvider = async (
+    provider: "google" | "github" | "credentials"
+  ) => {
+    // Confirm before unlinking
+    const providerName =
+      provider === "credentials"
+        ? "Email+Password"
+        : provider.charAt(0).toUpperCase() + provider.slice(1);
+
+    if (
+      !confirm(
+        `Are you sure you want to unlink ${providerName} authentication? Make sure you have another way to sign in.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/unlink-provider", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider }),
+      });
+
+      if (res.ok) {
+        toast.success(`${providerName} authentication removed successfully`);
+        // Refresh linked accounts
+        await fetchLinkedAccounts();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to unlink provider");
+      }
+    } catch (error) {
+      console.error("Error unlinking provider:", error);
+      toast.error("Failed to unlink provider");
     }
   };
 
@@ -375,6 +669,7 @@ export default function SettingsModal({
 
   const menuItems = [
     { id: "general" as SettingsTab, label: "General" },
+    { id: "personalization" as SettingsTab, label: "Personalization" },
     { id: "billing" as SettingsTab, label: "Billing" },
     { id: "usage" as SettingsTab, label: "Usage" },
     { id: "account" as SettingsTab, label: "Account" },
@@ -470,6 +765,22 @@ export default function SettingsModal({
             />
           </svg>
         );
+      case "personalization":
+        return (
+          <svg
+            className={iconClass}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+            />
+          </svg>
+        );
     }
   };
 
@@ -551,192 +862,7 @@ export default function SettingsModal({
             {/* General Tab */}
             {activeTab === "general" && (
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
-                    Profile
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        value={session?.user?.name || ""}
-                        readOnly
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-muted text-foreground cursor-not-allowed text-sm"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1.5">
-                        Your display name from your authentication provider
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">
-                        Email
-                      </label>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="email"
-                            value={session?.user?.email || ""}
-                            readOnly
-                            className="flex-1 px-3.5 py-2.5 rounded-xl border border-input bg-muted text-foreground cursor-not-allowed text-sm"
-                          />
-                          {(session?.user as any)?.hasPassword &&
-                            !(session?.user as any)?.emailVerified && (
-                              <span
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-700 dark:text-yellow-400 text-xs font-medium"
-                                title="Email not verified"
-                              >
-                                <svg
-                                  className="w-3.5 h-3.5"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                Not Verified
-                              </span>
-                            )}
-                          {(session?.user as any)?.hasPassword &&
-                            (session?.user as any)?.emailVerified && (
-                              <span
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-xs font-medium"
-                                title="Email verified"
-                              >
-                                <svg
-                                  className="w-3.5 h-3.5"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                Verified
-                              </span>
-                            )}
-                        </div>
-                        {(session?.user as any)?.hasPassword &&
-                          !(session?.user as any)?.emailVerified && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch(
-                                    "/api/auth/resend-verification",
-                                    {
-                                      method: "POST",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                      },
-                                      body: JSON.stringify({
-                                        email: session?.user?.email,
-                                      }),
-                                    }
-                                  );
-                                  if (response.ok) {
-                                    alert(
-                                      "Verification email sent! Please check your inbox."
-                                    );
-                                  } else {
-                                    const data = await response.json();
-                                    alert(
-                                      data.error ||
-                                        "Failed to send verification email"
-                                    );
-                                  }
-                                } catch {
-                                  alert("Failed to send verification email");
-                                }
-                              }}
-                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              Resend verification email
-                            </button>
-                          )}
-                        <p className="text-xs text-muted-foreground">
-                          {(session?.user as any)?.hasPassword
-                            ? "Your email address"
-                            : "Managed by your authentication provider (OAuth)"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">
-                        Profile Picture
-                      </label>
-                      <div className="flex items-center gap-4">
-                        {session?.user?.image ? (
-                          <img
-                            src={session.user.image}
-                            alt={session.user.name || "User"}
-                            className="w-16 h-16 rounded-full object-cover ring-2 ring-ring"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-2xl font-semibold ring-2 ring-ring">
-                            {session?.user?.name?.[0]?.toUpperCase() ||
-                              session?.user?.email?.[0]?.toUpperCase() ||
-                              "U"}
-                          </div>
-                        )}
-                        <p className="text-sm text-muted-foreground">
-                          Profile picture is managed by your authentication
-                          provider
-                        </p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label
-                        htmlFor="location"
-                        className="text-muted-foreground mb-2"
-                      >
-                        Location
-                      </Label>
-                      <Input
-                        id="location"
-                        type="text"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="e.g., San Francisco, CA"
-                        className="rounded-xl"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1.5">
-                        Where you&apos;re based.
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label
-                        htmlFor="profile-link"
-                        className="text-muted-foreground mb-2"
-                      >
-                        Link
-                      </Label>
-                      <Input
-                        id="profile-link"
-                        type="url"
-                        value={profileLink}
-                        onChange={(e) => setProfileLink(e.target.value)}
-                        placeholder="https://yourwebsite.com"
-                        className="rounded-xl"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1.5">
-                        Add a link to your personal website or portfolio.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-6">
+                <div className="pt-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4">
                     Appearance
                   </h3>
@@ -843,6 +969,46 @@ export default function SettingsModal({
                 </div>
 
                 <div className="border-t border-border pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        Suggestions
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Get relevant in-chat suggestions to refine your project.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={suggestionsEnabled}
+                      onCheckedChange={setSuggestionsEnabled}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        Sound Notifications
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        A new sound will play when v0 is finished responding and
+                        the window is not focused.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={soundNotifications}
+                      onCheckedChange={setSoundNotifications}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Personalization Tab */}
+            {activeTab === "personalization" && (
+              <div className="space-y-6">
+                <div className="pt-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4">
                     Preferred AI Model
                   </h3>
@@ -979,41 +1145,6 @@ export default function SettingsModal({
                         </p>
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">
-                        Suggestions
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Get relevant in-chat suggestions to refine your project.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={suggestionsEnabled}
-                      onCheckedChange={setSuggestionsEnabled}
-                    />
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">
-                        Sound Notifications
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        A new sound will play when v0 is finished responding and
-                        the window is not focused.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={soundNotifications}
-                      onCheckedChange={setSoundNotifications}
-                    />
                   </div>
                 </div>
               </div>
@@ -1168,7 +1299,7 @@ export default function SettingsModal({
                                       "Error changing Pro tier:",
                                       error
                                     );
-                                    alert(
+                                    toast.error(
                                       "Failed to change tier. Please try again."
                                     );
                                   } finally {
@@ -1196,38 +1327,47 @@ export default function SettingsModal({
                                 variant="outline"
                                 className="w-full rounded-full h-12 text-base"
                                 onClick={async () => {
-                                  if (
-                                    confirm(
-                                      "Are you sure you want to downgrade to Hobby? This will take effect at the end of your billing period."
-                                    )
-                                  ) {
-                                    try {
-                                      const res = await fetch(
-                                        "/api/billing/change-plan",
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                          },
-                                          body: JSON.stringify({
-                                            targetPlan: "HOBBY",
-                                          }),
+                                  // Show toast with action button for confirmation
+                                  toast("Downgrade to Hobby plan?", {
+                                    description:
+                                      "This will take effect at the end of your billing period.",
+                                    action: {
+                                      label: "Confirm",
+                                      onClick: async () => {
+                                        try {
+                                          const res = await fetch(
+                                            "/api/billing/change-plan",
+                                            {
+                                              method: "POST",
+                                              headers: {
+                                                "Content-Type":
+                                                  "application/json",
+                                              },
+                                              body: JSON.stringify({
+                                                targetPlan: "HOBBY",
+                                              }),
+                                            }
+                                          );
+                                          const data = await res.json();
+                                          if (
+                                            data.action ===
+                                            "scheduled_downgrade"
+                                          ) {
+                                            toast.success(data.message);
+                                            fetchBillingData(); // Refresh data
+                                          }
+                                        } catch (error) {
+                                          console.error(
+                                            "Error downgrading:",
+                                            error
+                                          );
+                                          toast.error(
+                                            "Failed to downgrade. Please try again."
+                                          );
                                         }
-                                      );
-                                      const data = await res.json();
-                                      if (
-                                        data.action === "scheduled_downgrade"
-                                      ) {
-                                        alert(data.message);
-                                        fetchBillingData(); // Refresh data
-                                      }
-                                    } catch (error) {
-                                      console.error(
-                                        "Error downgrading:",
-                                        error
-                                      );
-                                    }
-                                  }
+                                      },
+                                    },
+                                  });
                                 }}
                               >
                                 Downgrade to Hobby
@@ -1443,7 +1583,7 @@ export default function SettingsModal({
                                   "Error purchasing Pro plan:",
                                   error
                                 );
-                                alert(
+                                toast.error(
                                   "Failed to initiate purchase. Please try again."
                                 );
                               } finally {
@@ -1875,7 +2015,180 @@ export default function SettingsModal({
             {/* Account Tab */}
             {activeTab === "account" && (
               <div className="space-y-6">
+                {/* Profile Section */}
                 <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
+                    Profile
+                  </h3>
+                  <div className="space-y-4">
+                    {/* Profile Picture */}
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
+                        Profile Picture
+                      </label>
+                      <div className="flex items-center gap-4">
+                        {profileImage || session?.user?.image ? (
+                          <img
+                            src={profileImage || session?.user?.image || ""}
+                            alt={userName || session?.user?.name || "User"}
+                            className="w-20 h-20 rounded-full object-cover ring-2 ring-ring"
+                          />
+                        ) : (
+                          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-2xl font-semibold ring-2 ring-ring">
+                            {userName?.[0]?.toUpperCase() ||
+                              session?.user?.name?.[0]?.toUpperCase() ||
+                              userEmail?.[0]?.toUpperCase() ||
+                              session?.user?.email?.[0]?.toUpperCase() ||
+                              "U"}
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-2">
+                          {/* Show "Upload Image" if no profile picture */}
+                          {!(profileImage || session?.user?.image) && (
+                            <label htmlFor="avatar-upload">
+                              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer text-sm font-medium transition-colors">
+                                {isUploadingImage ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                      />
+                                    </svg>
+                                    Upload Image
+                                  </>
+                                )}
+                              </span>
+                              <input
+                                id="avatar-upload"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                                disabled={isUploadingImage}
+                              />
+                            </label>
+                          )}
+
+                          {/* Show "Update" and "Remove" options if profile picture exists */}
+                          {(profileImage || session?.user?.image) && (
+                            <>
+                              <label htmlFor="avatar-upload-update">
+                                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer text-sm font-medium transition-colors">
+                                  {isUploadingImage ? (
+                                    <>
+                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                      Uploading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                        />
+                                      </svg>
+                                      Update Image
+                                    </>
+                                  )}
+                                </span>
+                                <input
+                                  id="avatar-upload-update"
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleImageUpload}
+                                  className="hidden"
+                                  disabled={isUploadingImage}
+                                />
+                              </label>
+                              <button
+                                onClick={handleRemoveImage}
+                                disabled={isUploadingImage}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                                Remove Image
+                              </button>
+                            </>
+                          )}
+
+                          <p className="text-xs text-muted-foreground">
+                            JPG, PNG, GIF or WebP. Max 5MB.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
+                        Name
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          placeholder="Your name"
+                          className="flex-1 px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          disabled={isLoadingProfile}
+                        />
+                        <Button
+                          onClick={handleSaveProfile}
+                          disabled={
+                            isSavingProfile ||
+                            isLoadingProfile ||
+                            !userName.trim()
+                          }
+                          className="rounded-full"
+                        >
+                          {isSavingProfile ? "Saving..." : "Save"}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Your display name visible to others
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Management Section */}
+                <div className="border-t border-border pt-6">
+                  <EmailManagement />
+                </div>
+
+                <div className="border-t border-border pt-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4">
                     Account Information
                   </h3>
@@ -1914,84 +2227,210 @@ export default function SettingsModal({
                   <p className="text-sm text-muted-foreground mb-4">
                     Manage authentication providers linked to your account.
                   </p>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-input flex items-center justify-center">
-                          <svg className="w-5 h-5" viewBox="0 0 24 24">
-                            <path
-                              fill="#4285F4"
-                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                            />
-                            <path
-                              fill="#34A853"
-                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                            />
-                            <path
-                              fill="#FBBC05"
-                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                            />
-                            <path
-                              fill="#EA4335"
-                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                            />
-                          </svg>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-foreground">
-                              Google
-                            </p>
-                            <span className="px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground rounded-full">
-                              Primary
-                            </span>
+
+                  {isLoadingLinkedAccounts ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : linkedAccounts ? (
+                    <div className="space-y-3">
+                      {/* Google */}
+                      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-input flex items-center justify-center">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24">
+                              <path
+                                fill="#4285F4"
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                              />
+                              <path
+                                fill="#34A853"
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                              />
+                              <path
+                                fill="#FBBC05"
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                              />
+                              <path
+                                fill="#EA4335"
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                              />
+                            </svg>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {session?.user?.email || "sudheerkm72@gmail.com"}
-                          </p>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground">
+                                Google
+                              </p>
+                              {linkedAccounts.google?.connected && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground rounded-full">
+                                  Connected
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {linkedAccounts.google?.connected
+                                ? linkedAccounts.google.email ||
+                                  session?.user?.email
+                                : "Not connected"}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <button className="px-3 py-1.5 text-xs font-medium text-muted-foreground border border-input rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-                        Manage
-                      </button>
-                    </div>
-
-                    {/* GitHub - Not Connected */}
-                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-input flex items-center justify-center">
-                          <svg
-                            className="w-5 h-5 text-muted-foreground"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
+                        {linkedAccounts.google?.connected ? (
+                          <button
+                            onClick={() => handleUnlinkProvider("google")}
+                            className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-600 dark:border-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                           >
-                            <path
-                              fillRule="evenodd"
-                              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            GitHub
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Not connected
-                          </p>
-                        </div>
+                            Unlink
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleLinkProvider("google")}
+                            disabled={isLinkingProvider}
+                            className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                          >
+                            {isLinkingProvider ? "Connecting..." : "Connect"}
+                          </button>
+                        )}
                       </div>
-                      <button className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-                        Connect
-                      </button>
-                    </div>
 
-                    {/* Email + Password */}
-                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-input flex items-center justify-center">
+                      {/* GitHub */}
+                      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-input flex items-center justify-center">
+                            <svg
+                              className="w-5 h-5 text-muted-foreground"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground">
+                                GitHub
+                              </p>
+                              {linkedAccounts.github?.connected && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground rounded-full">
+                                  Connected
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {linkedAccounts.github?.connected
+                                ? linkedAccounts.github.email ||
+                                  session?.user?.email
+                                : "Not connected"}
+                            </p>
+                          </div>
+                        </div>
+                        {linkedAccounts.github?.connected ? (
+                          <button
+                            onClick={() => handleUnlinkProvider("github")}
+                            className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-600 dark:border-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                          >
+                            Unlink
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleLinkProvider("github")}
+                            disabled={isLinkingProvider}
+                            className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                          >
+                            {isLinkingProvider ? "Connecting..." : "Connect"}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Email + Password */}
+                      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 border border-input flex items-center justify-center">
+                            <svg
+                              className="w-5 h-5 text-muted-foreground"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground">
+                                Email + Password
+                              </p>
+                              {linkedAccounts.credentials?.connected && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground rounded-full">
+                                  Connected
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {linkedAccounts.credentials?.connected
+                                ? linkedAccounts.credentials.email ||
+                                  session?.user?.email
+                                : "Not connected"}
+                            </p>
+                          </div>
+                        </div>
+                        {linkedAccounts.credentials?.connected ? (
+                          <button
+                            onClick={() => handleUnlinkProvider("credentials")}
+                            className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-600 dark:border-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setShowPasswordSetupModal(true)}
+                            className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                          >
+                            Set up
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Failed to load linked accounts
+                    </p>
+                  )}
+                </div>
+
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
+                    Security
+                  </h3>
+                  <div className="space-y-4">
+                    {/* Password Section */}
+                    {linkedAccounts?.credentials?.connected ? (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Change your password to keep your account secure.
+                        </p>
+                        <button
+                          disabled
+                          className="w-full px-4 py-3 text-sm font-medium text-muted-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Change Password (Coming Soon)
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-muted/50 rounded-xl border border-input">
+                        <div className="flex items-start gap-3">
                           <svg
-                            className="w-5 h-5 text-muted-foreground"
+                            className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -2000,63 +2439,43 @@ export default function SettingsModal({
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            Email + Password
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Not connected
-                          </p>
+                          <div>
+                            <p className="text-sm font-medium text-foreground mb-1">
+                              Password Not Available
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              You&apos;re signed in with{" "}
+                              {linkedAccounts?.google?.connected
+                                ? "Google"
+                                : "GitHub"}
+                              . To use a password, set up Email + Password
+                              authentication in the Linked sign-in providers
+                              section above.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      <button className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-                        Set up
+                    )}
+
+                    {/* Two-Factor Authentication Section */}
+                    <div className="pt-4 border-t border-border">
+                      <h4 className="text-sm font-medium text-foreground mb-2">
+                        Two-Factor Authentication
+                      </h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Add an extra layer of security to your account with 2FA.
+                      </p>
+                      <button
+                        disabled
+                        className="w-full px-4 py-3 text-sm font-medium text-muted-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Enable Two-Factor Authentication (Coming Soon)
                       </button>
                     </div>
                   </div>
-                </div>
-
-                <div className="border-t border-border pt-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
-                    Security
-                  </h3>
-                  {hasEmailPassword ? (
-                    <button className="w-full px-4 py-3 text-sm font-medium bg-accent text-foreground rounded-xl hover:bg-accent/80 transition-colors">
-                      Change Password
-                    </button>
-                  ) : (
-                    <div className="p-4 bg-muted/50 rounded-xl border border-input">
-                      <div className="flex items-start gap-3">
-                        <svg
-                          className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <div>
-                          <p className="text-sm font-medium text-foreground mb-1">
-                            Password Not Available
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            You&apos;re signed in with Google or GitHub. To use
-                            a password, set up Email + Password authentication
-                            in the Linked sign-in providers section above.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* API Keys Section */}
@@ -2312,6 +2731,122 @@ export default function SettingsModal({
         currentPlan={subscriptionData?.plan.name || "HOBBY"}
         targetPlan={targetPlan}
       />
+
+      {/* Password Setup Modal */}
+      {showPasswordSetupModal &&
+        typeof window !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => {
+                setShowPasswordSetupModal(false);
+                setNewPassword("");
+                setConfirmPassword("");
+              }}
+            />
+
+            {/* Modal */}
+            <div className="relative bg-background border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-foreground">
+                  Set Up Password
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowPasswordSetupModal(false);
+                    setNewPassword("");
+                    setConfirmPassword("");
+                  }}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5 text-muted-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-6">
+                Add a password to enable signing in with email and password as a
+                backup authentication method.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <Label
+                    htmlFor="new-password"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    New Password
+                  </Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter password (min 8 characters)"
+                    className="mt-1.5"
+                    disabled={isSettingPassword}
+                  />
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="confirm-password"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    Confirm Password
+                  </Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                    className="mt-1.5"
+                    disabled={isSettingPassword}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    onClick={() => {
+                      setShowPasswordSetupModal(false);
+                      setNewPassword("");
+                      setConfirmPassword("");
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={isSettingPassword}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSetPassword}
+                    className="flex-1"
+                    disabled={
+                      isSettingPassword || !newPassword || !confirmPassword
+                    }
+                  >
+                    {isSettingPassword ? "Setting up..." : "Set Password"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }
