@@ -305,20 +305,97 @@ export default function CraftInput() {
   };
 
   const handleSubmit = async () => {
-    if (!input.trim() || isCreating) return;
-
-    // Check if tokens are exhausted
-    if (isTokensExhausted) {
-      setErrorMessage(
-        "You've run out of AI tokens. Please upgrade to Pro or purchase additional tokens to continue."
-      );
-      setShowPricingModal(true);
-      return;
-    }
+    const trimmedInput = input.trim();
+    if (!trimmedInput || isCreating) return;
 
     setIsCreating(true);
+    setErrorMessage(null); // Clear any previous errors
 
     try {
+      // Check if user is authenticated
+      const checkAuthResponse = await fetch("/api/projects", {
+        method: "GET",
+      });
+
+      // If unauthorized (401), store prompt and redirect to signup
+      if (checkAuthResponse.status === 401) {
+        console.log(
+          "🔒 User not authenticated, storing prompt and redirecting to signup"
+        );
+
+        // Check if localStorage is available
+        if (typeof window === "undefined" || !window.localStorage) {
+          console.error("❌ localStorage not available");
+          setErrorMessage(
+            "Your browser doesn't support local storage. Please enable cookies and try again."
+          );
+          setIsCreating(false);
+          return;
+        }
+
+        // Check if there's already a pending project
+        const existingPending = localStorage.getItem("pendingProject");
+        if (existingPending) {
+          try {
+            const existing = JSON.parse(existingPending);
+            // Check if it's recent (not expired)
+            const isRecent =
+              Date.now() - existing.timestamp < 24 * 60 * 60 * 1000;
+            if (isRecent) {
+              console.log("⚠️ Overwriting existing pending project");
+            }
+          } catch (e) {
+            // Ignore parse errors, will overwrite anyway
+          }
+        }
+
+        // Store the prompt, images, and selected model in localStorage
+        try {
+          localStorage.setItem(
+            "pendingProject",
+            JSON.stringify({
+              prompt: trimmedInput, // Use trimmed input
+              images: selectedImages,
+              selectedModel: selectedModel,
+              timestamp: Date.now(),
+            })
+          );
+        } catch (storageError) {
+          console.error("❌ Failed to store in localStorage:", storageError);
+
+          // Check if it's a quota exceeded error
+          if (
+            storageError instanceof DOMException &&
+            (storageError.name === "QuotaExceededError" ||
+              storageError.name === "NS_ERROR_DOM_QUOTA_REACHED")
+          ) {
+            setErrorMessage(
+              "Browser storage is full. Please clear some space and try again."
+            );
+          } else {
+            setErrorMessage(
+              "Failed to save your prompt. Please check your browser settings and try again."
+            );
+          }
+          setIsCreating(false);
+          return;
+        }
+
+        // Redirect to signup with callback to home page
+        router.push("/auth/signup?callbackUrl=/");
+        return;
+      }
+
+      // User is authenticated - check if tokens are exhausted
+      if (isTokensExhausted) {
+        setErrorMessage(
+          "You've run out of AI tokens. Please upgrade to Pro or purchase additional tokens to continue."
+        );
+        setShowPricingModal(true);
+        setIsCreating(false);
+        return;
+      }
+
       // Create a new project with default name "New Project"
       const response = await fetch("/api/projects", {
         method: "POST",
@@ -378,6 +455,16 @@ export default function CraftInput() {
       }
     } catch (error) {
       console.error("Error creating project:", error);
+
+      // Handle network errors gracefully
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        setErrorMessage(
+          "Network error. Please check your connection and try again."
+        );
+      } else {
+        setErrorMessage("An unexpected error occurred. Please try again.");
+      }
+
       setIsCreating(false);
     }
   };
