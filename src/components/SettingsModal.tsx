@@ -1323,8 +1323,13 @@ export default function SettingsModal({
                                 Credits Remaining Today
                               </span>
                               <span className="text-2xl font-bold text-foreground">
-                                {creditBalanceData?.daily.remaining || 0} /{" "}
-                                {creditBalanceData?.daily.limit || 0}
+                                {(
+                                  creditBalanceData?.daily.remaining || 0
+                                ).toFixed(2)}{" "}
+                                /{" "}
+                                {(creditBalanceData?.daily.limit || 0).toFixed(
+                                  2
+                                )}
                               </span>
                             </div>
                             <div className="w-full bg-muted rounded-full h-2">
@@ -1352,7 +1357,9 @@ export default function SettingsModal({
                                 Credits Used Today
                               </span>
                               <span className="text-sm font-semibold text-foreground">
-                                {creditBalanceData?.daily.used || 0}
+                                {(creditBalanceData?.daily.used || 0).toFixed(
+                                  2
+                                )}
                               </span>
                             </div>
                           </div>

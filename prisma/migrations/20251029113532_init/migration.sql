@@ -162,7 +162,7 @@ CREATE TABLE "user_subscriptions" (
 );
 
 -- CreateTable
-CREATE TABLE "ai_token_usage" (
+CREATE TABLE "ai_credit_usage" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
@@ -171,11 +171,13 @@ CREATE TABLE "ai_token_usage" (
     "outputTokens" INTEGER NOT NULL,
     "totalTokens" INTEGER NOT NULL,
     "costUsd" DOUBLE PRECISION NOT NULL,
+    "creditsUsed" DECIMAL(10,4) NOT NULL DEFAULT 0,
+    "modelMultiplier" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
     "endpoint" TEXT,
     "callType" TEXT NOT NULL DEFAULT 'agent',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "ai_token_usage_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ai_credit_usage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -428,19 +430,19 @@ CREATE INDEX "user_subscriptions_status_idx" ON "user_subscriptions"("status");
 CREATE INDEX "user_subscriptions_currentPeriodEnd_idx" ON "user_subscriptions"("currentPeriodEnd");
 
 -- CreateIndex
-CREATE INDEX "ai_token_usage_userId_createdAt_idx" ON "ai_token_usage"("userId", "createdAt");
+CREATE INDEX "ai_credit_usage_userId_createdAt_idx" ON "ai_credit_usage"("userId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "ai_token_usage_projectId_createdAt_idx" ON "ai_token_usage"("projectId", "createdAt");
+CREATE INDEX "ai_credit_usage_projectId_createdAt_idx" ON "ai_credit_usage"("projectId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "ai_token_usage_model_createdAt_idx" ON "ai_token_usage"("model", "createdAt");
+CREATE INDEX "ai_credit_usage_model_createdAt_idx" ON "ai_credit_usage"("model", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "ai_token_usage_callType_createdAt_idx" ON "ai_token_usage"("callType", "createdAt");
+CREATE INDEX "ai_credit_usage_callType_createdAt_idx" ON "ai_credit_usage"("callType", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "ai_token_usage_createdAt_idx" ON "ai_token_usage"("createdAt");
+CREATE INDEX "ai_credit_usage_createdAt_idx" ON "ai_credit_usage"("createdAt");
 
 -- CreateIndex
 CREATE INDEX "usage_records_userId_billingPeriodStart_idx" ON "usage_records"("userId", "billingPeriodStart");
