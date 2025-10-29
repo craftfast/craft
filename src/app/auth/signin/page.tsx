@@ -5,6 +5,8 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function SignInContent() {
   const router = useRouter();
@@ -19,6 +21,7 @@ function SignInContent() {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,10 +127,11 @@ function SignInContent() {
           {/* Auth Options */}
           <div className="space-y-3">
             {/* OAuth Buttons */}
-            <button
+            <Button
               onClick={() => handleOAuthSignIn("google")}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="outline"
+              className="w-full h-12 rounded-full"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -147,26 +151,20 @@ function SignInContent() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              <span className="text-[15px] text-neutral-900 dark:text-neutral-100">
-                Continue with Google
-              </span>
-            </button>
+              <span className="text-[15px]">Continue with Google</span>
+            </Button>
 
-            <button
+            <Button
               onClick={() => handleOAuthSignIn("github")}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="outline"
+              className="w-full h-12 rounded-full"
             >
-              <svg
-                className="w-5 h-5 fill-neutral-900 dark:fill-neutral-100"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
               </svg>
-              <span className="text-[15px] text-neutral-900 dark:text-neutral-100">
-                Continue with GitHub
-              </span>
-            </button>
+              <span className="text-[15px]">Continue with GitHub</span>
+            </Button>
           </div>
 
           {/* Divider */}
@@ -188,16 +186,17 @@ function SignInContent() {
                 {error}
                 {needsVerification && (
                   <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
-                    <button
+                    <Button
                       type="button"
                       onClick={handleResendVerification}
                       disabled={resendingVerification}
-                      className="text-sm text-neutral-900 dark:text-neutral-100 hover:underline font-medium disabled:opacity-50"
+                      variant="link"
+                      className="p-0 h-auto text-sm font-medium"
                     >
                       {resendingVerification
                         ? "Sending..."
                         : "Resend verification email"}
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -210,36 +209,80 @@ function SignInContent() {
             )}
 
             <div>
-              <input
+              <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 focus:border-transparent transition-all text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
+                className="h-12 rounded-full px-5"
                 placeholder="Email address"
               />
             </div>
 
             <div>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 focus:border-transparent transition-all text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
-                placeholder="Password"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-12 rounded-full px-5 pr-12"
+                  placeholder="Password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-400 transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-3 rounded-full font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 rounded-full"
             >
               {loading ? "Continuing..." : "Continue"}
-            </button>
+            </Button>
           </form>
 
           {/* Footer text */}
