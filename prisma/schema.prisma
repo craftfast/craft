@@ -19,6 +19,10 @@ model User {
   // Password reset
   passwordResetToken      String?              @unique
   passwordResetExpiry     DateTime?
+  // Account lockout (Issue 13)
+  failedLoginAttempts     Int                  @default(0)
+  lockedUntil             DateTime?
+  lastFailedLoginAt       DateTime?
   preferredChatPosition   String               @default("right") // "left" or "right"
   preferredTheme          String               @default("dark") // "light" | "dark" | "system"
   // AI Model Preferences

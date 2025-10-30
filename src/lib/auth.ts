@@ -51,6 +51,16 @@ export const authOptions = {
                     throw new Error("Invalid credentials");
                 }
 
+                // Check if account is locked (Issue 13)
+                if (user.lockedUntil && user.lockedUntil > new Date()) {
+                    const remainingMinutes = Math.ceil(
+                        (user.lockedUntil.getTime() - Date.now()) / (1000 * 60)
+                    );
+                    throw new Error(
+                        `Account is locked due to multiple failed login attempts. Please try again in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}.`
+                    );
+                }
+
                 // Check if email is verified
                 if (!user.emailVerified) {
                     throw new Error("Please verify your email before signing in");
@@ -62,7 +72,53 @@ export const authOptions = {
                 );
 
                 if (!isPasswordValid) {
-                    throw new Error("Invalid credentials");
+                    // Increment failed login attempts (Issue 13)
+                    const failedAttempts = (user.failedLoginAttempts || 0) + 1;
+                    const LOCKOUT_THRESHOLD = 5;
+                    const LOCKOUT_DURATION_MINUTES = 30; // 30 minutes
+
+                    if (failedAttempts >= LOCKOUT_THRESHOLD) {
+                        // Lock the account for 30 minutes
+                        const lockedUntil = new Date(
+                            Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000
+                        );
+
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: {
+                                failedLoginAttempts: failedAttempts,
+                                lockedUntil,
+                                lastFailedLoginAt: new Date(),
+                            },
+                        });
+
+                        throw new Error(
+                            `Account locked due to ${LOCKOUT_THRESHOLD} failed login attempts. Please try again in ${LOCKOUT_DURATION_MINUTES} minutes.`
+                        );
+                    } else {
+                        // Update failed attempts count
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: {
+                                failedLoginAttempts: failedAttempts,
+                                lastFailedLoginAt: new Date(),
+                            },
+                        });
+
+                        throw new Error("Invalid credentials");
+                    }
+                }
+
+                // Successful login - reset failed attempts and unlock account (Issue 13)
+                if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: {
+                            failedLoginAttempts: 0,
+                            lockedUntil: null,
+                            lastFailedLoginAt: null,
+                        },
+                    });
                 }
 
                 return {
