@@ -79,7 +79,9 @@ export async function POST(request: NextRequest) {
         });
 
         // Send verification email to NEW email address
-        const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/user/verify-email-change?token=${verificationToken}&email=${encodeURIComponent(newEmail)}`;
+        // The URL now points to a landing page that will handle POST-based verification
+        // instead of passing tokens directly in the URL to the API endpoint
+        const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify-email-change?token=${verificationToken}&email=${encodeURIComponent(newEmail)}`;
 
         await sendEmail({
             to: newEmail,

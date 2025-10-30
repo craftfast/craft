@@ -2,17 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 /**
- * Verify and complete email change
+ * Verify and complete email change using POST request
+ * Tokens are sent in the request body instead of URL parameters
+ * to prevent token leakage in browser history and server logs
  */
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
     try {
-        const searchParams = request.nextUrl.searchParams;
-        const token = searchParams.get("token");
-        const newEmail = searchParams.get("email");
+        const body = await request.json();
+        const { token, email: newEmail } = body;
 
         if (!token || !newEmail) {
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/settings?error=Invalid verification link`
+            return NextResponse.json(
+                { error: "Invalid verification link. Missing required parameters." },
+                { status: 400 }
+            );
+        }
+
+        // Validate token format (should be UUID)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(token)) {
+            return NextResponse.json(
+                { error: "Invalid token format" },
+                { status: 400 }
+            );
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newEmail)) {
+            return NextResponse.json(
+                { error: "Invalid email format" },
+                { status: 400 }
             );
         }
 
@@ -27,19 +47,21 @@ export async function GET(request: NextRequest) {
         });
 
         if (!user) {
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/settings?error=Invalid or expired verification token`
+            return NextResponse.json(
+                { error: "Invalid or expired verification token" },
+                { status: 400 }
             );
         }
 
         // Double-check that the new email is not taken by another user
         const existingUser = await prisma.user.findUnique({
-            where: { email: decodeURIComponent(newEmail) },
+            where: { email: newEmail },
         });
 
         if (existingUser && existingUser.id !== user.id) {
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/settings?error=Email already in use`
+            return NextResponse.json(
+                { error: "Email already in use" },
+                { status: 400 }
             );
         }
 
@@ -47,20 +69,22 @@ export async function GET(request: NextRequest) {
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                email: decodeURIComponent(newEmail),
+                email: newEmail,
                 emailVerified: new Date(), // Mark as verified
                 verificationToken: null,
                 verificationTokenExpiry: null,
             },
         });
 
-        return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}/settings?success=Email changed successfully`
-        );
+        return NextResponse.json({
+            success: true,
+            message: "Email changed successfully",
+        });
     } catch (error) {
         console.error("Email change verification error:", error);
-        return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}/settings?error=Failed to verify email change`
+        return NextResponse.json(
+            { error: "Failed to verify email change" },
+            { status: 500 }
         );
     }
 }
