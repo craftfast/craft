@@ -102,31 +102,9 @@ export default function DashboardHeader({
             </span>
           )}
         </div>
-        {/* Center column - Upgrade button */}
+        {/* Center column - Empty */}
         <div className="flex items-center justify-center">
-          {planName === "HOBBY" && (
-            <button
-              onClick={() => {
-                setIsSettingsOpen(true);
-              }}
-              className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
-            >
-              <svg
-                className="w-4 h-4 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-              <span className="whitespace-nowrap">Upgrade to Pro</span>
-            </button>
-          )}
+          {/* Upgrade button removed */}
         </div>
         {/* Right column - Actions and user menu */}
         <div className="flex items-center gap-2 justify-end">
@@ -162,29 +140,6 @@ export default function DashboardHeader({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {planName === "HOBBY" && (
-            <button
-              onClick={() => {
-                setIsSettingsOpen(true);
-              }}
-              className="flex items-center leading-tight gap-2 px-3 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full transition-colors shadow-sm"
-            >
-              <svg
-                className="w-4 h-4 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-              <span className="hidden xl:inline">Upgrade to Pro</span>
-            </button>
-          )}
           <CreditCounter
             onClickAction={() => {
               if (planName === "HOBBY") {

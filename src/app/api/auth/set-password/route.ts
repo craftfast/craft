@@ -63,43 +63,6 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        // Create or update UserEmail entry for credentials authentication
-        const userEmail = await prisma.userEmail.findFirst({
-            where: {
-                userId,
-                email: user.email,
-                provider: "credentials",
-            },
-        });
-
-        if (!userEmail) {
-            // Check if email exists with another provider
-            const existingEmail = await prisma.userEmail.findUnique({
-                where: { email: user.email },
-            });
-
-            if (existingEmail) {
-                // Update the provider to indicate it now supports credentials
-                await prisma.userEmail.update({
-                    where: { id: existingEmail.id },
-                    data: {
-                        provider: "credentials", // Change from oauth provider to credentials
-                    },
-                });
-            } else {
-                // Create new credentials entry
-                await prisma.userEmail.create({
-                    data: {
-                        userId,
-                        email: user.email,
-                        isVerified: true,
-                        isPrimary: true,
-                        provider: "credentials",
-                    },
-                });
-            }
-        }
-
         return NextResponse.json({
             success: true,
             message: "Password set successfully. You can now sign in with email and password.",

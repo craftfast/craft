@@ -92,69 +92,11 @@ export const authOptions = {
         // Handle account linking and provider email management
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async linkAccount(message: any) {
-            const { account, user } = message;
+            const { account } = message;
 
-            // When a user links an OAuth account (Google/GitHub), add their provider email
+            // When a user links an OAuth account (Google/GitHub), just log it
             if (account.provider === "google" || account.provider === "github") {
-                try {
-                    const userId = user.id;
-                    const providerEmail = user.email;
-
-                    if (!providerEmail) {
-                        console.log(`No email found for ${account.provider} account`);
-                        return;
-                    }
-
-                    // Check if this email already exists in UserEmail table
-                    const existingUserEmail = await prisma.userEmail.findUnique({
-                        where: { email: providerEmail },
-                    });
-
-                    if (!existingUserEmail) {
-                        // Add the provider email as verified and primary (if it's the user's first email)
-                        const emailCount = await prisma.userEmail.count({
-                            where: { userId },
-                        });
-
-                        // Check if user's main email matches this provider email
-                        const mainUser = await prisma.user.findUnique({
-                            where: { id: userId },
-                            select: { email: true },
-                        });
-
-                        const isMainEmail = mainUser?.email === providerEmail;
-
-                        await prisma.userEmail.create({
-                            data: {
-                                userId,
-                                email: providerEmail,
-                                isVerified: true, // Provider emails are pre-verified
-                                isPrimary: isMainEmail || emailCount === 0, // Make primary if it's the main email or first email
-                                provider: account.provider,
-                                providerAccountId: account.providerAccountId,
-                            },
-                        });
-
-                        console.log(`✅ Added ${account.provider} email to user's email list: ${providerEmail}`);
-                    } else if (existingUserEmail.userId !== userId) {
-                        // Email belongs to another user - this is a conflict
-                        console.warn(`⚠️ Email ${providerEmail} from ${account.provider} already belongs to another user`);
-                    } else {
-                        // Update provider info if email already exists for this user
-                        await prisma.userEmail.update({
-                            where: { id: existingUserEmail.id },
-                            data: {
-                                provider: account.provider,
-                                providerAccountId: account.providerAccountId,
-                                isVerified: true,
-                            },
-                        });
-                        console.log(`✅ Updated provider info for ${providerEmail}`);
-                    }
-                } catch (error) {
-                    console.error(`Error managing ${account.provider} email:`, error);
-                    // Don't fail the OAuth login if email management fails
-                }
+                console.log(`✅ ${account.provider} account linked successfully`);
             }
         },
     },
@@ -187,7 +129,7 @@ export const authOptions = {
                     // If user exists but doesn't have this OAuth provider linked yet
                     if (existingUser && existingUser.accounts.length === 0) {
                         // This is account linking - the account will be automatically linked
-                        // by NextAuth's adapter, and our linkAccount event will handle UserEmail
+                        // by NextAuth's adapter
                         console.log(`🔗 Linking ${account.provider} account to existing user: ${email}`);
                     }
                 } catch (error) {

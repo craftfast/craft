@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import SubscriptionModal from "./SubscriptionModal";
-import EmailManagement from "./EmailManagement";
 import { PRO_TIERS } from "@/lib/pricing-constants";
 import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
 
@@ -224,6 +223,11 @@ export default function SettingsModal({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLinkingProvider, setIsLinkingProvider] = useState(false);
+
+  // Email change state
+  const [newEmail, setNewEmail] = useState("");
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [showEmailChangeForm, setShowEmailChangeForm] = useState(false);
 
   // Reset to initial tab when modal opens
   useEffect(() => {
@@ -487,6 +491,50 @@ export default function SettingsModal({
       toast.error("Failed to remove profile picture", { id: "remove-avatar" });
     } finally {
       setIsUploadingImage(false);
+    }
+  };
+
+  const handleChangeEmail = async () => {
+    if (!newEmail.trim()) {
+      toast.error("Please enter a new email address");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsChangingEmail(true);
+    toast.loading("Sending verification email...", { id: "change-email" });
+
+    try {
+      const res = await fetch("/api/user/change-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newEmail }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message || "Verification email sent", {
+          id: "change-email",
+        });
+        setShowEmailChangeForm(false);
+        setNewEmail("");
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to change email", {
+          id: "change-email",
+        });
+      }
+    } catch (error) {
+      console.error("Error changing email:", error);
+      toast.error("Failed to change email", { id: "change-email" });
+    } finally {
+      setIsChangingEmail(false);
     }
   };
 
@@ -2170,7 +2218,84 @@ export default function SettingsModal({
 
                 {/* Email Management Section */}
                 <div className="border-t border-border pt-6">
-                  <EmailManagement />
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
+                    Email Address
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Manage your primary email address for signing in and
+                    receiving notifications.
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Current Email */}
+                    <div className="p-4 bg-muted/50 rounded-xl border border-input">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-1">
+                            Current Email
+                          </p>
+                          <p className="text-sm text-foreground font-medium">
+                            {userEmail || session?.user?.email || "No email"}
+                          </p>
+                        </div>
+                        {!showEmailChangeForm && (
+                          <Button
+                            onClick={() => setShowEmailChangeForm(true)}
+                            variant="outline"
+                            className="rounded-full"
+                            size="sm"
+                          >
+                            Change Email
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Email Change Form */}
+                    {showEmailChangeForm && (
+                      <div className="p-4 bg-muted/30 rounded-xl border border-input space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-muted-foreground mb-2">
+                            New Email Address
+                          </label>
+                          <input
+                            type="email"
+                            value={newEmail}
+                            onChange={(e) => setNewEmail(e.target.value)}
+                            placeholder="Enter new email address"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            disabled={isChangingEmail}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1.5">
+                            A verification link will be sent to your new email
+                            address
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handleChangeEmail}
+                            disabled={isChangingEmail || !newEmail.trim()}
+                            className="rounded-full"
+                          >
+                            {isChangingEmail
+                              ? "Sending..."
+                              : "Send Verification"}
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setShowEmailChangeForm(false);
+                              setNewEmail("");
+                            }}
+                            variant="outline"
+                            className="rounded-full"
+                            disabled={isChangingEmail}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="border-t border-border pt-6">

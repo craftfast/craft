@@ -82,14 +82,6 @@ export async function POST(req: NextRequest) {
                 },
             });
 
-            // Remove associated UserEmail entry if it exists
-            await prisma.userEmail.deleteMany({
-                where: {
-                    userId,
-                    provider,
-                },
-            });
-
             return NextResponse.json({
                 success: true,
                 message: `${provider.charAt(0).toUpperCase() + provider.slice(1)} account unlinked successfully`,
@@ -110,17 +102,6 @@ export async function POST(req: NextRequest) {
                 where: { id: userId },
                 data: {
                     password: null,
-                },
-            });
-
-            // Update UserEmail entries that were credentials-only
-            await prisma.userEmail.updateMany({
-                where: {
-                    userId,
-                    provider: "credentials",
-                },
-                data: {
-                    provider: null, // Set to null or keep the other provider if available
                 },
             });
 
