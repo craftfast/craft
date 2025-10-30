@@ -5,6 +5,7 @@ import { assignPlanToUser } from "@/lib/subscription";
 import { sendVerificationEmail } from "@/lib/email";
 import crypto from "crypto";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { validatePassword } from "@/lib/password-validation";
 
 export async function POST(request: NextRequest) {
     try {
@@ -37,6 +38,15 @@ export async function POST(request: NextRequest) {
         if (!email || !password) {
             return NextResponse.json(
                 { error: "Email and password are required" },
+                { status: 400 }
+            );
+        }
+
+        // Validate password strength
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            return NextResponse.json(
+                { error: passwordValidation.errors[0] }, // Return first error
                 { status: 400 }
             );
         }

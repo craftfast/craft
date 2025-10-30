@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { validatePassword } from "@/lib/password-validation";
 
 /**
  * POST /api/auth/set-password
@@ -45,10 +46,11 @@ export async function POST(req: NextRequest) {
 
         const { password } = await req.json();
 
-        // Validate password
-        if (!password || password.length < 8) {
+        // Validate password strength
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
             return NextResponse.json(
-                { error: "Password must be at least 8 characters long" },
+                { error: passwordValidation.errors[0] }, // Return first error
                 { status: 400 }
             );
         }

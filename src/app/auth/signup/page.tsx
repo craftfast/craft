@@ -7,6 +7,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { validatePassword } from "@/lib/password-validation";
 
 function SignUpContent() {
   const searchParams = useSearchParams();
@@ -40,9 +41,10 @@ function SignUpContent() {
       return;
     }
 
-    // Validate password length
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.errors.join(". "));
       return;
     }
 
@@ -238,9 +240,9 @@ function SignUpContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={12}
                     className="h-12 rounded-full px-5 pr-12"
-                    placeholder="Password (min. 6 characters)"
+                    placeholder="Password (min. 12 characters)"
                   />
                   <button
                     type="button"
@@ -297,7 +299,7 @@ function SignUpContent() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={12}
                     className="h-12 rounded-full px-5 pr-12"
                     placeholder="Confirm password"
                   />
@@ -346,6 +348,11 @@ function SignUpContent() {
                     )}
                   </button>
                 </div>
+                {/* Password requirements hint */}
+                <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1 px-1">
+                  Must include uppercase, lowercase, number, and special
+                  character
+                </p>
               </div>
 
               <div className="flex gap-2">

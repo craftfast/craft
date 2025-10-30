@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import SubscriptionModal from "./SubscriptionModal";
 import { PRO_TIERS } from "@/lib/pricing-constants";
 import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
+import { validatePassword } from "@/lib/password-validation";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -561,8 +562,10 @@ export default function SettingsModal({
       return;
     }
 
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters long");
+    // Validate password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      toast.error(passwordValidation.errors[0]); // Show first error
       return;
     }
 
@@ -2905,10 +2908,14 @@ export default function SettingsModal({
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter password (min 8 characters)"
+                    placeholder="Enter password (min 12 characters)"
                     className="mt-1.5"
                     disabled={isSettingPassword}
                   />
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Must include uppercase, lowercase, number, and special
+                    character
+                  </p>
                 </div>
 
                 <div>
