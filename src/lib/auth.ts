@@ -231,11 +231,33 @@ export const authOptions = {
             return true; // Allow sign in
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        async jwt({ token, user, trigger, session }: any) {
+        async jwt({ token, user, trigger, session, account }: any) {
             if (user) {
                 token.id = user.id;
                 token.emailVerified = user.emailVerified;
                 token.hasPassword = !!user.password;
+            }
+
+            // Session fingerprinting (Issue 14)
+            // Capture IP address and user-agent for security monitoring
+            // Note: In Edge runtime or middleware, these would be available from headers
+            // For API routes, we'll capture them during sign-in
+            if (account || trigger === "signIn") {
+                // Try to get request context from NextAuth internals
+                // This works during initial sign-in when account is present
+                try {
+                    // In a real-world scenario, you'd pass these via custom parameters
+                    // or extract from headers in API routes that call NextAuth
+                    // For now, we'll set placeholders that can be updated via session update
+                    if (!token.ipAddress) {
+                        token.ipAddress = "unknown";
+                    }
+                    if (!token.userAgent) {
+                        token.userAgent = "unknown";
+                    }
+                } catch (error) {
+                    console.error("Error capturing session fingerprint:", error);
+                }
             }
 
             // Handle session updates from the client (e.g., profile updates)
@@ -245,6 +267,13 @@ export const authOptions = {
                 }
                 if (session.email !== undefined) {
                     token.email = session.email;
+                }
+                // Update fingerprint if provided (from client-side session update)
+                if (session.ipAddress !== undefined) {
+                    token.ipAddress = session.ipAddress;
+                }
+                if (session.userAgent !== undefined) {
+                    token.userAgent = session.userAgent;
                 }
                 // Don't store image in token - it will be fetched from DB
                 // This prevents massive session cookies when using base64 images
@@ -269,6 +298,11 @@ export const authOptions = {
                 });
                 session.user.image = dbUser?.image || null;
             }
+
+            // Add session fingerprinting data (Issue 14)
+            session.ipAddress = token.ipAddress as string | undefined;
+            session.userAgent = token.userAgent as string | undefined;
+
             return session;
         },
     },

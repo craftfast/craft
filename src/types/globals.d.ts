@@ -21,6 +21,9 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
     };
+    // Session fingerprinting for security monitoring (Issue 14)
+    ipAddress?: string;
+    userAgent?: string;
   }
 
   interface User {
@@ -34,5 +37,8 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string;
+    // Session fingerprinting for security monitoring (Issue 14)
+    ipAddress?: string;
+    userAgent?: string;
   }
 }
