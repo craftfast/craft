@@ -6,8 +6,16 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { assignPlanToUser } from "@/lib/subscription";
 
+// Validate that NEXTAUTH_SECRET is set
+if (!process.env.NEXTAUTH_SECRET) {
+    throw new Error(
+        "NEXTAUTH_SECRET is not set. Please add it to your environment variables."
+    );
+}
+
 export const authOptions = {
     adapter: PrismaAdapter(prisma),
+    secret: process.env.NEXTAUTH_SECRET,
     providers: [
         // Google OAuth Provider
         GoogleProvider({
