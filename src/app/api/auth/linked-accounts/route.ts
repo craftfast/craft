@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 /**
  * GET /api/auth/linked-accounts
@@ -89,10 +90,16 @@ export async function GET() {
             accounts: linkedAccounts,
         });
     } catch (error) {
-        console.error("Error fetching linked accounts:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "Fetch linked accounts",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Failed to fetch linked accounts" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }

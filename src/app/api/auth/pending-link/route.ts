@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 /**
  * GET /api/auth/pending-link?token=xxx
@@ -63,10 +64,16 @@ export async function GET(req: NextRequest) {
             },
         });
     } catch (error) {
-        console.error("Error fetching pending account link:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "Fetch pending account link",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Failed to fetch pending account link" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }

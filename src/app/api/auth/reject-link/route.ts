@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 /**
  * POST /api/auth/reject-link
@@ -60,10 +61,16 @@ export async function POST(req: NextRequest) {
             message: "Account link rejected",
         });
     } catch (error) {
-        console.error("Error rejecting account link:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "Reject account link",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Failed to reject account link" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }

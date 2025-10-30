@@ -7,6 +7,7 @@ import { randomUUID } from "crypto";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { validatePassword } from "@/lib/password-validation";
 import { logAccountCreated, logVerificationEmailSent } from "@/lib/security-logger";
+import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 export async function POST(request: NextRequest) {
     try {
@@ -130,10 +131,16 @@ export async function POST(request: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
-        console.error("Registration error:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "User registration",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Something went wrong" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }

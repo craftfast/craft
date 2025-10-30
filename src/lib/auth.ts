@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { assignPlanToUser } from "@/lib/subscription";
 import { logSecurityEvent, logLockoutCleared } from "@/lib/security-logger";
+import { GENERIC_ERRORS } from "@/lib/error-handler";
 
 // Validate that NEXTAUTH_SECRET is set
 if (!process.env.NEXTAUTH_SECRET) {
@@ -39,7 +40,7 @@ export const authOptions = {
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    throw new Error("Invalid credentials");
+                    throw new Error(GENERIC_ERRORS.AUTHENTICATION_FAILED);
                 }
 
                 const user = await prisma.user.findUnique({
@@ -49,7 +50,7 @@ export const authOptions = {
                 });
 
                 if (!user || !user.password) {
-                    throw new Error("Invalid credentials");
+                    throw new Error(GENERIC_ERRORS.AUTHENTICATION_FAILED);
                 }
 
                 // Check if account is locked (Issue 13)
@@ -129,7 +130,7 @@ export const authOptions = {
                             },
                         });
 
-                        throw new Error("Invalid credentials");
+                        throw new Error(GENERIC_ERRORS.AUTHENTICATION_FAILED);
                     }
                 }
 

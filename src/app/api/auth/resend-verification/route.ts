@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/email";
 import { randomUUID } from "crypto";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 export async function POST(request: NextRequest) {
     try {
@@ -89,10 +90,16 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         );
     } catch (error) {
-        console.error("Resend verification error:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "Resend verification email",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Something went wrong" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }

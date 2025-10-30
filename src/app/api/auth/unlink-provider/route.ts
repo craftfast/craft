@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logAccountUnlinked } from "@/lib/security-logger";
+import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 /**
  * POST /api/auth/unlink-provider
@@ -126,10 +127,16 @@ export async function POST(req: NextRequest) {
             { status: 400 }
         );
     } catch (error) {
-        console.error("Error unlinking provider:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "Unlink provider",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Failed to unlink provider" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }

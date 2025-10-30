@@ -7,6 +7,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { validatePassword } from "@/lib/password-validation";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logPasswordSet } from "@/lib/security-logger";
+import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 /**
  * POST /api/auth/set-password
@@ -103,10 +104,16 @@ export async function POST(req: NextRequest) {
             message: "Password set successfully. You can now sign in with email and password.",
         });
     } catch (error) {
-        console.error("Error setting password:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "Set password",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Failed to set password" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }

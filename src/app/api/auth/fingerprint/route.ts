@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getSessionFingerprint } from "@/lib/session-fingerprint";
+import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 export async function POST(req: NextRequest) {
     try {
@@ -35,10 +36,16 @@ export async function POST(req: NextRequest) {
             },
         });
     } catch (error) {
-        console.error("Error updating session fingerprint:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "Update session fingerprint",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Failed to update session fingerprint" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }
@@ -74,10 +81,16 @@ export async function GET(req: NextRequest) {
             },
         });
     } catch (error) {
-        console.error("Error fetching session fingerprint:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "Fetch session fingerprint",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Failed to fetch session fingerprint" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }

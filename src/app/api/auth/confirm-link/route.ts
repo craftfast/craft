@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logAccountLinked } from "@/lib/security-logger";
+import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 /**
  * POST /api/auth/confirm-link
@@ -141,10 +142,16 @@ export async function POST(req: NextRequest) {
             message: "Account linked successfully",
         });
     } catch (error) {
-        console.error("Error confirming account link:", error);
+        const errorResponse = buildErrorResponse(
+            error,
+            "Confirm account link",
+            500,
+            GENERIC_ERRORS.INTERNAL_SERVER_ERROR
+        );
+
         return NextResponse.json(
-            { error: "Failed to confirm account link" },
-            { status: 500 }
+            { error: errorResponse.error },
+            { status: errorResponse.statusCode }
         );
     }
 }
