@@ -47,9 +47,18 @@ export async function POST(request: NextRequest) {
         });
 
         if (existingUser) {
+            // Security: Return the same success message to prevent user enumeration
+            // Don't reveal that the email is already registered
+            console.log(`⚠️ Registration attempt for existing user: ${email}`);
+
+            // Optionally, you could send an email to the existing user informing them
+            // that someone tried to register with their email address
+
             return NextResponse.json(
-                { error: "User already exists" },
-                { status: 400 }
+                {
+                    message: "Registration successful. Please check your email to verify your account.",
+                },
+                { status: 201 }
             );
         }
 
