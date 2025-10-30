@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { sendEmail } from "@/lib/email";
 import { withCsrfProtection } from "@/lib/csrf";
+import validator from "validator";
 
 /**
  * Request email change - sends verification email to new address
@@ -31,9 +32,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(newEmail)) {
+        // Validate email format using validator.js
+        if (!validator.isEmail(newEmail)) {
             return NextResponse.json(
                 { error: "Invalid email format" },
                 { status: 400 }

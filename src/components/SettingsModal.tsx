@@ -21,6 +21,7 @@ import SubscriptionModal from "./SubscriptionModal";
 import { PRO_TIERS } from "@/lib/pricing-constants";
 import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
 import { validatePassword } from "@/lib/password-validation";
+import validator from "validator";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -501,9 +502,8 @@ export default function SettingsModal({
       return;
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail)) {
+    // Validate email format using validator.js
+    if (!validator.isEmail(newEmail)) {
       toast.error("Please enter a valid email address");
       return;
     }
