@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 /**
  * POST /api/auth/set-password
@@ -10,6 +11,29 @@ import bcrypt from "bcryptjs";
  */
 export async function POST(req: NextRequest) {
     try {
+        // Rate limiting check
+        const ip = getClientIp(req);
+        const { success, limit, remaining, reset } = await checkRateLimit(ip);
+
+        if (!success) {
+            return NextResponse.json(
+                {
+                    error: "Too many password set attempts. Please try again later.",
+                    limit,
+                    remaining,
+                    reset: new Date(reset).toISOString(),
+                },
+                {
+                    status: 429,
+                    headers: {
+                        'X-RateLimit-Limit': limit.toString(),
+                        'X-RateLimit-Remaining': remaining.toString(),
+                        'X-RateLimit-Reset': reset.toString(),
+                    }
+                }
+            );
+        }
+
         const session = await getServerSession(authOptions);
 
         if (!session?.user?.email) {

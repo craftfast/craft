@@ -1,8 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
     try {
+        // Rate limiting check
+        const ip = getClientIp(request);
+        const { success, limit, remaining, reset } = await checkRateLimit(ip);
+
+        if (!success) {
+            return NextResponse.json(
+                {
+                    error: "Too many verification attempts. Please try again later.",
+                    limit,
+                    remaining,
+                    reset: new Date(reset).toISOString(),
+                },
+                {
+                    status: 429,
+                    headers: {
+                        'X-RateLimit-Limit': limit.toString(),
+                        'X-RateLimit-Remaining': remaining.toString(),
+                        'X-RateLimit-Reset': reset.toString(),
+                    }
+                }
+            );
+        }
+
         const searchParams = request.nextUrl.searchParams;
         const token = searchParams.get("token");
 
