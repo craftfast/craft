@@ -20,7 +20,7 @@ export async function GET() {
 
         const userId = (session.user as { id: string }).id;
 
-        // Fetch user with accounts and emails
+        // Fetch user with accounts
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: {
@@ -30,15 +30,6 @@ export async function GET() {
                     select: {
                         provider: true,
                         providerAccountId: true,
-                    },
-                },
-                userEmails: {
-                    where: {
-                        isPrimary: true,
-                    },
-                    select: {
-                        email: true,
-                        provider: true,
                     },
                 },
             },
@@ -59,17 +50,16 @@ export async function GET() {
         };
 
         // Check OAuth accounts
+        // Issue #15: All OAuth providers use the same primary email (user.email)
         user.accounts.forEach(account => {
             if (account.provider === "google") {
-                const googleEmail = user.userEmails.find(e => e.provider === "google");
                 linkedAccounts.google = {
-                    email: googleEmail?.email || user.email,
+                    email: user.email, // All linked accounts use primary email
                     connected: true,
                 };
             } else if (account.provider === "github") {
-                const githubEmail = user.userEmails.find(e => e.provider === "github");
                 linkedAccounts.github = {
-                    email: githubEmail?.email || user.email,
+                    email: user.email, // All linked accounts use primary email
                     connected: true,
                 };
             }

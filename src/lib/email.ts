@@ -145,3 +145,4 @@ export async function sendVerificationEmail(email: string, token: string): Promi
         html,
     });
 }
+

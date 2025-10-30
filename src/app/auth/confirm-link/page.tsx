@@ -78,7 +78,7 @@ export default function ConfirmLinkPage() {
 
       toast.success("Account linked successfully!");
 
-      // Redirect to settings
+      // Redirect to home
       setTimeout(() => {
         router.push("/");
       }, 1500);
@@ -259,12 +259,13 @@ export default function ConfirmLinkPage() {
               <div className="text-xl">⚠️</div>
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-amber-900 dark:text-amber-200 mb-1">
-                  Security Notice
+                  Security Notice (Issue #15)
                 </h3>
                 <p className="text-xs text-amber-700 dark:text-amber-300">
-                  Only confirm if you recognize this account and want to link
-                  it. This will allow you to sign in using{" "}
-                  {pendingLink.provider}.
+                  Only confirm if you recognize this account. Your{" "}
+                  {pendingLink.provider} email must match your account email (
+                  {pendingLink.existingAccount.email}) to link successfully.
+                  This ensures you control the OAuth account.
                 </p>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 /**
  * POST /api/auth/confirm-link
  * Confirms and executes account linking after user approval
+ * Issue #15: Verifies that OAuth email matches user's primary email
  */
 export async function POST(req: NextRequest) {
     try {
@@ -61,6 +62,34 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Issue #15: Verify that OAuth email matches user's primary email
+        const user = await prisma.user.findUnique({
+            where: { id: pendingLink.userId },
+            select: { email: true },
+        });
+
+        if (!user) {
+            return NextResponse.json(
+                { error: "User not found" },
+                { status: 404 }
+            );
+        }
+
+        // Email must match exactly (case-insensitive)
+        if (user.email.toLowerCase() !== pendingLink.email.toLowerCase()) {
+            // Clean up pending link
+            await prisma.pendingAccountLink.delete({
+                where: { id: pendingLink.id },
+            });
+
+            return NextResponse.json(
+                {
+                    error: `Cannot link ${pendingLink.provider} account. The ${pendingLink.provider} email (${pendingLink.email}) does not match your account email (${user.email}). Please update your ${pendingLink.provider} email to match your account email, or change your account email first.`
+                },
+                { status: 400 }
+            );
+        }
+
         // Check if account is already linked
         const existingAccount = await prisma.account.findFirst({
             where: {
@@ -91,30 +120,12 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        // Add provider email to user emails if not already present
-        const existingUserEmail = await prisma.userEmail.findUnique({
-            where: { email: pendingLink.email },
-        });
-
-        if (!existingUserEmail) {
-            await prisma.userEmail.create({
-                data: {
-                    userId: pendingLink.userId,
-                    email: pendingLink.email,
-                    provider: pendingLink.provider,
-                    providerAccountId: pendingLink.providerAccountId,
-                    isPrimary: false,
-                    isVerified: true, // OAuth emails are pre-verified
-                },
-            });
-        }
-
         // Delete pending link request
         await prisma.pendingAccountLink.delete({
             where: { id: pendingLink.id },
         });
 
-        console.log(`✅ Account linked successfully: ${pendingLink.provider} → ${pendingLink.email}`);
+        console.log(`✅ Account linked successfully: ${pendingLink.provider} → ${pendingLink.email} (email verified to match user's primary email)`);
 
         return NextResponse.json({
             success: true,
