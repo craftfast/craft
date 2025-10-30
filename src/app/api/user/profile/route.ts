@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { deleteFile } from "@/lib/r2-storage";
+import { withCsrfProtection } from "@/lib/csrf";
 
 /**
  * GET /api/user/profile
@@ -64,6 +65,10 @@ export async function GET(req: NextRequest) {
  */
 export async function PATCH(req: NextRequest) {
     try {
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(req);
+        if (csrfCheck) return csrfCheck;
+
         const session = await getServerSession(authOptions);
 
         if (!session?.user?.email) {
@@ -135,6 +140,10 @@ export async function PATCH(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
     try {
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(req);
+        if (csrfCheck) return csrfCheck;
+
         const session = await getServerSession(authOptions);
 
         if (!session?.user?.email) {

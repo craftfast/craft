@@ -4,12 +4,17 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { sendEmail } from "@/lib/email";
+import { withCsrfProtection } from "@/lib/csrf";
 
 /**
  * Request email change - sends verification email to new address
  */
 export async function POST(request: NextRequest) {
     try {
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(request);
+        if (csrfCheck) return csrfCheck;
+
         const session = await getServerSession(authOptions);
 
         if (!session?.user?.id) {

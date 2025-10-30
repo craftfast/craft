@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { validatePassword } from "@/lib/password-validation";
+import { withCsrfProtection } from "@/lib/csrf";
 
 /**
  * POST /api/auth/set-password
@@ -12,6 +13,10 @@ import { validatePassword } from "@/lib/password-validation";
  */
 export async function POST(req: NextRequest) {
     try {
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(req);
+        if (csrfCheck) return csrfCheck;
+
         // Rate limiting check
         const ip = getClientIp(req);
         const { success, limit, remaining, reset } = await checkRateLimit(ip);

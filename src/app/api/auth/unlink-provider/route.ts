@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { withCsrfProtection } from "@/lib/csrf";
 
 /**
  * POST /api/auth/unlink-provider
@@ -10,6 +11,10 @@ import { prisma } from "@/lib/db";
  */
 export async function POST(req: NextRequest) {
     try {
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(req);
+        if (csrfCheck) return csrfCheck;
+
         const session = await getServerSession(authOptions);
 
         if (!session?.user?.email) {

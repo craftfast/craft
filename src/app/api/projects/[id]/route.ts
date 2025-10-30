@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { withCsrfProtection } from "@/lib/csrf";
 
 // GET /api/projects/[id] - Get a single project
 export async function GET(
@@ -56,6 +57,10 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(req);
+        if (csrfCheck) return csrfCheck;
+
         const session = await getServerSession(authOptions);
 
         if (!session?.user?.email) {
@@ -118,6 +123,10 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(req);
+        if (csrfCheck) return csrfCheck;
+
         const session = await getServerSession(authOptions);
 
         if (!session?.user?.email) {
