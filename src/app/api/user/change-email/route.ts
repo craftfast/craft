@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import crypto from "crypto";
+import { randomUUID } from "crypto";
 import { sendEmail } from "@/lib/email";
 
 /**
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Generate verification token
-        const verificationToken = crypto.randomBytes(32).toString("hex");
+        const verificationToken = randomUUID();
         const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
         // Store the new email change request

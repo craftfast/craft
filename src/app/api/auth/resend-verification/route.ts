@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/email";
-import crypto from "crypto";
+import { randomUUID } from "crypto";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Generate new verification token
-        const verificationToken = crypto.randomBytes(32).toString("hex");
+        const verificationToken = randomUUID();
         const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
         // Update user with new token

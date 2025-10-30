@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { assignPlanToUser } from "@/lib/subscription";
 import { sendVerificationEmail } from "@/lib/email";
-import crypto from "crypto";
+import { randomUUID } from "crypto";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { validatePassword } from "@/lib/password-validation";
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         const hashedPassword = await bcrypt.hash(password, 12);
 
         // Generate verification token
-        const verificationToken = crypto.randomBytes(32).toString("hex");
+        const verificationToken = randomUUID();
         const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
         // Create user (no team needed - direct user subscriptions)
