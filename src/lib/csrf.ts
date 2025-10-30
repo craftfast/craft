@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -38,7 +37,7 @@ export function validateOrigin(request: NextRequest): boolean {
     const allowedOrigins = [
         `https://${host}`,
         `http://${host}`, // For local testing
-        process.env.NEXTAUTH_URL || "",
+        process.env.BETTER_AUTH_URL || "",
         process.env.NEXT_PUBLIC_APP_URL || "",
     ].filter(Boolean);
 
@@ -93,7 +92,7 @@ export async function csrfProtection(
 
     // If authentication is required, verify session
     if (requireAuth) {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
         if (!session?.user?.email) {
             return NextResponse.json(
                 { error: "Unauthorized" },
@@ -124,3 +123,4 @@ export async function withCsrfProtection(
 ): Promise<NextResponse | null> {
     return csrfProtection(request, requireAuth);
 }
+

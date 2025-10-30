@@ -1,7 +1,6 @@
 import { getSystemPrompt } from "@/lib/ai/system-prompts";
 import { streamCodingResponse } from "@/lib/ai/agent";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { checkUserCreditAvailability, processAIUsage } from "@/lib/ai-usage";
 
@@ -24,7 +23,7 @@ type MessageContent = string | (TextContent | ImageUrlContent)[];
 export async function POST(req: Request) {
     try {
         // Get authenticated session
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
         if (!session?.user?.email) {
             return new Response(
                 JSON.stringify({ error: "Unauthorized" }),

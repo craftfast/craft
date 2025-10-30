@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { signIn } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
@@ -30,17 +30,16 @@ function SignInContent() {
     setLoading(true);
 
     try {
-      const result = await signIn("credentials", {
+      const result = await signIn.email({
         email,
         password,
-        redirect: false,
       });
 
-      if (result?.error) {
+      if (result.error) {
         // Check if error is about email verification
-        if (result.error.includes("verify your email")) {
+        if (result.error.message?.includes("verify your email")) {
           setNeedsVerification(true);
-          setError(result.error);
+          setError(result.error.message);
         } else {
           setError("Invalid email or password");
         }
@@ -102,7 +101,10 @@ function SignInContent() {
       finalCallbackUrl = url.pathname + url.search;
     }
 
-    await signIn(provider, { callbackUrl: finalCallbackUrl });
+    await signIn.social({
+      provider,
+      callbackURL: finalCallbackUrl,
+    });
   };
 
   return (

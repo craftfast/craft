@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 
 interface Project {
   id: string;
@@ -13,17 +13,17 @@ interface Project {
 }
 
 export default function RecentProjects() {
-  const { status } = useSession();
+  const { data: session, isPending } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (session && !isPending) {
       fetchRecentProjects();
-    } else if (status === "unauthenticated") {
+    } else if (!session && !isPending) {
       setLoading(false);
     }
-  }, [status]);
+  }, [session, isPending]);
 
   const fetchRecentProjects = async () => {
     try {
@@ -55,7 +55,7 @@ export default function RecentProjects() {
     return `${Math.floor(diffInDays / 365)} years ago`;
   };
 
-  if (status === "unauthenticated") {
+  if (!session && !isPending) {
     return null;
   }
 

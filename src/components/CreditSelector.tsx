@@ -83,54 +83,63 @@ export default function CreditSelector({
         <div className="absolute z-10 mt-2 w-full left-0 right-0">
           <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-600 shadow-xl overflow-hidden">
             <div className="max-h-64 overflow-y-auto minimalist-scrollbar">
-              {creditTiers.map((tier, index) => {
-                const isSelected = tier.tokens === selectedCredits;
+              {creditTiers.map(
+                (
+                  tier: {
+                    tokens: number;
+                    display: string;
+                    priceMonthly: number;
+                  },
+                  index: number
+                ) => {
+                  const isSelected = tier.tokens === selectedCredits;
 
-                return (
-                  <button
-                    key={tier.tokens}
-                    type="button"
-                    onClick={() => handleSelect(tier.tokens)}
-                    className={`w-full px-4 py-3 text-left transition-colors duration-150 flex items-center justify-between ${
-                      index !== creditTiers.length - 1
-                        ? "border-b border-neutral-100 dark:border-neutral-700"
-                        : ""
-                    } ${
-                      isSelected
-                        ? "bg-neutral-100 dark:bg-neutral-700"
-                        : "hover:bg-neutral-100/50 dark:hover:bg-neutral-700/50"
-                    }`}
-                  >
-                    <span
-                      className={`text-sm ${
+                  return (
+                    <button
+                      key={tier.tokens}
+                      type="button"
+                      onClick={() => handleSelect(tier.tokens)}
+                      className={`w-full px-4 py-3 text-left transition-colors duration-150 flex items-center justify-between ${
+                        index !== creditTiers.length - 1
+                          ? "border-b border-neutral-100 dark:border-neutral-700"
+                          : ""
+                      } ${
                         isSelected
-                          ? "font-semibold text-neutral-900 dark:text-neutral-100"
-                          : "font-medium text-neutral-700 dark:text-neutral-300"
+                          ? "bg-neutral-100 dark:bg-neutral-700"
+                          : "hover:bg-neutral-100/50 dark:hover:bg-neutral-700/50"
                       }`}
                     >
-                      {tier.display}
-                    </span>
-                    {/* Checkmark for selected item on the right */}
-                    <div className="w-5 h-5 flex items-center justify-center">
-                      {isSelected && (
-                        <svg
-                          className="w-4 h-4 text-neutral-900 dark:text-neutral-100"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+                      <span
+                        className={`text-sm ${
+                          isSelected
+                            ? "font-semibold text-neutral-900 dark:text-neutral-100"
+                            : "font-medium text-neutral-700 dark:text-neutral-300"
+                        }`}
+                      >
+                        {tier.display}
+                      </span>
+                      {/* Checkmark for selected item on the right */}
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        {isSelected && (
+                          <svg
+                            className="w-4 h-4 text-neutral-900 dark:text-neutral-100"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  );
+                }
+              )}
             </div>
           </div>
         </div>

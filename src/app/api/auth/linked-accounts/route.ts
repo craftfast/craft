@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
@@ -10,7 +9,7 @@ import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
  */
 export async function GET() {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session?.user?.email) {
             return NextResponse.json(
@@ -19,7 +18,7 @@ export async function GET() {
             );
         }
 
-        const userId = (session.user as { id: string }).id;
+        const userId = session.user.id;
 
         // Fetch user with accounts
         const user = await prisma.user.findUnique({
@@ -29,8 +28,8 @@ export async function GET() {
                 password: true,
                 accounts: {
                     select: {
-                        provider: true,
-                        providerAccountId: true,
+                        providerId: true,
+                        accountId: true,
                     },
                 },
             },
@@ -53,12 +52,12 @@ export async function GET() {
         // Check OAuth accounts
         // Issue #15: All OAuth providers use the same primary email (user.email)
         user.accounts.forEach(account => {
-            if (account.provider === "google") {
+            if (account.providerId === "google") {
                 linkedAccounts.google = {
                     email: user.email, // All linked accounts use primary email
                     connected: true,
                 };
-            } else if (account.provider === "github") {
+            } else if (account.providerId === "github") {
                 linkedAccounts.github = {
                     email: user.email, // All linked accounts use primary email
                     connected: true,

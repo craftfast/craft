@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { logAccountLinked } from "@/lib/security-logger";
 import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
@@ -12,7 +11,7 @@ import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
  */
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
         const { token } = await req.json();
 
         if (!token) {
@@ -55,7 +54,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const userId = (session.user as { id: string }).id;
+        const userId = session.user.id;
 
         if (userId !== pendingLink.userId) {
             return NextResponse.json(
@@ -96,7 +95,7 @@ export async function POST(req: NextRequest) {
         const existingAccount = await prisma.account.findFirst({
             where: {
                 userId: pendingLink.userId,
-                provider: pendingLink.provider,
+                providerId: pendingLink.provider,
             },
         });
 
@@ -116,9 +115,8 @@ export async function POST(req: NextRequest) {
         await prisma.account.create({
             data: {
                 userId: pendingLink.userId,
-                type: "oauth",
-                provider: pendingLink.provider,
-                providerAccountId: pendingLink.providerAccountId,
+                providerId: pendingLink.provider,
+                accountId: pendingLink.providerAccountId,
             },
         });
 

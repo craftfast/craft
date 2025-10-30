@@ -1,9 +1,7 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import CodingInterface from "@/components/CodingInterface";
-import type { Session } from "next-auth";
 
 // Force dynamic rendering to ensure fresh project data
 export const dynamic = "force-dynamic";
@@ -16,7 +14,7 @@ interface PageProps {
 }
 
 export default async function ProjectCodingPage({ params }: PageProps) {
-  const session = (await getServerSession(authOptions)) as Session | null;
+  const session = await getSession();
 
   // If not logged in, redirect to sign in
   if (!session) {

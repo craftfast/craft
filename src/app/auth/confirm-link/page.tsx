@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
 
 export default function ConfirmLinkPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, status } = useSession();
+  const { data: session, isPending } = useSession();
   const token = searchParams.get("token");
 
   const [loading, setLoading] = useState(true);
@@ -164,7 +164,7 @@ export default function ConfirmLinkPage() {
   }
 
   // Not signed in
-  if (status === "unauthenticated") {
+  if (!isPending && !session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950">
         <div className="w-full max-w-md p-8">
@@ -184,11 +184,11 @@ export default function ConfirmLinkPage() {
             </div>
             <div className="space-y-3">
               <button
-                onClick={() =>
-                  signIn(undefined, {
-                    callbackUrl: `/auth/confirm-link?token=${token}`,
-                  })
-                }
+                onClick={() => {
+                  router.push(
+                    `/signin?callbackUrl=/auth/confirm-link?token=${token}`
+                  );
+                }}
                 className="w-full px-6 py-2.5 rounded-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
               >
                 Sign In

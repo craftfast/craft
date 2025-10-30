@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 
 /**
  * GET /api/integrations/github/connect
@@ -8,7 +7,7 @@ import { authOptions } from "@/lib/auth";
  */
 export async function GET() {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,7 +15,7 @@ export async function GET() {
 
         // GitHub OAuth configuration
         const githubClientId = process.env.GITHUB_CLIENT_ID;
-        const redirectUri = `${process.env.NEXTAUTH_URL}/api/integrations/github/callback`;
+        const redirectUri = `${process.env.BETTER_AUTH_URL}/api/integrations/github/callback`;
 
         if (!githubClientId) {
             return NextResponse.json(
@@ -44,3 +43,4 @@ export async function GET() {
         );
     }
 }
+

@@ -1,25 +1,25 @@
 /**
- * Security Event Logging Service (Issue 16)
+ * Security Event Logging Service for Better Auth
  * 
- * Comprehensive security event logging for authentication and account changes.
- * Logs all security-relevant events to the database for monitoring and audit trails.
+ * Native Better Auth integration - no legacy compatibility required.
+ * Logs all security-relevant events to the database for audit trails.
  * 
  * Events Tracked:
- * - Login attempts (success & failure)
- * - Account creation
- * - Password changes/sets
- * - Email changes
- * - Account linking/unlinking (OAuth)
+ * - Authentication (login/logout/signup)
+ * - Account management (password changes, email updates)
+ * - OAuth provider linking/unlinking
  * - Email verification
  * - Account lockouts
+ * - Profile updates
+ * - Session management
  */
 
 import { prisma } from "@/lib/db";
-import { NextRequest } from "next/server";
 
 export type SecurityEventType =
     | "LOGIN_SUCCESS"
     | "LOGIN_FAILED"
+    | "LOGOUT"
     | "ACCOUNT_CREATED"
     | "PASSWORD_CHANGED"
     | "PASSWORD_SET"
@@ -31,7 +31,11 @@ export type SecurityEventType =
     | "ACCOUNT_LOCKED"
     | "LOCKOUT_CLEARED"
     | "VERIFICATION_EMAIL_SENT"
-    | "PASSWORD_RESET_REQUESTED";
+    | "PASSWORD_RESET_REQUESTED"
+    | "PROFILE_UPDATED"
+    | "AVATAR_UPDATED"
+    | "AVATAR_REMOVED"
+    | "SESSION_REFRESHED";
 
 export type SecurityEventSeverity = "info" | "warning" | "critical";
 
@@ -49,39 +53,64 @@ export interface SecurityEventData {
 }
 
 /**
- * Extract client IP address from NextRequest
+ * Extract client IP address from Request (Better Auth native support)
+ * Works with Vercel, Cloudflare, and standard reverse proxies
  */
-export function getClientIP(request: NextRequest): string | undefined {
-    // Check Vercel-specific headers first
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    if (forwardedFor) {
-        return forwardedFor.split(",")[0].trim();
+export function getClientIP(request: Request): string | undefined {
+    // Priority order for IP detection
+    const headers = [
+        "x-forwarded-for",
+        "x-real-ip",
+        "cf-connecting-ip", // Cloudflare
+        "x-vercel-forwarded-for", // Vercel
+        "true-client-ip", // Cloudflare Enterprise
+    ];
+
+    for (const header of headers) {
+        const value = request.headers.get(header);
+        if (value) {
+            // x-forwarded-for can contain multiple IPs, take the first one
+            return value.split(",")[0].trim();
+        }
     }
 
-    // Check other common headers
-    const realIP = request.headers.get("x-real-ip");
-    if (realIP) {
-        return realIP;
-    }
-
-    // Fallback to undefined if no IP found
     return undefined;
 }
 
 /**
- * Extract user agent from NextRequest
+ * Extract user agent from Request
  */
-export function getUserAgent(request: NextRequest): string | undefined {
+export function getUserAgent(request: Request): string | undefined {
     return request.headers.get("user-agent") || undefined;
 }
 
 /**
- * Main security logging function
- * Logs security events to the database asynchronously
+ * Extract comprehensive request metadata for security logging
+ * Better Auth optimized - extracts all relevant security context
+ */
+export function extractRequestMetadata(request: Request): {
+    ipAddress: string | undefined;
+    userAgent: string | undefined;
+    referer?: string;
+    origin?: string;
+} {
+    return {
+        ipAddress: getClientIP(request),
+        userAgent: getUserAgent(request),
+        referer: request.headers.get("referer") || undefined,
+        origin: request.headers.get("origin") || undefined,
+    };
+}
+
+/**
+ * Core security event logging function
+ * Asynchronously logs events to the database without blocking the main flow
+ * 
+ * @param data - Security event data to log
+ * @throws Never throws - all errors are silently logged to console
  */
 export async function logSecurityEvent(data: SecurityEventData): Promise<void> {
     try {
-        // Determine severity if not provided
         const severity = data.severity || getSeverityForEventType(data.eventType);
 
         await prisma.securityEvent.create({
@@ -99,83 +128,96 @@ export async function logSecurityEvent(data: SecurityEventData): Promise<void> {
             },
         });
 
-        // Log to console for development/debugging
-        const emoji = getEmojiForEventType(data.eventType, data.success);
-        console.log(
-            `${emoji} Security Event: ${data.eventType} | User: ${data.userId || data.email || "unknown"} | IP: ${data.ipAddress || "unknown"} | Success: ${data.success ?? true}`
-        );
+        // Development logging with visual indicators
+        if (process.env.NODE_ENV === "development") {
+            const emoji = getEmojiForEventType(data.eventType, data.success);
+            const timestamp = new Date().toISOString();
+            console.log(
+                `${emoji} [${timestamp}] ${data.eventType} | User: ${data.userId || data.email || "unknown"} | IP: ${data.ipAddress || "unknown"} | Success: ${data.success ?? true}`
+            );
+        }
     } catch (error) {
-        // Never throw errors from logging - just log to console
-        console.error("Failed to log security event:", error);
+        // Never throw from logging - ensures security logging doesn't break app flow
+        console.error("❌ Failed to log security event:", error);
+        console.error("Event data:", data);
     }
 }
 
 /**
- * Helper function to determine severity based on event type
+ * Determine event severity based on event type
+ * Used for automatic severity assignment when not explicitly provided
  */
 function getSeverityForEventType(eventType: SecurityEventType): SecurityEventSeverity {
-    switch (eventType) {
-        case "LOGIN_FAILED":
-        case "ACCOUNT_LOCKED":
-            return "warning";
-        case "PASSWORD_CHANGED":
-        case "EMAIL_CHANGED":
-        case "ACCOUNT_LINKED":
-        case "ACCOUNT_UNLINKED":
-            return "warning";
-        default:
-            return "info";
+    // Critical events - immediate security concerns
+    const criticalEvents: SecurityEventType[] = [
+        "ACCOUNT_LOCKED",
+        "LOGIN_FAILED",
+    ];
+
+    // Warning events - important security changes
+    const warningEvents: SecurityEventType[] = [
+        "PASSWORD_CHANGED",
+        "PASSWORD_SET",
+        "EMAIL_CHANGED",
+        "ACCOUNT_LINKED",
+        "ACCOUNT_UNLINKED",
+        "EMAIL_CHANGE_REQUESTED",
+    ];
+
+    if (criticalEvents.includes(eventType)) {
+        return "critical";
     }
+
+    if (warningEvents.includes(eventType)) {
+        return "warning";
+    }
+
+    return "info";
 }
 
 /**
- * Helper function to get emoji for console logs
+ * Visual indicators for console logging
+ * Provides quick visual feedback during development
  */
 function getEmojiForEventType(eventType: SecurityEventType, success?: boolean): string {
     if (success === false) {
         return "❌";
     }
 
-    switch (eventType) {
-        case "LOGIN_SUCCESS":
-            return "✅";
-        case "LOGIN_FAILED":
-            return "🚫";
-        case "ACCOUNT_CREATED":
-            return "🎉";
-        case "PASSWORD_CHANGED":
-        case "PASSWORD_SET":
-            return "🔑";
-        case "EMAIL_CHANGED":
-        case "EMAIL_CHANGE_REQUESTED":
-            return "📧";
-        case "ACCOUNT_LINKED":
-            return "🔗";
-        case "ACCOUNT_UNLINKED":
-            return "🔓";
-        case "EMAIL_VERIFIED":
-            return "✅";
-        case "ACCOUNT_LOCKED":
-            return "🔒";
-        case "LOCKOUT_CLEARED":
-            return "🔓";
-        case "VERIFICATION_EMAIL_SENT":
-            return "📨";
-        case "PASSWORD_RESET_REQUESTED":
-            return "🔄";
-        default:
-            return "📝";
-    }
+    const emojiMap: Record<SecurityEventType, string> = {
+        LOGIN_SUCCESS: "✅",
+        LOGIN_FAILED: "🚫",
+        LOGOUT: "�",
+        ACCOUNT_CREATED: "🎉",
+        PASSWORD_CHANGED: "🔑",
+        PASSWORD_SET: "🔑",
+        EMAIL_CHANGED: "📧",
+        EMAIL_CHANGE_REQUESTED: "📧",
+        ACCOUNT_LINKED: "🔗",
+        ACCOUNT_UNLINKED: "🔓",
+        EMAIL_VERIFIED: "✅",
+        ACCOUNT_LOCKED: "🔒",
+        LOCKOUT_CLEARED: "🔓",
+        VERIFICATION_EMAIL_SENT: "📨",
+        PASSWORD_RESET_REQUESTED: "🔄",
+        PROFILE_UPDATED: "👤",
+        AVATAR_UPDATED: "�️",
+        AVATAR_REMOVED: "🗑️",
+        SESSION_REFRESHED: "🔄",
+    };
+
+    return emojiMap[eventType] || "📝";
 }
 
 /**
  * Convenience functions for common security events
+ * Better Auth native - simplified API for common logging scenarios
  */
 
 export async function logLoginSuccess(
     userId: string,
     email: string,
-    request: NextRequest,
+    request: Request,
     provider?: string
 ): Promise<void> {
     await logSecurityEvent({
@@ -191,7 +233,7 @@ export async function logLoginSuccess(
 
 export async function logLoginFailure(
     email: string,
-    request: NextRequest,
+    request: Request,
     errorReason: string
 ): Promise<void> {
     await logSecurityEvent({
@@ -201,14 +243,29 @@ export async function logLoginFailure(
         userAgent: getUserAgent(request),
         success: false,
         errorReason,
-        severity: "warning",
+        severity: "critical",
+    });
+}
+
+export async function logLogout(
+    userId: string,
+    email: string,
+    request: Request
+): Promise<void> {
+    await logSecurityEvent({
+        userId,
+        eventType: "LOGOUT",
+        email,
+        ipAddress: getClientIP(request),
+        userAgent: getUserAgent(request),
+        success: true,
     });
 }
 
 export async function logAccountCreated(
     userId: string,
     email: string,
-    request: NextRequest
+    request: Request
 ): Promise<void> {
     await logSecurityEvent({
         userId,
@@ -223,7 +280,7 @@ export async function logAccountCreated(
 export async function logPasswordChanged(
     userId: string,
     email: string,
-    request: NextRequest
+    request: Request
 ): Promise<void> {
     await logSecurityEvent({
         userId,
@@ -239,7 +296,7 @@ export async function logPasswordChanged(
 export async function logPasswordSet(
     userId: string,
     email: string,
-    request: NextRequest
+    request: Request
 ): Promise<void> {
     await logSecurityEvent({
         userId,
@@ -256,7 +313,7 @@ export async function logEmailChangeRequested(
     userId: string,
     oldEmail: string,
     newEmail: string,
-    request: NextRequest
+    request: Request
 ): Promise<void> {
     await logSecurityEvent({
         userId,
@@ -277,7 +334,7 @@ export async function logEmailChanged(
     userId: string,
     oldEmail: string,
     newEmail: string,
-    request: NextRequest
+    request: Request
 ): Promise<void> {
     await logSecurityEvent({
         userId,
@@ -298,7 +355,7 @@ export async function logAccountLinked(
     userId: string,
     email: string,
     provider: string,
-    request: NextRequest
+    request: Request
 ): Promise<void> {
     await logSecurityEvent({
         userId,
@@ -316,7 +373,7 @@ export async function logAccountUnlinked(
     userId: string,
     email: string,
     provider: string,
-    request: NextRequest
+    request: Request
 ): Promise<void> {
     await logSecurityEvent({
         userId,
@@ -333,7 +390,7 @@ export async function logAccountUnlinked(
 export async function logEmailVerified(
     userId: string,
     email: string,
-    request: NextRequest
+    request: Request
 ): Promise<void> {
     await logSecurityEvent({
         userId,
@@ -348,7 +405,7 @@ export async function logEmailVerified(
 export async function logAccountLocked(
     userId: string,
     email: string,
-    request: NextRequest,
+    request: Request,
     metadata?: { failedAttempts: number; lockoutDurationMinutes: number }
 ): Promise<void> {
     await logSecurityEvent({
@@ -378,7 +435,7 @@ export async function logLockoutCleared(
 export async function logVerificationEmailSent(
     userId: string,
     email: string,
-    request: NextRequest
+    request: Request
 ): Promise<void> {
     await logSecurityEvent({
         userId,
@@ -387,5 +444,79 @@ export async function logVerificationEmailSent(
         ipAddress: getClientIP(request),
         userAgent: getUserAgent(request),
         success: true,
+    });
+}
+
+export async function logPasswordResetRequested(
+    email: string,
+    request: Request
+): Promise<void> {
+    await logSecurityEvent({
+        eventType: "PASSWORD_RESET_REQUESTED",
+        email,
+        ipAddress: getClientIP(request),
+        userAgent: getUserAgent(request),
+        success: true,
+    });
+}
+
+export async function logProfileUpdated(
+    userId: string,
+    email: string,
+    request: Request,
+    metadata?: { changedFields: string[] }
+): Promise<void> {
+    await logSecurityEvent({
+        userId,
+        eventType: "PROFILE_UPDATED",
+        email,
+        ipAddress: getClientIP(request),
+        userAgent: getUserAgent(request),
+        success: true,
+        metadata,
+    });
+}
+
+export async function logAvatarUpdated(
+    userId: string,
+    email: string,
+    request: Request
+): Promise<void> {
+    await logSecurityEvent({
+        userId,
+        eventType: "AVATAR_UPDATED",
+        email,
+        ipAddress: getClientIP(request),
+        userAgent: getUserAgent(request),
+        success: true,
+    });
+}
+
+export async function logAvatarRemoved(
+    userId: string,
+    email: string,
+    request: Request
+): Promise<void> {
+    await logSecurityEvent({
+        userId,
+        eventType: "AVATAR_REMOVED",
+        email,
+        ipAddress: getClientIP(request),
+        userAgent: getUserAgent(request),
+        success: true,
+    });
+}
+
+export async function logSessionRefreshed(
+    userId: string,
+    email: string,
+    metadata?: { trigger: string }
+): Promise<void> {
+    await logSecurityEvent({
+        userId,
+        eventType: "SESSION_REFRESHED",
+        email,
+        success: true,
+        metadata,
     });
 }

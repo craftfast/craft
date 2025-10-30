@@ -1,13 +1,11 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { redirect } from "next/navigation";
 import DashboardHeader from "@/components/DashboardHeader";
 import Projects from "@/components/Projects";
 import { getUserSubscription } from "@/lib/subscription";
-import type { Session } from "next-auth";
 
 export default async function ProjectsPage() {
-  const session = (await getServerSession(authOptions)) as Session | null;
+  const session = await getSession();
 
   // If not logged in, redirect to home page
   if (!session) {

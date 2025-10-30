@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 
 type Theme = "light" | "dark" | "system";
 
@@ -14,23 +14,23 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { data: session, isPending } = useSession();
   const [theme, setThemeState] = useState<Theme>("dark");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("dark");
   const [hasLoadedFromDB, setHasLoadedFromDB] = useState(false);
 
   // Reset flag when user logs out
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!session && !isPending) {
       setHasLoadedFromDB(false);
     }
-  }, [status]);
+  }, [session, isPending]);
 
   // Load theme preference - only once on mount or when auth status changes
   useEffect(() => {
     const loadTheme = async () => {
       // First check if user is logged in and has a saved preference in DB
-      if (status === "authenticated" && session?.user && !hasLoadedFromDB) {
+      if (session?.user && !isPending && !hasLoadedFromDB) {
         try {
           const response = await fetch("/api/user/settings");
           if (response.ok) {
@@ -49,10 +49,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Fall back to localStorage for unauthenticated users or if no DB preference
-      if (
-        status === "unauthenticated" ||
-        (status === "authenticated" && hasLoadedFromDB)
-      ) {
+      if ((!session && !isPending) || (session && hasLoadedFromDB)) {
         const savedTheme = localStorage.getItem("theme") as Theme | null;
         if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
           setThemeState(savedTheme);
@@ -65,7 +62,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     loadTheme();
-  }, [status, session?.user?.email, hasLoadedFromDB]);
+  }, [session, isPending, hasLoadedFromDB]);
 
   // Apply theme to document
   useEffect(() => {

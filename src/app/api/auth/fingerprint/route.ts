@@ -6,15 +6,14 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { getSessionFingerprint } from "@/lib/session-fingerprint";
 import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 export async function POST(req: NextRequest) {
     try {
         // Get current session
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session) {
             return NextResponse.json(
@@ -53,7 +52,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
     try {
         // Get current session
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session) {
             return NextResponse.json(
@@ -67,8 +66,8 @@ export async function GET(req: NextRequest) {
 
         // Get stored fingerprint from session
         const storedFingerprint = {
-            ipAddress: session.ipAddress,
-            userAgent: session.userAgent,
+            ipAddress: session.session.ipAddress,
+            userAgent: session.session.userAgent,
         };
 
         // Return both for comparison

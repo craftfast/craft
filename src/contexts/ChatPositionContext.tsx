@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 
 type ChatPosition = "left" | "right";
 
@@ -19,22 +19,22 @@ export function ChatPositionProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session, status } = useSession();
+  const { data: session, isPending } = useSession();
   const [chatPosition, setChatPositionState] = useState<ChatPosition>("right");
   const [hasLoadedFromDB, setHasLoadedFromDB] = useState(false);
 
   // Reset flag when user logs out
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!session && !isPending) {
       setHasLoadedFromDB(false);
       setChatPositionState("right"); // Reset to default
     }
-  }, [status]);
+  }, [session, isPending]);
 
   // Load chat position preference from database
   useEffect(() => {
     const loadChatPosition = async () => {
-      if (status === "authenticated" && session?.user && !hasLoadedFromDB) {
+      if (session?.user && !isPending && !hasLoadedFromDB) {
         try {
           const response = await fetch("/api/user/settings");
           if (response.ok) {
@@ -51,14 +51,14 @@ export function ChatPositionProvider({
     };
 
     loadChatPosition();
-  }, [status, session, hasLoadedFromDB]);
+  }, [session, isPending, hasLoadedFromDB]);
 
   // Function to update chat position and save to database
   const setChatPosition = async (position: ChatPosition) => {
     setChatPositionState(position);
 
     // Save to database if user is authenticated
-    if (status === "authenticated" && session?.user) {
+    if (session?.user && !isPending) {
       try {
         const response = await fetch("/api/user/settings", {
           method: "PATCH",

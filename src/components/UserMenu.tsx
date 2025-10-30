@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut } from "@/lib/auth-client";
 import Image from "next/image";
 import SettingsModal from "./SettingsModal";
 import FeedbackModal from "./FeedbackModal";
@@ -16,7 +16,7 @@ interface User {
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  emailVerified?: Date | null;
+  emailVerified?: boolean; // Better Auth uses boolean instead of Date
   hasPassword?: boolean;
 }
 
@@ -46,7 +46,8 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/home" });
+    await signOut();
+    router.push("/home");
   };
 
   // Fetch user's plan

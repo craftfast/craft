@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 
 /**
@@ -9,7 +8,7 @@ import { prisma } from "@/lib/db";
  */
 export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
         const searchParams = request.nextUrl.searchParams;
         const code = searchParams.get("code");
         const state = searchParams.get("state");
@@ -17,37 +16,37 @@ export async function GET(request: NextRequest) {
 
         if (!session?.user?.id) {
             return NextResponse.redirect(
-                `${process.env.NEXTAUTH_URL}/settings?error=unauthorized`
+                `${process.env.BETTER_AUTH_URL}/settings?error=unauthorized`
             );
         }
 
         // Verify state matches user ID
         if (state !== session.user.id) {
             return NextResponse.redirect(
-                `${process.env.NEXTAUTH_URL}/settings?error=invalid_state`
+                `${process.env.BETTER_AUTH_URL}/settings?error=invalid_state`
             );
         }
 
         if (error) {
             return NextResponse.redirect(
-                `${process.env.NEXTAUTH_URL}/settings?error=${error}`
+                `${process.env.BETTER_AUTH_URL}/settings?error=${error}`
             );
         }
 
         if (!code) {
             return NextResponse.redirect(
-                `${process.env.NEXTAUTH_URL}/settings?error=no_code`
+                `${process.env.BETTER_AUTH_URL}/settings?error=no_code`
             );
         }
 
         // Exchange code for access token
         const vercelClientId = process.env.VERCEL_CLIENT_ID;
         const vercelClientSecret = process.env.VERCEL_CLIENT_SECRET;
-        const redirectUri = `${process.env.NEXTAUTH_URL}/api/integrations/vercel/callback`;
+        const redirectUri = `${process.env.BETTER_AUTH_URL}/api/integrations/vercel/callback`;
 
         if (!vercelClientId || !vercelClientSecret) {
             return NextResponse.redirect(
-                `${process.env.NEXTAUTH_URL}/settings?error=config_missing`
+                `${process.env.BETTER_AUTH_URL}/settings?error=config_missing`
             );
         }
 
@@ -68,7 +67,7 @@ export async function GET(request: NextRequest) {
             const errorText = await tokenResponse.text();
             console.error("Vercel token exchange error:", errorText);
             return NextResponse.redirect(
-                `${process.env.NEXTAUTH_URL}/settings?error=token_exchange_failed`
+                `${process.env.BETTER_AUTH_URL}/settings?error=token_exchange_failed`
             );
         }
 
@@ -84,7 +83,7 @@ export async function GET(request: NextRequest) {
         if (!userResponse.ok) {
             console.error("Failed to fetch Vercel user info");
             return NextResponse.redirect(
-                `${process.env.NEXTAUTH_URL}/settings?error=user_info_failed`
+                `${process.env.BETTER_AUTH_URL}/settings?error=user_info_failed`
             );
         }
 
@@ -122,12 +121,13 @@ export async function GET(request: NextRequest) {
         });
 
         return NextResponse.redirect(
-            `${process.env.NEXTAUTH_URL}/settings?vercel=connected`
+            `${process.env.BETTER_AUTH_URL}/settings?vercel=connected`
         );
     } catch (error) {
         console.error("Vercel OAuth callback error:", error);
         return NextResponse.redirect(
-            `${process.env.NEXTAUTH_URL}/settings?error=callback_failed`
+            `${process.env.BETTER_AUTH_URL}/settings?error=callback_failed`
         );
     }
 }
+

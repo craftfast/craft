@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session?.user?.email) {
             return NextResponse.json(
@@ -62,7 +61,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const userId = (session.user as { id: string }).id;
+        const userId = session.user.id;
 
         // Check if user already has a password
         const user = await prisma.user.findUnique({

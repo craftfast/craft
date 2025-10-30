@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
+import { useRefreshSession } from "@/hooks/use-refresh-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -159,9 +160,10 @@ export default function SettingsModal({
   onClose,
   initialTab = "general",
 }: SettingsModalProps) {
-  const { data: session, update } = useSession();
+  const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const { chatPosition, setChatPosition } = useChatPosition();
+  const refreshSession = useRefreshSession();
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
   const [soundNotifications, setSoundNotifications] = useState(false);
@@ -398,8 +400,8 @@ export default function SettingsModal({
       if (res.ok) {
         const data = await res.json();
         setUserName(data.user.name || "");
-        // Update the NextAuth session to reflect the name change
-        await update({ name: data.user.name });
+        // Refresh session to reflect the updated profile
+        await refreshSession();
         toast.success("Profile updated successfully");
       } else {
         const error = await res.json();
@@ -445,8 +447,8 @@ export default function SettingsModal({
       if (res.ok) {
         const data = await res.json();
         setProfileImage(data.user.image);
-        // Update the NextAuth session to reflect the image change
-        await update({ image: data.user.image });
+        // Refresh session to reflect the updated avatar
+        await refreshSession();
         toast.success("Profile picture updated successfully", {
           id: "upload-avatar",
         });
@@ -477,8 +479,8 @@ export default function SettingsModal({
 
       if (res.ok) {
         setProfileImage(null);
-        // Update the NextAuth session to reflect the image removal
-        await update({ image: null });
+        // Refresh session to reflect the removed avatar
+        await refreshSession();
         toast.success("Profile picture removed successfully", {
           id: "remove-avatar",
         });

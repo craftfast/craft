@@ -12,33 +12,6 @@ interface Window {
   Polar: any;
 }
 
-// NextAuth type extensions
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    };
-    // Session fingerprinting for security monitoring (Issue 14)
-    ipAddress?: string;
-    userAgent?: string;
-  }
-
-  interface User {
-    id: string;
-    email: string;
-    name?: string | null;
-    image?: string | null;
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    id: string;
-    // Session fingerprinting for security monitoring (Issue 14)
-    ipAddress?: string;
-    userAgent?: string;
-  }
-}
+// Better Auth type extensions
+// Note: Better Auth has built-in TypeScript types from the Prisma schema
+// Session structure is automatically inferred from the auth configuration

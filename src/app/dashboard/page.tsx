@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -8,10 +7,9 @@ import RecentProjects from "@/components/RecentProjects";
 import PaymentSuccessHandler from "@/components/PaymentSuccessHandler";
 import PlanRedirectHandler from "@/components/PlanRedirectHandler";
 import { getUserSubscription } from "@/lib/subscription";
-import type { Session } from "next-auth";
 
 export default async function DashboardPage() {
-  const session = (await getServerSession(authOptions)) as Session | null;
+  const session = await getSession();
 
   // If not logged in, redirect to home page
   if (!session) {

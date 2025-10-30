@@ -178,3 +178,15 @@ export function hasFeatureAccess(
     const plan = PRICING[planName];
     return !!(plan.features as Record<string, unknown>)[featureName];
 }
+
+/**
+ * Get credit tiers for the credit selector component
+ * Returns an array of credit tier options with display names
+ */
+export function getCreditTiers() {
+    return PRO_TIERS.map(tier => ({
+        tokens: tier.monthlyCredits,
+        display: `${tier.monthlyCredits.toLocaleString()} credits - ${tier.displayPrice}`,
+        priceMonthly: tier.priceMonthly,
+    }));
+}

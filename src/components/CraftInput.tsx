@@ -9,7 +9,7 @@ import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ModelSelector } from "@/components/ModelSelector";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 
 interface ImageAttachment {
   id: string;

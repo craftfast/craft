@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
@@ -10,7 +9,7 @@ import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
  */
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
         const { token } = await req.json();
 
         if (!token) {
@@ -40,7 +39,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const userId = (session.user as { id: string }).id;
+        const userId = session.user.id;
 
         if (userId !== pendingLink.userId) {
             return NextResponse.json(

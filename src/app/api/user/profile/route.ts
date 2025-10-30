@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { deleteFile } from "@/lib/r2-storage";
 import { withCsrfProtection } from "@/lib/csrf";
@@ -11,7 +10,7 @@ import { withCsrfProtection } from "@/lib/csrf";
  */
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,7 +26,7 @@ export async function GET(req: NextRequest) {
                 emailVerified: true,
                 accounts: {
                     select: {
-                        provider: true,
+                        providerId: true,
                     },
                 },
             },
@@ -39,7 +38,7 @@ export async function GET(req: NextRequest) {
 
         // Determine if user has OAuth accounts
         const hasOAuthAccount = user.accounts.some(
-            (account) => account.provider === "google" || account.provider === "github"
+            (account: { providerId: string }) => account.providerId === "google" || account.providerId === "github"
         );
 
         return NextResponse.json({
@@ -69,7 +68,7 @@ export async function PATCH(req: NextRequest) {
         const csrfCheck = await withCsrfProtection(req);
         if (csrfCheck) return csrfCheck;
 
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -83,7 +82,7 @@ export async function PATCH(req: NextRequest) {
             include: {
                 accounts: {
                     select: {
-                        provider: true,
+                        providerId: true,
                     },
                 },
             },
@@ -144,7 +143,7 @@ export async function DELETE(req: NextRequest) {
         const csrfCheck = await withCsrfProtection(req);
         if (csrfCheck) return csrfCheck;
 
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

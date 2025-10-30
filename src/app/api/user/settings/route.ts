@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
 
@@ -10,7 +9,7 @@ import { withCsrfProtection } from "@/lib/csrf";
  */
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -52,7 +51,7 @@ export async function PATCH(req: NextRequest) {
         const csrfCheck = await withCsrfProtection(req);
         if (csrfCheck) return csrfCheck;
 
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

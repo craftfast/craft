@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logAccountUnlinked } from "@/lib/security-logger";
@@ -17,7 +16,7 @@ export async function POST(req: NextRequest) {
         const csrfCheck = await withCsrfProtection(req);
         if (csrfCheck) return csrfCheck;
 
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
         if (!session?.user?.email) {
             return NextResponse.json(
@@ -35,7 +34,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const userId = (session.user as { id: string }).id;
+        const userId = session.user.id;
 
         // Get user's current authentication methods
         const user = await prisma.user.findUnique({
@@ -45,7 +44,7 @@ export async function POST(req: NextRequest) {
                 password: true,
                 accounts: {
                     select: {
-                        provider: true,
+                        providerId: true,
                     },
                 },
             },
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
 
         // Count available authentication methods
         const hasPassword = !!user.password;
-        const oauthProviders = user.accounts.map(acc => acc.provider);
+        const oauthProviders = user.accounts.map(acc => acc.providerId);
         const totalAuthMethods = (hasPassword ? 1 : 0) + oauthProviders.length;
 
         // Prevent user from removing their last authentication method
@@ -73,7 +72,7 @@ export async function POST(req: NextRequest) {
 
         // Handle OAuth provider unlinking (Google, GitHub)
         if (provider === "google" || provider === "github") {
-            const account = user.accounts.find(acc => acc.provider === provider);
+            const account = user.accounts.find(acc => acc.providerId === provider);
 
             if (!account) {
                 return NextResponse.json(
@@ -86,7 +85,7 @@ export async function POST(req: NextRequest) {
             await prisma.account.deleteMany({
                 where: {
                     userId,
-                    provider,
+                    providerId: provider,
                 },
             });
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { Sandbox } from "e2b"; // Using base e2b package for custom Next.js template
 
@@ -26,9 +25,9 @@ export async function POST(
     { params }: { params: Promise<{ projectId: string }> }
 ) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
-        if (!session?.user?.email) {
+        if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -38,9 +37,7 @@ export async function POST(
         const project = await prisma.project.findFirst({
             where: {
                 id: projectId,
-                user: {
-                    email: session.user.email,
-                },
+                userId: session.user.id,
             },
         });
 

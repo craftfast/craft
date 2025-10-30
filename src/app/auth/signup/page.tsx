@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { signIn } from "@/lib/auth-client";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
@@ -92,7 +92,10 @@ function SignUpContent() {
       finalCallbackUrl = url.pathname + url.search;
     }
 
-    await signIn(provider, { callbackUrl: finalCallbackUrl });
+    await signIn.social({
+      provider,
+      callbackURL: finalCallbackUrl,
+    });
   };
 
   return (

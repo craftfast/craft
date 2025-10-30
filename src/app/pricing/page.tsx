@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 import { useState, useEffect, useRef } from "react";
 import Logo from "@/components/Logo";
 import HeaderNav from "@/components/HeaderNav";
@@ -255,7 +255,7 @@ function FAQSection() {
 
 export default function PricingPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, isPending } = useSession();
   const [userPlan, setUserPlan] = useState<
     "hobby" | "pro" | "enterprise" | null
   >(null);
@@ -268,7 +268,7 @@ export default function PricingPage() {
   // Fetch user's actual subscription plan (only once when authenticated)
   useEffect(() => {
     // Skip if already fetched, not authenticated, or still loading session
-    if (hasFetchedRef.current || status === "loading" || !session?.user) {
+    if (hasFetchedRef.current || isPending || !session?.user) {
       if (!session?.user) {
         setUserPlan(null);
         hasFetchedRef.current = false; // Reset if user logs out
@@ -308,7 +308,7 @@ export default function PricingPage() {
     };
 
     fetchUserPlan();
-  }, [session, status]);
+  }, [session, isPending]);
 
   const handleProPayment = async () => {
     // Redirect to signup if not authenticated

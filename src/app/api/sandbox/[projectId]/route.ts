@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { Sandbox } from "e2b"; // Using base e2b package for custom Next.js template
 import { getTemplateAlias } from "@/lib/e2b/template";
@@ -145,9 +144,9 @@ export async function POST(
     { params }: { params: Promise<{ projectId: string }> }
 ) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
-        if (!session?.user?.email) {
+        if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -157,9 +156,7 @@ export async function POST(
         const project = await prisma.project.findFirst({
             where: {
                 id: projectId,
-                user: {
-                    email: session.user.email,
-                },
+                userId: session.user.id,
             },
             select: {
                 id: true,
@@ -313,7 +310,7 @@ export async function POST(
         console.log(`🔍 NODE_ENV: ${process.env.NODE_ENV}`);
 
         const sandboxOpts = {
-            metadata: { projectId, userId: session.user.email },
+            metadata: { projectId, userId: session.user.id },
             timeoutMs: 15 * 60 * 1000, // 15 minutes for better UX (can extend if needed)
         };
 
@@ -599,9 +596,9 @@ export async function GET(
     { params }: { params: Promise<{ projectId: string }> }
 ) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
-        if (!session?.user?.email) {
+        if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -611,7 +608,7 @@ export async function GET(
         const project = await prisma.project.findFirst({
             where: {
                 id: projectId,
-                user: { email: session.user.email },
+                userId: session.user.id,
             },
         });
 
@@ -654,9 +651,9 @@ export async function DELETE(
     { params }: { params: Promise<{ projectId: string }> }
 ) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession();
 
-        if (!session?.user?.email) {
+        if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 

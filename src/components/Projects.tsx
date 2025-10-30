@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
 
 type ViewMode = "grid" | "list";
@@ -16,7 +16,7 @@ interface Project {
 }
 
 export default function Projects() {
-  const { status } = useSession();
+  const { data: session, isPending } = useSession();
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,13 +26,13 @@ export default function Projects() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (session && !isPending) {
       fetchProjects();
-    } else if (status === "unauthenticated") {
+    } else if (!session && !isPending) {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, sortBy, searchQuery]);
+  }, [session, isPending, sortBy, searchQuery]);
 
   const fetchProjects = async () => {
     try {
@@ -70,7 +70,7 @@ export default function Projects() {
     return `${Math.floor(diffInDays / 365)} years ago`;
   };
 
-  if (status === "unauthenticated") {
+  if (!session && !isPending) {
     return (
       <div className="text-center py-12">
         <p className="text-neutral-600 dark:text-neutral-400">

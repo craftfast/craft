@@ -41,34 +41,54 @@ model User {
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String // Better Auth: provider account ID
+  providerId            String // Better Auth: provider name (google, github, etc.)
+  accessToken           String? // Better Auth: OAuth access token
+  refreshToken          String? // Better Auth: OAuth refresh token
+  idToken               String? // Better Auth: OAuth ID token
+  accessTokenExpiresAt  DateTime? // Better Auth: access token expiry
+  refreshTokenExpiresAt DateTime? // Better Auth: refresh token expiry
+  scope                 String? // Better Auth: OAuth scope
+  password              String? // Better Auth: for credentials provider
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  @@unique([provider, providerAccountId])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
   @@map("accounts")
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  expiresAt DateTime // Better Auth: session expiry
+  token     String   @unique // Better Auth: session token
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String? // Better Auth: session IP tracking
+  userAgent String? // Better Auth: session user agent tracking
+  userId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
 
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String // Email or user ID
+  value      String // Verification token
+  expiresAt  DateTime // Token expiry
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+  @@map("verifications")
+}
+
+// Legacy verification token table (can be removed after migration)
 model VerificationToken {
   identifier String
   token      String   @unique

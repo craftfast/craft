@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession as useBetterAuthSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
 interface SecurityEvent {
@@ -27,7 +27,7 @@ interface PaginationInfo {
 }
 
 export default function SecurityEventsPage() {
-  const { data: session, status } = useSession();
+  const { data: session, isPending } = useBetterAuthSession();
   const router = useRouter();
   const [events, setEvents] = useState<SecurityEvent[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -44,10 +44,10 @@ export default function SecurityEventsPage() {
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!isPending && !session) {
       router.push("/auth/signin");
     }
-  }, [status, router]);
+  }, [isPending, session, router]);
 
   // Fetch security events
   const fetchEvents = async (offset = 0) => {
