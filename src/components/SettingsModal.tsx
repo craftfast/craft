@@ -1056,7 +1056,7 @@ export default function SettingsModal({
             {/* Personalization Tab */}
             {activeTab === "personalization" && (
               <div className="space-y-6">
-                <div className="pt-6">
+                <div>
                   <h3 className="text-lg font-semibold text-foreground mb-4">
                     Preferred AI Model
                   </h3>
