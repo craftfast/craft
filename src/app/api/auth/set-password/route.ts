@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { validatePassword } from "@/lib/password-validation";
 import { withCsrfProtection } from "@/lib/csrf";
+import { logPasswordSet } from "@/lib/security-logger";
 
 /**
  * POST /api/auth/set-password
@@ -93,6 +94,9 @@ export async function POST(req: NextRequest) {
                 emailVerified: new Date(), // Email is pre-verified for OAuth users
             },
         });
+
+        // Log password set (Issue 16)
+        await logPasswordSet(userId, user.email, req);
 
         return NextResponse.json({
             success: true,

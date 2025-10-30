@@ -6,6 +6,7 @@ import { sendVerificationEmail } from "@/lib/email";
 import { randomUUID } from "crypto";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { validatePassword } from "@/lib/password-validation";
+import { logAccountCreated, logVerificationEmailSent } from "@/lib/security-logger";
 
 export async function POST(request: NextRequest) {
     try {
@@ -92,10 +93,16 @@ export async function POST(request: NextRequest) {
 
         console.log(`✅ User created: ${user.email}`);
 
+        // Log account creation (Issue 16)
+        await logAccountCreated(user.id, user.email, request);
+
         // Send verification email
         try {
             await sendVerificationEmail(user.email, verificationToken);
             console.log(`✅ Verification email sent to: ${user.email}`);
+
+            // Log verification email sent (Issue 16)
+            await logVerificationEmailSent(user.id, user.email, request);
         } catch (emailError) {
             console.error("Error sending verification email:", emailError);
             // Don't fail registration if email fails

@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 import { sendEmail } from "@/lib/email";
 import { withCsrfProtection } from "@/lib/csrf";
 import validator from "validator";
+import { logEmailChangeRequested } from "@/lib/security-logger";
 
 /**
  * Request email change - sends verification email to new address
@@ -102,6 +103,14 @@ export async function POST(request: NextRequest) {
         </div>
       `,
         });
+
+        // Log email change request (Issue 16)
+        await logEmailChangeRequested(
+            session.user.id,
+            currentUser?.email || "",
+            newEmail,
+            request
+        );
 
         return NextResponse.json({
             success: true,

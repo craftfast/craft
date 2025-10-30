@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { logAccountLinked } from "@/lib/security-logger";
 
 /**
  * POST /api/auth/confirm-link
@@ -126,6 +127,14 @@ export async function POST(req: NextRequest) {
         });
 
         console.log(`✅ Account linked successfully: ${pendingLink.provider} → ${pendingLink.email} (email verified to match user's primary email)`);
+
+        // Log account linking (Issue 16)
+        await logAccountLinked(
+            pendingLink.userId,
+            pendingLink.email,
+            pendingLink.provider,
+            req
+        );
 
         return NextResponse.json({
             success: true,

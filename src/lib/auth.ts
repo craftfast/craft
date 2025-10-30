@@ -5,6 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { assignPlanToUser } from "@/lib/subscription";
+import { logSecurityEvent, logLockoutCleared } from "@/lib/security-logger";
 
 // Validate that NEXTAUTH_SECRET is set
 if (!process.env.NEXTAUTH_SECRET) {
@@ -77,6 +78,16 @@ export const authOptions = {
                     const LOCKOUT_THRESHOLD = 5;
                     const LOCKOUT_DURATION_MINUTES = 30; // 30 minutes
 
+                    // Log failed login attempt (Issue 16)
+                    await logSecurityEvent({
+                        userId: user.id,
+                        eventType: "LOGIN_FAILED",
+                        email: user.email,
+                        success: false,
+                        errorReason: "Invalid password",
+                        severity: "warning",
+                    });
+
                     if (failedAttempts >= LOCKOUT_THRESHOLD) {
                         // Lock the account for 30 minutes
                         const lockedUntil = new Date(
@@ -89,6 +100,19 @@ export const authOptions = {
                                 failedLoginAttempts: failedAttempts,
                                 lockedUntil,
                                 lastFailedLoginAt: new Date(),
+                            },
+                        });
+
+                        // Log account lockout (Issue 16)
+                        await logSecurityEvent({
+                            userId: user.id,
+                            eventType: "ACCOUNT_LOCKED",
+                            email: user.email,
+                            success: true,
+                            severity: "critical",
+                            metadata: {
+                                failedAttempts,
+                                lockoutDurationMinutes: LOCKOUT_DURATION_MINUTES,
                             },
                         });
 
@@ -119,7 +143,20 @@ export const authOptions = {
                             lastFailedLoginAt: null,
                         },
                     });
+
+                    // Log lockout cleared (Issue 16)
+                    if (user.lockedUntil) {
+                        await logLockoutCleared(user.id, user.email);
+                    }
                 }
+
+                // Log successful login (Issue 16)
+                await logSecurityEvent({
+                    userId: user.id,
+                    eventType: "LOGIN_SUCCESS",
+                    email: user.email,
+                    success: true,
+                });
 
                 return {
                     id: user.id,
@@ -148,6 +185,14 @@ export const authOptions = {
             try {
                 await assignPlanToUser(userId, "HOBBY");
                 console.log(`✅ Hobby plan assigned to new OAuth user: ${email}`);
+
+                // Log account creation (Issue 16)
+                await logSecurityEvent({
+                    userId,
+                    eventType: "ACCOUNT_CREATED",
+                    email,
+                    success: true,
+                });
             } catch (error) {
                 console.error("Error assigning Hobby plan to OAuth user:", error);
                 // Don't fail the signup if plan assignment fails
@@ -156,11 +201,21 @@ export const authOptions = {
         // Handle account linking and provider email management
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async linkAccount(message: any) {
-            const { account } = message;
+            const { account, user } = message;
 
             // When a user links an OAuth account (Google/GitHub), just log it
             if (account.provider === "google" || account.provider === "github") {
                 console.log(`✅ ${account.provider} account linked successfully`);
+
+                // Log account linking (Issue 16)
+                await logSecurityEvent({
+                    userId: user.id,
+                    eventType: "ACCOUNT_LINKED",
+                    email: user.email,
+                    provider: account.provider,
+                    success: true,
+                    severity: "warning",
+                });
             }
         },
     },

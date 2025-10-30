@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
+import { logAccountUnlinked } from "@/lib/security-logger";
 
 /**
  * POST /api/auth/unlink-provider
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: {
+                email: true,
                 password: true,
                 accounts: {
                     select: {
@@ -86,6 +88,9 @@ export async function POST(req: NextRequest) {
                     provider,
                 },
             });
+
+            // Log account unlinking (Issue 16)
+            await logAccountUnlinked(userId, user.email, provider, req);
 
             return NextResponse.json({
                 success: true,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { logEmailVerified } from "@/lib/security-logger";
 
 export async function GET(request: NextRequest) {
     try {
@@ -63,6 +64,9 @@ export async function GET(request: NextRequest) {
                 verificationTokenExpiry: null,
             },
         });
+
+        // Log email verification (Issue 16)
+        await logEmailVerified(user.id, user.email, request);
 
         return NextResponse.json(
             { success: true, message: "Email verified successfully" },

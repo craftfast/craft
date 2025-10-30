@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import validator from "validator";
+import { logEmailChanged } from "@/lib/security-logger";
 
 /**
  * Verify and complete email change using POST request
@@ -66,6 +67,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Update user's email
+        const oldEmail = user.email;
         await prisma.user.update({
             where: { id: user.id },
             data: {
@@ -75,6 +77,9 @@ export async function POST(request: NextRequest) {
                 verificationTokenExpiry: null,
             },
         });
+
+        // Log email change (Issue 16)
+        await logEmailChanged(user.id, oldEmail, newEmail, request);
 
         return NextResponse.json({
             success: true,

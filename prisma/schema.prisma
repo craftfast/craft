@@ -500,3 +500,33 @@ model Feedback {
   @@index([createdAt])
   @@map("feedback")
 }
+
+// ============================================================================
+// SECURITY EVENT LOGGING (Issue 16)
+// ============================================================================
+// Comprehensive security event logging for authentication and account changes
+// Tracks failed logins, account creation, password changes, email changes, account linking, etc.
+
+model SecurityEvent {
+  id          String   @id @default(cuid())
+  userId      String? // User involved (null for failed login attempts with unknown user)
+  eventType   String // "LOGIN_SUCCESS", "LOGIN_FAILED", "ACCOUNT_CREATED", "PASSWORD_CHANGED", "EMAIL_CHANGED", "ACCOUNT_LINKED", "ACCOUNT_UNLINKED", "EMAIL_VERIFIED", "PASSWORD_SET", "ACCOUNT_LOCKED", "LOCKOUT_CLEARED"
+  severity    String   @default("info") // "info", "warning", "critical"
+  ipAddress   String? // Client IP address
+  userAgent   String? // Browser/client user agent
+  email       String? // Email address involved (for failed login attempts, new email changes, etc.)
+  provider    String? // OAuth provider for account linking events ("google", "github")
+  success     Boolean  @default(true) // Whether the event was successful
+  errorReason String? // Error/failure reason if success=false
+  metadata    Json? // Additional event-specific metadata (e.g., previous email, lockout duration, etc.)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([severity, createdAt])
+  @@index([ipAddress, createdAt])
+  @@index([email, createdAt])
+  @@index([success, createdAt])
+  @@index([createdAt]) // For time-based queries
+  @@map("security_events")
+}
