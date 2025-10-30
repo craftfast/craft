@@ -13,14 +13,12 @@ export const authOptions = {
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID || "",
             clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-            allowDangerousEmailAccountLinking: true, // Allow linking accounts with same email
         }),
 
         // GitHub OAuth Provider
         GitHubProvider({
             clientId: process.env.GITHUB_CLIENT_ID || "",
             clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-            allowDangerousEmailAccountLinking: true, // Allow linking accounts with same email
         }),
 
         // Email + Password Provider
@@ -110,7 +108,7 @@ export const authOptions = {
 
                 if (!email) {
                     console.warn(`No email provided by ${account.provider}`);
-                    return true; // Allow sign in, but email management won't work
+                    return true; // Allow sign in, but account linking won't work
                 }
 
                 try {
@@ -128,9 +126,36 @@ export const authOptions = {
 
                     // If user exists but doesn't have this OAuth provider linked yet
                     if (existingUser && existingUser.accounts.length === 0) {
-                        // This is account linking - the account will be automatically linked
-                        // by NextAuth's adapter
-                        console.log(`🔗 Linking ${account.provider} account to existing user: ${email}`);
+                        // Account linking detected - create a pending link request
+                        console.log(`🔒 Account linking requires confirmation for ${account.provider} → ${email}`);
+
+                        // Generate a unique token for confirmation
+                        const token = `${existingUser.id}_${account.provider}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+                        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+                        // Delete any existing pending links for this user + provider
+                        await prisma.pendingAccountLink.deleteMany({
+                            where: {
+                                userId: existingUser.id,
+                                provider: account.provider,
+                            },
+                        });
+
+                        // Create pending account link
+                        await prisma.pendingAccountLink.create({
+                            data: {
+                                userId: existingUser.id,
+                                email,
+                                provider: account.provider,
+                                providerAccountId: account.providerAccountId,
+                                token,
+                                expiresAt,
+                            },
+                        });
+
+                        // Prevent automatic linking by returning false and redirecting
+                        // NextAuth will not create the account link
+                        return `/auth/confirm-link?token=${token}`;
                     }
                 } catch (error) {
                     console.error(`Error checking for existing user during ${account.provider} sign in:`, error);

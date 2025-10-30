@@ -8,30 +8,31 @@ datasource db {
 }
 
 model User {
-  id                      String            @id @default(cuid())
+  id                      String               @id @default(cuid())
   name                    String?
-  email                   String            @unique
+  email                   String               @unique
   emailVerified           DateTime?
   image                   String?
   password                String?
-  verificationToken       String?           @unique
+  verificationToken       String?              @unique
   verificationTokenExpiry DateTime?
   // Password reset
-  passwordResetToken      String?           @unique
+  passwordResetToken      String?              @unique
   passwordResetExpiry     DateTime?
-  preferredChatPosition   String            @default("right") // "left" or "right"
-  preferredTheme          String            @default("dark") // "light" | "dark" | "system"
+  preferredChatPosition   String               @default("right") // "left" or "right"
+  preferredTheme          String               @default("dark") // "light" | "dark" | "system"
   // AI Model Preferences
-  preferredModel          String            @default("gpt-5") // Default model for new projects
-  enabledModels           String[]          @default(["gpt-5-mini", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4.5"]) // Models user has enabled
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
+  preferredModel          String               @default("gpt-5") // Default model for new projects
+  enabledModels           String[]             @default(["gpt-5-mini", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4.5"]) // Models user has enabled
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
   accounts                Account[]
   projects                Project[]
   sessions                Session[]
   files                   File[] // All files uploaded by this user
   subscription            UserSubscription?
   userEmails              UserEmail[] // Alternate email addresses
+  pendingAccountLinks     PendingAccountLink[] @relation("PendingAccountLinks")
 
   @@map("users")
 }
@@ -98,6 +99,29 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+// ============================================================================
+// PENDING ACCOUNT LINKING
+// ============================================================================
+// Stores pending account link requests that require user confirmation
+// Used when OAuth sign-in detects an existing account with the same email
+
+model PendingAccountLink {
+  id                String   @id @default(cuid())
+  userId            String // Existing user account
+  email             String // Email address attempting to link
+  provider          String // OAuth provider (google, github)
+  providerAccountId String // Provider's account ID
+  token             String   @unique // Unique token for confirmation link
+  expiresAt         DateTime // Token expiration (24 hours)
+  createdAt         DateTime @default(now())
+  user              User     @relation("PendingAccountLinks", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
+  @@index([token])
+  @@map("pending_account_links")
 }
 
 model Project {
