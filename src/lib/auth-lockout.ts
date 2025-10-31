@@ -47,6 +47,9 @@ export async function checkAccountLockout(email: string): Promise<LockoutStatus>
     });
 
     if (!user) {
+        // Don't reveal if user exists or not
+        // Add a small delay to prevent timing attacks
+        await new Promise(resolve => setTimeout(resolve, 100));
         return { locked: false };
     }
 
@@ -97,6 +100,8 @@ export async function incrementFailedAttempts(
 
     if (!user) {
         // Don't reveal if user exists or not
+        // Add a small delay to prevent timing attacks
+        await new Promise(resolve => setTimeout(resolve, 100));
         return { locked: false };
     }
 
