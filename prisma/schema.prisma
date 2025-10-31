@@ -30,8 +30,6 @@ model User {
   lockedUntil             DateTime?
   role                    String               @default("user")
   twoFactorEnabled        Boolean              @default(false)
-  twoFactorSecret         String?
-  backupCodes             String[]             @default([])
   deletionScheduledAt     DateTime?
   deletedAt               DateTime?
   accounts                Account[]
@@ -41,6 +39,7 @@ model User {
   projects                Project[]
   sessions                Session[]
   subscription            UserSubscription?
+  twoFactor               TwoFactor?
 
   @@map("users")
 }
@@ -66,15 +65,16 @@ model Account {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-  ipAddress String?
-  token     String   @unique
-  updatedAt DateTime @updatedAt
-  userAgent String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String   @id @default(cuid())
+  userId            String
+  createdAt         DateTime @default(now())
+  expiresAt         DateTime
+  ipAddress         String?
+  token             String   @unique
+  updatedAt         DateTime @updatedAt
+  userAgent         String?
+  twoFactorVerified Boolean  @default(false)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -520,4 +520,14 @@ model SecurityEvent {
   @@index([success, createdAt])
   @@index([createdAt])
   @@map("security_events")
+}
+
+model TwoFactor {
+  id          String @id @default(cuid())
+  userId      String @unique
+  secret      String
+  backupCodes String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor")
 }

@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { twoFactor } from "better-auth/plugins";
 import { prisma } from "@/lib/db";
 import { createAuthMiddleware } from "better-auth/api";
 import {
@@ -41,6 +42,7 @@ export const auth = betterAuth({
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
+    appName: "Craft",
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
     emailAndPassword: {
@@ -74,6 +76,15 @@ export const auth = betterAuth({
             trustedProviders: ["google", "github"],
         },
     },
+    plugins: [
+        twoFactor({
+            issuer: "Craft",
+            backupCodeOptions: {
+                amount: 10,
+                length: 10,
+            },
+        }),
+    ],
     hooks: {
         // Before hook - Session fingerprint validation, rate limiting, and account lockout checks
         before: createAuthMiddleware(async (ctx) => {

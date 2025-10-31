@@ -7,7 +7,6 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TwoFactorVerifyModal } from "@/components/auth/two-factor-verify-modal";
 
 function SignInContent() {
   const router = useRouter();
@@ -24,10 +23,6 @@ function SignInContent() {
   const [resendMessage, setResendMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // 2FA state
-  const [pendingToken, setPendingToken] = useState("");
-  const [show2FAModal, setShow2FAModal] = useState(false);
-
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -35,97 +30,56 @@ function SignInContent() {
     setLoading(true);
 
     try {
-      // First, check if 2FA is required
-      const loginCheckResponse = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      // Use Better Auth's built-in sign-in with 2FA support
+      const result = await signIn.email(
+        {
+          email,
+          password,
+        },
+        {
+          onSuccess: (context) => {
+            // Check if 2FA redirect is needed
+            if (context.data.twoFactorRedirect) {
+              // Better Auth will automatically redirect to /auth/verify-2fa
+              return;
+            }
 
-      if (!loginCheckResponse.ok) {
-        const loginCheckData = await loginCheckResponse.json();
+            // Normal login success
+            let finalRedirectUrl = callbackUrl;
+            if (planParam) {
+              const url = new URL(callbackUrl, window.location.origin);
+              url.searchParams.set("plan", planParam);
+              finalRedirectUrl = url.pathname + url.search;
+            }
 
-        // Check if error is about email verification
-        if (loginCheckData.error?.includes("verify your email")) {
-          setNeedsVerification(true);
-          setError(loginCheckData.error);
-        } else {
-          setError(loginCheckData.error || "Invalid email or password");
+            router.push(finalRedirectUrl);
+            router.refresh();
+          },
+          onError: (ctx) => {
+            const errorMessage =
+              ctx.error.message || "Invalid email or password";
+
+            // Check if error is about email verification
+            if (
+              errorMessage.includes("verify your email") ||
+              errorMessage.includes("not verified")
+            ) {
+              setNeedsVerification(true);
+            }
+
+            setError(errorMessage);
+            setLoading(false);
+          },
         }
-        setLoading(false);
-        return;
-      }
+      );
 
-      const loginCheckData = await loginCheckResponse.json();
-
-      // If 2FA is required, show 2FA modal
-      if (loginCheckData.requiresTwoFactor) {
-        setPendingToken(loginCheckData.pendingToken);
-        setShow2FAModal(true);
-        setLoading(false);
-        return;
-      }
-
-      // If no 2FA, proceed with regular Better Auth sign-in
-      const result = await signIn.email({
-        email,
-        password,
-      });
-
-      if (result.error) {
+      // If result has an error and wasn't handled by onError
+      if (result && result.error && !result.error.message) {
         setError("Invalid email or password");
         setLoading(false);
-        return;
       }
-
-      // Construct final redirect URL with plan parameter if present
-      let finalRedirectUrl = callbackUrl;
-      if (planParam) {
-        const url = new URL(callbackUrl, window.location.origin);
-        url.searchParams.set("plan", planParam);
-        finalRedirectUrl = url.pathname + url.search;
-      }
-
-      router.push(finalRedirectUrl);
-      router.refresh();
-    } catch {
+    } catch (err) {
       setError("Something went wrong");
-      setLoading(false);
-    }
-  };
-
-  const handle2FASuccess = async () => {
-    try {
-      setLoading(true);
-
-      // Complete the login after 2FA verification
-      const response = await fetch("/api/auth/complete-2fa-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pendingToken,
-          password,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to complete login");
-      }
-
-      setShow2FAModal(false);
-
-      // Construct final redirect URL with plan parameter if present
-      let finalRedirectUrl = callbackUrl;
-      if (planParam) {
-        const url = new URL(callbackUrl, window.location.origin);
-        url.searchParams.set("plan", planParam);
-        finalRedirectUrl = url.pathname + url.search;
-      }
-
-      router.push(finalRedirectUrl);
-      router.refresh();
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Login failed");
       setLoading(false);
     }
   };
@@ -399,14 +353,6 @@ function SignInContent() {
           </div>
         </div>
       </div>
-
-      {/* 2FA Verification Modal */}
-      <TwoFactorVerifyModal
-        open={show2FAModal}
-        onOpenChange={setShow2FAModal}
-        pendingToken={pendingToken}
-        onSuccess={handle2FASuccess}
-      />
     </div>
   );
 }
