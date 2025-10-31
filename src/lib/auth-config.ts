@@ -7,6 +7,10 @@ import {
     logAccountCreated,
     logEmailVerified,
     logAccountLinked,
+    logPasswordResetRequested,
+    logPasswordResetSuccess,
+    logLoginFailure,
+    logPasswordResetFailed,
 } from "@/lib/security-logger";
 import {
     checkAccountLockout,
@@ -14,6 +18,7 @@ import {
     clearFailedAttempts,
 } from "@/lib/auth-lockout";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 // Validate required environment variables
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -31,6 +36,13 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: true,
+        sendResetPassword: async ({ user, url, token }, request) => {
+            // Log password reset request
+            await logPasswordResetRequested(user.email, request as Request);
+
+            // Send password reset email
+            await sendPasswordResetEmail(user.email, token, url);
+        },
     },
     socialProviders: {
         google: {
@@ -130,6 +142,19 @@ export const auth = betterAuth({
                 await clearFailedAttempts(newSession.session.userId);
             }
 
+            // Handle failed email sign-in (no session created)
+            if (ctx.path === "/sign-in/email" && !newSession && ctx.context.returned === false) {
+                const email = ctx.body?.email;
+
+                if (email && typeof email === "string") {
+                    // Log failed login attempt
+                    await logLoginFailure(email, request, "Invalid credentials");
+
+                    // Increment failed attempts (will lock account if threshold reached)
+                    await incrementFailedAttempts(email, request);
+                }
+            }
+
             // Handle successful OAuth sign-in (Google or GitHub)
             if (ctx.path.startsWith("/sign-in/social") && newSession) {
                 const provider = ctx.path.includes("google") ? "google" :
@@ -183,6 +208,33 @@ export const auth = betterAuth({
                         provider,
                         request
                     );
+                }
+            }
+
+            // Handle password reset success
+            if (ctx.path === "/reset-password" && ctx.context.returned) {
+                const email = ctx.body?.email;
+                const userId = ctx.body?.userId;
+
+                if (email && userId) {
+                    await logPasswordResetSuccess(
+                        userId,
+                        email,
+                        request
+                    );
+
+                    // Clear failed login attempts on successful password reset
+                    await clearFailedAttempts(userId);
+                }
+            }
+
+            // Handle failed password reset (invalid/expired token, weak password, etc.)
+            if (ctx.path === "/reset-password" && !ctx.context.returned && ctx.context.returned === false) {
+                const email = ctx.body?.email;
+
+                if (email && typeof email === "string") {
+                    const errorMessage = ctx.context.error?.message || "Password reset failed";
+                    await logPasswordResetFailed(email, request, errorMessage);
                 }
             }
         }),

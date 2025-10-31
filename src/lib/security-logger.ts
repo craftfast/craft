@@ -23,6 +23,9 @@ export type SecurityEventType =
     | "ACCOUNT_CREATED"
     | "PASSWORD_CHANGED"
     | "PASSWORD_SET"
+    | "PASSWORD_RESET_REQUESTED"
+    | "PASSWORD_RESET_SUCCESS"
+    | "PASSWORD_RESET_FAILED"
     | "EMAIL_CHANGED"
     | "EMAIL_CHANGE_REQUESTED"
     | "ACCOUNT_LINKED"
@@ -31,7 +34,6 @@ export type SecurityEventType =
     | "ACCOUNT_LOCKED"
     | "LOCKOUT_CLEARED"
     | "VERIFICATION_EMAIL_SENT"
-    | "PASSWORD_RESET_REQUESTED"
     | "PROFILE_UPDATED"
     | "AVATAR_UPDATED"
     | "AVATAR_REMOVED"
@@ -152,12 +154,15 @@ function getSeverityForEventType(eventType: SecurityEventType): SecurityEventSev
     const criticalEvents: SecurityEventType[] = [
         "ACCOUNT_LOCKED",
         "LOGIN_FAILED",
+        "PASSWORD_RESET_FAILED",
     ];
 
     // Warning events - important security changes
     const warningEvents: SecurityEventType[] = [
         "PASSWORD_CHANGED",
         "PASSWORD_SET",
+        "PASSWORD_RESET_REQUESTED",
+        "PASSWORD_RESET_SUCCESS",
         "EMAIL_CHANGED",
         "ACCOUNT_LINKED",
         "ACCOUNT_UNLINKED",
@@ -191,6 +196,9 @@ function getEmojiForEventType(eventType: SecurityEventType, success?: boolean): 
         ACCOUNT_CREATED: "🎉",
         PASSWORD_CHANGED: "🔑",
         PASSWORD_SET: "🔑",
+        PASSWORD_RESET_REQUESTED: "🔄",
+        PASSWORD_RESET_SUCCESS: "✅",
+        PASSWORD_RESET_FAILED: "❌",
         EMAIL_CHANGED: "📧",
         EMAIL_CHANGE_REQUESTED: "📧",
         ACCOUNT_LINKED: "🔗",
@@ -199,7 +207,6 @@ function getEmojiForEventType(eventType: SecurityEventType, success?: boolean): 
         ACCOUNT_LOCKED: "🔒",
         LOCKOUT_CLEARED: "🔓",
         VERIFICATION_EMAIL_SENT: "📨",
-        PASSWORD_RESET_REQUESTED: "🔄",
         PROFILE_UPDATED: "👤",
         AVATAR_UPDATED: "�️",
         AVATAR_REMOVED: "🗑️",
@@ -457,6 +464,38 @@ export async function logPasswordResetRequested(
         ipAddress: getClientIP(request),
         userAgent: getUserAgent(request),
         success: true,
+    });
+}
+
+export async function logPasswordResetSuccess(
+    userId: string,
+    email: string,
+    request: Request
+): Promise<void> {
+    await logSecurityEvent({
+        userId,
+        eventType: "PASSWORD_RESET_SUCCESS",
+        email,
+        ipAddress: getClientIP(request),
+        userAgent: getUserAgent(request),
+        success: true,
+        severity: "warning",
+    });
+}
+
+export async function logPasswordResetFailed(
+    email: string,
+    request: Request,
+    errorReason: string
+): Promise<void> {
+    await logSecurityEvent({
+        eventType: "PASSWORD_RESET_FAILED",
+        email,
+        ipAddress: getClientIP(request),
+        userAgent: getUserAgent(request),
+        success: false,
+        errorReason,
+        severity: "warning",
     });
 }
 
