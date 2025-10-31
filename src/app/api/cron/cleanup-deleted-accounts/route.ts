@@ -134,11 +134,14 @@ export async function POST(request: NextRequest) {
                             name: null,
                             image: null,
                             password: null,
-                            twoFactorSecret: null,
-                            backupCodes: [],
                             verificationToken: null,
                             passwordResetToken: null,
                         },
+                    });
+
+                    // Delete two-factor authentication data
+                    await tx.twoFactor.deleteMany({
+                        where: { userId: user.id },
                     });
                 });
 
