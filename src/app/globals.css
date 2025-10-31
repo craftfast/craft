@@ -5,6 +5,23 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ====================================
+   PREVENT WHITE FLASH ON LOAD
+   ==================================== */
+
+/* Set dark background immediately - before any other styles */
+html {
+  background-color: #0a0a0a;
+}
+
+html.dark {
+  background-color: #0a0a0a;
+}
+
+html:not(.dark) {
+  background-color: #ffffff;
+}
+
+/* ====================================
    SHADCN/UI BASE LAYER
    ==================================== */
 

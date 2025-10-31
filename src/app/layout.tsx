@@ -53,7 +53,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className="dark"
+      style={{ backgroundColor: "#0a0a0a" }}
+    >
       <head>
         {/* Initialize theme before page renders to prevent flash */}
         <Script
@@ -64,20 +69,24 @@ export default function RootLayout({
               (function() {
                 try {
                   const theme = localStorage.getItem('theme') || 'dark';
+                  document.documentElement.style.backgroundColor = '#0a0a0a';
                   if (theme === 'dark') {
                     document.documentElement.classList.add('dark');
                   } else if (theme === 'light') {
                     document.documentElement.classList.remove('dark');
+                    document.documentElement.style.backgroundColor = '#ffffff';
                   } else if (theme === 'system') {
                     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                     if (prefersDark) {
                       document.documentElement.classList.add('dark');
                     } else {
                       document.documentElement.classList.remove('dark');
+                      document.documentElement.style.backgroundColor = '#ffffff';
                     }
                   }
                 } catch (e) {
                   document.documentElement.classList.add('dark');
+                  document.documentElement.style.backgroundColor = '#0a0a0a';
                 }
               })();
             `,
@@ -86,6 +95,7 @@ export default function RootLayout({
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{ backgroundColor: "#0a0a0a" }}
       >
         <SessionProvider>
           <ThemeProvider>
