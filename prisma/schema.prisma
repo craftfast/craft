@@ -30,6 +30,7 @@ model User {
   role                    String               @default("user")
   accounts                Account[]
   files                   File[]
+  passwordHistory         PasswordHistory[]
   pendingAccountLinks     PendingAccountLink[] @relation("PendingAccountLinks")
   projects                Project[]
   sessions                Session[]
@@ -91,6 +92,18 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model PasswordHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  password  String // Hashed password
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("password_history")
 }
 
 model PendingAccountLink {

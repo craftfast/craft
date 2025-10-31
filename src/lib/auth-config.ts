@@ -24,6 +24,11 @@ import {
     hasFingerprintChanged,
     isSuspiciousChange
 } from "@/lib/session-fingerprint";
+import {
+    signUpSchema,
+    passwordResetSchema,
+    validateAuthInput,
+} from "@/lib/auth-validation";
 
 // Validate required environment variables
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -134,6 +139,21 @@ export const auth = betterAuth({
 
             if (!rateLimitedPaths.some(path => ctx.path === path)) {
                 return;
+            }
+
+            // Validate request body with Zod schemas
+            if (ctx.path === "/sign-up/email" && ctx.body) {
+                const validation = validateAuthInput(signUpSchema, ctx.body);
+                if (!validation.success) {
+                    throw new Error(validation.errors.join(", "));
+                }
+            }
+
+            if (ctx.path === "/reset-password" && ctx.body) {
+                const validation = validateAuthInput(passwordResetSchema, ctx.body);
+                if (!validation.success) {
+                    throw new Error(validation.errors.join(", "));
+                }
             }
 
             // Extract client IP for rate limiting

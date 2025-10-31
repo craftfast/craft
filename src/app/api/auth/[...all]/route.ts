@@ -6,66 +6,21 @@ import {
     incrementFailedAttempts,
 } from "@/lib/auth-lockout";
 import { logLoginFailure } from "@/lib/security-logger";
-import {
-    checkRateLimit,
-    checkPasswordResetRateLimit,
-    getClientIp,
-} from "@/lib/rate-limit";
 
 const handlers = toNextJsHandler(auth);
 
 export const GET = handlers.GET;
 
-// Wrap POST to handle rate limiting and account lockout
+/**
+ * Wrap POST to handle account lockout checks
+ * 
+ * Note: Rate limiting is handled in Better Auth hooks (auth-config.ts)
+ * to avoid duplicate checks and maintain consistency.
+ */
 export async function POST(request: NextRequest) {
     const url = new URL(request.url);
     const pathname = url.pathname;
     const isEmailSignIn = pathname.endsWith("/sign-in/email");
-    const isEmailSignUp = pathname.endsWith("/sign-up/email");
-    const isPasswordReset = pathname.endsWith("/forget-password") || pathname.endsWith("/reset-password");
-
-    // Rate limiting for sensitive endpoints
-    const rateLimitedEndpoints = [isEmailSignIn, isEmailSignUp, isPasswordReset];
-    if (rateLimitedEndpoints.some(Boolean)) {
-        const clientIp = getClientIp(request);
-        const identifier = `auth:${clientIp}`;
-
-        // Use stricter rate limit for password reset
-        const rateLimitCheck = isPasswordReset
-            ? await checkPasswordResetRateLimit(identifier)
-            : await checkRateLimit(identifier);
-
-        if (!rateLimitCheck.success) {
-            const resetDate = new Date(rateLimitCheck.reset);
-            const minutesUntilReset = Math.ceil((resetDate.getTime() - Date.now()) / 60000);
-
-            await logLoginFailure(
-                "rate-limited-ip",
-                request,
-                "Rate limit exceeded"
-            );
-
-            return NextResponse.json(
-                {
-                    error: `Too many authentication attempts. Please try again in ${minutesUntilReset} minute${minutesUntilReset !== 1 ? 's' : ''}.`,
-                    rateLimited: true,
-                    retryAfter: minutesUntilReset,
-                },
-                {
-                    status: 429,
-                    headers: {
-                        "X-RateLimit-Limit": rateLimitCheck.limit.toString(),
-                        "X-RateLimit-Remaining": rateLimitCheck.remaining.toString(),
-                        "X-RateLimit-Reset": rateLimitCheck.reset.toString(),
-                        "Retry-After": (minutesUntilReset * 60).toString(), // in seconds
-                    },
-                }
-            );
-        }
-
-        // Add rate limit headers to successful requests
-        // Note: These will be overridden by Better Auth's response, but kept for consistency
-    }
 
     // Handle email sign-in with lockout check
     if (isEmailSignIn) {

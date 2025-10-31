@@ -31,6 +31,14 @@ export interface LockoutStatus {
 }
 
 /**
+ * Round minutes to nearest 5 for security
+ * Prevents attackers from timing their attacks based on exact lockout expiry
+ */
+function roundToNearest5Minutes(minutes: number): number {
+    return Math.ceil(minutes / 5) * 5;
+}
+
+/**
  * Check if an account is currently locked out
  * @param email - User's email address
  * @returns Lockout status with remaining time if locked
@@ -55,14 +63,17 @@ export async function checkAccountLockout(email: string): Promise<LockoutStatus>
 
     // Check if account is currently locked
     if (user.lockedUntil && user.lockedUntil > new Date()) {
-        const remainingMinutes = Math.ceil(
+        const exactMinutes = Math.ceil(
             (user.lockedUntil.getTime() - Date.now()) / (1000 * 60)
         );
+
+        // Round to nearest 5 minutes for security
+        const remainingMinutes = roundToNearest5Minutes(exactMinutes);
 
         return {
             locked: true,
             remainingMinutes,
-            message: `Account locked due to multiple failed login attempts. Try again in ${remainingMinutes} minute${remainingMinutes !== 1 ? "s" : ""}.`,
+            message: `Account locked due to multiple failed login attempts. Try again in approximately ${remainingMinutes} minute${remainingMinutes !== 1 ? "s" : ""}.`,
             failedAttempts: user.failedLoginAttempts,
         };
     }
@@ -138,10 +149,13 @@ export async function incrementFailedAttempts(
             `🔒 Account locked: ${user.email} | Failed attempts: ${updatedUser.failedLoginAttempts} | Locked until: ${lockedUntil.toISOString()}`
         );
 
+        // Round to nearest 5 minutes for user-facing message
+        const roundedMinutes = roundToNearest5Minutes(LOCKOUT_DURATION_MINUTES);
+
         return {
             locked: true,
-            remainingMinutes: LOCKOUT_DURATION_MINUTES,
-            message: `Account locked due to ${updatedUser.failedLoginAttempts} failed login attempts. Try again in ${LOCKOUT_DURATION_MINUTES} minutes.`,
+            remainingMinutes: roundedMinutes,
+            message: `Account locked due to multiple failed login attempts. Try again in approximately ${roundedMinutes} minutes.`,
             failedAttempts: updatedUser.failedLoginAttempts,
         };
     }
