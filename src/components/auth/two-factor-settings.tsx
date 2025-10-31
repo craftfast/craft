@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X, Download, Copy, Check } from "lucide-react";
+import { X, Download, Copy, Check, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useSession, twoFactor } from "@/lib/auth-client";
 import QRCode from "qrcode";
@@ -20,6 +20,7 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
   const { data: session } = useSession();
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasPassword, setHasPassword] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [showDisableModal, setShowDisableModal] = useState(false);
   const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
@@ -33,12 +34,27 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
     "password"
   );
 
-  // Load 2FA status from session
+  // Load 2FA status and check if user has password
   useEffect(() => {
-    if (session?.user) {
-      setTwoFactorEnabled(session.user.twoFactorEnabled || false);
-      setIsLoading(false);
-    }
+    const checkUserCredentials = async () => {
+      if (session?.user) {
+        setTwoFactorEnabled(session.user.twoFactorEnabled || false);
+
+        // Check if user has a password (credential account)
+        try {
+          const response = await fetch("/api/auth/user/has-password");
+          const data = await response.json();
+          setHasPassword(data.hasPassword);
+        } catch (error) {
+          console.error("Failed to check password status:", error);
+          setHasPassword(false);
+        }
+
+        setIsLoading(false);
+      }
+    };
+
+    checkUserCredentials();
   }, [session]);
 
   // Step 1: Enable 2FA with password
@@ -216,6 +232,41 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
     );
   }
 
+  // If user doesn't have a password (social login only), show info message
+  if (!hasPassword) {
+    return (
+      <Card className="p-6">
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+              Two-Factor Authentication
+            </h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+              Add an extra layer of security to your account by requiring a code
+              from your phone in addition to your password.
+            </p>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl mt-4">
+            <AlertCircle className="h-5 w-5 text-neutral-600 dark:text-neutral-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                2FA Not Available
+              </p>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+                Two-factor authentication is only available for accounts with
+                password authentication. You're currently signed in with a
+                social provider (Google or GitHub), which already provides
+                secure authentication. To enable 2FA, please set a password for
+                your account in the Account Security section.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <>
       <Card className="p-6">
@@ -225,8 +276,8 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
               Two-Factor Authentication
             </h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-              Add an extra layer of security to your account by requiring a
-              code from your phone in addition to your password.
+              Add an extra layer of security to your account by requiring a code
+              from your phone in addition to your password.
             </p>
           </div>
 
@@ -280,8 +331,8 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
         onOpenChange={setShowSetupModal}
       >
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl">
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[100000] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-[100001] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl">
             <div className="flex items-center justify-between">
               <DialogPrimitive.Title className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                 {step === "password" && "Enable Two-Factor Authentication"}
@@ -391,12 +442,12 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
               <div className="space-y-4">
                 <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
                   <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
-                     Save these backup codes in a safe place
+                    Save these backup codes in a safe place
                   </p>
                   <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
                     You can use these codes to access your account if you lose
-                    access to your authenticator app. Each code can only be
-                    used once.
+                    access to your authenticator app. Each code can only be used
+                    once.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg">
@@ -445,8 +496,8 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
         onOpenChange={setShowDisableModal}
       >
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl">
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[100000] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-[100001] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl">
             <div className="flex items-center justify-between">
               <DialogPrimitive.Title className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                 Disable Two-Factor Authentication
@@ -502,8 +553,8 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
         onOpenChange={setShowBackupCodesModal}
       >
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl">
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[100000] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-[100001] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-2xl">
             <div className="flex items-center justify-between">
               <DialogPrimitive.Title className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                 New Backup Codes
@@ -516,8 +567,8 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
             <div className="space-y-4">
               <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Your old backup codes have been replaced. Save these new
-                  codes in a safe place.
+                  Your old backup codes have been replaced. Save these new codes
+                  in a safe place.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg">
