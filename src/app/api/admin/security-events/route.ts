@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
+import { requireAdmin, isAdmin } from "@/lib/admin-auth";
 
 /**
  * GET /api/admin/security-events
  * Fetch security events for monitoring and audit trails
- * This endpoint would typically be restricted to admin users only
+ * ADMIN ONLY - Requires admin role
  */
 export async function GET(request: NextRequest) {
     try {
-        const session = await getSession();
+        // Check admin authorization
+        const adminCheck = await requireAdmin(request);
+        if (adminCheck) return adminCheck;
 
+        // At this point, we know the user is authenticated and is an admin
+        const session = await getSession();
         if (!session?.user?.id) {
+            // This shouldn't happen after requireAdmin, but add for type safety
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        // TODO: Add admin role check here when roles are implemented
-        // For now, users can only see their own security events
-        const userId = (session.user as { id: string }).id;
 
         // Parse query parameters
         const { searchParams } = request.nextUrl;
@@ -27,12 +29,8 @@ export async function GET(request: NextRequest) {
         const severity = searchParams.get("severity");
         const userIdFilter = searchParams.get("userId");
 
-        // Build filter
-        const where: any = {
-            // For now, users can only see their own events
-            // When admin role is added, remove this for admin users
-            userId: userId,
-        };
+        // Build filter - admins can see all events
+        const where: any = {};
 
         if (eventType) {
             where.eventType = eventType;
@@ -42,7 +40,8 @@ export async function GET(request: NextRequest) {
             where.severity = severity;
         }
 
-        if (userIdFilter && userIdFilter === userId) {
+        // Allow filtering by specific user ID
+        if (userIdFilter) {
             where.userId = userIdFilter;
         }
 

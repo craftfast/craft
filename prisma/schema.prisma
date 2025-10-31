@@ -27,6 +27,7 @@ model User {
   failedLoginAttempts     Int                  @default(0)
   lastFailedLoginAt       DateTime?
   lockedUntil             DateTime?
+  role                    String               @default("user")
   accounts                Account[]
   files                   File[]
   pendingAccountLinks     PendingAccountLink[] @relation("PendingAccountLinks")
