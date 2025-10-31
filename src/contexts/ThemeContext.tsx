@@ -15,8 +15,29 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
-  const [theme, setThemeState] = useState<Theme>("dark");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("dark");
+  // Initialize from localStorage immediately to match the inline script
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme") as Theme | null;
+      if (saved && ["light", "dark", "system"].includes(saved)) {
+        return saved;
+      }
+    }
+    return "system";
+  });
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme") as Theme | null;
+      const effectiveTheme = saved || "system";
+      if (effectiveTheme === "system") {
+        return window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      }
+      return effectiveTheme;
+    }
+    return "dark";
+  });
   const [hasLoadedFromDB, setHasLoadedFromDB] = useState(false);
 
   // Reset flag when user logs out
@@ -36,33 +57,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           if (response.ok) {
             const data = await response.json();
             if (data.preferredTheme) {
-              setThemeState(data.preferredTheme as Theme);
-              setHasLoadedFromDB(true);
-              return;
+              const dbTheme = data.preferredTheme as Theme;
+              // Only update if different from current localStorage to avoid flicker
+              const currentLocal = localStorage.getItem("theme");
+              if (currentLocal !== dbTheme) {
+                setThemeState(dbTheme);
+                localStorage.setItem("theme", dbTheme);
+              }
+            } else {
+              // No preference in DB, save current localStorage value to DB
+              localStorage.setItem("theme", theme);
             }
           }
         } catch (error) {
           console.error("Error loading theme from database:", error);
         }
         setHasLoadedFromDB(true);
-        return;
-      }
-
-      // Fall back to localStorage for unauthenticated users or if no DB preference
-      if ((!session && !isPending) || (session && hasLoadedFromDB)) {
-        const savedTheme = localStorage.getItem("theme") as Theme | null;
-        if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
-          setThemeState(savedTheme);
-        } else {
-          // Default to dark mode
-          setThemeState("dark");
-          localStorage.setItem("theme", "dark");
-        }
       }
     };
 
     loadTheme();
-  }, [session, isPending, hasLoadedFromDB]);
+  }, [session, isPending, hasLoadedFromDB, theme]);
 
   // Apply theme to document
   useEffect(() => {

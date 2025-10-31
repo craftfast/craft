@@ -28,8 +28,8 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.json({
-            preferredChatPosition: user.preferredChatPosition || "left",
-            preferredTheme: user.preferredTheme || "dark",
+            preferredChatPosition: user.preferredChatPosition || "right",
+            preferredTheme: user.preferredTheme || "system",
         });
     } catch (error) {
         console.error("Error fetching user settings:", error);

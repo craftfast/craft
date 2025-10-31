@@ -56,37 +56,44 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className="dark"
-      style={{ backgroundColor: "#0a0a0a" }}
+      style={{ backgroundColor: "#0a0a0a", colorScheme: "dark" }}
     >
       <head>
-        {/* Initialize theme before page renders to prevent flash */}
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
+        {/* Initialize theme IMMEDIATELY before any rendering to prevent flash */}
+        <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
-                  const theme = localStorage.getItem('theme') || 'dark';
-                  document.documentElement.style.backgroundColor = '#0a0a0a';
-                  if (theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                  } else if (theme === 'light') {
-                    document.documentElement.classList.remove('dark');
-                    document.documentElement.style.backgroundColor = '#ffffff';
-                  } else if (theme === 'system') {
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    if (prefersDark) {
-                      document.documentElement.classList.add('dark');
-                    } else {
-                      document.documentElement.classList.remove('dark');
-                      document.documentElement.style.backgroundColor = '#ffffff';
-                    }
+                  const storedTheme = localStorage.getItem('theme');
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  const html = document.documentElement;
+                  
+                  // Determine effective theme
+                  let isDark;
+                  if (storedTheme === 'dark') {
+                    isDark = true;
+                  } else if (storedTheme === 'light') {
+                    isDark = false;
+                  } else {
+                    // For 'system' or no preference, use system default
+                    isDark = prefersDark;
+                  }
+                  
+                  // Apply theme immediately
+                  if (isDark) {
+                    html.classList.add('dark');
+                    html.style.colorScheme = 'dark';
+                  } else {
+                    html.classList.remove('dark');
+                    html.style.colorScheme = 'light';
                   }
                 } catch (e) {
-                  document.documentElement.classList.add('dark');
-                  document.documentElement.style.backgroundColor = '#0a0a0a';
+                  // Fallback to system preference on error
+                  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.style.colorScheme = 'dark';
+                  }
                 }
               })();
             `,
@@ -95,7 +102,6 @@ export default function RootLayout({
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        style={{ backgroundColor: "#0a0a0a" }}
       >
         <SessionProvider>
           <ThemeProvider>
