@@ -54,7 +54,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4 min-h-screen">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100000] p-4 min-h-screen">
       <div
         className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
