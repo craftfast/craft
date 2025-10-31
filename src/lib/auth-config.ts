@@ -184,6 +184,10 @@ export const auth = betterAuth({
                 const email = ctx.body?.email;
 
                 if (email && typeof email === "string") {
+                    // Note: We allow users with scheduled deletion to log in
+                    // so they can cancel the deletion if desired.
+                    // The UI will show a warning banner about pending deletion.
+
                     const lockoutStatus = await checkAccountLockout(email);
 
                     if (lockoutStatus.locked) {

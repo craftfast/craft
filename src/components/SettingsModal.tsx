@@ -234,6 +234,17 @@ export default function SettingsModal({
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [showEmailChangeForm, setShowEmailChangeForm] = useState(false);
 
+  // Account deletion state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deletionStatus, setDeletionStatus] = useState<{
+    isScheduledForDeletion: boolean;
+    deletionScheduledAt: string | null;
+    daysRemaining: number | null;
+  } | null>(null);
+  const [isLoadingDeletionStatus, setIsLoadingDeletionStatus] = useState(false);
+
   // Reset to initial tab when modal opens
   useEffect(() => {
     if (isOpen && initialTab) {
@@ -276,6 +287,7 @@ export default function SettingsModal({
   useEffect(() => {
     if (activeTab === "account") {
       fetchLinkedAccounts();
+      fetchDeletionStatus();
     }
   }, [activeTab]);
 
@@ -656,6 +668,77 @@ export default function SettingsModal({
     } catch (error) {
       console.error("Error unlinking provider:", error);
       toast.error("Failed to unlink provider");
+    }
+  };
+
+  const fetchDeletionStatus = async () => {
+    setIsLoadingDeletionStatus(true);
+    try {
+      const res = await fetch("/api/account/deletion-status");
+      if (res.ok) {
+        const data = await res.json();
+        setDeletionStatus(data);
+      }
+    } catch (error) {
+      console.error("Error fetching deletion status:", error);
+    } finally {
+      setIsLoadingDeletionStatus(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      toast.error("Please enter your password to confirm");
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(
+          "Account scheduled for deletion. You have 30 days to cancel.",
+          { duration: 5000 }
+        );
+        setShowDeleteModal(false);
+        setDeletePassword("");
+        // Refresh deletion status
+        await fetchDeletionStatus();
+      } else {
+        toast.error(data.error || "Failed to schedule account deletion");
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      toast.error("Failed to schedule account deletion");
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
+  const handleRestoreAccount = async () => {
+    try {
+      const res = await fetch("/api/account/restore", {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        toast.success("Account deletion cancelled successfully");
+        // Refresh deletion status
+        await fetchDeletionStatus();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to cancel account deletion");
+      }
+    } catch (error) {
+      console.error("Error restoring account:", error);
+      toast.error("Failed to cancel account deletion");
     }
   };
 
@@ -2616,16 +2699,78 @@ export default function SettingsModal({
                     </svg>
                     Danger Zone
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Once you delete your account, there is no going back. Please
-                    be certain.
-                  </p>
-                  <button
-                    disabled
-                    className="px-4 py-2.5 text-sm font-medium text-muted-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Delete Account (Coming Soon)
-                  </button>
+
+                  {isLoadingDeletionStatus ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : deletionStatus?.isScheduledForDeletion ? (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-900 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <svg
+                            className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-red-900 dark:text-red-100 mb-1">
+                              Account Scheduled for Deletion
+                            </p>
+                            <p className="text-sm text-red-800 dark:text-red-200">
+                              Your account will be permanently deleted in{" "}
+                              <span className="font-bold">
+                                {deletionStatus.daysRemaining} day
+                                {deletionStatus.daysRemaining !== 1 ? "s" : ""}
+                              </span>
+                              . You can cancel this at any time within the grace
+                              period.
+                            </p>
+                            <p className="text-xs text-red-700 dark:text-red-300 mt-2">
+                              Deletion date:{" "}
+                              {deletionStatus.deletionScheduledAt
+                                ? new Date(
+                                    deletionStatus.deletionScheduledAt
+                                  ).toLocaleDateString("en-US", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  })
+                                : "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleRestoreAccount}
+                        className="w-full rounded-full bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200"
+                      >
+                        Cancel Deletion & Restore Account
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Once you delete your account, there is no going back.
+                        Your account will be scheduled for deletion with a
+                        30-day grace period for recovery.
+                      </p>
+                      <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 border-2 border-red-600 dark:border-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                      >
+                        Delete Account
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -2949,6 +3094,131 @@ export default function SettingsModal({
                     }
                   >
                     {isSettingPassword ? "Setting up..." : "Set Password"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal &&
+        typeof window !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeletePassword("");
+              }}
+            />
+
+            {/* Modal */}
+            <div className="relative bg-background border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-red-600 dark:text-red-400">
+                  Delete Account
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletePassword("");
+                  }}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5 text-muted-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <svg
+                      className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-red-900 dark:text-red-100 mb-1">
+                        Warning: This action is serious
+                      </p>
+                      <p className="text-sm text-red-800 dark:text-red-200">
+                        Your account will be scheduled for deletion with a
+                        30-day grace period. During this time, you can cancel
+                        the deletion and restore your account. After 30 days,
+                        all your data will be permanently deleted.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="delete-password"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    Confirm your password
+                  </Label>
+                  <Input
+                    id="delete-password"
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Enter your password to confirm"
+                    className="mt-1.5"
+                    disabled={isDeletingAccount}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && deletePassword) {
+                        handleDeleteAccount();
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    This helps us verify that it&apos;s really you
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setDeletePassword("");
+                    }}
+                    variant="outline"
+                    className="flex-1 rounded-full"
+                    disabled={isDeletingAccount}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleDeleteAccount}
+                    className="flex-1 rounded-full bg-red-600 hover:bg-red-700 text-white"
+                    disabled={isDeletingAccount || !deletePassword}
+                  >
+                    {isDeletingAccount ? "Scheduling..." : "Delete My Account"}
                   </Button>
                 </div>
               </div>

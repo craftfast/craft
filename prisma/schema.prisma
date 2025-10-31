@@ -31,6 +31,8 @@ model User {
   twoFactorEnabled        Boolean              @default(false)
   twoFactorSecret         String?
   backupCodes             String[]             @default([])
+  deletionScheduledAt     DateTime?
+  deletedAt               DateTime?
   accounts                Account[]
   files                   File[]
   passwordHistory         PasswordHistory[]
