@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 14);
+        const hashedPassword = await bcrypt.hash(password, 12);
 
         // Update user with password and mark email as verified
         await prisma.user.update({

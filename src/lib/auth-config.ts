@@ -19,6 +19,11 @@ import {
 } from "@/lib/auth-lockout";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { sendPasswordResetEmail } from "@/lib/email";
+import {
+    getSessionFingerprint,
+    hasFingerprintChanged,
+    isSuspiciousChange
+} from "@/lib/session-fingerprint";
 
 // Validate required environment variables
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -65,9 +70,59 @@ export const auth = betterAuth({
         },
     },
     hooks: {
-        // Before hook - Rate limiting and account lockout checks
+        // Before hook - Session fingerprint validation, rate limiting, and account lockout checks
         before: createAuthMiddleware(async (ctx) => {
             const request = ctx.request;
+
+            if (!request) {
+                return;
+            }
+
+            // Session fingerprint enforcement for authenticated requests
+            // Skip for login/signup paths (no existing session to validate)
+            const authPaths = ["/sign-in/email", "/sign-up/email", "/forget-password", "/reset-password"];
+            const isAuthPath = authPaths.some(path => ctx.path === path);
+
+            if (!isAuthPath && ctx.context.session) {
+                const sessionData = ctx.context.session;
+                const currentFingerprint = await getSessionFingerprint();
+
+                // Get stored fingerprint from session (handle null values)
+                const storedFingerprint = {
+                    ipAddress: sessionData.session.ipAddress || undefined,
+                    userAgent: sessionData.session.userAgent || undefined,
+                };
+
+                // Check if fingerprint has changed (only if we have stored values)
+                if (storedFingerprint.ipAddress && storedFingerprint.userAgent) {
+                    const changeInfo = hasFingerprintChanged(currentFingerprint, storedFingerprint);
+
+                    if (changeInfo.changed) {
+                        const suspicious = isSuspiciousChange(currentFingerprint, storedFingerprint);
+
+                        if (suspicious) {
+                            // Log suspicious activity
+                            console.warn(
+                                `🚨 SUSPICIOUS SESSION: User ${sessionData.user.id} | ` +
+                                `IP changed: ${changeInfo.ipChanged} | ` +
+                                `UA changed: ${changeInfo.userAgentChanged} | ` +
+                                `Previous IP: ${storedFingerprint.ipAddress} | ` +
+                                `Current IP: ${currentFingerprint.ipAddress}`
+                            );
+
+                            // For user-agent changes (highly suspicious), invalidate the session
+                            if (changeInfo.userAgentChanged) {
+                                throw new Error(
+                                    "Session security validation failed. Please sign in again."
+                                );
+                            }
+                        }
+
+                        // Update session fingerprint for legitimate changes (e.g., IP change from mobile network)
+                        // This happens automatically in the session update
+                    }
+                }
+            }
 
             // Only apply rate limiting and lockout checks to sensitive authentication endpoints
             const rateLimitedPaths = [
@@ -77,7 +132,7 @@ export const auth = betterAuth({
                 "/reset-password",
             ];
 
-            if (!request || !rateLimitedPaths.some(path => ctx.path === path)) {
+            if (!rateLimitedPaths.some(path => ctx.path === path)) {
                 return;
             }
 

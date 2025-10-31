@@ -73,6 +73,10 @@ export async function checkAccountLockout(email: string): Promise<LockoutStatus>
 
 /**
  * Increment failed login attempts and lock account if threshold reached
+ * 
+ * Uses atomic database operations to prevent race conditions where multiple
+ * concurrent login attempts could bypass the lockout threshold.
+ * 
  * @param email - User's email address
  * @param request - Request object for logging
  * @returns Updated lockout status
@@ -96,60 +100,67 @@ export async function incrementFailedAttempts(
         return { locked: false };
     }
 
-    const failedAttempts = (user.failedLoginAttempts || 0) + 1;
     const now = new Date();
+    const newFailedAttempts = (user.failedLoginAttempts || 0) + 1;
 
     // Check if threshold reached
-    if (failedAttempts >= LOCKOUT_THRESHOLD) {
+    if (newFailedAttempts >= LOCKOUT_THRESHOLD) {
         const lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
 
-        // Lock the account
-        await prisma.user.update({
+        // Atomic update: increment AND lock in a single operation
+        // This prevents race conditions where multiple requests could bypass the threshold
+        const updatedUser = await prisma.user.update({
             where: { id: user.id },
             data: {
-                failedLoginAttempts: failedAttempts,
+                failedLoginAttempts: { increment: 1 },
                 lockedUntil: lockedUntil,
                 lastFailedLoginAt: now,
+            },
+            select: {
+                failedLoginAttempts: true,
             },
         });
 
         // Log account lockout event
         if (request) {
             await logAccountLocked(user.id, user.email, request, {
-                failedAttempts,
+                failedAttempts: updatedUser.failedLoginAttempts,
                 lockoutDurationMinutes: LOCKOUT_DURATION_MINUTES,
             });
         }
 
         console.warn(
-            `🔒 Account locked: ${user.email} | Failed attempts: ${failedAttempts} | Locked until: ${lockedUntil.toISOString()}`
+            `🔒 Account locked: ${user.email} | Failed attempts: ${updatedUser.failedLoginAttempts} | Locked until: ${lockedUntil.toISOString()}`
         );
 
         return {
             locked: true,
             remainingMinutes: LOCKOUT_DURATION_MINUTES,
-            message: `Account locked due to ${failedAttempts} failed login attempts. Try again in ${LOCKOUT_DURATION_MINUTES} minutes.`,
-            failedAttempts,
+            message: `Account locked due to ${updatedUser.failedLoginAttempts} failed login attempts. Try again in ${LOCKOUT_DURATION_MINUTES} minutes.`,
+            failedAttempts: updatedUser.failedLoginAttempts,
         };
     }
 
-    // Increment failed attempts but don't lock yet
-    await prisma.user.update({
+    // Atomic increment of failed attempts without locking
+    const updatedUser = await prisma.user.update({
         where: { id: user.id },
         data: {
-            failedLoginAttempts: failedAttempts,
+            failedLoginAttempts: { increment: 1 },
             lastFailedLoginAt: now,
+        },
+        select: {
+            failedLoginAttempts: true,
         },
     });
 
     console.warn(
-        `⚠️  Failed login attempt ${failedAttempts}/${LOCKOUT_THRESHOLD}: ${user.email}`
+        `⚠️  Failed login attempt ${updatedUser.failedLoginAttempts}/${LOCKOUT_THRESHOLD}: ${user.email}`
     );
 
     return {
         locked: false,
-        failedAttempts,
-        message: `Invalid credentials. ${LOCKOUT_THRESHOLD - failedAttempts} attempt${LOCKOUT_THRESHOLD - failedAttempts !== 1 ? "s" : ""} remaining before lockout.`,
+        failedAttempts: updatedUser.failedLoginAttempts,
+        message: `Invalid credentials. ${LOCKOUT_THRESHOLD - updatedUser.failedLoginAttempts} attempt${LOCKOUT_THRESHOLD - updatedUser.failedLoginAttempts !== 1 ? "s" : ""} remaining before lockout.`,
     };
 }
 

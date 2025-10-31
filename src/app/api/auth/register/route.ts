@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Hash password
-        const hashedPassword = await bcrypt.hash(password, 14);
+        const hashedPassword = await bcrypt.hash(password, 12);
 
         // Generate verification token
         const verificationToken = randomUUID();
