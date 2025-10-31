@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { validatePassword } from "@/lib/password-validation";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logPasswordSet } from "@/lib/security-logger";
@@ -11,35 +10,13 @@ import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 /**
  * POST /api/auth/set-password
  * Allows OAuth users to add email+password authentication to their account
+ * Note: Rate limiting is handled by Better Auth at the infrastructure level
  */
 export async function POST(req: NextRequest) {
     try {
         // CSRF Protection
         const csrfCheck = await withCsrfProtection(req);
         if (csrfCheck) return csrfCheck;
-
-        // Rate limiting check
-        const ip = getClientIp(req);
-        const { success, limit, remaining, reset } = await checkRateLimit(ip);
-
-        if (!success) {
-            return NextResponse.json(
-                {
-                    error: "Too many password set attempts. Please try again later.",
-                    limit,
-                    remaining,
-                    reset: new Date(reset).toISOString(),
-                },
-                {
-                    status: 429,
-                    headers: {
-                        'X-RateLimit-Limit': limit.toString(),
-                        'X-RateLimit-Remaining': remaining.toString(),
-                        'X-RateLimit-Reset': reset.toString(),
-                    }
-                }
-            );
-        }
 
         const session = await getSession();
 
@@ -63,10 +40,10 @@ export async function POST(req: NextRequest) {
 
         const userId = session.user.id;
 
-        // Check if user already has a password
+        // Check if user exists
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { password: true, email: true },
+            select: { email: true },
         });
 
         if (!user) {
@@ -76,7 +53,15 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (user.password) {
+        // Check if user already has password via Account table
+        const existingPasswordAccount = await prisma.account.findFirst({
+            where: {
+                userId,
+                providerId: "credential",
+            },
+        });
+
+        if (existingPasswordAccount) {
             return NextResponse.json(
                 { error: "Password already set. Use change password instead." },
                 { status: 400 }
@@ -86,16 +71,25 @@ export async function POST(req: NextRequest) {
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Update user with password and mark email as verified
-        await prisma.user.update({
-            where: { id: userId },
+        // Create credential account for password auth
+        await prisma.account.create({
             data: {
+                userId,
+                providerId: "credential",
+                accountId: user.email,
                 password: hashedPassword,
-                emailVerified: new Date(), // Email is pre-verified for OAuth users
             },
         });
 
-        // Log password set (Issue 16)
+        // Mark email as verified for OAuth users
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                emailVerified: true,
+            },
+        });
+
+        // Log password set
         await logPasswordSet(userId, user.email, req);
 
         return NextResponse.json({

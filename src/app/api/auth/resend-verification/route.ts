@@ -2,34 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendVerificationEmailLegacy } from "@/lib/email";
 import { randomUUID } from "crypto";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
+/**
+ * Legacy resend verification endpoint
+ * Note: Better Auth handles email verification resending natively.
+ * This route is kept for backward compatibility.
+ * Rate limiting is handled by Better Auth.
+ */
 export async function POST(request: NextRequest) {
     try {
-        // Rate limiting check
-        const ip = getClientIp(request);
-        const { success, limit, remaining, reset } = await checkRateLimit(ip);
-
-        if (!success) {
-            return NextResponse.json(
-                {
-                    error: "Too many resend attempts. Please try again later.",
-                    limit,
-                    remaining,
-                    reset: new Date(reset).toISOString(),
-                },
-                {
-                    status: 429,
-                    headers: {
-                        'X-RateLimit-Limit': limit.toString(),
-                        'X-RateLimit-Remaining': remaining.toString(),
-                        'X-RateLimit-Reset': reset.toString(),
-                    }
-                }
-            );
-        }
-
         const body = await request.json();
         const { email } = body;
 
@@ -61,24 +43,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if user signed up with OAuth (no password)
-        if (!user.password) {
-            return NextResponse.json(
-                { error: "This account was created with OAuth and doesn't require email verification" },
-                { status: 400 }
-            );
-        }
-
         // Generate new verification token
         const verificationToken = randomUUID();
         const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        // Update user with new token
-        await prisma.user.update({
-            where: { id: user.id },
+        // Create verification record
+        await prisma.verification.create({
             data: {
-                verificationToken,
-                verificationTokenExpiry,
+                identifier: email,
+                value: verificationToken,
+                expiresAt: verificationTokenExpiry,
             },
         });
 

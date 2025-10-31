@@ -1,34 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { logEmailVerified } from "@/lib/security-logger";
 import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
+/**
+ * Legacy email verification endpoint
+ * Note: Better Auth handles email verification natively.
+ * This route is kept for backward compatibility but should be deprecated.
+ * Rate limiting is handled by Better Auth.
+ */
 export async function GET(request: NextRequest) {
     try {
-        // Rate limiting check
-        const ip = getClientIp(request);
-        const { success, limit, remaining, reset } = await checkRateLimit(ip);
-
-        if (!success) {
-            return NextResponse.json(
-                {
-                    error: "Too many verification attempts. Please try again later.",
-                    limit,
-                    remaining,
-                    reset: new Date(reset).toISOString(),
-                },
-                {
-                    status: 429,
-                    headers: {
-                        'X-RateLimit-Limit': limit.toString(),
-                        'X-RateLimit-Remaining': remaining.toString(),
-                        'X-RateLimit-Reset': reset.toString(),
-                    }
-                }
-            );
-        }
-
         const searchParams = request.nextUrl.searchParams;
         const token = searchParams.get("token");
 
@@ -39,20 +21,35 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Find user with this token
-        const user = await prisma.user.findFirst({
+        // Find verification record using Better Auth's Verification table
+        const verification = await prisma.verification.findFirst({
             where: {
-                verificationToken: token,
-                verificationTokenExpiry: {
-                    gt: new Date(), // Token not expired
+                value: token,
+                expiresAt: {
+                    gt: new Date(),
                 },
             },
         });
 
-        if (!user) {
+        if (!verification) {
             return NextResponse.json(
                 { error: "Invalid or expired verification token" },
                 { status: 400 }
+            );
+        }
+
+        // Extract email from identifier
+        const email = verification.identifier;
+
+        // Find user
+        const user = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (!user) {
+            return NextResponse.json(
+                { error: "User not found" },
+                { status: 404 }
             );
         }
 
@@ -60,13 +57,16 @@ export async function GET(request: NextRequest) {
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                emailVerified: new Date(),
-                verificationToken: null,
-                verificationTokenExpiry: null,
+                emailVerified: true,
             },
         });
 
-        // Log email verification (Issue 16)
+        // Delete verification token
+        await prisma.verification.delete({
+            where: { id: verification.id },
+        });
+
+        // Log email verification
         await logEmailVerified(user.id, user.email, request);
 
         return NextResponse.json(

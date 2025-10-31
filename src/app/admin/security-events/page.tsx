@@ -133,10 +133,6 @@ export default function SecurityEventsPage() {
         return "🔓";
       case "EMAIL_VERIFIED":
         return "✅";
-      case "ACCOUNT_LOCKED":
-        return "🔒";
-      case "LOCKOUT_CLEARED":
-        return "🔓";
       case "VERIFICATION_EMAIL_SENT":
         return "📨";
       default:
@@ -179,8 +175,6 @@ export default function SecurityEventsPage() {
             <option value="ACCOUNT_LINKED">Account Linked</option>
             <option value="ACCOUNT_UNLINKED">Account Unlinked</option>
             <option value="EMAIL_VERIFIED">Email Verified</option>
-            <option value="ACCOUNT_LOCKED">Account Locked</option>
-            <option value="LOCKOUT_CLEARED">Lockout Cleared</option>
           </select>
 
           <select

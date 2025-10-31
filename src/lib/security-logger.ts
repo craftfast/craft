@@ -31,8 +31,6 @@ export type SecurityEventType =
     | "ACCOUNT_LINKED"
     | "ACCOUNT_UNLINKED"
     | "EMAIL_VERIFIED"
-    | "ACCOUNT_LOCKED"
-    | "LOCKOUT_CLEARED"
     | "VERIFICATION_EMAIL_SENT"
     | "PROFILE_UPDATED"
     | "AVATAR_UPDATED"
@@ -152,7 +150,6 @@ export async function logSecurityEvent(data: SecurityEventData): Promise<void> {
 function getSeverityForEventType(eventType: SecurityEventType): SecurityEventSeverity {
     // Critical events - immediate security concerns
     const criticalEvents: SecurityEventType[] = [
-        "ACCOUNT_LOCKED",
         "LOGIN_FAILED",
         "PASSWORD_RESET_FAILED",
     ];
@@ -204,11 +201,9 @@ function getEmojiForEventType(eventType: SecurityEventType, success?: boolean): 
         ACCOUNT_LINKED: "🔗",
         ACCOUNT_UNLINKED: "🔓",
         EMAIL_VERIFIED: "✅",
-        ACCOUNT_LOCKED: "🔒",
-        LOCKOUT_CLEARED: "🔓",
         VERIFICATION_EMAIL_SENT: "📨",
         PROFILE_UPDATED: "👤",
-        AVATAR_UPDATED: "�️",
+        AVATAR_UPDATED: "🖼️",
         AVATAR_REMOVED: "🗑️",
         SESSION_REFRESHED: "🔄",
     };
@@ -405,36 +400,6 @@ export async function logEmailVerified(
         email,
         ipAddress: getClientIP(request),
         userAgent: getUserAgent(request),
-        success: true,
-    });
-}
-
-export async function logAccountLocked(
-    userId: string,
-    email: string,
-    request: Request,
-    metadata?: { failedAttempts: number; lockoutDurationMinutes: number }
-): Promise<void> {
-    await logSecurityEvent({
-        userId,
-        eventType: "ACCOUNT_LOCKED",
-        email,
-        ipAddress: getClientIP(request),
-        userAgent: getUserAgent(request),
-        success: true,
-        severity: "critical",
-        metadata,
-    });
-}
-
-export async function logLockoutCleared(
-    userId: string,
-    email: string
-): Promise<void> {
-    await logSecurityEvent({
-        userId,
-        eventType: "LOCKOUT_CLEARED",
-        email,
         success: true,
     });
 }

@@ -4,36 +4,18 @@ import bcrypt from "bcryptjs";
 import { assignPlanToUser } from "@/lib/subscription";
 import { sendVerificationEmailLegacy } from "@/lib/email";
 import { randomUUID } from "crypto";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { validatePassword } from "@/lib/password-validation";
 import { logAccountCreated, logVerificationEmailSent } from "@/lib/security-logger";
 import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
+/**
+ * Legacy registration endpoint
+ * Note: Better Auth handles registration natively via /api/auth/sign-up/email
+ * This route is kept for backward compatibility.
+ * Rate limiting is handled by Better Auth.
+ */
 export async function POST(request: NextRequest) {
     try {
-        // Rate limiting check
-        const ip = getClientIp(request);
-        const { success, limit, remaining, reset } = await checkRateLimit(ip);
-
-        if (!success) {
-            return NextResponse.json(
-                {
-                    error: "Too many registration attempts. Please try again later.",
-                    limit,
-                    remaining,
-                    reset: new Date(reset).toISOString(),
-                },
-                {
-                    status: 429,
-                    headers: {
-                        'X-RateLimit-Limit': limit.toString(),
-                        'X-RateLimit-Remaining': remaining.toString(),
-                        'X-RateLimit-Reset': reset.toString(),
-                    }
-                }
-            );
-        }
-
         const body = await request.json();
         const { email, password, name } = body;
 
@@ -81,20 +63,37 @@ export async function POST(request: NextRequest) {
         const verificationToken = randomUUID();
         const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        // Create user (no team needed - direct user subscriptions)
+        // Create user (Better Auth will handle password via Account table)
         const user = await prisma.user.create({
             data: {
                 email,
                 name: name || null,
+                emailVerified: false,
+            },
+        });
+
+        // Create credential account with password
+        await prisma.account.create({
+            data: {
+                userId: user.id,
+                providerId: "credential",
+                accountId: email,
                 password: hashedPassword,
-                verificationToken,
-                verificationTokenExpiry,
+            },
+        });
+
+        // Create verification record
+        await prisma.verification.create({
+            data: {
+                identifier: email,
+                value: verificationToken,
+                expiresAt: verificationTokenExpiry,
             },
         });
 
         console.log(`✅ User created: ${user.email}`);
 
-        // Log account creation (Issue 16)
+        // Log account creation
         await logAccountCreated(user.id, user.email, request);
 
         // Send verification email
@@ -102,7 +101,7 @@ export async function POST(request: NextRequest) {
             await sendVerificationEmailLegacy(user.email, verificationToken);
             console.log(`✅ Verification email sent to: ${user.email}`);
 
-            // Log verification email sent (Issue 16)
+            // Log verification email sent
             await logVerificationEmailSent(user.id, user.email, request);
         } catch (emailError) {
             console.error("Error sending verification email:", emailError);

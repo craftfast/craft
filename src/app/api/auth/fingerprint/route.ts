@@ -1,13 +1,12 @@
 /**
- * Session Fingerprint Update Endpoint (Issue 14)
+ * Session Fingerprint Endpoint (Deprecated)
  * 
- * This endpoint updates the session with current IP address and user-agent
- * to enable security monitoring and anomaly detection.
+ * Note: Better Auth handles session tracking and IP/user-agent automatically.
+ * This endpoint is kept for backward compatibility but may be removed in future versions.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
-import { getSessionFingerprint } from "@/lib/session-fingerprint";
 import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
 
 export async function POST(req: NextRequest) {
@@ -22,22 +21,24 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Capture current fingerprint from request
-        const fingerprint = await getSessionFingerprint();
+        // Extract IP and user agent from request
+        const ip = req.headers.get("x-forwarded-for") ||
+            req.headers.get("x-real-ip") ||
+            "unknown";
+        const userAgent = req.headers.get("user-agent") || "unknown";
 
-        // Return the fingerprint so it can be used to update the session client-side
-        // The client will then call session.update() with this data
+        // Return fingerprint data
         return NextResponse.json({
             success: true,
             fingerprint: {
-                ipAddress: fingerprint.ipAddress,
-                userAgent: fingerprint.userAgent,
+                ipAddress: ip,
+                userAgent: userAgent,
             },
         });
     } catch (error) {
         const errorResponse = buildErrorResponse(
             error,
-            "Update session fingerprint",
+            "Get session fingerprint",
             500,
             GENERIC_ERRORS.INTERNAL_SERVER_ERROR
         );
@@ -62,21 +63,27 @@ export async function GET(req: NextRequest) {
         }
 
         // Get current fingerprint from headers
-        const currentFingerprint = await getSessionFingerprint();
+        const currentIp = req.headers.get("x-forwarded-for") ||
+            req.headers.get("x-real-ip") ||
+            "unknown";
+        const currentUserAgent = req.headers.get("user-agent") || "unknown";
 
         // Get stored fingerprint from session
         const storedFingerprint = {
-            ipAddress: session.session.ipAddress,
-            userAgent: session.session.userAgent,
+            ipAddress: session.session.ipAddress || "unknown",
+            userAgent: session.session.userAgent || "unknown",
         };
 
         // Return both for comparison
         return NextResponse.json({
-            current: currentFingerprint,
+            current: {
+                ipAddress: currentIp,
+                userAgent: currentUserAgent,
+            },
             stored: storedFingerprint,
             matches: {
-                ipAddress: currentFingerprint.ipAddress === storedFingerprint.ipAddress,
-                userAgent: currentFingerprint.userAgent === storedFingerprint.userAgent,
+                ipAddress: currentIp === storedFingerprint.ipAddress,
+                userAgent: currentUserAgent === storedFingerprint.userAgent,
             },
         });
     } catch (error) {
