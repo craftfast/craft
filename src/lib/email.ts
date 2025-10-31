@@ -62,11 +62,14 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
 }
 
 /**
- * Send email verification email
+ * Send email verification email (Better Auth compatible signature)
+ * @param data - Object containing user, url, and token
+ * @returns Promise<boolean> - True if email sent successfully
  */
-export async function sendVerificationEmail(email: string, token: string): Promise<boolean> {
-    const baseUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000";
-    const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
+export async function sendVerificationEmail(
+    data: { user: { email: string; name?: string | null }; url: string; token: string }
+): Promise<boolean> {
+    const { user, url: verificationUrl } = data;
 
     const html = `
 <!DOCTYPE html>
@@ -140,9 +143,24 @@ export async function sendVerificationEmail(email: string, token: string): Promi
     `.trim();
 
     return sendEmail({
-        to: email,
+        to: user.email,
         subject: "Verify your email address - Craft",
         html,
+    });
+}
+
+/**
+ * Send email verification email (Legacy helper for custom routes)
+ * @deprecated Use sendVerificationEmail with Better Auth object signature
+ */
+export async function sendVerificationEmailLegacy(email: string, token: string): Promise<boolean> {
+    const baseUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+    const url = `${baseUrl}/auth/verify-email?token=${token}`;
+
+    return sendVerificationEmail({
+        user: { email },
+        url,
+        token,
     });
 }
 

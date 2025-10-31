@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { sendVerificationEmail } from "@/lib/email";
+import { sendVerificationEmailLegacy } from "@/lib/email";
 import { randomUUID } from "crypto";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { buildErrorResponse, GENERIC_ERRORS } from "@/lib/error-handler";
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Send verification email
-        await sendVerificationEmail(user.email, verificationToken);
+        await sendVerificationEmailLegacy(user.email, verificationToken);
 
         return NextResponse.json(
             { message: "Verification email sent successfully" },

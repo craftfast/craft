@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { signIn } from "@/lib/auth-client";
+import { signIn, signUp } from "@/lib/auth-client";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
@@ -51,31 +51,27 @@ function SignUpContent() {
     setLoading(true);
 
     try {
-      // Call the register API
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      // Use Better Auth's built-in signUp.email
+      await signUp.email(
+        {
           email,
           password,
-          name: name || undefined,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || "Something went wrong");
-        setLoading(false);
-        return;
-      }
-
-      // Show verification message (step 3)
-      setStep(3);
-      setLoading(false);
-    } catch {
+          name: name.trim() || email.split("@")[0], // Use email prefix if name is empty
+        },
+        {
+          onSuccess: () => {
+            // Show verification message (step 3)
+            setStep(3);
+            setLoading(false);
+          },
+          onError: (ctx) => {
+            const errorMessage = ctx.error.message || "Something went wrong";
+            setError(errorMessage);
+            setLoading(false);
+          },
+        }
+      );
+    } catch (err) {
       setError("Something went wrong");
       setLoading(false);
     }

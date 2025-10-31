@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { assignPlanToUser } from "@/lib/subscription";
-import { sendVerificationEmail } from "@/lib/email";
+import { sendVerificationEmailLegacy } from "@/lib/email";
 import { randomUUID } from "crypto";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { validatePassword } from "@/lib/password-validation";
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
         // Send verification email
         try {
-            await sendVerificationEmail(user.email, verificationToken);
+            await sendVerificationEmailLegacy(user.email, verificationToken);
             console.log(`✅ Verification email sent to: ${user.email}`);
 
             // Log verification email sent (Issue 16)

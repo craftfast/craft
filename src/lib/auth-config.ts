@@ -19,7 +19,8 @@ import {
     clearFailedAttempts,
 } from "@/lib/auth-lockout";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { sendPasswordResetEmail } from "@/lib/email";
+import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
+import { assignPlanToUser } from "@/lib/subscription";
 import {
     getSessionFingerprint,
     hasFingerprintChanged,
@@ -45,6 +46,19 @@ export const auth = betterAuth({
     appName: "Craft",
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    emailVerification: {
+        sendVerificationEmail: async ({ user, url, token }, request) => {
+            await sendVerificationEmail({ user, url, token });
+        },
+        sendOnSignUp: true, // Automatically send verification email on signup
+        sendOnSignIn: true, // Send verification email on sign-in if not verified
+        autoSignInAfterVerification: false, // Require manual sign-in after verification
+        async afterEmailVerification(user, request) {
+            // Log email verification event
+            await logEmailVerified(user.id, user.email, request as Request);
+            console.log(`✅ Email verified for user: ${user.email}`);
+        },
+    },
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: true,
@@ -269,6 +283,15 @@ export const auth = betterAuth({
                     newSession.user.email,
                     request
                 );
+
+                // Assign default Hobby plan to new user
+                try {
+                    await assignPlanToUser(newSession.session.userId, "HOBBY");
+                    console.log(`✅ Hobby plan assigned to user: ${newSession.user.email}`);
+                } catch (planError) {
+                    console.error("Error assigning Hobby plan:", planError);
+                    // Don't fail the registration if plan assignment fails
+                }
             }
 
             // Handle email verification
