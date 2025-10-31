@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import SubscriptionModal from "./SubscriptionModal";
+import { TwoFactorSettings } from "@/components/auth/two-factor-settings";
 import { PRO_TIERS } from "@/lib/pricing-constants";
 import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
 import { validatePassword } from "@/lib/password-validation";
@@ -2577,18 +2578,7 @@ export default function SettingsModal({
 
                     {/* Two-Factor Authentication Section */}
                     <div className="pt-4 border-t border-border">
-                      <h4 className="text-sm font-medium text-foreground mb-2">
-                        Two-Factor Authentication
-                      </h4>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Add an extra layer of security to your account with 2FA.
-                      </p>
-                      <button
-                        disabled
-                        className="w-full px-4 py-3 text-sm font-medium text-muted-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Enable Two-Factor Authentication (Coming Soon)
-                      </button>
+                      <TwoFactorSettings />
                     </div>
                   </div>
                 </div>

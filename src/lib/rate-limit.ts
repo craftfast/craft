@@ -34,6 +34,15 @@ export const emailVerificationRateLimiter = new Ratelimit({
     prefix: "ratelimit:email-verification",
 });
 
+// Rate limiter for 2FA verification attempts
+// 5 attempts per 15 minutes per IP address (prevent brute force on 2FA codes)
+export const twoFactorRateLimiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(5, "15 m"),
+    analytics: true,
+    prefix: "ratelimit:2fa",
+});
+
 /**
  * Extract IP address from request headers
  * Supports both direct connections and proxied requests
@@ -78,4 +87,12 @@ export async function checkPasswordResetRateLimit(identifier: string) {
  */
 export async function checkEmailVerificationRateLimit(identifier: string) {
     return await emailVerificationRateLimiter.limit(identifier);
+}
+
+/**
+ * Check rate limit for 2FA verification attempts
+ * Stricter timing to prevent brute force attacks on 2FA codes
+ */
+export async function checkTwoFactorRateLimit(identifier: string) {
+    return await twoFactorRateLimiter.limit(identifier);
 }

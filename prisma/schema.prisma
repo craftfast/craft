@@ -28,6 +28,9 @@ model User {
   lastFailedLoginAt       DateTime?
   lockedUntil             DateTime?
   role                    String               @default("user")
+  twoFactorEnabled        Boolean              @default(false)
+  twoFactorSecret         String?
+  backupCodes             String[]             @default([])
   accounts                Account[]
   files                   File[]
   passwordHistory         PasswordHistory[]
@@ -92,6 +95,20 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model TwoFactorPendingSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  email     String
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("two_factor_pending_sessions")
 }
 
 model PasswordHistory {
