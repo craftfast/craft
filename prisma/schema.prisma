@@ -9,37 +9,39 @@ datasource db {
 }
 
 model User {
-  id                      String               @id @default(cuid())
-  name                    String?
-  email                   String               @unique
-  emailVerified           Boolean              @default(false)
-  image                   String?
-  password                String?
-  verificationToken       String?              @unique
-  verificationTokenExpiry DateTime?
-  preferredChatPosition   String               @default("right")
-  preferredTheme          String               @default("system")
-  preferredModel          String               @default("gpt-5")
-  enabledModels           String[]             @default(["gpt-5-mini", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4.5"])
-  createdAt               DateTime             @default(now())
-  updatedAt               DateTime             @updatedAt
-  passwordResetExpiry     DateTime?
-  passwordResetToken      String?              @unique
-  failedLoginAttempts     Int                  @default(0)
-  lastFailedLoginAt       DateTime?
-  lockedUntil             DateTime?
-  role                    String               @default("user")
-  twoFactorEnabled        Boolean              @default(false)
-  deletionScheduledAt     DateTime?
-  deletedAt               DateTime?
-  accounts                Account[]
-  files                   File[]
-  passwordHistory         PasswordHistory[]
-  pendingAccountLinks     PendingAccountLink[] @relation("PendingAccountLinks")
-  projects                Project[]
-  sessions                Session[]
-  subscription            UserSubscription?
-  twoFactor               TwoFactor?
+  id                    String               @id @default(cuid())
+  name                  String?
+  email                 String               @unique
+  emailVerified         Boolean              @default(false)
+  image                 String?
+  // Custom Craft fields
+  preferredChatPosition String               @default("right")
+  preferredTheme        String               @default("system")
+  preferredModel        String               @default("gpt-5")
+  enabledModels         String[]             @default(["gpt-5-mini", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4.5"])
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  // Better Auth admin plugin fields
+  role                  String               @default("user")
+  banned                Boolean?
+  banReason             String?
+  banExpires            DateTime?
+  // Better Auth 2FA plugin field
+  twoFactorEnabled      Boolean              @default(false)
+  // Better Auth last login method plugin field
+  lastLoginMethod       String?
+  // Craft-specific soft delete fields
+  deletionScheduledAt   DateTime?
+  deletedAt             DateTime?
+  // Relations
+  accounts              Account[]
+  files                 File[]
+  passwordHistory       PasswordHistory[]
+  pendingAccountLinks   PendingAccountLink[] @relation("PendingAccountLinks")
+  projects              Project[]
+  sessions              Session[]
+  subscription          UserSubscription?
+  twofactors            TwoFactor[]
 
   @@map("users")
 }
@@ -74,6 +76,7 @@ model Session {
   updatedAt DateTime @updatedAt
   userAgent String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
 
   @@map("sessions")
 }
@@ -515,4 +518,16 @@ model TwoFactor {
   user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("two_factor")
+}
+
+// Better Auth Rate Limit table (for database storage)
+
+model RateLimit {
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@index([key])
+  @@map("rate_limit")
 }
