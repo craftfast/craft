@@ -16,26 +16,23 @@ model User {
   password                String?
   verificationToken       String?              @unique
   verificationTokenExpiry DateTime?
-  // Password reset
-  passwordResetToken      String?              @unique
-  passwordResetExpiry     DateTime?
-  // Account lockout (Issue 13)
-  failedLoginAttempts     Int                  @default(0)
-  lockedUntil             DateTime?
-  lastFailedLoginAt       DateTime?
-  preferredChatPosition   String               @default("right") // "left" or "right"
-  preferredTheme          String               @default("dark") // "light" | "dark" | "system"
-  // AI Model Preferences
-  preferredModel          String               @default("gpt-5") // Default model for new projects
-  enabledModels           String[]             @default(["gpt-5-mini", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4.5"]) // Models user has enabled
+  preferredChatPosition   String               @default("right")
+  preferredTheme          String               @default("dark")
+  preferredModel          String               @default("gpt-5")
+  enabledModels           String[]             @default(["gpt-5-mini", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4.5"])
   createdAt               DateTime             @default(now())
   updatedAt               DateTime             @updatedAt
+  passwordResetExpiry     DateTime?
+  passwordResetToken      String?              @unique
+  failedLoginAttempts     Int                  @default(0)
+  lastFailedLoginAt       DateTime?
+  lockedUntil             DateTime?
   accounts                Account[]
+  files                   File[]
+  pendingAccountLinks     PendingAccountLink[] @relation("PendingAccountLinks")
   projects                Project[]
   sessions                Session[]
-  files                   File[] // All files uploaded by this user
   subscription            UserSubscription?
-  pendingAccountLinks     PendingAccountLink[] @relation("PendingAccountLinks")
 
   @@map("users")
 }
@@ -43,19 +40,18 @@ model User {
 model Account {
   id                    String    @id @default(cuid())
   userId                String
-  accountId             String // Better Auth: provider account ID
-  providerId            String // Better Auth: provider name (google, github, etc.)
-  accessToken           String? // Better Auth: OAuth access token
-  refreshToken          String? // Better Auth: OAuth refresh token
-  idToken               String? // Better Auth: OAuth ID token
-  accessTokenExpiresAt  DateTime? // Better Auth: access token expiry
-  refreshTokenExpiresAt DateTime? // Better Auth: refresh token expiry
-  scope                 String? // Better Auth: OAuth scope
-  password              String? // Better Auth: for credentials provider
+  scope                 String?
+  accessToken           String?
+  accessTokenExpiresAt  DateTime?
+  accountId             String
   createdAt             DateTime  @default(now())
+  idToken               String?
+  password              String?
+  providerId            String
+  refreshToken          String?
+  refreshTokenExpiresAt DateTime?
   updatedAt             DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, accountId])
   @@map("accounts")
@@ -63,24 +59,23 @@ model Account {
 
 model Session {
   id        String   @id @default(cuid())
-  expiresAt DateTime // Better Auth: session expiry
-  token     String   @unique // Better Auth: session token
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  ipAddress String? // Better Auth: session IP tracking
-  userAgent String? // Better Auth: session user agent tracking
   userId    String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  ipAddress String?
+  token     String   @unique
+  updatedAt DateTime @updatedAt
+  userAgent String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
 
 model Verification {
   id         String   @id @default(cuid())
-  identifier String // Email or user ID
-  value      String // Verification token
-  expiresAt  DateTime // Token expiry
+  identifier String
+  value      String
+  expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -88,7 +83,6 @@ model Verification {
   @@map("verifications")
 }
 
-// Legacy verification token table (can be removed after migration)
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -98,21 +92,14 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// ============================================================================
-// PENDING ACCOUNT LINKING
-// ============================================================================
-// Stores pending account link requests that require user confirmation
-// Used when OAuth sign-in detects an existing account with the same email
-// Issue #15: OAuth email must match user's primary email to link successfully
-
 model PendingAccountLink {
   id                String   @id @default(cuid())
-  userId            String // Existing user account
-  email             String // Email address attempting to link
-  provider          String // OAuth provider (google, github)
-  providerAccountId String // Provider's account ID
-  token             String   @unique // Unique token for confirmation link
-  expiresAt         DateTime // Token expiration (24 hours)
+  userId            String
+  email             String
+  provider          String
+  providerAccountId String
+  token             String   @unique
+  expiresAt         DateTime
   createdAt         DateTime @default(now())
   user              User     @relation("PendingAccountLinks", fields: [userId], references: [id], onDelete: Cascade)
 
@@ -128,106 +115,98 @@ model Project {
   description      String?
   type             String           @default("document")
   status           String           @default("active")
-  visibility       String           @default("private") // "public" | "secret" | "private"
+  visibility       String           @default("private")
   userId           String
-  version          Int              @default(0) // v0 = template, v1+ = AI updates (for billing & history)
-  generationStatus String           @default("template") // "template" | "generating" | "ready"
-  lastCodeUpdateAt DateTime? // When code was last updated by AI
-  codeFiles        Json             @default("{}") // Current project files as JSON { "path": "content" }
-  preferredModel   String           @default("gpt-5") // AI model used for this project
+  version          Int              @default(0)
+  generationStatus String           @default("template")
+  lastCodeUpdateAt DateTime?
+  codeFiles        Json             @default("{}")
+  preferredModel   String           @default("gpt-5")
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  versions         ProjectVersion[]
   chatMessages     ChatMessage[]
-  fileRecords      File[]           @relation("ProjectFiles") // File records for R2 storage (separate from files JSON)
+  fileRecords      File[]           @relation("ProjectFiles")
+  versions         ProjectVersion[]
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("projects")
 }
 
-// ============================================================================
-// FILE STORAGE MODEL (R2/S3-backed, flexible & future-proof)
-// ============================================================================
-
 model File {
   id            String       @id @default(cuid())
-  userId        String // Always required: Who uploaded/owns the file
-  projectId     String? // Optional: Associated project (if any)
-  chatMessageId String? // Optional: Chat message this file was uploaded with
-  path          String? // File path in project (e.g., "src/app/page.tsx") - null for non-code files
-  r2Key         String       @unique // R2/S3 object key (e.g., "files/abc123/xyz789")
-  r2Url         String // CDN URL for accessing the file
-  fileName      String // Original filename
-  mimeType      String? // MIME type (e.g., "image/png", "text/typescript")
-  size          Int // File size in bytes
-  purpose       String       @default("upload") // "source" | "image" | "asset" | "upload" | "profile"
-  version       Int          @default(1) // File version number
-  isDeleted     Boolean      @default(false) // Soft delete flag
-  metadata      Json? // Flexible metadata (dimensions, alt text, etc.)
+  userId        String
+  projectId     String?
+  chatMessageId String?
+  path          String?
+  r2Key         String       @unique
+  r2Url         String
+  fileName      String
+  mimeType      String?
+  size          Int
+  purpose       String       @default("upload")
+  version       Int          @default(1)
+  isDeleted     Boolean      @default(false)
+  metadata      Json?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  chatMessage   ChatMessage? @relation(fields: [chatMessageId], references: [id])
+  project       Project?     @relation("ProjectFiles", fields: [projectId], references: [id])
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project       Project?     @relation("ProjectFiles", fields: [projectId], references: [id], onDelete: SetNull)
-  chatMessage   ChatMessage? @relation(fields: [chatMessageId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([projectId])
   @@index([chatMessageId])
   @@index([r2Key])
   @@index([purpose])
-  @@index([projectId, path]) // Fast lookup for project files by path
-  @@index([chatMessageId, createdAt]) // Files for a chat message
+  @@index([projectId, path])
+  @@index([chatMessageId, createdAt])
   @@map("files")
 }
 
 model ChatMessage {
   id          String   @id @default(cuid())
   projectId   String
-  role        String // "user" or "assistant"
-  content     String   @db.Text
-  fileChanges Json? // Array of file changes (path, type, language) for assistant messages
+  role        String
+  content     String
+  fileChanges Json?
   createdAt   DateTime @default(now())
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  files       File[] // Files attached to this message
+  files       File[]
 
   @@index([projectId])
-  @@index([projectId, createdAt]) // For querying messages by project and time
+  @@index([projectId, createdAt])
   @@map("chat_messages")
 }
 
 model ProjectVersion {
   id            String   @id @default(cuid())
   projectId     String
-  version       Int // Version number (1, 2, 3, etc.)
-  name          String? // Optional name/description for this version
-  codeFiles     Json // Snapshot of all project files at this version
-  chatMessageId String? // The chat message that triggered this version (if any)
-  isBookmarked  Boolean  @default(false) // User can bookmark important versions
-  isPublished   Boolean  @default(false) // Whether this version is published/live
+  version       Int
+  name          String?
+  codeFiles     Json
+  chatMessageId String?
+  isBookmarked  Boolean  @default(false)
+  isPublished   Boolean  @default(false)
   createdAt     DateTime @default(now())
   project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, version]) // Ensure version numbers are unique per project
+  @@unique([projectId, version])
   @@index([projectId, createdAt])
   @@index([projectId, isBookmarked])
   @@index([projectId, isPublished])
   @@map("project_versions")
 }
 
-// ============================================================================
-// SUBSCRIPTION & BILLING MODELS
-// ============================================================================
-
 model Plan {
   id              String             @id @default(cuid())
-  name            String             @unique // "HOBBY", "PRO", "ENTERPRISE"
-  displayName     String // "Hobby", "Pro", "Enterprise"
-  description     String? // Plan description
-  priceMonthlyUsd Float // Monthly price in USD (0 for Hobby, varies for Pro tiers, 0 for Enterprise = contact sales)
-  features        Json // JSON array of plan features
-  maxProjects     Int? // Max projects allowed (3 for Hobby, unlimited for Pro/Enterprise)
-  dailyCredits    Int? // Daily credit allocation (1 for Hobby, 10-1000 for Pro tiers, null for Enterprise = custom)
-  monthlyCredits  Int? // Approximate monthly credits (dailyCredits * 30)
+  name            String             @unique
+  displayName     String
+  description     String?
+  priceMonthlyUsd Float
+  features        Json
+  maxProjects     Int?
+  dailyCredits    Int?
+  monthlyCredits  Int?
   isActive        Boolean            @default(true)
   sortOrder       Int                @default(0)
   createdAt       DateTime           @default(now())
@@ -241,24 +220,23 @@ model Plan {
 
 model UserSubscription {
   id                 String        @id @default(cuid())
-  userId             String        @unique // One active subscription per user
+  userId             String        @unique
   planId             String
-  status             String        @default("active") // "active", "cancelled", "expired", "past_due"
+  status             String        @default("active")
   currentPeriodStart DateTime      @default(now())
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean       @default(false)
   cancelledAt        DateTime?
-  polarCheckoutId    String? // Last Polar checkout ID
-  polarPaymentId     String? // Last Polar payment ID
-  // Credit tracking
-  dailyCreditsUsed   Decimal       @default(0) @db.Decimal(10, 2) // Credits used today (supports 2 decimal places)
-  lastCreditReset    DateTime      @default(now()) // Last time daily credits were reset
+  polarCheckoutId    String?
+  polarPaymentId     String?
+  dailyCreditsUsed   Decimal       @default(0) @db.Decimal(10, 2)
+  lastCreditReset    DateTime      @default(now())
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
-  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan               Plan          @relation(fields: [planId], references: [id])
-  usageRecords       UsageRecord[]
   invoices           Invoice[]
+  usageRecords       UsageRecord[]
+  plan               Plan          @relation(fields: [planId], references: [id])
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([planId])
@@ -267,38 +245,28 @@ model UserSubscription {
   @@map("user_subscriptions")
 }
 
-// ============================================================================
-// AI CREDIT USAGE TRACKING
-// ============================================================================
-
 model AICreditUsage {
   id              String   @id @default(cuid())
   userId          String
   projectId       String
-  model           String // "claude-sonnet-4.5", "gpt-5", "gemini-2.5-pro", etc.
-  inputTokens     Int // Tokens in the prompt/input
-  outputTokens    Int // Tokens in the response/output
-  totalTokens     Int // inputTokens + outputTokens
-  costUsd         Float // Cost in USD for this usage
-  creditsUsed     Decimal  @default(0) @db.Decimal(10, 4) // Credits consumed (with model multiplier applied)
-  modelMultiplier Float    @default(1.0) // Model-based credit multiplier (0.25, 0.5, 1.0, 1.5, etc.)
-  endpoint        String? // "chat", "code-generation", "image-analysis", etc.
-  callType        String   @default("agent") // "agent" | "edit" | "chat" - type of AI interaction
+  model           String
+  inputTokens     Int
+  outputTokens    Int
+  totalTokens     Int
+  costUsd         Float
+  creditsUsed     Decimal  @default(0) @db.Decimal(10, 4)
+  modelMultiplier Float    @default(1.0)
+  endpoint        String?
+  callType        String   @default("agent")
   createdAt       DateTime @default(now())
 
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
   @@index([model, createdAt])
-  @@index([callType, createdAt]) // For analytics by call type
-  @@index([createdAt]) // For billing period queries
+  @@index([callType, createdAt])
+  @@index([createdAt])
   @@map("ai_credit_usage")
 }
-
-// ============================================================================
-// BILLING PERIOD USAGE TRACKING
-// ============================================================================
-// One record per billing period to track aggregated usage for invoicing
-// Detailed per-call tracking is in AICreditUsage model
 
 model UsageRecord {
   id                 String           @id @default(cuid())
@@ -306,41 +274,33 @@ model UsageRecord {
   subscriptionId     String
   billingPeriodStart DateTime
   billingPeriodEnd   DateTime
-  // Aggregated AI Usage (for billing)
-  aiCreditsUsed      Decimal          @default(0) @db.Decimal(10, 2) // Total credits used in this billing period
-  aiCostUsd          Float            @default(0) // Total AI cost in USD
-  totalCostUsd       Float            @default(0) // Total cost (currently just AI, but could include other services)
+  aiCreditsUsed      Decimal          @default(0) @db.Decimal(10, 2)
+  aiCostUsd          Float            @default(0)
+  totalCostUsd       Float            @default(0)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   subscription       UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
-  @@unique([subscriptionId, billingPeriodStart]) // One record per billing period
+  @@unique([subscriptionId, billingPeriodStart])
   @@index([userId, billingPeriodStart])
   @@index([billingPeriodEnd])
   @@map("usage_records")
 }
 
-// ============================================================================
-// INVOICING & PAYMENT TRACKING
-// ============================================================================
-
 model Invoice {
   id                 String           @id @default(cuid())
   userId             String
   subscriptionId     String
-  invoiceNumber      String           @unique // e.g., "INV-2025-001"
-  status             String           @default("draft") // "draft", "issued", "paid", "failed", "refunded"
+  invoiceNumber      String           @unique
+  status             String           @default("draft")
   billingPeriodStart DateTime
   billingPeriodEnd   DateTime
-  // Line Items
-  subscriptionFeeUsd Float            @default(0) // Base plan fee
+  subscriptionFeeUsd Float            @default(0)
   aiUsageCostUsd     Float            @default(0)
-  // Totals
   subtotalUsd        Float            @default(0)
   taxUsd             Float            @default(0)
   totalUsd           Float            @default(0)
-  currency           String           @default("USD") // "USD" or "EUR"
-  // Payment Details
+  currency           String           @default("USD")
   polarCheckoutId    String?
   polarPaymentId     String?
   paidAt             DateTime?
@@ -357,23 +317,19 @@ model Invoice {
   @@map("invoices")
 }
 
-// ============================================================================
-// PAYMENT TRANSACTIONS
-// ============================================================================
-
 model PaymentTransaction {
   id              String   @id @default(cuid())
   userId          String
   invoiceId       String?
   amount          Float
   currency        String   @default("USD")
-  status          String // "pending", "completed", "failed", "refunded"
-  paymentMethod   String   @default("polar") // "polar", "stripe", etc.
+  status          String
+  paymentMethod   String   @default("polar")
   polarCheckoutId String?
   polarPaymentId  String?
   polarSignature  String?
   failureReason   String?
-  metadata        Json? // Additional payment metadata
+  metadata        Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -386,30 +342,20 @@ model PaymentTransaction {
   @@map("payment_transactions")
 }
 
-// ============================================================================
-// LEGACY: TOKEN PURCHASES (REMOVED - NOW USING DAILY CREDITS)
-// ============================================================================
-// Token purchase model has been removed in favor of daily credit allocations
-// All plans now get daily credit refreshes instead of purchased tokens with yearly expiry
-
-// ============================================================================
-// DEPLOYMENT INTEGRATIONS (VERCEL, GITHUB, ETC.)
-// ============================================================================
-
 model VercelIntegration {
   id             String       @id @default(cuid())
-  userId         String       @unique // One Vercel account per user
-  accessToken    String // OAuth access token (encrypted in production)
-  refreshToken   String? // OAuth refresh token
-  tokenExpiresAt DateTime? // When the access token expires
-  vercelUserId   String? // Vercel user ID
-  vercelTeamId   String? // Vercel team ID (if applicable)
-  email          String? // Vercel account email
-  username       String? // Vercel username
-  scopes         String[] // OAuth scopes granted
+  userId         String       @unique
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  vercelUserId   String?
+  vercelTeamId   String?
+  email          String?
+  username       String?
+  scopes         String[]
   isActive       Boolean      @default(true)
-  lastSyncAt     DateTime? // Last time we synced with Vercel
-  metadata       Json? // Additional Vercel metadata
+  lastSyncAt     DateTime?
+  metadata       Json?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   deployments    Deployment[]
@@ -421,19 +367,19 @@ model VercelIntegration {
 
 model GitHubIntegration {
   id             String             @id @default(cuid())
-  userId         String             @unique // One GitHub account per user
-  accessToken    String // OAuth access token (encrypted in production)
-  refreshToken   String? // OAuth refresh token (GitHub doesn't provide this currently)
-  tokenExpiresAt DateTime? // When the access token expires (if applicable)
-  githubUserId   Int // GitHub user ID
-  login          String // GitHub username/login
-  email          String? // GitHub account email
-  name           String? // GitHub user's display name
-  avatarUrl      String? // GitHub profile avatar
-  scopes         String[] // OAuth scopes granted
+  userId         String             @unique
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  githubUserId   Int
+  login          String
+  email          String?
+  name           String?
+  avatarUrl      String?
+  scopes         String[]
   isActive       Boolean            @default(true)
-  lastSyncAt     DateTime? // Last time we synced with GitHub
-  metadata       Json? // Additional GitHub metadata
+  lastSyncAt     DateTime?
+  metadata       Json?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   repositories   GitHubRepository[]
@@ -447,21 +393,21 @@ model GitHubIntegration {
 model GitHubRepository {
   id                  String            @id @default(cuid())
   githubIntegrationId String
-  projectId           String? // Associated Craft project (if any)
-  githubRepoId        Int               @unique // GitHub repository ID
-  name                String // Repository name
-  fullName            String // Full name (owner/repo)
-  owner               String // Repository owner
+  projectId           String?
+  githubRepoId        Int               @unique
+  name                String
+  fullName            String
+  owner               String
   isPrivate           Boolean           @default(true)
   defaultBranch       String            @default("main")
-  htmlUrl             String // GitHub repository URL
-  cloneUrl            String // Git clone URL
-  sshUrl              String? // SSH clone URL
-  description         String? // Repository description
+  htmlUrl             String
+  cloneUrl            String
+  sshUrl              String?
+  description         String?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
-  githubIntegration   GitHubIntegration @relation(fields: [githubIntegrationId], references: [id], onDelete: Cascade)
   deployments         Deployment[]
+  githubIntegration   GitHubIntegration @relation(fields: [githubIntegrationId], references: [id], onDelete: Cascade)
 
   @@index([githubIntegrationId])
   @@index([projectId])
@@ -475,27 +421,24 @@ model Deployment {
   userId              String
   vercelIntegrationId String?
   githubRepositoryId  String?
-  platform            String // "vercel", "netlify", "railway", "github-pages", "cloudflare", etc.
-  status              String             @default("pending") // "pending", "building", "ready", "error", "cancelled"
-  // Vercel-specific
-  vercelDeploymentId  String? // Vercel deployment ID
-  vercelProjectId     String? // Vercel project ID
-  vercelUrl           String? // Deployment URL (e.g., "project.vercel.app")
-  vercelAliases       String[] // Custom domains/aliases
-  // GitHub-specific
-  githubCommitSha     String? // Git commit SHA
-  githubBranch        String? // Git branch name
-  // Deployment metadata
-  buildLog            String?            @db.Text // Build logs
-  errorMessage        String? // Error message if failed
-  startedAt           DateTime? // When deployment started
-  completedAt         DateTime? // When deployment completed
-  duration            Int? // Deployment duration in seconds
-  metadata            Json? // Additional platform-specific metadata
+  platform            String
+  status              String             @default("pending")
+  vercelDeploymentId  String?
+  vercelProjectId     String?
+  vercelUrl           String?
+  vercelAliases       String[]
+  githubCommitSha     String?
+  githubBranch        String?
+  buildLog            String?
+  errorMessage        String?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  duration            Int?
+  metadata            Json?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
-  vercelIntegration   VercelIntegration? @relation(fields: [vercelIntegrationId], references: [id], onDelete: SetNull)
-  githubRepository    GitHubRepository?  @relation(fields: [githubRepositoryId], references: [id], onDelete: SetNull)
+  githubRepository    GitHubRepository?  @relation(fields: [githubRepositoryId], references: [id])
+  vercelIntegration   VercelIntegration? @relation(fields: [vercelIntegrationId], references: [id])
 
   @@index([projectId])
   @@index([userId])
@@ -512,8 +455,8 @@ model Feedback {
   userId    String?
   email     String?
   name      String?
-  message   String   @db.Text
-  sentiment String? // "positive", "neutral", "negative"
+  message   String
+  sentiment String?
   createdAt DateTime @default(now())
 
   @@index([userId])
@@ -521,24 +464,18 @@ model Feedback {
   @@map("feedback")
 }
 
-// ============================================================================
-// SECURITY EVENT LOGGING (Issue 16)
-// ============================================================================
-// Comprehensive security event logging for authentication and account changes
-// Tracks failed logins, account creation, password changes, email changes, account linking, etc.
-
 model SecurityEvent {
   id          String   @id @default(cuid())
-  userId      String? // User involved (null for failed login attempts with unknown user)
-  eventType   String // "LOGIN_SUCCESS", "LOGIN_FAILED", "ACCOUNT_CREATED", "PASSWORD_CHANGED", "EMAIL_CHANGED", "ACCOUNT_LINKED", "ACCOUNT_UNLINKED", "EMAIL_VERIFIED", "PASSWORD_SET", "ACCOUNT_LOCKED", "LOCKOUT_CLEARED"
-  severity    String   @default("info") // "info", "warning", "critical"
-  ipAddress   String? // Client IP address
-  userAgent   String? // Browser/client user agent
-  email       String? // Email address involved (for failed login attempts, new email changes, etc.)
-  provider    String? // OAuth provider for account linking events ("google", "github")
-  success     Boolean  @default(true) // Whether the event was successful
-  errorReason String? // Error/failure reason if success=false
-  metadata    Json? // Additional event-specific metadata (e.g., previous email, lockout duration, etc.)
+  userId      String?
+  eventType   String
+  severity    String   @default("info")
+  ipAddress   String?
+  userAgent   String?
+  email       String?
+  provider    String?
+  success     Boolean  @default(true)
+  errorReason String?
+  metadata    Json?
   createdAt   DateTime @default(now())
 
   @@index([userId, createdAt])
@@ -547,6 +484,6 @@ model SecurityEvent {
   @@index([ipAddress, createdAt])
   @@index([email, createdAt])
   @@index([success, createdAt])
-  @@index([createdAt]) // For time-based queries
+  @@index([createdAt])
   @@map("security_events")
 }
