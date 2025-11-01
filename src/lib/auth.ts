@@ -16,6 +16,7 @@ import {
 } from "@/lib/security-logger";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 import { assignPlanToUser } from "@/lib/subscription";
+import { validatePassword } from "@/lib/password-validation";
 
 // Validate required environment variables
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -47,6 +48,8 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: true,
+        minPasswordLength: 12, // Better Auth built-in validation
+        maxPasswordLength: 128, // Better Auth built-in validation
         sendResetPassword: async ({ user, url, token }, request) => {
             // Log password reset request
             await logPasswordResetRequested(user.email, request as Request);
@@ -142,7 +145,7 @@ export const auth = betterAuth({
                 };
 
                 await sendVerificationEmail({
-                    user: { email, id: "", name: "" },
+                    user: { email, name: "" },
                     url: `Your verification code is: ${otp}`,
                     token: otp,
                 });
@@ -164,12 +167,25 @@ export const auth = betterAuth({
         nextCookies(),
     ],
     hooks: {
-        // Before hook - Simplified to only handle business logic validation
+        // Before hook - Validate passwords and business logic
         before: createAuthMiddleware(async (ctx) => {
             const request = ctx.request;
 
             if (!request) {
                 return;
+            }
+
+            // Validate password strength for sign-up and password reset
+            if (ctx.path === "/sign-up/email" || ctx.path === "/reset-password") {
+                const password = ctx.body?.password;
+
+                if (password && typeof password === "string") {
+                    const validation = validatePassword(password);
+
+                    if (!validation.isValid) {
+                        throw new Error(validation.errors[0]);
+                    }
+                }
             }
 
             // Note: Rate limiting is now handled by Better Auth's built-in rate limiter

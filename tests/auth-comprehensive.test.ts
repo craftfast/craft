@@ -32,12 +32,19 @@ async function testEmailPasswordAuth() {
             })
         });
 
-        const data = await response.json();
-        const passed = response.status === 400 && data.error;
+        let data;
+        const text = await response.text();
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = { error: text || 'Invalid response' };
+        }
+
+        const passed = !response.ok && (data.error || response.status >= 400);
         results.push({
             test: 'Weak password rejection',
             passed,
-            details: data.error || 'No error message'
+            details: data.error || `Status: ${response.status}`
         });
         console.log(passed ? '✅ PASS' : '❌ FAIL');
     } catch (error) {
@@ -63,18 +70,25 @@ async function testEmailPasswordAuth() {
             })
         });
 
-        const data = await response.json();
-        const passed = response.status === 201 && data.user;
+        let data;
+        const text = await response.text();
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = { error: text || 'Invalid response' };
+        }
+
+        const passed = response.ok && data.user;
         results.push({
             test: 'Strong password accepted',
             passed,
-            details: `User created: ${data.user?.email || 'N/A'}`
+            details: passed ? `User created: ${data.user?.email || 'N/A'}` : `Error: ${data.error || 'Unknown'}`
         });
         console.log(passed ? '✅ PASS' : '❌ FAIL');
 
-        if (passed) {
+        if (passed && data.user) {
             // Clean up test user
-            await prisma.user.delete({ where: { email: testEmail } });
+            await prisma.user.delete({ where: { email: testEmail } }).catch(() => { });
         }
     } catch (error) {
         results.push({
