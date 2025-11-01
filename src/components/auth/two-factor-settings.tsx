@@ -253,8 +253,8 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
               Two-Factor Authentication
             </h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-              Add an extra layer of security to your account by requiring a code
-              from your phone in addition to your password.
+              Add an extra layer of security to your account by requiring a
+              verification code from your authenticator app when signing in.
             </p>
           </div>
 
@@ -262,14 +262,18 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
             <AlertCircle className="h-5 w-5 text-neutral-600 dark:text-neutral-400 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                2FA Not Available
+                Set a Password to Enable 2FA
               </p>
               <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                Two-factor authentication is only available for accounts with
-                password authentication. You're currently signed in with a
-                social provider (Google or GitHub), which already provides
-                secure authentication. To enable 2FA, please set a password for
-                your account in the Account Security section.
+                You're currently signed in with a social provider (Google or
+                GitHub). To use two-factor authentication on Craft, you'll need
+                to set a password for your account first. Go to{" "}
+                <span className="font-medium">Account Security</span> to add a
+                password, then return here to enable 2FA.
+              </p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-2">
+                Note: Your social provider (Google/GitHub) may already have its
+                own 2FA enabled for added security.
               </p>
             </div>
           </div>
