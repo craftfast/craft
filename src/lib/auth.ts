@@ -14,7 +14,7 @@ import {
     logLoginFailure,
     logPasswordResetFailed,
 } from "@/lib/security-logger";
-import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
+import { sendPasswordResetEmail, sendOTPEmail } from "@/lib/email";
 import { assignPlanToUser } from "@/lib/subscription";
 import { validatePassword } from "@/lib/password-validation";
 
@@ -34,10 +34,12 @@ export const auth = betterAuth({
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
     emailVerification: {
         sendVerificationEmail: async ({ user, url, token }, request) => {
-            await sendVerificationEmail({ user, url, token });
+            // This is now deprecated - we use OTP verification instead
+            // Keeping this for backward compatibility with old magic links
+            console.log(`⚠️ Magic link verification requested for ${user.email} - redirecting to OTP flow`);
         },
-        sendOnSignUp: true, // Automatically send verification email on signup
-        sendOnSignIn: true, // Send verification email on sign-in if not verified
+        sendOnSignUp: false, // Disabled - we handle OTP sending manually in signup flow
+        sendOnSignIn: false, // Disabled - we handle OTP sending manually in signin flow
         autoSignInAfterVerification: false, // Require manual sign-in after verification
         async afterEmailVerification(user, request) {
             // Log email verification event
@@ -141,19 +143,10 @@ export const auth = betterAuth({
         // Email OTP Plugin - for passwordless auth and verification
         emailOTP({
             async sendVerificationOTP({ email, otp, type }) {
-                const typeLabels = {
-                    "sign-in": "Sign In",
-                    "email-verification": "Email Verification",
-                    "forget-password": "Password Reset",
-                };
+                // Send OTP email using the dedicated OTP email template
+                await sendOTPEmail(email, otp, type);
 
-                await sendVerificationEmail({
-                    user: { email, name: "" },
-                    url: `Your verification code is: ${otp}`,
-                    token: otp,
-                });
-
-                console.log(`📧 Sent ${typeLabels[type]} OTP to ${email}`);
+                console.log(`📧 Sent ${type} OTP to ${email}: ${otp}`);
             },
             otpLength: 6,
             expiresIn: 300, // 5 minutes

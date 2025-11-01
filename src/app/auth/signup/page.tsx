@@ -1,26 +1,31 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { signIn, signUp } from "@/lib/auth-client";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { signIn, signUp, emailOtp } from "@/lib/auth-client";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import OTPInput from "@/components/auth/OTPInput";
 import { validatePassword } from "@/lib/password-validation";
 
 function SignUpContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const planParam = searchParams.get("plan"); // Capture plan parameter
 
-  const [step, setStep] = useState(1); // 1 for email, 2 for name/password, 3 for verification message
+  const [step, setStep] = useState(1); // 1 for email, 2 for name/password, 3 for OTP verification
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOTP] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -59,10 +64,25 @@ function SignUpContent() {
           name: name.trim() || email.split("@")[0], // Use email prefix if name is empty
         },
         {
-          onSuccess: () => {
-            // Show verification message (step 3)
-            setStep(3);
-            setLoading(false);
+          onSuccess: async () => {
+            // Send OTP for email verification
+            try {
+              await emailOtp.sendVerificationOtp({
+                email,
+                type: "email-verification",
+              });
+
+              // Move to OTP verification step
+              setStep(3);
+              setResendCooldown(60); // Start 60 second cooldown
+              setLoading(false);
+            } catch (otpError) {
+              console.error("Failed to send OTP:", otpError);
+              setError(
+                "Account created but failed to send verification code. Please try signing in."
+              );
+              setLoading(false);
+            }
           },
           onError: (ctx) => {
             const errorMessage = ctx.error.message || "Something went wrong";
@@ -76,6 +96,101 @@ function SignUpContent() {
       setLoading(false);
     }
   };
+
+  const handleVerifyOTP = async () => {
+    if (otp.length !== 6) {
+      setError("Please enter the complete 6-digit code");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      // Verify email with OTP - this will also sign in the user
+      const result = await emailOtp.verifyEmail({
+        email,
+        otp,
+      });
+
+      if (result.error) {
+        setError(
+          result.error.message ||
+            "Invalid verification code. Please check and try again."
+        );
+        setLoading(false);
+        return;
+      }
+
+      // After successful verification, sign in the user
+      const signInResult = await signIn.email({
+        email,
+        password,
+      });
+
+      if (signInResult.error) {
+        // If sign-in fails, show message but don't block - email is verified
+        console.error("Auto sign-in failed:", signInResult.error);
+        setError("Email verified! Please sign in to continue.");
+        setTimeout(() => {
+          router.push("/auth/signin");
+        }, 2000);
+        return;
+      }
+
+      // Successfully verified and signed in - redirect to dashboard
+      let finalRedirectUrl = callbackUrl;
+      if (planParam) {
+        const url = new URL(callbackUrl, window.location.origin);
+        url.searchParams.set("plan", planParam);
+        finalRedirectUrl = url.pathname + url.search;
+      }
+
+      router.push(finalRedirectUrl);
+      router.refresh();
+    } catch (err) {
+      console.error("Verification error:", err);
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setError("");
+    setResendLoading(true);
+
+    try {
+      const result = await emailOtp.sendVerificationOtp({
+        email,
+        type: "email-verification",
+      });
+
+      if (result.error) {
+        setError(result.error.message || "Failed to resend code");
+        setResendLoading(false);
+        return;
+      }
+
+      setResendLoading(false);
+      setResendCooldown(60); // 60 second cooldown
+      setOTP(""); // Clear current OTP
+    } catch (err) {
+      console.error("Resend error:", err);
+      setError("Failed to resend code");
+      setResendLoading(false);
+    }
+  };
+
+  // Cooldown timer for resend
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(
+        () => setResendCooldown(resendCooldown - 1),
+        1000
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   const handleOAuthSignUp = async (provider: "google" | "github") => {
     setLoading(true);
@@ -378,54 +493,85 @@ function SignUpContent() {
             </form>
           )}
 
-          {/* Step 3: Verification Message */}
+          {/* Step 3: OTP Verification */}
           {step === 3 && (
-            <div className="space-y-6 text-center">
-              <div className="flex justify-center">
-                <div className="w-16 h-16 bg-neutral-900 dark:bg-neutral-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-8 h-8 text-white dark:text-neutral-900"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
+            <div className="space-y-6">
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 bg-neutral-900 dark:bg-neutral-100 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-white dark:text-neutral-900"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
                 </div>
-              </div>
-
-              <div>
                 <h2 className="text-2xl font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                  Check your email
+                  Verify your email
                 </h2>
-                <p className="text-neutral-600 dark:text-neutral-400 mb-4">
-                  We&apos;ve sent a verification link to
+                <p className="text-neutral-600 dark:text-neutral-400 mb-1">
+                  We&apos;ve sent a 6-digit code to
                 </p>
-                <p className="text-neutral-900 dark:text-neutral-100 font-medium">
+                <p className="text-neutral-900 dark:text-neutral-100 font-medium mb-6">
                   {email}
                 </p>
               </div>
 
-              <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 text-left">
-                  Click the link in the email to verify your account. The link
-                  will expire in 24 hours.
+              {error && (
+                <div className="p-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-700 dark:text-neutral-300 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <OTPInput
+                  value={otp}
+                  onChange={(value) => {
+                    setOTP(value);
+                    setError("");
+                  }}
+                  onComplete={handleVerifyOTP}
+                  disabled={loading}
+                />
+              </div>
+
+              <Button
+                onClick={handleVerifyOTP}
+                disabled={loading || otp.length !== 6}
+                className="w-full h-12 rounded-full"
+              >
+                {loading ? "Verifying..." : "Verify Email"}
+              </Button>
+
+              <div className="text-center space-y-2">
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                  Didn&apos;t receive the code?
                 </p>
+                {resendCooldown > 0 ? (
+                  <p className="text-sm text-neutral-500 dark:text-neutral-500">
+                    Resend code in {resendCooldown}s
+                  </p>
+                ) : (
+                  <Button
+                    variant="link"
+                    onClick={handleResendOTP}
+                    disabled={resendLoading}
+                    className="p-0 h-auto font-medium"
+                  >
+                    {resendLoading ? "Sending..." : "Resend code"}
+                  </Button>
+                )}
               </div>
 
-              <div className="pt-4">
-                <Button asChild className="h-12 rounded-full">
-                  <Link href="/auth/signin">Go to Sign In</Link>
-                </Button>
-              </div>
-
-              <div className="text-sm text-neutral-500 dark:text-neutral-500">
-                Didn&apos;t receive the email? Check your spam folder or{" "}
+              <div className="text-center">
                 <Button
                   variant="link"
                   onClick={() => {
@@ -434,10 +580,12 @@ function SignUpContent() {
                     setPassword("");
                     setConfirmPassword("");
                     setName("");
+                    setOTP("");
+                    setError("");
                   }}
-                  className="p-0 h-auto font-medium"
+                  className="p-0 h-auto text-sm"
                 >
-                  try again
+                  Use a different email
                 </Button>
               </div>
             </div>

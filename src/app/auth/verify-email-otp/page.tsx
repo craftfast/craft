@@ -12,6 +12,8 @@ function VerifyEmailOTPContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email");
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const planParam = searchParams.get("plan");
 
   const [email, setEmail] = useState(emailParam || "");
   const [otp, setOTP] = useState("");
@@ -59,9 +61,16 @@ function VerifyEmailOTPContent() {
       setSuccess(true);
       setLoading(false);
 
-      // Redirect to dashboard after 2 seconds
+      // Redirect to callback URL or dashboard after 2 seconds
       setTimeout(() => {
-        router.push("/dashboard");
+        let finalRedirectUrl = callbackUrl;
+        if (planParam) {
+          const url = new URL(callbackUrl, window.location.origin);
+          url.searchParams.set("plan", planParam);
+          finalRedirectUrl = url.pathname + url.search;
+        }
+        router.push(finalRedirectUrl);
+        router.refresh();
       }, 2000);
     } catch (err) {
       console.error("Verification error:", err);

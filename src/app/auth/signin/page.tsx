@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { signIn } from "@/lib/auth-client";
+import { signIn, emailOtp } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
@@ -18,15 +18,11 @@ function SignInContent() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [needsVerification, setNeedsVerification] = useState(false);
-  const [resendingVerification, setResendingVerification] = useState(false);
-  const [resendMessage, setResendMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setNeedsVerification(false);
     setLoading(true);
 
     try {
@@ -55,16 +51,38 @@ function SignInContent() {
             router.push(finalRedirectUrl);
             router.refresh();
           },
-          onError: (ctx) => {
+          onError: async (ctx) => {
             const errorMessage =
               ctx.error.message || "Invalid email or password";
 
             // Check if error is about email verification
             if (
               errorMessage.includes("verify your email") ||
-              errorMessage.includes("not verified")
+              errorMessage.includes("not verified") ||
+              errorMessage.includes("email is not verified")
             ) {
-              setNeedsVerification(true);
+              // Send OTP for verification
+              try {
+                await emailOtp.sendVerificationOtp({
+                  email,
+                  type: "email-verification",
+                });
+
+                // Redirect to OTP verification page
+                const params = new URLSearchParams({ email });
+                if (callbackUrl !== "/") params.set("callbackUrl", callbackUrl);
+                if (planParam) params.set("plan", planParam);
+
+                router.push(`/auth/verify-email-otp?${params.toString()}`);
+                return;
+              } catch (otpError) {
+                console.error("Failed to send OTP:", otpError);
+                setError(
+                  "Your email is not verified. Failed to send verification code. Please contact support."
+                );
+                setLoading(false);
+                return;
+              }
             }
 
             setError(errorMessage);
@@ -81,34 +99,6 @@ function SignInContent() {
     } catch (err) {
       setError("Something went wrong");
       setLoading(false);
-    }
-  };
-
-  const handleResendVerification = async () => {
-    setResendingVerification(true);
-    setResendMessage("");
-
-    try {
-      // Better Auth provides native resend verification
-      const response = await fetch("/api/auth/send-verification-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setResendMessage("Verification email sent! Please check your inbox.");
-      } else {
-        setResendMessage(data.error || "Failed to send verification email");
-      }
-    } catch {
-      setResendMessage("Something went wrong");
-    } finally {
-      setResendingVerification(false);
     }
   };
 
@@ -208,27 +198,6 @@ function SignInContent() {
             {error && (
               <div className="p-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-700 dark:text-neutral-300 text-sm">
                 {error}
-                {needsVerification && (
-                  <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
-                    <Button
-                      type="button"
-                      onClick={handleResendVerification}
-                      disabled={resendingVerification}
-                      variant="link"
-                      className="p-0 h-auto text-sm font-medium"
-                    >
-                      {resendingVerification
-                        ? "Sending..."
-                        : "Resend verification email"}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {resendMessage && (
-              <div className="p-3 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-700 dark:text-neutral-300 text-sm">
-                {resendMessage}
               </div>
             )}
 
