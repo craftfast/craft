@@ -650,9 +650,16 @@ export default function SettingsModal({
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("Email changed successfully. Please sign in again.", {
+        // Show different message based on whether OAuth accounts were unlinked
+        const message = data.oauthUnlinked
+          ? `Email changed successfully. Your ${data.unlinkedProviders.join(
+              " and "
+            )} account(s) were automatically unlinked. Please sign in and re-link them with your updated email.`
+          : "Email changed successfully. Please sign in again.";
+
+        toast.success(message, {
           id: "verify-email-change",
-          duration: 5000,
+          duration: 7000, // Longer duration for OAuth unlink message
         });
         setShowEmailChangeForm(false);
         setNewEmail("");
@@ -662,7 +669,7 @@ export default function SettingsModal({
         // Sign out after successful email change
         setTimeout(() => {
           window.location.href = "/auth/signin";
-        }, 2000);
+        }, 3000); // Longer delay to read the message
       } else {
         toast.error(data.error || "Failed to verify code", {
           id: "verify-email-change",

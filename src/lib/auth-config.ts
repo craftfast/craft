@@ -78,6 +78,10 @@ export const auth = betterAuth({
         },
     },
     account: {
+        // Automatically update OAuth account info when user signs in
+        // This ensures that if user changes their email on Google/GitHub,
+        // it updates the linked account in our database
+        updateAccountOnSignIn: true,
         accountLinking: {
             enabled: true,
             trustedProviders: ["google", "github"],

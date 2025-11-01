@@ -63,19 +63,20 @@ model Account {
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, accountId])
+  @@unique([userId, providerId])
   @@map("accounts")
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-  ipAddress String?
-  token     String   @unique
-  updatedAt DateTime @updatedAt
-  userAgent String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  userId         String
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+  ipAddress      String?
+  token          String   @unique
+  updatedAt      DateTime @updatedAt
+  userAgent      String?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   impersonatedBy String?
 
   @@map("sessions")

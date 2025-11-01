@@ -34,7 +34,7 @@ function AuthErrorContent() {
     account_already_linked_to_different_user:
       "This OAuth account is already linked to a different user.",
     unable_to_link_account:
-      "Unable to link this account. Please ensure the provider account is verified.",
+      "Unable to link this account. This may happen if you already have this provider linked or if the account is already linked to another user. Try unlinking it in Settings first.",
     Default: "An error occurred while trying to authenticate.",
   };
 

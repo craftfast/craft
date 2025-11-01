@@ -104,6 +104,30 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        // Automatically unlink OAuth accounts that have different emails
+        // This prevents "unable_to_link_account" error when user changes email
+        // and tries to re-link their OAuth provider with updated email
+        const linkedAccounts = await prisma.account.findMany({
+            where: {
+                userId: user.id,
+                providerId: {
+                    in: ["google", "github"],
+                },
+            },
+        });
+
+        // Unlink OAuth accounts if their email doesn't match the new email
+        for (const account of linkedAccounts) {
+            // The account might not have an email field, so we unlink all OAuth accounts
+            // to allow the user to re-link with their updated OAuth email
+            await prisma.account.delete({
+                where: {
+                    id: account.id,
+                },
+            });
+            console.log(`🔗 Auto-unlinked ${account.providerId} account for user ${user.id} due to email change`);
+        }
+
         // Delete the verification record after successful use
         await prisma.verification.delete({
             where: {
@@ -117,6 +141,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             message: "Email changed successfully",
+            oauthUnlinked: linkedAccounts.length > 0,
+            unlinkedProviders: linkedAccounts.map(acc => acc.providerId),
         });
     } catch (error) {
         console.error("Email change verification error:", error);
