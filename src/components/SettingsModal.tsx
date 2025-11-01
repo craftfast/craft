@@ -2590,11 +2590,11 @@ export default function SettingsModal({
                               />
                               <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg">
                                 <p className="text-xs text-blue-800 dark:text-blue-300">
-                                  ℹ️ <strong>Note:</strong> Existing linked
-                                  accounts (Google, GitHub) will remain
-                                  connected. To link new OAuth accounts after
-                                  changing your email, ensure those accounts use
-                                  your new email address.
+                                  ℹ️ <strong>Note:</strong> Changing your email
+                                  will automatically unlink any connected OAuth
+                                  accounts (Google, GitHub). You can re-link
+                                  them after the change by signing in with your
+                                  new email address through those providers.
                                 </p>
                               </div>
                             </div>
