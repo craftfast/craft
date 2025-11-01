@@ -36,12 +36,11 @@ export async function POST(req: NextRequest) {
 
         const userId = session.user.id;
 
-        // Get user's current authentication methods
+        // Get user's current authentication methods (Better Auth compatible)
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: {
                 email: true,
-                password: true,
                 accounts: {
                     select: {
                         providerId: true,
@@ -58,8 +57,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Count available authentication methods
-        const hasPassword = !!user.password;
-        const oauthProviders = user.accounts.map(acc => acc.providerId);
+        // In Better Auth, password is stored in Account with providerId "credential"
+        const hasPassword = user.accounts.some(acc => acc.providerId === "credential");
+        const oauthProviders = user.accounts.filter(acc => acc.providerId !== "credential");
         const totalAuthMethods = (hasPassword ? 1 : 0) + oauthProviders.length;
 
         // Prevent user from removing their last authentication method
@@ -107,13 +107,16 @@ export async function POST(req: NextRequest) {
                 );
             }
 
-            // Remove password from user
-            await prisma.user.update({
-                where: { id: userId },
-                data: {
-                    password: null,
+            // Remove credential account (Better Auth compatible)
+            await prisma.account.deleteMany({
+                where: {
+                    userId,
+                    providerId: "credential",
                 },
             });
+
+            // Log account unlinking
+            await logAccountUnlinked(userId, user.email, "credentials", req);
 
             return NextResponse.json({
                 success: true,

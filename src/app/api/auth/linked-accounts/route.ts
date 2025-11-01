@@ -20,12 +20,11 @@ export async function GET() {
 
         const userId = session.user.id;
 
-        // Fetch user with accounts
+        // Fetch user with accounts (Better Auth compatible)
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: {
                 email: true,
-                password: true,
                 accounts: {
                     select: {
                         providerId: true,
@@ -49,8 +48,8 @@ export async function GET() {
             credentials: null as { email: string | null; connected: boolean } | null,
         };
 
-        // Check OAuth accounts
-        // Issue #15: All OAuth providers use the same primary email (user.email)
+        // Check OAuth accounts and credentials
+        // In Better Auth, passwords are stored in the Account model with providerId "credential"
         user.accounts.forEach(account => {
             if (account.providerId === "google") {
                 linkedAccounts.google = {
@@ -62,16 +61,14 @@ export async function GET() {
                     email: user.email, // All linked accounts use primary email
                     connected: true,
                 };
+            } else if (account.providerId === "credential") {
+                // Better Auth stores email+password as a "credential" provider account
+                linkedAccounts.credentials = {
+                    email: user.email,
+                    connected: true,
+                };
             }
         });
-
-        // Check credentials (email+password)
-        if (user.password) {
-            linkedAccounts.credentials = {
-                email: user.email,
-                connected: true,
-            };
-        }
 
         // Set defaults for unconnected accounts
         if (!linkedAccounts.google) {

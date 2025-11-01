@@ -288,6 +288,17 @@ export default function SettingsModal({
     if (activeTab === "account") {
       fetchLinkedAccounts();
       fetchDeletionStatus();
+
+      // Check if user just linked an account (from URL parameter)
+      const urlParams = new URLSearchParams(window.location.search);
+      const linkedProvider = urlParams.get("linked");
+      if (linkedProvider) {
+        const providerName =
+          linkedProvider.charAt(0).toUpperCase() + linkedProvider.slice(1);
+        toast.success(`${providerName} account linked successfully!`);
+        // Remove the parameter from URL
+        window.history.replaceState({}, "", window.location.pathname);
+      }
     }
   }, [activeTab]);
 
@@ -621,9 +632,13 @@ export default function SettingsModal({
   const handleLinkProvider = async (provider: "google" | "github") => {
     setIsLinkingProvider(true);
     try {
-      // Redirect to OAuth provider with callback to link account
-      const callbackUrl = `${window.location.origin}/auth/link-callback?provider=${provider}`;
-      window.location.href = `/api/auth/signin/${provider}?callbackUrl=${encodeURIComponent(
+      // Use Better Auth's built-in OAuth sign-in
+      // The user is already authenticated, so Better Auth will automatically link the account
+      // because accountLinking is enabled in auth config with trustedProviders
+      const callbackUrl = `${window.location.origin}/dashboard?linked=${provider}`;
+
+      // Better Auth OAuth endpoint structure: /api/auth/sign-in/social
+      window.location.href = `/api/auth/sign-in/social?provider=${provider}&callbackURL=${encodeURIComponent(
         callbackUrl
       )}`;
     } catch (error) {

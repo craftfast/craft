@@ -34,14 +34,21 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get user with password
+        // Get user with credential account (Better Auth compatible)
         const user = await prisma.user.findUnique({
             where: { id: session.user.id },
             select: {
                 id: true,
                 email: true,
-                password: true,
                 deletionScheduledAt: true,
+                accounts: {
+                    where: {
+                        providerId: "credential",
+                    },
+                    select: {
+                        password: true,
+                    },
+                },
             },
         });
 
@@ -63,9 +70,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Verify password (only if user has a password - OAuth users might not)
-        if (user.password) {
-            const isPasswordValid = await bcrypt.compare(password, user.password);
+        // Verify password (only if user has a credential account)
+        const credentialAccount = user.accounts[0];
+        if (credentialAccount?.password) {
+            const isPasswordValid = await bcrypt.compare(password, credentialAccount.password);
             if (!isPasswordValid) {
                 return NextResponse.json(
                     { error: "Invalid password" },
