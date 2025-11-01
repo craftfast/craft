@@ -32,6 +32,7 @@ import { PRO_TIERS } from "@/lib/pricing-constants";
 import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
 import { validatePassword } from "@/lib/password-validation";
 import validator from "validator";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -272,6 +273,12 @@ export default function SettingsModal({
     daysRemaining: number | null;
   } | null>(null);
   const [isLoadingDeletionStatus, setIsLoadingDeletionStatus] = useState(false);
+
+  // Confirmation dialog state
+  const [showUnlinkConfirmation, setShowUnlinkConfirmation] = useState(false);
+  const [pendingUnlinkProvider, setPendingUnlinkProvider] = useState<
+    "google" | "github" | "credentials" | null
+  >(null);
 
   // Cooldown timer for OTP resend
   useEffect(() => {
@@ -814,19 +821,19 @@ export default function SettingsModal({
   const handleUnlinkProvider = async (
     provider: "google" | "github" | "credentials"
   ) => {
-    // Confirm before unlinking
+    // Show confirmation dialog instead of native confirm()
+    setPendingUnlinkProvider(provider);
+    setShowUnlinkConfirmation(true);
+  };
+
+  const confirmUnlinkProvider = async () => {
+    if (!pendingUnlinkProvider) return;
+
+    const provider = pendingUnlinkProvider;
     const providerName =
       provider === "credentials"
         ? "Email+Password"
         : provider.charAt(0).toUpperCase() + provider.slice(1);
-
-    if (
-      !confirm(
-        `Are you sure you want to unlink ${providerName} authentication? Make sure you have another way to sign in.`
-      )
-    ) {
-      return;
-    }
 
     toast.loading(`Unlinking ${providerName}...`, { id: "unlink-provider" });
 
@@ -853,6 +860,8 @@ export default function SettingsModal({
     } catch (error) {
       console.error("Error unlinking provider:", error);
       toast.error("Failed to unlink provider", { id: "unlink-provider" });
+    } finally {
+      setPendingUnlinkProvider(null);
     }
   };
 
@@ -3712,6 +3721,35 @@ export default function SettingsModal({
           </div>,
           document.body
         )}
+
+      {/* Unlink Provider Confirmation Dialog */}
+      <ConfirmationDialog
+        open={showUnlinkConfirmation}
+        onOpenChange={setShowUnlinkConfirmation}
+        title={`Unlink ${
+          pendingUnlinkProvider === "credentials"
+            ? "Email+Password"
+            : pendingUnlinkProvider === "google"
+            ? "Google"
+            : pendingUnlinkProvider === "github"
+            ? "GitHub"
+            : ""
+        } Authentication?`}
+        description={`Are you sure you want to remove ${
+          pendingUnlinkProvider === "credentials"
+            ? "email and password"
+            : pendingUnlinkProvider === "google"
+            ? "Google"
+            : pendingUnlinkProvider === "github"
+            ? "GitHub"
+            : "this"
+        } authentication from your account? Make sure you have another way to sign in before proceeding.`}
+        confirmLabel="Unlink"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={confirmUnlinkProvider}
+        onCancel={() => setPendingUnlinkProvider(null)}
+      />
     </>
   );
 }
