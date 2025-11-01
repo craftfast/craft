@@ -22,11 +22,15 @@ function VerifyEmailContent() {
       return;
     }
 
-    // Verify the email
+    // Verify the email using Better Auth's native endpoint
     const verifyEmail = async () => {
       try {
+        // Better Auth provides /api/auth/verify-email natively
         const response = await fetch(
-          `/api/auth/verify-email?token=${encodeURIComponent(token)}`
+          `/api/auth/verify-email?token=${encodeURIComponent(token)}`,
+          {
+            method: "GET",
+          }
         );
         const data = await response.json();
 

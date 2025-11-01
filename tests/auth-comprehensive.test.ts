@@ -22,7 +22,7 @@ async function testEmailPasswordAuth() {
     // Test 1: Check if weak password is rejected
     console.log('Test 1: Weak password rejection...');
     try {
-        const response = await fetch('http://localhost:3000/api/auth/register', {
+        const response = await fetch('http://localhost:3000/api/auth/sign-up/email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -53,7 +53,7 @@ async function testEmailPasswordAuth() {
     console.log('Test 2: Strong password accepted...');
     try {
         const testEmail = `test-${Date.now()}@example.com`;
-        const response = await fetch('http://localhost:3000/api/auth/register', {
+        const response = await fetch('http://localhost:3000/api/auth/sign-up/email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -91,7 +91,7 @@ async function testEmailPasswordAuth() {
         const testEmail = `test-unverified-${Date.now()}@example.com`;
 
         // Create unverified user
-        const response = await fetch('http://localhost:3000/api/auth/register', {
+        const response = await fetch('http://localhost:3000/api/auth/sign-up/email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

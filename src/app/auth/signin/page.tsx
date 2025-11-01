@@ -89,7 +89,8 @@ function SignInContent() {
     setResendMessage("");
 
     try {
-      const response = await fetch("/api/auth/resend-verification", {
+      // Better Auth provides native resend verification
+      const response = await fetch("/api/auth/send-verification-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
