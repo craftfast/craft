@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useSession } from "@/lib/auth-client";
+import {
+  useSession,
+  changePassword,
+  updateUser,
+  unlinkAccount,
+  linkSocial,
+} from "@/lib/auth-client";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
 import { useRefreshSession } from "@/hooks/use-refresh-session";
@@ -234,6 +240,13 @@ export default function SettingsModal({
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [showEmailChangeForm, setShowEmailChangeForm] = useState(false);
 
+  // Password change state
+  const [showPasswordChangeForm, setShowPasswordChangeForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPasswordForChange, setNewPasswordForChange] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   // Account deletion state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
@@ -414,26 +427,28 @@ export default function SettingsModal({
     }
 
     setIsSavingProfile(true);
+    toast.loading("Updating profile...", { id: "update-profile" });
+
     try {
-      const res = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: userName }),
+      // Use Better Auth's updateUser method
+      const result = await updateUser({
+        name: userName.trim(),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setUserName(data.user.name || "");
-        // Refresh session to reflect the updated profile
-        await refreshSession();
-        toast.success("Profile updated successfully");
+      if (result.error) {
+        toast.error(result.error.message || "Failed to update profile", {
+          id: "update-profile",
+        });
       } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to update profile");
+        // Success - refresh session to reflect the updated profile
+        await refreshSession();
+        toast.success("Profile updated successfully", {
+          id: "update-profile",
+        });
       }
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast.error("Failed to update profile");
+      toast.error("Failed to update profile", { id: "update-profile" });
     } finally {
       setIsSavingProfile(false);
     }
@@ -629,21 +644,78 @@ export default function SettingsModal({
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPasswordForChange || !confirmNewPassword) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(newPasswordForChange);
+    if (!passwordValidation.isValid) {
+      toast.error(passwordValidation.errors[0]); // Show first error
+      return;
+    }
+
+    if (newPasswordForChange !== confirmNewPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    if (currentPassword === newPasswordForChange) {
+      toast.error("New password must be different from current password");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    toast.loading("Changing password...", { id: "change-password" });
+
+    try {
+      const result = await changePassword({
+        currentPassword,
+        newPassword: newPasswordForChange,
+        revokeOtherSessions: true, // Revoke other sessions for security
+      });
+
+      if (result.error) {
+        toast.error(result.error.message || "Failed to change password", {
+          id: "change-password",
+        });
+      } else {
+        toast.success(
+          "Password changed successfully! Other sessions have been revoked.",
+          { id: "change-password", duration: 5000 }
+        );
+        setShowPasswordChangeForm(false);
+        setCurrentPassword("");
+        setNewPasswordForChange("");
+        setConfirmNewPassword("");
+      }
+    } catch (error) {
+      console.error("Error changing password:", error);
+      toast.error("Failed to change password", { id: "change-password" });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const handleLinkProvider = async (provider: "google" | "github") => {
     setIsLinkingProvider(true);
-    try {
-      // Use Better Auth's built-in OAuth sign-in
-      // The user is already authenticated, so Better Auth will automatically link the account
-      // because accountLinking is enabled in auth config with trustedProviders
-      const callbackUrl = `${window.location.origin}/dashboard?linked=${provider}`;
+    toast.loading(`Linking ${provider}...`, { id: "link-provider" });
 
-      // Better Auth OAuth endpoint structure: /api/auth/sign-in/social
-      window.location.href = `/api/auth/sign-in/social?provider=${provider}&callbackURL=${encodeURIComponent(
-        callbackUrl
-      )}`;
+    try {
+      // Use Better Auth's linkSocial method
+      const callbackURL = `${window.location.origin}/dashboard?linked=${provider}`;
+
+      await linkSocial({
+        provider,
+        callbackURL,
+      });
+
+      // Note: linkSocial will redirect to OAuth provider, so code after this won't execute
     } catch (error) {
       console.error("Error linking provider:", error);
-      toast.error("Failed to link account");
+      toast.error("Failed to link account", { id: "link-provider" });
       setIsLinkingProvider(false);
     }
   };
@@ -665,24 +737,31 @@ export default function SettingsModal({
       return;
     }
 
+    toast.loading(`Unlinking ${providerName}...`, { id: "unlink-provider" });
+
     try {
-      const res = await fetch("/api/auth/unlink-provider", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider }),
+      // Better Auth's unlinkAccount uses providerId
+      // For credentials, the providerId is "credential" (singular in Better Auth)
+      const providerId = provider === "credentials" ? "credential" : provider;
+
+      const result = await unlinkAccount({
+        providerId,
       });
 
-      if (res.ok) {
-        toast.success(`${providerName} authentication removed successfully`);
+      if (result.error) {
+        toast.error(result.error.message || "Failed to unlink provider", {
+          id: "unlink-provider",
+        });
+      } else {
+        toast.success(`${providerName} authentication removed successfully`, {
+          id: "unlink-provider",
+        });
         // Refresh linked accounts
         await fetchLinkedAccounts();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to unlink provider");
       }
     } catch (error) {
       console.error("Error unlinking provider:", error);
-      toast.error("Failed to unlink provider");
+      toast.error("Failed to unlink provider", { id: "unlink-provider" });
     }
   };
 
@@ -2629,16 +2708,100 @@ export default function SettingsModal({
                   <div className="space-y-4">
                     {/* Password Section */}
                     {linkedAccounts?.credentials?.connected ? (
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-3">
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
                           Change your password to keep your account secure.
                         </p>
-                        <button
-                          disabled
-                          className="w-full px-4 py-3 text-sm font-medium text-muted-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Change Password (Coming Soon)
-                        </button>
+
+                        {!showPasswordChangeForm ? (
+                          <button
+                            onClick={() => setShowPasswordChangeForm(true)}
+                            className="w-full px-4 py-3 text-sm font-medium bg-primary text-primary-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl hover:bg-primary/90 transition-colors"
+                          >
+                            Change Password
+                          </button>
+                        ) : (
+                          <div className="p-4 bg-muted/30 rounded-xl border border-input space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                                Current Password
+                              </label>
+                              <input
+                                type="password"
+                                value={currentPassword}
+                                onChange={(e) =>
+                                  setCurrentPassword(e.target.value)
+                                }
+                                placeholder="Enter current password"
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                disabled={isChangingPassword}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                                New Password
+                              </label>
+                              <input
+                                type="password"
+                                value={newPasswordForChange}
+                                onChange={(e) =>
+                                  setNewPasswordForChange(e.target.value)
+                                }
+                                placeholder="Enter new password"
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                disabled={isChangingPassword}
+                              />
+                              <p className="text-xs text-muted-foreground mt-1.5">
+                                Must be at least 12 characters with uppercase,
+                                lowercase, number and special character
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                                Confirm New Password
+                              </label>
+                              <input
+                                type="password"
+                                value={confirmNewPassword}
+                                onChange={(e) =>
+                                  setConfirmNewPassword(e.target.value)
+                                }
+                                placeholder="Confirm new password"
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                disabled={isChangingPassword}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={handleChangePassword}
+                                disabled={
+                                  isChangingPassword ||
+                                  !currentPassword.trim() ||
+                                  !newPasswordForChange.trim() ||
+                                  !confirmNewPassword.trim()
+                                }
+                                className="rounded-full"
+                              >
+                                {isChangingPassword
+                                  ? "Changing..."
+                                  : "Change Password"}
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setShowPasswordChangeForm(false);
+                                  setCurrentPassword("");
+                                  setNewPasswordForChange("");
+                                  setConfirmNewPassword("");
+                                }}
+                                variant="outline"
+                                className="rounded-full"
+                                disabled={isChangingPassword}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="p-4 bg-muted/50 rounded-xl border border-input">
