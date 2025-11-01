@@ -14,7 +14,7 @@ import {
     logLoginFailure,
     logPasswordResetFailed,
 } from "@/lib/security-logger";
-import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
+import { sendPasswordResetEmail, sendVerificationEmail, sendOTPEmail } from "@/lib/email";
 import { assignPlanToUser } from "@/lib/subscription";
 
 // Validate required environment variables
@@ -33,11 +33,12 @@ export const auth = betterAuth({
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
     emailVerification: {
         sendVerificationEmail: async ({ user, url, token }, request) => {
+            // This is now only used as a fallback - OTP is the primary method
             await sendVerificationEmail({ user, url, token });
         },
-        sendOnSignUp: true, // Automatically send verification email on signup
-        sendOnSignIn: true, // Send verification email on sign-in if not verified
-        autoSignInAfterVerification: false, // Require manual sign-in after verification
+        sendOnSignUp: false, // Disabled - using OTP instead
+        sendOnSignIn: false, // Disabled - using OTP instead
+        autoSignInAfterVerification: false,
         async afterEmailVerification(user, request) {
             // Log email verification event
             await logEmailVerified(user.id, user.email, request as Request);
@@ -48,10 +49,8 @@ export const auth = betterAuth({
         enabled: true,
         requireEmailVerification: true,
         sendResetPassword: async ({ user, url, token }, request) => {
-            // Log password reset request
+            // This is now only used as a fallback - OTP is the primary method
             await logPasswordResetRequested(user.email, request as Request);
-
-            // Send password reset email
             await sendPasswordResetEmail(user.email, token, url);
         },
         async onPasswordReset({ user }, request) {
@@ -137,20 +136,21 @@ export const auth = betterAuth({
         }),
         // Email OTP Plugin - for passwordless auth and verification
         emailOTP({
+            // Override default email verification to use OTP instead of links
+            overrideDefaultEmailVerification: true,
+            // Send OTP email on signup for verification
+            sendVerificationOnSignUp: true,
             async sendVerificationOTP({ email, otp, type }) {
+                // Send OTP email based on type
+                await sendOTPEmail(email, otp, type);
+
                 const typeLabels = {
                     "sign-in": "Sign In",
                     "email-verification": "Email Verification",
                     "forget-password": "Password Reset",
                 };
 
-                await sendVerificationEmail({
-                    user: { email, name: "" },
-                    url: `Your verification code is: ${otp}`,
-                    token: otp,
-                });
-
-                console.log(`📧 Sent ${typeLabels[type]} OTP to ${email}`);
+                console.log(`📧 Sent ${typeLabels[type]} OTP to ${email}: ${otp}`);
             },
             otpLength: 6,
             expiresIn: 300, // 5 minutes
