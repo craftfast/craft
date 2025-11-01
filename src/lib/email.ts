@@ -9,7 +9,7 @@ interface SendEmailParams {
     html: string;
 }
 
-type OTPType = "sign-in" | "email-verification" | "forget-password";
+type OTPType = "sign-in" | "email-verification" | "forget-password" | "account-deletion";
 
 /**
  * Send an email using Resend API (or fallback to console.log if no API key)
@@ -271,20 +271,30 @@ export async function sendOTPEmail(
             heading: "Sign In Code",
             message: "Use this code to sign in to your account:",
             subject: "Your sign-in code - Craft",
+            warning: null,
         },
         "email-verification": {
             title: "Verify Your Email",
             heading: "Email Verification Code",
             message: "Use this code to verify your email address:",
             subject: "Verify your email - Craft",
+            warning: null,
         },
         "forget-password": {
             title: "Reset Your Password",
             heading: "Password Reset Code",
             message: "Use this code to reset your password:",
             subject: "Reset your password - Craft",
+            warning: null,
         },
-    };
+        "account-deletion": {
+            title: "Confirm Account Deletion",
+            heading: "Account Deletion Code",
+            message: "Someone requested to permanently delete your Craft account. If this was you, use this code to confirm:",
+            subject: "Confirm account deletion - Craft",
+            warning: "⚠️ WARNING: This action is permanent and cannot be undone. All your data, projects, and settings will be permanently deleted after a 30-day grace period.",
+        },
+    } as const;
 
     const config = typeConfig[type];
 
@@ -326,12 +336,20 @@ export async function sendOTPEmail(
                                 </tr>
                             </table>
                             
+                            ${config.warning ? `
+                            <div style="margin: 30px 0; padding: 20px; background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 8px;">
+                                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #991b1b; font-weight: 600;">
+                                    ${config.warning}
+                                </p>
+                            </div>
+                            ` : ''}
+                            
                             <p style="margin: 30px 0 0 0; font-size: 14px; line-height: 1.6; color: #737373;">
                                 This code will expire in <strong>5 minutes</strong> for security reasons.
                             </p>
                             
                             <p style="margin: 20px 0 0 0; font-size: 14px; line-height: 1.6; color: #737373;">
-                                If you didn't request this code, you can safely ignore this email.
+                                If you didn't request this code, you can safely ignore this email${type === 'account-deletion' ? ' and contact support immediately' : ''}.
                             </p>
                         </td>
                     </tr>

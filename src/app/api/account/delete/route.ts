@@ -3,13 +3,12 @@
  * POST /api/account/delete
  * 
  * Schedules an account for deletion after a 30-day grace period.
- * User must provide their password for confirmation.
+ * User must provide OTP code for confirmation (works for all user types).
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
     try {
@@ -25,30 +24,22 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { password } = body;
+        const { otp } = body;
 
-        if (!password) {
+        if (!otp) {
             return NextResponse.json(
-                { error: "Password is required" },
+                { error: "Verification code is required" },
                 { status: 400 }
             );
         }
 
-        // Get user with credential account (Better Auth compatible)
+        // Get user
         const user = await prisma.user.findUnique({
             where: { id: session.user.id },
             select: {
                 id: true,
                 email: true,
                 deletionScheduledAt: true,
-                accounts: {
-                    where: {
-                        providerId: "credential",
-                    },
-                    select: {
-                        password: true,
-                    },
-                },
             },
         });
 
@@ -70,21 +61,30 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Verify password (only if user has a credential account)
-        const credentialAccount = user.accounts[0];
-        if (credentialAccount?.password) {
-            const isPasswordValid = await bcrypt.compare(password, credentialAccount.password);
-            if (!isPasswordValid) {
-                return NextResponse.json(
-                    { error: "Invalid password" },
-                    { status: 401 }
-                );
-            }
-        } else {
-            // For OAuth-only users, we might want to use a different verification method
-            // For now, we'll allow it but you might want to add email verification
-            console.log(`OAuth user ${user.email} scheduling account deletion without password verification`);
+        // Verify OTP
+        const verification = await prisma.verification.findFirst({
+            where: {
+                identifier: `account-deletion:${user.email}`,
+                value: otp,
+                expiresAt: {
+                    gt: new Date(),
+                },
+            },
+        });
+
+        if (!verification) {
+            return NextResponse.json(
+                { error: "Invalid or expired verification code" },
+                { status: 401 }
+            );
         }
+
+        // Delete the used OTP
+        await prisma.verification.delete({
+            where: {
+                id: verification.id,
+            },
+        });
 
         // Schedule deletion 30 days from now
         const deletionDate = new Date();

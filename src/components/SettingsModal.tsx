@@ -27,6 +27,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import SubscriptionModal from "./SubscriptionModal";
 import { TwoFactorSettings } from "@/components/auth/two-factor-settings";
+import OTPInput from "@/components/auth/OTPInput";
 import { PRO_TIERS } from "@/lib/pricing-constants";
 import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
 import { validatePassword } from "@/lib/password-validation";
@@ -256,15 +257,28 @@ export default function SettingsModal({
 
   // Account deletion state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteOTP, setDeleteOTP] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [isOTPSent, setIsOTPSent] = useState(false);
+  const [isSendingOTP, setIsSendingOTP] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [deletionStatus, setDeletionStatus] = useState<{
     isScheduledForDeletion: boolean;
     deletionScheduledAt: string | null;
     daysRemaining: number | null;
   } | null>(null);
   const [isLoadingDeletionStatus, setIsLoadingDeletionStatus] = useState(false);
+
+  // Cooldown timer for OTP resend
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(
+        () => setResendCooldown(resendCooldown - 1),
+        1000
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   // Reset to initial tab when modal opens
   useEffect(() => {
@@ -788,9 +802,38 @@ export default function SettingsModal({
     }
   };
 
+  const handleSendDeletionOTP = async () => {
+    setIsSendingOTP(true);
+    try {
+      const res = await fetch("/api/account/delete/request-otp", {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Verification code sent to your email");
+        setIsOTPSent(true);
+        setResendCooldown(60); // 60 second cooldown
+      } else {
+        toast.error(data.error || "Failed to send verification code");
+      }
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      toast.error("Failed to send verification code");
+    } finally {
+      setIsSendingOTP(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
-    if (!deletePassword) {
-      toast.error("Please enter your password to confirm");
+    if (!deleteOTP) {
+      toast.error("Please enter the verification code");
+      return;
+    }
+
+    if (deleteOTP.length !== 6) {
+      toast.error("Please enter the complete 6-digit code");
       return;
     }
 
@@ -799,7 +842,7 @@ export default function SettingsModal({
       const res = await fetch("/api/account/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: deletePassword }),
+        body: JSON.stringify({ otp: deleteOTP }),
       });
 
       const data = await res.json();
@@ -810,7 +853,8 @@ export default function SettingsModal({
           { duration: 5000 }
         );
         setShowDeleteModal(false);
-        setDeletePassword("");
+        setDeleteOTP("");
+        setIsOTPSent(false);
         // Refresh deletion status
         await fetchDeletionStatus();
       } else {
@@ -3382,7 +3426,8 @@ export default function SettingsModal({
               className="absolute inset-0 bg-black/50 backdrop-blur-sm"
               onClick={() => {
                 setShowDeleteModal(false);
-                setDeletePassword("");
+                setDeleteOTP("");
+                setIsOTPSent(false);
               }}
             />
 
@@ -3395,7 +3440,8 @@ export default function SettingsModal({
                 <button
                   onClick={() => {
                     setShowDeleteModal(false);
-                    setDeletePassword("");
+                    setDeleteOTP("");
+                    setIsOTPSent(false);
                   }}
                   className="p-2 hover:bg-muted rounded-lg transition-colors"
                 >
@@ -3445,51 +3491,64 @@ export default function SettingsModal({
                   </div>
                 </div>
 
-                <div>
-                  <Label
-                    htmlFor="delete-password"
-                    className="text-sm font-medium text-muted-foreground"
-                  >
-                    Confirm your password
-                  </Label>
-                  <div className="relative mt-1.5">
-                    <Input
-                      id="delete-password"
-                      type={showDeletePassword ? "text" : "password"}
-                      value={deletePassword}
-                      onChange={(e) => setDeletePassword(e.target.value)}
-                      placeholder="Enter your password to confirm"
-                      className="pr-10"
-                      disabled={isDeletingAccount}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && deletePassword) {
-                          handleDeleteAccount();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowDeletePassword(!showDeletePassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      tabIndex={-1}
+                {!isOTPSent ? (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      We&apos;ll send a verification code to your email to
+                      confirm this action.
+                    </p>
+                    <Button
+                      onClick={handleSendDeletionOTP}
+                      className="w-full rounded-full"
+                      disabled={isSendingOTP}
                     >
-                      {showDeletePassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
+                      {isSendingOTP
+                        ? "Sending Code..."
+                        : "Send Verification Code"}
+                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    This helps us verify that it&apos;s really you
-                  </p>
-                </div>
+                ) : (
+                  <div>
+                    <Label
+                      htmlFor="delete-otp"
+                      className="text-sm font-medium text-muted-foreground mb-3 block text-center"
+                    >
+                      Enter the 6-digit code sent to your email
+                    </Label>
+                    <OTPInput
+                      value={deleteOTP}
+                      onChange={setDeleteOTP}
+                      disabled={isDeletingAccount}
+                      className="mb-4"
+                    />
+
+                    <div className="text-center mb-4">
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Didn&apos;t receive the code?
+                      </p>
+                      <Button
+                        onClick={handleSendDeletionOTP}
+                        disabled={isSendingOTP || resendCooldown > 0}
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                      >
+                        {isSendingOTP
+                          ? "Sending..."
+                          : resendCooldown > 0
+                          ? `Resend in ${resendCooldown}s`
+                          : "Resend Code"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-2">
                   <Button
                     onClick={() => {
                       setShowDeleteModal(false);
-                      setDeletePassword("");
+                      setDeleteOTP("");
+                      setIsOTPSent(false);
                     }}
                     variant="outline"
                     className="flex-1 rounded-full"
@@ -3500,7 +3559,9 @@ export default function SettingsModal({
                   <Button
                     onClick={handleDeleteAccount}
                     className="flex-1 rounded-full bg-red-600 hover:bg-red-700 text-white"
-                    disabled={isDeletingAccount || !deletePassword}
+                    disabled={
+                      isDeletingAccount || !isOTPSent || deleteOTP.length !== 6
+                    }
                   >
                     {isDeletingAccount ? "Scheduling..." : "Delete My Account"}
                   </Button>
