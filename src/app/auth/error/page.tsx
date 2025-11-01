@@ -26,7 +26,7 @@ function AuthErrorContent() {
       "Sign in failed. Check the details you provided are correct.",
     SessionRequired: "Please sign in to access this page.",
     email_doesnt_match:
-      "The OAuth account email must match your current account email. Please ensure your GitHub/Google account uses the same email address.",
+      "The OAuth account email doesn't match your current account email. To link this account, please either: (1) Update your OAuth provider's email to match your Craft account email, or (2) Change your Craft account email to match your OAuth provider's email first.",
     email_already_in_use:
       "This email address is already in use by another account.",
     invalid_token:

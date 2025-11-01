@@ -73,11 +73,14 @@ export default function Verify2FAPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950 px-4">
+      {/* Logo at top left */}
+            <div className="absolute top-4 left-4">
+              <Link href="/home">
+                <Logo variant="extended" />
+              </Link>
+            </div>
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <Link href="/" className="inline-block mb-8">
-            <Logo />
-          </Link>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
             Two-Factor Authentication
           </h1>

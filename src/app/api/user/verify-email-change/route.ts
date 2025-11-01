@@ -2,29 +2,41 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import validator from "validator";
 import { logEmailChanged } from "@/lib/security-logger";
+import { getSession } from "@/lib/get-session";
+import { withCsrfProtection } from "@/lib/csrf";
 
 /**
- * Verify and complete email change using POST request
- * Tokens are sent in the request body instead of URL parameters
- * to prevent token leakage in browser history and server logs
+ * Verify and complete email change using OTP
  */
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { token, email: newEmail } = body;
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(request);
+        if (csrfCheck) return csrfCheck;
 
-        if (!token || !newEmail) {
+        const session = await getSession();
+
+        if (!session?.user?.id) {
             return NextResponse.json(
-                { error: "Invalid verification link. Missing required parameters." },
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        const body = await request.json();
+        const { otp, newEmail } = body;
+
+        if (!otp || !newEmail) {
+            return NextResponse.json(
+                { error: "OTP and email are required" },
                 { status: 400 }
             );
         }
 
-        // Validate token format (should be UUID)
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(token)) {
+        // Validate OTP format (6 digits)
+        if (!/^\d{6}$/.test(otp)) {
             return NextResponse.json(
-                { error: "Invalid token format" },
+                { error: "Invalid OTP format" },
                 { status: 400 }
             );
         }
@@ -38,53 +50,29 @@ export async function POST(request: NextRequest) {
         }
 
         // Find verification record
-        // The identifier format is: "email_change:{userId}:{newEmail}"
-        // We need to find all email_change verifications and match the token
-        const verifications = await prisma.verification.findMany({
+        // The identifier format is: "email-change:{userId}:{newEmail}"
+        const identifier = `email-change:${session.user.id}:${newEmail}`;
+
+        const verification = await prisma.verification.findFirst({
             where: {
-                identifier: {
-                    startsWith: "email_change:"
-                },
-                value: token,
+                identifier,
+                value: otp,
                 expiresAt: {
-                    gt: new Date(), // Token not expired
+                    gt: new Date(), // OTP not expired
                 },
             },
         });
 
-        if (verifications.length === 0) {
+        if (!verification) {
             return NextResponse.json(
-                { error: "Invalid or expired verification token" },
-                { status: 400 }
-            );
-        }
-
-        // Parse the verification identifier to get userId and expected email
-        const verification = verifications[0];
-        const parts = verification.identifier.split(":");
-
-        if (parts.length !== 3 || parts[0] !== "email_change") {
-            return NextResponse.json(
-                { error: "Invalid verification format" },
-                { status: 400 }
-            );
-        }
-
-        const userId = parts[1];
-        const expectedEmail = parts[2];
-
-        // CRITICAL: Verify that the email in the link matches what we expected
-        // This prevents attacks where someone tries to use a valid token for a different email
-        if (expectedEmail !== newEmail) {
-            return NextResponse.json(
-                { error: "Email address doesn't match verification request" },
+                { error: "Invalid or expired verification code" },
                 { status: 400 }
             );
         }
 
         // Find the user
         const user = await prisma.user.findUnique({
-            where: { id: userId },
+            where: { id: session.user.id },
         });
 
         if (!user) {
@@ -123,7 +111,7 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        // Log email change (Issue 16)
+        // Log email change
         await logEmailChanged(user.id, oldEmail, newEmail, request);
 
         return NextResponse.json({

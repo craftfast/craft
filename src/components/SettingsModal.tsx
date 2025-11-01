@@ -244,6 +244,10 @@ export default function SettingsModal({
   const [newEmail, setNewEmail] = useState("");
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [showEmailChangeForm, setShowEmailChangeForm] = useState(false);
+  const [emailChangeOTP, setEmailChangeOTP] = useState("");
+  const [isEmailOTPSent, setIsEmailOTPSent] = useState(false);
+  const [isSendingEmailOTP, setIsSendingEmailOTP] = useState(false);
+  const [emailResendCooldown, setEmailResendCooldown] = useState(0);
 
   // Password change state
   const [showPasswordChangeForm, setShowPasswordChangeForm] = useState(false);
@@ -279,6 +283,17 @@ export default function SettingsModal({
       return () => clearTimeout(timer);
     }
   }, [resendCooldown]);
+
+  // Cooldown timer for email change OTP resend
+  useEffect(() => {
+    if (emailResendCooldown > 0) {
+      const timer = setTimeout(
+        () => setEmailResendCooldown(emailResendCooldown - 1),
+        1000
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [emailResendCooldown]);
 
   // Reset to initial tab when modal opens
   useEffect(() => {
@@ -559,7 +574,7 @@ export default function SettingsModal({
     }
   };
 
-  const handleChangeEmail = async () => {
+  const handleSendEmailChangeOTP = async () => {
     if (!newEmail.trim()) {
       toast.error("Please enter a new email address");
       return;
@@ -571,36 +586,90 @@ export default function SettingsModal({
       return;
     }
 
-    setIsChangingEmail(true);
-    toast.loading("Sending verification email...", { id: "change-email" });
+    setIsSendingEmailOTP(true);
+    toast.loading("Sending verification code...", { id: "email-change-otp" });
 
     try {
-      const res = await fetch("/api/user/change-email", {
+      const res = await fetch("/api/user/change-email/request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newEmail }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        const data = await res.json();
-        toast.success(data.message || "Verification email sent", {
-          id: "change-email",
+        toast.success(data.message || "Verification code sent", {
+          id: "email-change-otp",
         });
-        setShowEmailChangeForm(false);
-        setNewEmail("");
+        setIsEmailOTPSent(true);
+        setEmailResendCooldown(60); // 60 second cooldown
       } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to change email", {
-          id: "change-email",
+        toast.error(data.error || "Failed to send verification code", {
+          id: "email-change-otp",
         });
       }
     } catch (error) {
-      console.error("Error changing email:", error);
-      toast.error("Failed to change email", { id: "change-email" });
+      console.error("Error sending email change OTP:", error);
+      toast.error("Failed to send verification code", {
+        id: "email-change-otp",
+      });
+    } finally {
+      setIsSendingEmailOTP(false);
+    }
+  };
+
+  const handleVerifyEmailChange = async () => {
+    if (!emailChangeOTP) {
+      toast.error("Please enter the verification code");
+      return;
+    }
+
+    if (emailChangeOTP.length !== 6) {
+      toast.error("Please enter the complete 6-digit code");
+      return;
+    }
+
+    setIsChangingEmail(true);
+    toast.loading("Verifying code...", { id: "verify-email-change" });
+
+    try {
+      const res = await fetch("/api/user/verify-email-change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otp: emailChangeOTP, newEmail }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Email changed successfully. Please sign in again.", {
+          id: "verify-email-change",
+          duration: 5000,
+        });
+        setShowEmailChangeForm(false);
+        setNewEmail("");
+        setEmailChangeOTP("");
+        setIsEmailOTPSent(false);
+
+        // Sign out after successful email change
+        setTimeout(() => {
+          window.location.href = "/auth/signin";
+        }, 2000);
+      } else {
+        toast.error(data.error || "Failed to verify code", {
+          id: "verify-email-change",
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying email change:", error);
+      toast.error("Failed to verify code", { id: "verify-email-change" });
     } finally {
       setIsChangingEmail(false);
     }
   };
+
+  const handleChangeEmail = handleSendEmailChangeOTP;
 
   const fetchLinkedAccounts = async () => {
     setIsLoadingLinkedAccounts(true);
@@ -2489,45 +2558,117 @@ export default function SettingsModal({
                     {/* Email Change Form */}
                     {showEmailChangeForm && (
                       <div className="p-4 bg-muted/30 rounded-xl border border-input space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-muted-foreground mb-2">
-                            New Email Address
-                          </label>
-                          <input
-                            type="email"
-                            value={newEmail}
-                            onChange={(e) => setNewEmail(e.target.value)}
-                            placeholder="Enter new email address"
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                            disabled={isChangingEmail}
-                          />
-                          <p className="text-xs text-muted-foreground mt-1.5">
-                            A verification link will be sent to your new email
-                            address
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={handleChangeEmail}
-                            disabled={isChangingEmail || !newEmail.trim()}
-                            className="rounded-full"
-                          >
-                            {isChangingEmail
-                              ? "Sending..."
-                              : "Send Verification"}
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              setShowEmailChangeForm(false);
-                              setNewEmail("");
-                            }}
-                            variant="outline"
-                            className="rounded-full"
-                            disabled={isChangingEmail}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
+                        {!isEmailOTPSent ? (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                                New Email Address
+                              </label>
+                              <input
+                                type="email"
+                                value={newEmail}
+                                onChange={(e) => setNewEmail(e.target.value)}
+                                placeholder="Enter new email address"
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                disabled={isSendingEmailOTP}
+                              />
+                              <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg">
+                                <p className="text-xs text-blue-800 dark:text-blue-300">
+                                  ℹ️ <strong>Note:</strong> Existing linked
+                                  accounts (Google, GitHub) will remain
+                                  connected. To link new OAuth accounts after
+                                  changing your email, ensure those accounts use
+                                  your new email address.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={handleSendEmailChangeOTP}
+                                disabled={isSendingEmailOTP || !newEmail.trim()}
+                                className="rounded-full"
+                              >
+                                {isSendingEmailOTP
+                                  ? "Sending..."
+                                  : "Send Verification Code"}
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setShowEmailChangeForm(false);
+                                  setNewEmail("");
+                                }}
+                                variant="outline"
+                                className="rounded-full"
+                                disabled={isSendingEmailOTP}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <Label
+                                htmlFor="email-change-otp"
+                                className="text-sm font-medium text-muted-foreground"
+                              >
+                                Enter Verification Code
+                              </Label>
+                              <p className="text-xs text-muted-foreground mb-3">
+                                We sent a 6-digit code to{" "}
+                                <span className="font-semibold text-foreground">
+                                  {newEmail}
+                                </span>
+                              </p>
+                              <OTPInput
+                                value={emailChangeOTP}
+                                onChange={setEmailChangeOTP}
+                                length={6}
+                                disabled={isChangingEmail}
+                              />
+                            </div>
+
+                            <Button
+                              onClick={handleVerifyEmailChange}
+                              className="w-full rounded-full"
+                              disabled={
+                                isChangingEmail || emailChangeOTP.length !== 6
+                              }
+                            >
+                              {isChangingEmail
+                                ? "Verifying..."
+                                : "Verify & Change Email"}
+                            </Button>
+
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={handleSendEmailChangeOTP}
+                                variant="outline"
+                                className="flex-1 rounded-full"
+                                disabled={
+                                  isSendingEmailOTP || emailResendCooldown > 0
+                                }
+                              >
+                                {emailResendCooldown > 0
+                                  ? `Resend (${emailResendCooldown}s)`
+                                  : "Resend Code"}
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setShowEmailChangeForm(false);
+                                  setNewEmail("");
+                                  setEmailChangeOTP("");
+                                  setIsEmailOTPSent(false);
+                                }}
+                                variant="ghost"
+                                className="flex-1 rounded-full"
+                                disabled={isChangingEmail}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

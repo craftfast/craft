@@ -9,7 +9,7 @@ interface SendEmailParams {
     html: string;
 }
 
-type OTPType = "sign-in" | "email-verification" | "forget-password" | "account-deletion";
+type OTPType = "sign-in" | "email-verification" | "forget-password" | "account-deletion" | "email-change";
 
 /**
  * Send an email using Resend API (or fallback to console.log if no API key)
@@ -293,6 +293,13 @@ export async function sendOTPEmail(
             message: "Someone requested to permanently delete your Craft account. If this was you, use this code to confirm:",
             subject: "Confirm account deletion - Craft",
             warning: "⚠️ WARNING: This action is permanent and cannot be undone. All your data, projects, and settings will be permanently deleted after a 30-day grace period.",
+        },
+        "email-change": {
+            title: "Verify Email Change",
+            heading: "Email Change Verification Code",
+            message: "You requested to change your email address. Use this code to confirm the change:",
+            subject: "Verify your email change - Craft",
+            warning: null,
         },
     } as const;
 
