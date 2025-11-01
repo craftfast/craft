@@ -47,23 +47,22 @@ model User {
 }
 
 model Account {
-  id                    String    @id @default(cuid())
   userId                String
+  accountId             String
+  providerId            String
   scope                 String?
   accessToken           String?
   accessTokenExpiresAt  DateTime?
-  accountId             String
   createdAt             DateTime  @default(now())
   idToken               String?
   password              String?
-  providerId            String
   refreshToken          String?
   refreshTokenExpiresAt DateTime?
   updatedAt             DateTime  @updatedAt
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@id([userId, providerId])
   @@unique([providerId, accountId])
-  @@unique([userId, providerId])
   @@map("accounts")
 }
 

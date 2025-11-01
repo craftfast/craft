@@ -122,7 +122,10 @@ export async function POST(request: NextRequest) {
             // to allow the user to re-link with their updated OAuth email
             await prisma.account.delete({
                 where: {
-                    id: account.id,
+                    userId_providerId: {
+                        userId: user.id,
+                        providerId: account.providerId,
+                    },
                 },
             });
             console.log(`🔗 Auto-unlinked ${account.providerId} account for user ${user.id} due to email change`);
