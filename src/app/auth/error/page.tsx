@@ -25,6 +25,16 @@ function AuthErrorContent() {
     CredentialsSignin:
       "Sign in failed. Check the details you provided are correct.",
     SessionRequired: "Please sign in to access this page.",
+    email_doesnt_match:
+      "The OAuth account email must match your current account email. Please ensure your GitHub/Google account uses the same email address.",
+    email_already_in_use:
+      "This email address is already in use by another account.",
+    invalid_token:
+      "The verification link is invalid or has expired. Please request a new one.",
+    account_already_linked_to_different_user:
+      "This OAuth account is already linked to a different user.",
+    unable_to_link_account:
+      "Unable to link this account. Please ensure the provider account is verified.",
     Default: "An error occurred while trying to authenticate.",
   };
 

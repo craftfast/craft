@@ -69,12 +69,25 @@ export async function POST(request: NextRequest) {
         const verificationToken = randomUUID();
         const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        // Store the new email change request
-        await prisma.user.update({
-            where: { id: session.user.id },
+        // Store the new email change request in the Verification table
+        // Format: "email_change:{userId}:{newEmail}"
+        const identifier = `email_change:${session.user.id}:${newEmail}`;
+
+        // Delete any existing email change verification for this user
+        await prisma.verification.deleteMany({
+            where: {
+                identifier: {
+                    startsWith: `email_change:${session.user.id}:`
+                }
+            }
+        });
+
+        // Create new verification record
+        await prisma.verification.create({
             data: {
-                verificationToken,
-                verificationTokenExpiry,
+                identifier,
+                value: verificationToken,
+                expiresAt: verificationTokenExpiry,
             },
         });
 

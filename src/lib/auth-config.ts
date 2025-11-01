@@ -82,6 +82,9 @@ export const auth = betterAuth({
         accountLinking: {
             enabled: true,
             trustedProviders: ["google", "github"],
+            // Security: Only allow linking OAuth accounts with matching email addresses
+            // This prevents account hijacking and maintains clear account ownership
+            allowDifferentEmails: false,
         },
     },
     // Better Auth built-in rate limiting (replaces custom implementation)
@@ -142,7 +145,7 @@ export const auth = betterAuth({
                 };
 
                 await sendVerificationEmail({
-                    user: { email, id: "", name: "" },
+                    user: { email, name: "" },
                     url: `Your verification code is: ${otp}`,
                     token: otp,
                 });

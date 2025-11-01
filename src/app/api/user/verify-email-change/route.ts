@@ -37,20 +37,60 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Find user with this token
-        const user = await prisma.user.findFirst({
+        // Find verification record
+        // The identifier format is: "email_change:{userId}:{newEmail}"
+        // We need to find all email_change verifications and match the token
+        const verifications = await prisma.verification.findMany({
             where: {
-                verificationToken: token,
-                verificationTokenExpiry: {
+                identifier: {
+                    startsWith: "email_change:"
+                },
+                value: token,
+                expiresAt: {
                     gt: new Date(), // Token not expired
                 },
             },
         });
 
-        if (!user) {
+        if (verifications.length === 0) {
             return NextResponse.json(
                 { error: "Invalid or expired verification token" },
                 { status: 400 }
+            );
+        }
+
+        // Parse the verification identifier to get userId and expected email
+        const verification = verifications[0];
+        const parts = verification.identifier.split(":");
+
+        if (parts.length !== 3 || parts[0] !== "email_change") {
+            return NextResponse.json(
+                { error: "Invalid verification format" },
+                { status: 400 }
+            );
+        }
+
+        const userId = parts[1];
+        const expectedEmail = parts[2];
+
+        // CRITICAL: Verify that the email in the link matches what we expected
+        // This prevents attacks where someone tries to use a valid token for a different email
+        if (expectedEmail !== newEmail) {
+            return NextResponse.json(
+                { error: "Email address doesn't match verification request" },
+                { status: 400 }
+            );
+        }
+
+        // Find the user
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            return NextResponse.json(
+                { error: "User not found" },
+                { status: 404 }
             );
         }
 
@@ -66,15 +106,20 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Update user's email
+        // Update user's email and mark as verified
         const oldEmail = user.email;
         await prisma.user.update({
             where: { id: user.id },
             data: {
                 email: newEmail,
-                emailVerified: new Date(), // Mark as verified
-                verificationToken: null,
-                verificationTokenExpiry: null,
+                emailVerified: true, // Mark as verified (boolean field)
+            },
+        });
+
+        // Delete the verification record after successful use
+        await prisma.verification.delete({
+            where: {
+                id: verification.id,
             },
         });
 

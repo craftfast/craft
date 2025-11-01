@@ -49,16 +49,32 @@ export default function VerifyEmailChangePage() {
           );
         } else {
           setStatus("error");
-          setMessage(data.error || "Failed to verify email change.");
+
+          // Provide user-friendly error messages
+          let errorMessage = data.error || "Failed to verify email change.";
+
+          // Map common errors to user-friendly messages
+          if (errorMessage.includes("doesn't match")) {
+            errorMessage =
+              "The verification link appears to be incorrect. Please request a new email change from your settings.";
+          } else if (errorMessage.includes("expired")) {
+            errorMessage =
+              "This verification link has expired. Please request a new email change from your settings.";
+          } else if (errorMessage.includes("already in use")) {
+            errorMessage =
+              "This email address is already in use. Please try a different email address.";
+          } else if (errorMessage.includes("Invalid or expired")) {
+            errorMessage =
+              "This verification link is invalid or has expired. Please request a new email change from your settings.";
+          }
+
+          setMessage(errorMessage);
           setTimeout(
             () =>
               router.push(
-                "/settings?error=" +
-                  encodeURIComponent(
-                    data.error || "Failed to verify email change"
-                  )
+                "/settings?error=" + encodeURIComponent(errorMessage)
               ),
-            3000
+            5000
           );
         }
       } catch (error) {
@@ -141,6 +157,12 @@ export default function VerifyEmailChangePage() {
                 <p className="text-neutral-600 dark:text-neutral-400">
                   {message}
                 </p>
+                <button
+                  onClick={() => router.push("/settings")}
+                  className="mt-4 px-6 py-3 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-full font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+                >
+                  Go to Settings
+                </button>
               </div>
             )}
           </div>
