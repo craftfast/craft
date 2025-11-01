@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import SubscriptionModal from "./SubscriptionModal";
 import { TwoFactorSettings } from "@/components/auth/two-factor-settings";
@@ -234,6 +235,9 @@ export default function SettingsModal({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLinkingProvider, setIsLinkingProvider] = useState(false);
+  const [showNewPasswordSetup, setShowNewPasswordSetup] = useState(false);
+  const [showConfirmPasswordSetup, setShowConfirmPasswordSetup] =
+    useState(false);
 
   // Email change state
   const [newEmail, setNewEmail] = useState("");
@@ -246,11 +250,15 @@ export default function SettingsModal({
   const [newPasswordForChange, setNewPasswordForChange] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Account deletion state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [deletionStatus, setDeletionStatus] = useState<{
     isScheduledForDeletion: boolean;
     deletionScheduledAt: string | null;
@@ -2726,31 +2734,65 @@ export default function SettingsModal({
                               <label className="block text-sm font-medium text-muted-foreground mb-2">
                                 Current Password
                               </label>
-                              <input
-                                type="password"
-                                value={currentPassword}
-                                onChange={(e) =>
-                                  setCurrentPassword(e.target.value)
-                                }
-                                placeholder="Enter current password"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                disabled={isChangingPassword}
-                              />
+                              <div className="relative">
+                                <input
+                                  type={
+                                    showCurrentPassword ? "text" : "password"
+                                  }
+                                  value={currentPassword}
+                                  onChange={(e) =>
+                                    setCurrentPassword(e.target.value)
+                                  }
+                                  placeholder="Enter current password"
+                                  className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                  disabled={isChangingPassword}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setShowCurrentPassword(!showCurrentPassword)
+                                  }
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                  tabIndex={-1}
+                                >
+                                  {showCurrentPassword ? (
+                                    <EyeOff className="w-4 h-4" />
+                                  ) : (
+                                    <Eye className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </div>
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-muted-foreground mb-2">
                                 New Password
                               </label>
-                              <input
-                                type="password"
-                                value={newPasswordForChange}
-                                onChange={(e) =>
-                                  setNewPasswordForChange(e.target.value)
-                                }
-                                placeholder="Enter new password"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                disabled={isChangingPassword}
-                              />
+                              <div className="relative">
+                                <input
+                                  type={showNewPassword ? "text" : "password"}
+                                  value={newPasswordForChange}
+                                  onChange={(e) =>
+                                    setNewPasswordForChange(e.target.value)
+                                  }
+                                  placeholder="Enter new password"
+                                  className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                  disabled={isChangingPassword}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setShowNewPassword(!showNewPassword)
+                                  }
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                  tabIndex={-1}
+                                >
+                                  {showNewPassword ? (
+                                    <EyeOff className="w-4 h-4" />
+                                  ) : (
+                                    <Eye className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </div>
                               <p className="text-xs text-muted-foreground mt-1.5">
                                 Must be at least 12 characters with uppercase,
                                 lowercase, number and special character
@@ -2760,16 +2802,34 @@ export default function SettingsModal({
                               <label className="block text-sm font-medium text-muted-foreground mb-2">
                                 Confirm New Password
                               </label>
-                              <input
-                                type="password"
-                                value={confirmNewPassword}
-                                onChange={(e) =>
-                                  setConfirmNewPassword(e.target.value)
-                                }
-                                placeholder="Confirm new password"
-                                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                disabled={isChangingPassword}
-                              />
+                              <div className="relative">
+                                <input
+                                  type={
+                                    showConfirmPassword ? "text" : "password"
+                                  }
+                                  value={confirmNewPassword}
+                                  onChange={(e) =>
+                                    setConfirmNewPassword(e.target.value)
+                                  }
+                                  placeholder="Confirm new password"
+                                  className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                  disabled={isChangingPassword}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setShowConfirmPassword(!showConfirmPassword)
+                                  }
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                  tabIndex={-1}
+                                >
+                                  {showConfirmPassword ? (
+                                    <EyeOff className="w-4 h-4" />
+                                  ) : (
+                                    <Eye className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </div>
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -3218,15 +3278,31 @@ export default function SettingsModal({
                   >
                     New Password
                   </Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter password (min 12 characters)"
-                    className="mt-1.5"
-                    disabled={isSettingPassword}
-                  />
+                  <div className="relative mt-1.5">
+                    <Input
+                      id="new-password"
+                      type={showNewPasswordSetup ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter password (min 12 characters)"
+                      className="pr-10"
+                      disabled={isSettingPassword}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowNewPasswordSetup(!showNewPasswordSetup)
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showNewPasswordSetup ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1.5">
                     Must include uppercase, lowercase, number, and special
                     character
@@ -3240,15 +3316,31 @@ export default function SettingsModal({
                   >
                     Confirm Password
                   </Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your password"
-                    className="mt-1.5"
-                    disabled={isSettingPassword}
-                  />
+                  <div className="relative mt-1.5">
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmPasswordSetup ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm your password"
+                      className="pr-10"
+                      disabled={isSettingPassword}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPasswordSetup(!showConfirmPasswordSetup)
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showConfirmPasswordSetup ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-2">
@@ -3360,20 +3452,34 @@ export default function SettingsModal({
                   >
                     Confirm your password
                   </Label>
-                  <Input
-                    id="delete-password"
-                    type="password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    placeholder="Enter your password to confirm"
-                    className="mt-1.5"
-                    disabled={isDeletingAccount}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && deletePassword) {
-                        handleDeleteAccount();
-                      }
-                    }}
-                  />
+                  <div className="relative mt-1.5">
+                    <Input
+                      id="delete-password"
+                      type={showDeletePassword ? "text" : "password"}
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      placeholder="Enter your password to confirm"
+                      className="pr-10"
+                      disabled={isDeletingAccount}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && deletePassword) {
+                          handleDeleteAccount();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowDeletePassword(!showDeletePassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showDeletePassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1.5">
                     This helps us verify that it&apos;s really you
                   </p>

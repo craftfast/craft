@@ -7,7 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X, Download, Copy, Check, AlertCircle } from "lucide-react";
+import {
+  X,
+  Download,
+  Copy,
+  Check,
+  AlertCircle,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useSession, twoFactor } from "@/lib/auth-client";
 import QRCode from "qrcode";
@@ -33,6 +41,9 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
   const [step, setStep] = useState<"password" | "qr" | "verify" | "backup">(
     "password"
   );
+  const [showPassword, setShowPassword] = useState(false);
+  const [showBackupPassword, setShowBackupPassword] = useState(false);
+  const [showDisablePassword, setShowDisablePassword] = useState(false);
 
   // Load 2FA status and check if user has password
   useEffect(() => {
@@ -303,14 +314,28 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
             <div className="pt-4 space-y-2">
               <div className="space-y-2">
                 <Label htmlFor="password-backup">Password</Label>
-                <Input
-                  id="password-backup"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="max-w-sm"
-                />
+                <div className="relative">
+                  <Input
+                    id="password-backup"
+                    type={showBackupPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowBackupPassword(!showBackupPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showBackupPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
               <Button
                 variant="outline"
@@ -352,15 +377,29 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
                     Enter your password to continue with 2FA setup.
                   </p>
                   <Label htmlFor="setup-password">Password</Label>
-                  <Input
-                    id="setup-password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="mt-1.5"
-                  />
+                  <div className="relative mt-1.5">
+                    <Input
+                      id="setup-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button
@@ -516,15 +555,29 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
               </div>
               <div>
                 <Label htmlFor="disable-password">Password</Label>
-                <Input
-                  id="disable-password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="mt-1.5"
-                />
+                <div className="relative mt-1.5">
+                  <Input
+                    id="disable-password"
+                    type={showDisablePassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDisablePassword(!showDisablePassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showDisablePassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="flex gap-2 justify-end">
                 <Button
