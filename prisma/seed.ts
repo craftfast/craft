@@ -8,7 +8,7 @@ async function main() {
     // Update or create plans (upsert to avoid foreign key constraint issues)
     console.log("✅ Upserting plans...");
 
-    // Plan data based on current credit-based pricing model
+    // Plan data based on monthly credit-based pricing model
     const plans = [
         {
             name: "HOBBY",
@@ -16,15 +16,15 @@ async function main() {
             description: "Try Craft with basic features. Limited to 3 projects.",
             priceMonthlyUsd: 0,
             maxProjects: 3, // Limited to 3 projects
-            dailyCredits: 1, // 1 credit per day
-            monthlyCredits: 30, // Approximate: 1 credit/day * 30 days
+            monthlyCredits: 100, // 100 credits per month
             sortOrder: 0,
             features: [
-                "1 credit per day (~30 credits/month)",
+                "100 credits per month",
                 "Up to 3 projects",
-                "AI-powered chat interface",
-                "Live preview environment",
-                "Supabase integration (database & storage)",
+                "AI-powered code generation",
+                "Sandbox environments",
+                "Live preview",
+                "Database & storage included",
                 "Craft branding on projects",
                 "Community support",
             ],
@@ -32,18 +32,19 @@ async function main() {
         {
             name: "PRO",
             displayName: "Pro",
-            description: "Everything you need to build and scale your app.",
+            description: "Everything you need to build and scale your apps.",
             priceMonthlyUsd: 25, // Base Pro tier starts at $25
             maxProjects: 999, // Unlimited projects
-            dailyCredits: 10, // Base Pro tier: 10 credits/day
-            monthlyCredits: 300, // Approximate: 10 credits/day * 30 days
+            monthlyCredits: 500, // Base Pro tier: 500 credits/month
             sortOrder: 1,
             features: [
-                "Everything in hobby, plus:",
-                "10-1000 credits per day (based on tier)",
+                "Everything in Hobby, plus:",
+                "500-100,000 credits/month (based on tier)",
                 "Unlimited projects",
+                "All AI models",
                 "Import from Figma & GitHub",
-                "Deploy to vercel",
+                "Deploy to Vercel",
+                "No Craft branding",
                 "Priority email support",
             ],
         },
@@ -53,12 +54,11 @@ async function main() {
             description: "Custom solutions for large teams and organizations.",
             priceMonthlyUsd: 0, // Contact sales for pricing
             maxProjects: 999999, // Unlimited
-            dailyCredits: null, // Custom allocation
-            monthlyCredits: null, // Custom allocation
+            monthlyCredits: 0, // Custom allocation
             sortOrder: 2,
             features: [
                 "All Pro features, plus:",
-                "Custom daily credit allocation",
+                "Custom monthly credit allocation",
                 "Dedicated account manager",
                 "Priority support & SLA",
                 "Custom integrations",
@@ -80,9 +80,15 @@ async function main() {
 
     console.log("\n🎉 Database seeding completed successfully!");
     console.log("\nPlan Summary:");
-    console.log("- HOBBY: Free forever, 1 credit/day (~30/month), up to 3 projects");
-    console.log("- PRO: $25-2500/month, 10-1000 credits/day, unlimited projects");
-    console.log("- ENTERPRISE: Contact sales, custom daily credit allocation, dedicated support");
+    console.log("- HOBBY: Free forever, 100 credits/month, up to 3 projects");
+    console.log("- PRO: $25-2000/month, 500-100,000 credits/month, unlimited projects");
+    console.log("- ENTERPRISE: Contact sales, custom monthly credit allocation, dedicated support");
+    console.log("\nCredit Usage:");
+    console.log("- AI Generation: 1 credit = 10,000 tokens (varies by model)");
+    console.log("- Sandbox: 0.1 credits/minute (6 credits/hour)");
+    console.log("- Database: 0.5 credits/GB/month storage + 0.01 credits/hour compute");
+    console.log("- Storage (R2): 0.2 credits/GB/month");
+    console.log("- Deployment: 1 credit per deploy");
 }
 
 main()

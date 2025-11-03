@@ -394,7 +394,7 @@ export default function CraftInput() {
       // User is authenticated - check if tokens are exhausted
       if (isTokensExhausted) {
         setErrorMessage(
-          "Out of credits for today. Upgrade to Pro to continue."
+          "Out of credits this month. Upgrade to Pro to continue."
         );
         setSettingsInitialTab("billing");
         setShowSettingsModal(true);
@@ -555,8 +555,7 @@ export default function CraftInput() {
         {isLowTokens && !isTokensExhausted && (
           <div className="mb-2 px-4 py-2 bg-muted/50 border-b border-border -mx-2 -mt-2 rounded-t-3xl">
             <p className="text-xs text-muted-foreground">
-              {balance?.totalAvailable.toLocaleString()} credits remaining
-              today.{" "}
+              {balance?.totalAvailable.toLocaleString()} credits remaining.{" "}
               <button
                 onClick={() => {
                   setSettingsInitialTab("billing");
@@ -576,7 +575,7 @@ export default function CraftInput() {
         {isTokensExhausted && (
           <div className="mb-2 px-4 py-2 bg-muted/50 border-b border-border -mx-2 -mt-2 rounded-t-3xl">
             <p className="text-xs text-muted-foreground">
-              Out of credits for today.{" "}
+              Out of credits this month.{" "}
               <button
                 onClick={() => {
                   setSettingsInitialTab("billing");
@@ -585,7 +584,7 @@ export default function CraftInput() {
                 className="text-foreground underline hover:no-underline font-medium"
               >
                 {balance?.planName === "PRO"
-                  ? "Upgrade your plan for more daily credits"
+                  ? "Upgrade your plan for more monthly credits"
                   : "Upgrade to Pro"}
               </button>
             </p>

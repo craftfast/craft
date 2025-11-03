@@ -47,11 +47,11 @@ export default function SubscriptionModal({
       setIsLoading(true);
       setError(null);
 
-      // Default to 10 credits/day ($25/mo) for Pro tier
+      // Default to 500 credits/month ($25/mo) for Pro tier
       const response = await fetch("/api/billing/upgrade-to-pro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dailyCredits: 10 }),
+        body: JSON.stringify({ monthlyCredits: 500 }),
       });
 
       const data = await response.json();
@@ -99,7 +99,7 @@ export default function SubscriptionModal({
       price: "$0",
       period: "/month",
       features: [
-        "1 credit per day (~30/month)",
+        "100 credits per month",
         "Up to 3 projects",
         "AI code generation",
         "Live preview",
@@ -111,7 +111,7 @@ export default function SubscriptionModal({
       price: "$25+",
       period: "/month",
       features: [
-        "10-1000 credits per day",
+        "500-100,000 credits per month",
         "Unlimited projects",
         "Multiple pricing tiers",
         "Priority support",
@@ -124,7 +124,7 @@ export default function SubscriptionModal({
       price: "Contact Sales",
       period: "",
       features: [
-        "Custom daily credit allocation",
+        "Custom monthly credit allocation",
         "Unlimited projects",
         "Dedicated account manager",
         "Priority support & SLA",

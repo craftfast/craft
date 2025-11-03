@@ -15,12 +15,13 @@ export async function GET() {
         return NextResponse.json({
             totalAvailable: availability.creditsRemaining,
             subscriptionCreditsRemaining: availability.creditsRemaining,
-            subscriptionCreditLimit: availability.dailyCreditsLimit,
-            subscriptionCreditsUsed: availability.dailyCreditsUsed,
+            subscriptionCreditLimit: availability.monthlyCreditsLimit,
+            subscriptionCreditsUsed: availability.monthlyCreditsUsed,
             planName: availability.planName, // Added: user's subscription plan
+            periodEnd: availability.periodEnd, // Billing period end date
             // Legacy fields for backwards compatibility
-            dailyCreditsUsed: availability.dailyCreditsUsed,
-            dailyCreditsLimit: availability.dailyCreditsLimit,
+            dailyCreditsUsed: availability.monthlyCreditsUsed,
+            dailyCreditsLimit: availability.monthlyCreditsLimit,
             creditsRemaining: availability.creditsRemaining,
             allowed: availability.allowed,
             reason: availability.reason,

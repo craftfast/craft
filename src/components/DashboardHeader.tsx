@@ -253,7 +253,7 @@ export default function DashboardHeader({
                       </div>
                       <div className="text-xs text-neutral-500 dark:text-neutral-400">
                         <span>
-                          Daily credits:{" "}
+                          Monthly credits:{" "}
                           {formatCredits(balance.subscriptionCreditsRemaining)}
                         </span>
                       </div>

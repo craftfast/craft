@@ -15,6 +15,7 @@ interface CreditBalance {
   subscriptionCreditLimit: number | null;
   subscriptionCreditsUsed: number;
   planName?: "HOBBY" | "PRO" | "ENTERPRISE"; // User's subscription plan
+  periodEnd?: string; // Billing period end date (ISO string)
 }
 
 interface CreditBalanceContextType {

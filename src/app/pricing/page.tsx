@@ -50,11 +50,11 @@ function FAQSection() {
       question: "How does billing work?",
       answer: (
         <>
-          <strong>Hobby:</strong> Free forever with up to 3 projects and 1
-          credit/day (~30 credits/month). Perfect for trying out Craft.{" "}
-          <strong>Pro:</strong> Choose from multiple tiers ranging from
-          $25/month (10 credits/day) to $2,500/month (1000 credits/day). Connect
-          your own Supabase account for database and storage.
+          <strong>Hobby:</strong> Free forever with up to 3 projects and 100
+          credits/month. Perfect for trying out Craft. <strong>Pro:</strong>{" "}
+          Choose from multiple tiers ranging from $25/month (500 credits/month)
+          to $2,000/month (100,000 credits/month). Connect your own Supabase
+          account for database and storage.
         </>
       ),
     },
@@ -63,10 +63,10 @@ function FAQSection() {
       answer: (
         <>
           <strong>Hobby:</strong> Limited to 3 projects, no Figma/GitHub
-          imports, includes Craft branding, and 1 credit per day.{" "}
+          imports, includes Craft branding, and 100 credits per month.{" "}
           <strong>Pro:</strong> Unlimited projects, Figma/GitHub imports,
-          without branding, and 10-1000 credits per day based on your selected
-          tier. You can change between Pro tiers anytime.
+          without branding, and 500-100,000 credits per month based on your
+          selected tier. You can change between Pro tiers anytime.
         </>
       ),
     },
@@ -83,21 +83,21 @@ function FAQSection() {
     {
       question: "How do credits work?",
       answer:
-        "Credits are your daily AI usage allocation. Hobby gets 1 credit/day. Pro plans range from 10 to 1000 credits/day depending on your tier. Credits refresh daily and don't roll over.",
+        "Credits are your monthly AI usage allocation. Hobby gets 100 credits/month. Pro plans range from 500 to 100,000 credits/month depending on your tier. Credits refresh monthly and don't roll over.",
     },
     {
       question: "What happens if I run out of credits?",
       answer: (
         <>
-          If you exceed your daily credit allocation, you&apos;ll need to wait
-          until the next day when your credits refresh, or{" "}
+          If you exceed your monthly credit allocation, you&apos;ll need to wait
+          until the next month when your credits refresh, or{" "}
           <a
             href="#pro-tiers"
             className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
           >
             upgrade to a higher Pro tier
           </a>{" "}
-          for more daily credits. Your projects will continue working, and
+          for more monthly credits. Your projects will continue working, and
           you&apos;ll be notified when approaching your limit.
         </>
       ),
@@ -384,7 +384,7 @@ export default function PricingPage() {
       action: () => router.push("/auth/signup?callbackUrl=/dashboard"),
       features: [
         {
-          text: "1 credit per day (~30/month)",
+          text: "100 credits per month",
           included: true,
           highlight: true,
         },
@@ -419,7 +419,7 @@ export default function PricingPage() {
       features: [
         { text: "Everything in hobby, plus:", included: true, highlight: true },
         {
-          text: `${selectedProTier.dailyCredits} credits per day (~${selectedProTier.monthlyCredits}/month)`,
+          text: `${selectedProTier.monthlyCredits} credits per month`,
           included: true,
           highlight: true,
         },
@@ -489,8 +489,8 @@ export default function PricingPage() {
               Find a plan to craft your apps
             </h1>
             <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
-              Simple, transparent pricing for builders. Choose from daily credit
-              allocations that match your AI usage needs.
+              Simple, transparent pricing for builders. Choose from monthly
+              credit allocations that match your AI usage needs.
             </p>
           </div>
 
@@ -563,27 +563,27 @@ export default function PricingPage() {
                   {plan.name === "Pro" && (
                     <div className="mt-4">
                       <Select
-                        value={selectedProTier.dailyCredits.toString()}
+                        value={selectedProTier.monthlyCredits.toString()}
                         onValueChange={(value) => {
                           const tier = PRO_TIERS.find(
-                            (t) => t.dailyCredits === parseInt(value)
+                            (t) => t.monthlyCredits === parseInt(value)
                           );
                           if (tier) setSelectedProTier(tier);
                         }}
                       >
                         <SelectTrigger className="w-full rounded-full h-11 px-4 bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors">
                           <SelectValue placeholder="Select tier">
-                            {selectedProTier.dailyCredits} credits / day
+                            {selectedProTier.monthlyCredits} credits / month
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-neutral-200 dark:border-neutral-700">
                           {PRO_TIERS.map((tier) => (
                             <SelectItem
-                              key={tier.dailyCredits}
-                              value={tier.dailyCredits.toString()}
+                              key={tier.monthlyCredits}
+                              value={tier.monthlyCredits.toString()}
                               className="rounded-lg cursor-pointer"
                             >
-                              {tier.dailyCredits} credits / day
+                              {tier.monthlyCredits} credits / month
                             </SelectItem>
                           ))}
                         </SelectContent>

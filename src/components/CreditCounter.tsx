@@ -67,26 +67,39 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
     return num.toLocaleString();
   };
 
-  // Calculate time until next UTC midnight
+  // Calculate time until billing period end
   const getTimeUntilReset = (): string => {
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setUTCHours(24, 0, 0, 0); // Next UTC midnight
+    if (!balance?.periodEnd) {
+      return "Unknown";
+    }
 
-    const diff = midnight.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const now = new Date();
+    const periodEnd = new Date(balance.periodEnd);
+
+    const diff = periodEnd.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      return "Resetting soon";
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-    if (hours > 1) {
-      return `in ${hours} hours`;
+    if (days > 1) {
+      return `${days} days`;
+    } else if (days === 1) {
+      return `1 day`;
+    } else if (hours > 1) {
+      return `${hours} hours`;
     } else if (hours === 1) {
-      return `in 1 hour`;
+      return `1 hour`;
     } else if (minutes > 1) {
-      return `in ${minutes} minutes`;
+      return `${minutes} minutes`;
     } else if (minutes === 1) {
-      return `in 1 minute`;
+      return `1 minute`;
     } else {
-      return `in less than a minute`;
+      return `less than a minute`;
     }
   };
 
@@ -136,9 +149,6 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
           {/* Credit Balance Section */}
           <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
             <div className="mb-3">
-              <p className="text-xs text-muted-foreground mb-1">
-                Available Today
-              </p>
               <p
                 className={`text-2xl font-bold ${
                   isCreditsExhausted
@@ -154,48 +164,18 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
             {/* Credit Info */}
             <div className="space-y-2 pt-3 border-t border-neutral-200 dark:border-neutral-800">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-muted-foreground"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span className="text-sm text-accent-foreground">
-                    Daily Limit
-                  </span>
-                </div>
+                <span className="text-sm text-accent-foreground">
+                  Monthly limit
+                </span>
                 <span className="text-sm font-medium text-foreground">
                   {formatFullNumber(balance.subscriptionCreditLimit)}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-muted-foreground"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  <span className="text-sm text-accent-foreground">
-                    Resets Daily
-                  </span>
-                </div>
+                <span className="text-sm text-accent-foreground">
+                  Resets in
+                </span>
                 <span className="text-sm font-medium text-muted-foreground">
                   {getTimeUntilReset()}
                 </span>

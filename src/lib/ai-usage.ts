@@ -348,9 +348,9 @@ export function estimateCreditsForMessage(
 }
 
 /**
- * Reset daily credits if needed (called before checking availability)
+ * Reset monthly credits if needed (called at billing period renewal)
  */
-async function resetDailyCreditsIfNeeded(userId: string): Promise<void> {
+async function resetMonthlyCreditsIfNeeded(userId: string): Promise<void> {
     const subscription = await prisma.userSubscription.findUnique({
         where: { userId },
     });
@@ -358,40 +358,37 @@ async function resetDailyCreditsIfNeeded(userId: string): Promise<void> {
     if (!subscription) return;
 
     const now = new Date();
-    const lastReset = new Date(subscription.lastCreditReset);
+    const periodEnd = new Date(subscription.currentPeriodEnd);
 
-    // Check if it's a new day (UTC)
-    const isNewDay =
-        now.getUTCFullYear() !== lastReset.getUTCFullYear() ||
-        now.getUTCMonth() !== lastReset.getUTCMonth() ||
-        now.getUTCDate() !== lastReset.getUTCDate();
-
-    if (isNewDay) {
+    // Check if we've passed the billing period end
+    if (now >= periodEnd) {
+        // Reset monthly credits for new period
         await prisma.userSubscription.update({
             where: { userId },
             data: {
-                dailyCreditsUsed: 0,
-                lastCreditReset: now,
+                monthlyCreditsUsed: 0,
+                periodCreditsReset: now,
             },
         });
     }
 }
 
 /**
- * Check if user can use AI based on daily credit limits
+ * Check if user can use AI based on monthly credit limits
  */
 export async function checkUserCreditAvailability(
     userId: string
 ): Promise<{
     allowed: boolean;
     reason?: string;
-    dailyCreditsUsed: number;
-    dailyCreditsLimit: number | null;
+    monthlyCreditsUsed: number;
+    monthlyCreditsLimit: number;
     creditsRemaining: number;
     planName: "HOBBY" | "PRO" | "ENTERPRISE";
+    periodEnd: Date;
 }> {
-    // Reset credits if it's a new day
-    await resetDailyCreditsIfNeeded(userId);
+    // Reset credits if billing period has ended
+    await resetMonthlyCreditsIfNeeded(userId);
 
     // Get user's subscription with plan details
     const subscription = await prisma.userSubscription.findUnique({
@@ -399,47 +396,44 @@ export async function checkUserCreditAvailability(
         include: { plan: true },
     });
 
-    // Determine daily credit limit from plan
-    let dailyCreditsLimit: number | null = null;
-    let planName: "HOBBY" | "PRO" | "ENTERPRISE" = "HOBBY"; // Default to HOBBY
+    // Determine monthly credit limit from plan
+    let monthlyCreditsLimit: number = 100; // Default to HOBBY tier
+    let planName: "HOBBY" | "PRO" | "ENTERPRISE" = "HOBBY";
 
     if (subscription?.plan) {
-        dailyCreditsLimit = subscription.plan.dailyCredits;
+        monthlyCreditsLimit = subscription.plan.monthlyCredits || 100;
         planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
-    } else {
-        // No subscription = free tier limits (1 credit/day)
-        dailyCreditsLimit = 1;
-        planName = "HOBBY";
     }
 
-    const dailyCreditsUsed = subscription?.dailyCreditsUsed
-        ? Number(subscription.dailyCreditsUsed)
+    const monthlyCreditsUsed = subscription?.monthlyCreditsUsed
+        ? Number(subscription.monthlyCreditsUsed)
         : 0;
-    const creditsRemaining = dailyCreditsLimit !== null
-        ? Math.round(Math.max(0, dailyCreditsLimit - dailyCreditsUsed) * 100) / 100
-        : Infinity;
+    const creditsRemaining = Math.round(Math.max(0, monthlyCreditsLimit - monthlyCreditsUsed) * 100) / 100;
+    const periodEnd = subscription?.currentPeriodEnd || new Date();
 
     // Check if usage is allowed
     let allowed = true;
     let reason: string | undefined;
 
-    if (dailyCreditsLimit !== null && dailyCreditsUsed >= dailyCreditsLimit) {
+    if (monthlyCreditsUsed >= monthlyCreditsLimit) {
         allowed = false;
-        reason = "Daily credit limit reached. Credits refresh daily at midnight UTC.";
+        const daysUntilReset = Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        reason = `Monthly credit limit reached. Credits reset in ${daysUntilReset} days.`;
     }
 
     return {
         allowed,
         reason,
-        dailyCreditsUsed,
-        dailyCreditsLimit,
-        creditsRemaining: creditsRemaining === Infinity ? -1 : creditsRemaining,
+        monthlyCreditsUsed,
+        monthlyCreditsLimit,
+        creditsRemaining,
         planName,
+        periodEnd,
     };
 }
 
 /**
- * Process AI usage: track it and deduct from daily credits
+ * Process AI usage: track it and deduct from monthly credits
  * Credits are calculated based on model tier multipliers
  */
 export async function processAIUsage(params: {
@@ -465,8 +459,8 @@ export async function processAIUsage(params: {
     const creditsUsed = tokensToCredits(totalTokens, params.model);
     const modelMultiplier = getModelCreditMultiplier(params.model);
 
-    // Reset credits if it's a new day
-    await resetDailyCreditsIfNeeded(params.userId);
+    // Reset credits if billing period has ended
+    await resetMonthlyCreditsIfNeeded(params.userId);
 
     // Get user's subscription
     const subscription = await prisma.userSubscription.findUnique({
@@ -477,11 +471,11 @@ export async function processAIUsage(params: {
         throw new Error("No subscription found for user");
     }
 
-    // Update daily credits used
+    // Update monthly credits used
     await prisma.userSubscription.update({
         where: { userId: params.userId },
         data: {
-            dailyCreditsUsed: {
+            monthlyCreditsUsed: {
                 increment: creditsUsed,
             },
         },
@@ -498,11 +492,14 @@ export async function processAIUsage(params: {
     });
 
     if (existingUsageRecord) {
-        // Update existing record - just increment credits and cost
+        // Update existing record - increment credits and cost
         await prisma.usageRecord.update({
             where: { id: existingUsageRecord.id },
             data: {
                 aiCreditsUsed: {
+                    increment: creditsUsed,
+                },
+                totalCreditsUsed: {
                     increment: creditsUsed,
                 },
                 aiCostUsd: {
@@ -522,6 +519,7 @@ export async function processAIUsage(params: {
                 billingPeriodStart: subscription.currentPeriodStart,
                 billingPeriodEnd: subscription.currentPeriodEnd,
                 aiCreditsUsed: creditsUsed,
+                totalCreditsUsed: creditsUsed,
                 aiCostUsd: usage.costUsd,
                 totalCostUsd: usage.costUsd,
             },
@@ -540,12 +538,12 @@ export async function processAIUsage(params: {
  * Get detailed credit usage statistics
  */
 export async function getCreditUsageStats(userId: string): Promise<{
-    today: {
+    currentPeriod: {
         creditsUsed: number;
-        creditsLimit: number | null;
+        creditsLimit: number;
         creditsRemaining: number;
-        tokensUsed: number;
         percentUsed: number;
+        periodEnd: Date;
     };
     thisMonth: {
         totalCredits: number;
@@ -556,32 +554,40 @@ export async function getCreditUsageStats(userId: string): Promise<{
     // Get current credit status
     const creditAvailability = await checkUserCreditAvailability(userId);
 
-    // Get usage for today
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
+    // Get usage for current billing period
+    const subscription = await prisma.userSubscription.findUnique({
+        where: { userId },
+    });
 
-    const todayUsage = await getUserAIUsageInRange(userId, todayStart, todayEnd);
+    let periodUsage = { totalTokens: 0, totalCostUsd: 0, byModel: {} };
+
+    if (subscription) {
+        periodUsage = await getUserAIUsageInRange(
+            userId,
+            subscription.currentPeriodStart,
+            subscription.currentPeriodEnd
+        );
+    }
 
     // Get usage for current month
+    const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
     const monthUsage = await getUserAIUsageInRange(userId, monthStart, monthEnd);
 
     // Calculate percentage used
-    const percentUsed = creditAvailability.dailyCreditsLimit
-        ? (creditAvailability.dailyCreditsUsed / creditAvailability.dailyCreditsLimit) * 100
+    const percentUsed = creditAvailability.monthlyCreditsLimit
+        ? (creditAvailability.monthlyCreditsUsed / creditAvailability.monthlyCreditsLimit) * 100
         : 0;
 
     return {
-        today: {
-            creditsUsed: creditAvailability.dailyCreditsUsed,
-            creditsLimit: creditAvailability.dailyCreditsLimit,
+        currentPeriod: {
+            creditsUsed: creditAvailability.monthlyCreditsUsed,
+            creditsLimit: creditAvailability.monthlyCreditsLimit,
             creditsRemaining: creditAvailability.creditsRemaining,
-            tokensUsed: todayUsage.totalTokens,
             percentUsed: Math.round(percentUsed * 100) / 100,
+            periodEnd: creditAvailability.periodEnd,
         },
         thisMonth: {
             totalCredits: tokensToCredits(monthUsage.totalTokens),

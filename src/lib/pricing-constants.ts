@@ -1,9 +1,8 @@
 /**
  * Pricing Constants
  * Centralized pricing information for the Craft platform
- * Credit-based system with daily credit allocation
- * Users get daily credit allocation based on their plan
- * Users connect their own Supabase for database and storage
+ * Monthly credit-based system with unified consumption model
+ * Credits cover AI generation, sandbox usage, database, storage, and deployments
  */
 
 export const PRICING = {
@@ -12,8 +11,7 @@ export const PRICING = {
         priceMonthly: 0,
         displayPriceMonthly: "Free",
         maxProjects: 3, // Limited to 3 projects
-        dailyCredits: 1, // 1 credit per day (~30 credits/month)
-        monthlyCredits: 30, // Approximate monthly credits
+        monthlyCredits: 100, // 100 credits per month
         features: {
             aiChat: true,
             unlimitedProjects: false,
@@ -59,7 +57,6 @@ export const PRICING = {
         priceMonthly: 0, // Contact sales for pricing
         displayPriceMonthly: "Contact Sales",
         maxProjects: null, // Unlimited
-        dailyCredits: null, // Custom allocation
         monthlyCredits: null, // Custom allocation
         features: {
             aiChat: true,
@@ -89,20 +86,61 @@ export const PRICING = {
     },
 } as const;
 
-// Pro plan tiers with different daily credit allocations
+// Pro plan tiers with monthly credit allocations
+// Credits cover: AI generation, sandbox, database, storage, deployments
 export const PRO_TIERS = [
-    { dailyCredits: 10, monthlyCredits: 300, priceMonthly: 25, displayPrice: "$25/mo", polarEnvKey: "POLAR_PRO_10_PRODUCT_ID" },
-    { dailyCredits: 20, monthlyCredits: 600, priceMonthly: 50, displayPrice: "$50/mo", polarEnvKey: "POLAR_PRO_20_PRODUCT_ID" },
-    { dailyCredits: 40, monthlyCredits: 1200, priceMonthly: 100, displayPrice: "$100/mo", polarEnvKey: "POLAR_PRO_40_PRODUCT_ID" },
-    { dailyCredits: 80, monthlyCredits: 2400, priceMonthly: 200, displayPrice: "$200/mo", polarEnvKey: "POLAR_PRO_80_PRODUCT_ID" },
-    { dailyCredits: 120, monthlyCredits: 3600, priceMonthly: 300, displayPrice: "$300/mo", polarEnvKey: "POLAR_PRO_120_PRODUCT_ID" },
-    { dailyCredits: 200, monthlyCredits: 6000, priceMonthly: 500, displayPrice: "$500/mo", polarEnvKey: "POLAR_PRO_200_PRODUCT_ID" },
-    { dailyCredits: 300, monthlyCredits: 9000, priceMonthly: 750, displayPrice: "$750/mo", polarEnvKey: "POLAR_PRO_300_PRODUCT_ID" },
-    { dailyCredits: 400, monthlyCredits: 12000, priceMonthly: 1000, displayPrice: "$1,000/mo", polarEnvKey: "POLAR_PRO_400_PRODUCT_ID" },
-    { dailyCredits: 500, monthlyCredits: 15000, priceMonthly: 1250, displayPrice: "$1,250/mo", polarEnvKey: "POLAR_PRO_500_PRODUCT_ID" },
-    { dailyCredits: 750, monthlyCredits: 22500, priceMonthly: 1875, displayPrice: "$1,875/mo", polarEnvKey: "POLAR_PRO_750_PRODUCT_ID" },
-    { dailyCredits: 1000, monthlyCredits: 30000, priceMonthly: 2500, displayPrice: "$2,500/mo", polarEnvKey: "POLAR_PRO_1000_PRODUCT_ID" },
+    { monthlyCredits: 500, priceMonthly: 25, displayPrice: "$25/mo", polarEnvKey: "POLAR_PRO_500_PRODUCT_ID" },
+    { monthlyCredits: 1200, priceMonthly: 50, displayPrice: "$50/mo", polarEnvKey: "POLAR_PRO_1200_PRODUCT_ID" },
+    { monthlyCredits: 3000, priceMonthly: 100, displayPrice: "$100/mo", polarEnvKey: "POLAR_PRO_3000_PRODUCT_ID" },
+    { monthlyCredits: 7000, priceMonthly: 200, displayPrice: "$200/mo", polarEnvKey: "POLAR_PRO_7000_PRODUCT_ID" },
+    { monthlyCredits: 16000, priceMonthly: 400, displayPrice: "$400/mo", polarEnvKey: "POLAR_PRO_16000_PRODUCT_ID" },
+    { monthlyCredits: 30000, priceMonthly: 700, displayPrice: "$700/mo", polarEnvKey: "POLAR_PRO_30000_PRODUCT_ID" },
+    { monthlyCredits: 55000, priceMonthly: 1200, displayPrice: "$1,200/mo", polarEnvKey: "POLAR_PRO_55000_PRODUCT_ID" },
+    { monthlyCredits: 100000, priceMonthly: 2000, displayPrice: "$2,000/mo", polarEnvKey: "POLAR_PRO_100000_PRODUCT_ID" },
 ] as const;
+
+// Credit consumption rates for different resource types
+export const CREDIT_RATES = {
+    // AI Usage (existing - 1 credit = 10,000 tokens)
+    ai: {
+        baseRate: 10000, // tokens per credit
+        modelMultipliers: {
+            'claude-sonnet-4.5': 1.5,
+            'claude-sonnet-3.5': 1.5,
+            'claude-haiku-4.5': 0.5,
+            'claude-haiku-3.5': 0.5,
+            'gpt-5': 1.0,
+            'gpt-5-mini': 0.25,
+            'gemini-2.5-pro': 1.0,
+            'gemini-2.5-flash': 0.3,
+            'grok-4-fast': 0.1,
+            'grok-2': 1.2,
+        }
+    },
+
+    // Sandbox Usage (E2B)
+    sandbox: {
+        perMinute: 0.1, // 0.1 credits per minute
+        perHour: 6, // 6 credits per hour
+    },
+
+    // Database Usage (Neon)
+    database: {
+        storagePerGBMonth: 0.5, // 0.5 credits per GB stored per month
+        computePerHour: 0.01, // 0.01 credits per compute hour
+    },
+
+    // Storage Usage (R2)
+    storage: {
+        perGBMonth: 0.2, // 0.2 credits per GB stored per month
+        perThousandOps: 0.001, // 0.001 credits per 1000 operations
+    },
+
+    // Deployment
+    deployment: {
+        perDeploy: 1, // 1 credit per deployment
+    },
+} as const;
 
 // Get Pro tier features (same for all Pro tiers)
 export function getProFeatures() {
@@ -124,9 +162,16 @@ export function getProFeatures() {
     };
 }
 
-// Helper function to get Pro tier by daily credits
-export function getProTier(dailyCredits: number) {
-    return PRO_TIERS.find(tier => tier.dailyCredits === dailyCredits);
+// Helper function to get Pro tier by monthly credits
+export function getProTier(monthlyCredits: number) {
+    return PRO_TIERS.find(tier => tier.monthlyCredits === monthlyCredits);
+}
+
+// Helper function for backwards compatibility (deprecated - use getProTier)
+export function getProTierByDailyCredits(dailyCredits: number) {
+    // Convert daily to monthly (approx 30 days)
+    const monthlyCredits = dailyCredits * 30;
+    return PRO_TIERS.find(tier => Math.abs(tier.monthlyCredits - monthlyCredits) < 100);
 }
 
 export const SUPPORT_EMAIL = "support@craft.fast";
@@ -137,9 +182,9 @@ export type PlanName = "HOBBY" | "PRO" | "ENTERPRISE";
 /**
  * Get plan monthly price for a specific Pro tier
  */
-export function getPlanPrice(planName: PlanName, dailyCredits?: number): number {
-    if (planName === "PRO" && dailyCredits) {
-        const tier = getProTier(dailyCredits);
+export function getPlanPrice(planName: PlanName, monthlyCredits?: number): number {
+    if (planName === "PRO" && monthlyCredits) {
+        const tier = getProTier(monthlyCredits);
         return tier?.priceMonthly ?? 50; // Default to $50 if tier not found
     }
     if (planName === "PRO") {
@@ -152,9 +197,9 @@ export function getPlanPrice(planName: PlanName, dailyCredits?: number): number 
 /**
  * Get display price
  */
-export function getDisplayPrice(planName: PlanName, dailyCredits?: number): string {
-    if (planName === "PRO" && dailyCredits) {
-        const tier = getProTier(dailyCredits);
+export function getDisplayPrice(planName: PlanName, monthlyCredits?: number): string {
+    if (planName === "PRO" && monthlyCredits) {
+        const tier = getProTier(monthlyCredits);
         return tier?.displayPrice ?? "$50/mo";
     }
     if (planName === "PRO") {

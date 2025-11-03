@@ -203,7 +203,7 @@ export default function SettingsModal({
   const [targetPlan, setTargetPlan] = useState<
     "HOBBY" | "PRO" | "ENTERPRISE" | undefined
   >(undefined);
-  const [selectedProTierIndex, setSelectedProTierIndex] = useState<number>(0); // Default to first Pro tier (10 credits/day)
+  const [selectedProTierIndex, setSelectedProTierIndex] = useState<number>(0); // Default to first Pro tier (500 credits/month)
   const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Filters and pagination
@@ -382,9 +382,9 @@ export default function SettingsModal({
         }
 
         // Set current Pro tier index if user is on Pro plan
-        if (subData.plan?.name === "PRO" && subData.plan?.dailyCredits) {
+        if (subData.plan?.name === "PRO" && subData.plan?.monthlyCredits) {
           const currentTierIndex = PRO_TIERS.findIndex(
-            (tier) => tier.dailyCredits === subData.plan.dailyCredits
+            (tier) => tier.monthlyCredits === subData.plan.monthlyCredits
           );
           if (currentTierIndex !== -1) {
             setSelectedProTierIndex(currentTierIndex);
@@ -1551,16 +1551,14 @@ export default function SettingsModal({
                               </span>
                             </p>
                             <p className="text-sm text-muted-foreground mt-2">
-                              {subscriptionData?.plan.dailyCredits
+                              {subscriptionData?.plan.monthlyCredits
                                 ? `Includes ${
-                                    subscriptionData.plan.dailyCredits
+                                    subscriptionData.plan.monthlyCredits
                                   } credit${
-                                    subscriptionData.plan.dailyCredits > 1
+                                    subscriptionData.plan.monthlyCredits > 1
                                       ? "s"
                                       : ""
-                                  } per day (~${
-                                    subscriptionData.plan.monthlyCredits
-                                  } credits/month).`
+                                  } per month.`
                                 : "Custom credit allocation."}
                             </p>
                           </div>
@@ -1577,12 +1575,12 @@ export default function SettingsModal({
                           </span>
                         </div>
 
-                        {/* Daily Credit Balance */}
+                        {/* Monthly Credit Balance */}
                         <div className="mt-4 space-y-3">
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <span className="text-sm font-medium text-muted-foreground">
-                                Daily Credits
+                                Monthly Credits
                               </span>
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 Resets in{" "}
@@ -1631,7 +1629,7 @@ export default function SettingsModal({
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground mb-4">
-                              Get more daily credits and unlock unlimited
+                              Get more monthly credits and unlock unlimited
                               projects
                             </p>
                             <div className="space-y-3">
@@ -1651,7 +1649,7 @@ export default function SettingsModal({
                                       value={index.toString()}
                                       className="text-base py-3"
                                     >
-                                      {tier.dailyCredits} credits per day{" "}
+                                      {tier.monthlyCredits} credits per month{" "}
                                       <span className="text-muted-foreground">
                                         - {tier.displayPrice}
                                       </span>
@@ -1676,8 +1674,8 @@ export default function SettingsModal({
                                           "Content-Type": "application/json",
                                         },
                                         body: JSON.stringify({
-                                          dailyCredits:
-                                            selectedTier.dailyCredits,
+                                          monthlyCredits:
+                                            selectedTier.monthlyCredits,
                                         }),
                                       }
                                     );
@@ -1750,12 +1748,12 @@ export default function SettingsModal({
                                       value={index.toString()}
                                       className="text-base py-3"
                                     >
-                                      {tier.dailyCredits} credits/day{" "}
+                                      {tier.monthlyCredits} credits/month{" "}
                                       <span className="text-muted-foreground">
                                         - {tier.displayPrice}
                                       </span>
-                                      {tier.dailyCredits ===
-                                        subscriptionData?.plan.dailyCredits &&
+                                      {tier.monthlyCredits ===
+                                        subscriptionData?.plan.monthlyCredits &&
                                         " (Current)"}
                                     </SelectItem>
                                   ))}
@@ -1763,7 +1761,7 @@ export default function SettingsModal({
                               </Select>
                               <p className="text-xs text-muted-foreground">
                                 Switch to a different Pro tier to adjust your
-                                daily credit allocation.
+                                monthly credit allocation.
                               </p>
 
                               <Button
@@ -1771,8 +1769,8 @@ export default function SettingsModal({
                                 disabled={
                                   isPurchasing ||
                                   PRO_TIERS[selectedProTierIndex]
-                                    .dailyCredits ===
-                                    subscriptionData?.plan.dailyCredits
+                                    .monthlyCredits ===
+                                    subscriptionData?.plan.monthlyCredits
                                 }
                                 onClick={async () => {
                                   setIsPurchasing(true);
@@ -1787,8 +1785,8 @@ export default function SettingsModal({
                                           "Content-Type": "application/json",
                                         },
                                         body: JSON.stringify({
-                                          dailyCredits:
-                                            selectedTier.dailyCredits,
+                                          monthlyCredits:
+                                            selectedTier.monthlyCredits,
                                         }),
                                       }
                                     );
@@ -1820,8 +1818,8 @@ export default function SettingsModal({
                                     Processing...
                                   </>
                                 ) : PRO_TIERS[selectedProTierIndex]
-                                    .dailyCredits ===
-                                  subscriptionData?.plan.dailyCredits ? (
+                                    .monthlyCredits ===
+                                  subscriptionData?.plan.monthlyCredits ? (
                                   "Current Tier"
                                 ) : (
                                   `Change to ${PRO_TIERS[selectedProTierIndex].displayPrice}`
