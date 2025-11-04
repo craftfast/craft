@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import SubscriptionModal from "./SubscriptionModal";
+import SettingsModal from "./SettingsModal";
 
 interface PlanRedirectHandlerProps {
   currentPlan: string;
@@ -10,43 +10,76 @@ interface PlanRedirectHandlerProps {
 
 /**
  * Handles the plan selection flow when users are redirected from pricing page
- * Shows subscription modal if a plan parameter is present in the URL
+ * Shows settings modal with billing tab if a plan parameter is present in the URL
  */
 export default function PlanRedirectHandler({
   currentPlan,
 }: PlanRedirectHandlerProps) {
   const searchParams = useSearchParams();
   const [showModal, setShowModal] = useState(false);
-  const [targetPlan, setTargetPlan] = useState<"PRO" | "ENTERPRISE" | null>(
+  const [initialProTierIndex, setInitialProTierIndex] = useState<number | null>(
     null
   );
+  const [hasProcessed, setHasProcessed] = useState(false);
 
   useEffect(() => {
-    const planParam = searchParams.get("plan");
+    // Skip if already processed
+    if (hasProcessed) {
+      return;
+    }
 
-    // Only show modal if plan parameter exists and it's not hobby
-    // (hobby doesn't need subscription modal)
+    const planParam = searchParams.get("plan");
+    const tierParam = searchParams.get("tier");
+
+    console.log(
+      "PlanRedirectHandler - planParam:",
+      planParam,
+      "tierParam:",
+      tierParam
+    );
+
+    // Only show modal if plan parameter exists and it's Pro
     if (planParam) {
       const uppercasePlan = planParam.toUpperCase();
 
-      if (uppercasePlan === "PRO" || uppercasePlan === "ENTERPRISE") {
-        setTargetPlan(uppercasePlan as "PRO" | "ENTERPRISE");
-        setShowModal(true);
+      if (uppercasePlan === "PRO") {
+        // Parse tier index, default to 0 if not provided or invalid
+        const tierIndex = tierParam ? parseInt(tierParam, 10) : 0;
+        const validTierIndex = isNaN(tierIndex) ? 0 : tierIndex;
 
-        // Clean up URL by removing the plan parameter after reading it
+        console.log(
+          "PlanRedirectHandler - Setting tier index to:",
+          validTierIndex
+        );
+
+        // Set tier index first, then show modal
+        setInitialProTierIndex(validTierIndex);
+        setShowModal(true);
+        setHasProcessed(true);
+
+        // Clean up URL by removing the plan and tier parameters after reading them
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete("plan");
+        newUrl.searchParams.delete("tier");
         window.history.replaceState({}, "", newUrl.toString());
       }
     }
-  }, [searchParams]);
+  }, [searchParams, hasProcessed]);
+
+  // Only render modal when we have a valid tier index
+  if (!showModal || initialProTierIndex === null) {
+    return null;
+  }
 
   return (
-    <SubscriptionModal
+    <SettingsModal
       isOpen={showModal}
-      onClose={() => setShowModal(false)}
-      currentPlan={currentPlan}
-      targetPlan={targetPlan || undefined}
+      onClose={() => {
+        setShowModal(false);
+        setInitialProTierIndex(null);
+      }}
+      initialTab="billing"
+      initialProTierIndex={initialProTierIndex}
     />
   );
 }

@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from "react";
 import Logo from "@/components/Logo";
 import HeaderNav from "@/components/HeaderNav";
 import Footer from "@/components/Footer";
-import { initiatePolarPayment, toSmallestUnit } from "@/lib/polar";
 import { PRO_TIERS } from "@/lib/pricing-constants";
 import {
   Select,
@@ -78,7 +77,7 @@ function FAQSection() {
     {
       question: "Can I cancel anytime?",
       answer:
-        "Yes. No commitments. Cancel your Pro subscription anytime from your dashboard. You'll retain access until the end of your current billing period. See our refund policy for details on early cancellation refunds.",
+        "Yes. No commitments. Cancel your Pro subscription anytime from your dashboard. Cancellations and downgrades to Hobby will be effective at the next billing cycle, so you'll retain full access until the end of your current billing period.",
     },
     {
       question: "How do credits work?",
@@ -110,7 +109,7 @@ function FAQSection() {
     {
       question: "Do unused credits roll over?",
       answer:
-        "No, daily credit allocations refresh each day and don't roll over. This ensures fair usage and predictable costs. If you consistently need more credits, consider upgrading to a higher Pro tier.",
+        "No, monthly credit allocations refresh at the start of each billing period and don't roll over. This ensures fair usage and predictable costs. If you consistently need more credits, consider upgrading to a higher Pro tier.",
     },
     {
       question: "What's included in the Enterprise plan?",
@@ -128,11 +127,6 @@ function FAQSection() {
         "We accept all major credit cards (Visa, Mastercard, American Express, Discover) through our secure payment processor Polar. All transactions are encrypted and PCI-compliant.",
     },
     {
-      question: "Is there a free trial for Pro?",
-      answer:
-        "Yes! New users can start a free trial of Pro to experience unlimited projects and advanced features. No credit card required to start. You can upgrade to Pro at any time to unlock the full experience.",
-    },
-    {
       question: "How do integrations work?",
       answer:
         "Craft integrates with best-in-class tools: Supabase for database & storage, Figma for design imports, GitHub for code sync, and Vercel for deployment. Pro and Enterprise plans include full access to these integrations. Simply connect your accounts and Craft handles the rest.",
@@ -145,7 +139,7 @@ function FAQSection() {
     {
       question: "Can I change my Pro tier?",
       answer:
-        "Yes! You can upgrade or downgrade between Pro tiers at any time from your dashboard. Changes take effect immediately for upgrades, or at the end of your billing period for downgrades.",
+        "Yes! You can upgrade or downgrade between Pro tiers at any time from your dashboard. Upgrades take effect immediately, while downgrades will be effective at the next billing cycle.",
     },
     {
       question: "What happens to my projects if I downgrade?",
@@ -263,7 +257,7 @@ export default function PricingPage() {
   const hasFetchedRef = useRef(false);
   const [selectedProTier, setSelectedProTier] = useState<
     (typeof PRO_TIERS)[number]
-  >(PRO_TIERS[0]); // Default to 10 credits/day ($25/mo)
+  >(PRO_TIERS[0]); // Default to 500 credits/month ($25/mo)
 
   // Fetch user's actual subscription plan (only once when authenticated)
   useEffect(() => {
@@ -317,50 +311,51 @@ export default function PricingPage() {
       return;
     }
 
-    const amount = 50; // $50/month for Pro
-
     try {
-      // Initiate Polar payment (this will redirect to Polar checkout)
-      await initiatePolarPayment({
-        amount: toSmallestUnit(amount),
-        currency: "USD",
-        productName: "Craft Pro",
-        productDescription:
-          "Pro Plan - Monthly Subscription with unlimited projects and advanced features",
-        email: session?.user?.email || undefined,
-        successUrl: `${window.location.origin}/dashboard?payment=success&plan=pro`,
-        onFailure: (error) => {
-          console.error("Payment failed:", error);
-          const errorMsg =
-            typeof error === "object" && "error" in error
-              ? error.error
-              : "An unexpected error occurred";
-
-          // Show detailed error message
-          alert(
-            "❌ Payment Failed\n\n" +
-              errorMsg +
-              "\n\n" +
-              "What to do:\n" +
-              "• Try again in a few minutes\n" +
-              "• Check your internet connection\n" +
-              "• If the issue persists, contact support:\n\n" +
-              "📧 Email: support@craft.fast\n" +
-              "💬 We typically respond within 24 hours"
-          );
+      // Call the upgrade-to-pro API with the selected tier's monthly credits
+      const response = await fetch("/api/billing/upgrade-to-pro", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          monthlyCredits: selectedProTier.monthlyCredits,
+        }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to initiate upgrade");
+      }
+
+      // Redirect to checkout URL
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error("No checkout URL received");
+      }
     } catch (error) {
-      console.error("Unexpected payment error:", error);
+      console.error("Payment failed:", error);
+      const errorMsg =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+
+      // Show detailed error message
       alert(
-        "⚠️ Unexpected Error\n\n" +
-          "Something went wrong while initiating payment.\n\n" +
-          "Please try again later or contact support:\n" +
-          "📧 support@craft.fast\n\n" +
-          "We apologize for the inconvenience."
+        "❌ Payment Failed\n\n" +
+          errorMsg +
+          "\n\n" +
+          "What to do:\n" +
+          "• Try again in a few minutes\n" +
+          "• Check your internet connection\n" +
+          "• If the issue persists, contact support:\n\n" +
+          "📧 Email: support@craft.fast\n" +
+          "💬 We typically respond within 24 hours"
       );
     }
   };
+
+  // Plan data
 
   const handleEnterpriseContact = () => {
     window.location.href =
@@ -404,18 +399,44 @@ export default function PricingPage() {
       cta: isLoadingPlan
         ? "Loading..."
         : !session
-        ? "Start a free trial"
+        ? "Upgrade Now"
         : userPlan === "pro"
         ? "Current plan"
         : userPlan === "enterprise"
         ? "Downgrade to Pro"
-        : "Upgrade now",
+        : "Upgrade Now",
       popular: true,
       action: !session
-        ? () => router.push("/auth/signup?callbackUrl=/dashboard&plan=pro")
+        ? () => {
+            // Find the index of the selected tier for signup redirect
+            const tierIndex = PRO_TIERS.findIndex(
+              (t) => t.monthlyCredits === selectedProTier.monthlyCredits
+            );
+            console.log(
+              "Pricing page (signup) - Selected tier:",
+              selectedProTier
+            );
+            console.log("Pricing page (signup) - Tier index:", tierIndex);
+            router.push(
+              `/auth/signup?callbackUrl=/dashboard&plan=pro&tier=${tierIndex}`
+            );
+          }
         : userPlan === "pro"
         ? () => {} // No action for current plan
-        : handleProPayment,
+        : () => {
+            // Find the index of the selected tier
+            const tierIndex = PRO_TIERS.findIndex(
+              (t) => t.monthlyCredits === selectedProTier.monthlyCredits
+            );
+            console.log("Pricing page - Selected tier:", selectedProTier);
+            console.log("Pricing page - Tier index:", tierIndex);
+            console.log(
+              "Pricing page - Redirecting to:",
+              `/dashboard?plan=pro&tier=${tierIndex}`
+            );
+            // Redirect to dashboard with plan and tier parameters
+            router.push(`/dashboard?plan=pro&tier=${tierIndex}`);
+          },
       features: [
         { text: "Everything in hobby, plus:", included: true, highlight: true },
         {

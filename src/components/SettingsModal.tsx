@@ -44,6 +44,7 @@ interface SettingsModalProps {
     | "account"
     | "integrations"
     | "personalization";
+  initialProTierIndex?: number;
 }
 
 interface ExtendedUser {
@@ -88,7 +89,6 @@ interface SubscriptionData {
     displayName: string;
     priceMonthlyUsd: number;
     maxProjects: number | null;
-    dailyCredits: number | null;
     monthlyCredits: number | null;
     features: Record<string, unknown>;
   };
@@ -96,27 +96,26 @@ interface SubscriptionData {
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;
-  daily?: {
+  monthly?: {
     limit: number;
     used: number;
     remaining: number;
-    resetTime: Date;
-    hoursUntilReset: number;
+    periodEnd: Date;
+    daysUntilReset: number;
   };
 }
 
 interface CreditBalanceData {
-  daily: {
+  monthly: {
     limit: number;
     used: number;
     remaining: number;
-    resetTime: Date;
-    hoursUntilReset: number;
+    periodEnd: Date;
+    daysUntilReset: number;
   };
   plan: {
     name: string;
     displayName: string;
-    dailyCredits: number | null;
     monthlyCredits: number | null;
   };
 }
@@ -169,6 +168,7 @@ export default function SettingsModal({
   isOpen,
   onClose,
   initialTab = "general",
+  initialProTierIndex = 0,
 }: SettingsModalProps) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
@@ -309,6 +309,14 @@ export default function SettingsModal({
     }
   }, [isOpen, initialTab]);
 
+  // Set initial Pro tier index when modal opens with billing tab
+  useEffect(() => {
+    if (isOpen && initialTab === "billing") {
+      console.log("Setting Pro tier index to:", initialProTierIndex);
+      setSelectedProTierIndex(initialProTierIndex);
+    }
+  }, [isOpen, initialTab, initialProTierIndex]);
+
   // Fetch billing data when billing tab is active
   useEffect(() => {
     if (activeTab === "billing") {
@@ -369,13 +377,12 @@ export default function SettingsModal({
         setSubscriptionData(subData);
 
         // Set credit balance data from subscription response
-        if (subData.daily) {
+        if (subData.monthly) {
           setCreditBalanceData({
-            daily: subData.daily,
+            monthly: subData.monthly,
             plan: {
               name: subData.plan.name,
               displayName: subData.plan.displayName,
-              dailyCredits: subData.plan.dailyCredits,
               monthlyCredits: subData.plan.monthlyCredits,
             },
           });
@@ -1584,18 +1591,19 @@ export default function SettingsModal({
                               </span>
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 Resets in{" "}
-                                {creditBalanceData?.daily.hoursUntilReset || 0}h
+                                {creditBalanceData?.monthly.daysUntilReset || 0}{" "}
+                                days
                               </p>
                             </div>
                             <span className="text-2xl font-bold text-foreground">
                               {(
-                                creditBalanceData?.daily.remaining || 0
+                                creditBalanceData?.monthly.remaining || 0
                               ).toFixed(2)}{" "}
                               <span className="text-base text-muted-foreground font-normal">
                                 /{" "}
-                                {(creditBalanceData?.daily.limit || 0).toFixed(
-                                  2
-                                )}
+                                {(
+                                  creditBalanceData?.monthly.limit || 0
+                                ).toFixed(2)}
                               </span>
                             </span>
                           </div>
@@ -1605,10 +1613,10 @@ export default function SettingsModal({
                               style={{
                                 width: `${
                                   creditBalanceData &&
-                                  (creditBalanceData.daily.limit ?? 0) > 0
-                                    ? ((creditBalanceData.daily.remaining ??
+                                  (creditBalanceData.monthly.limit ?? 0) > 0
+                                    ? ((creditBalanceData.monthly.remaining ??
                                         0) /
-                                        creditBalanceData.daily.limit) *
+                                        creditBalanceData.monthly.limit) *
                                       100
                                     : 0
                                 }%`,
@@ -1639,7 +1647,7 @@ export default function SettingsModal({
                                   setSelectedProTierIndex(parseInt(value))
                                 }
                               >
-                                <SelectTrigger className="w-full rounded-full h-12 px-6 text-base">
+                                <SelectTrigger className="w-full rounded-full h-12 px-6 text-base bg-muted/50 border-input hover:bg-muted/70 transition-colors">
                                   <SelectValue placeholder="Select a Pro tier" />
                                 </SelectTrigger>
                                 <SelectContent className="z-[100001] rounded-2xl max-h-[300px] overflow-y-auto">
@@ -1738,7 +1746,7 @@ export default function SettingsModal({
                                   setSelectedProTierIndex(parseInt(value))
                                 }
                               >
-                                <SelectTrigger className="w-full rounded-full h-12 px-6 text-base bg-background">
+                                <SelectTrigger className="w-full rounded-full h-12 px-6 text-base bg-background border-input hover:bg-muted/50 transition-colors">
                                   <SelectValue placeholder="Select a different tier" />
                                 </SelectTrigger>
                                 <SelectContent className="z-[100001] rounded-2xl max-h-[300px] overflow-y-auto">

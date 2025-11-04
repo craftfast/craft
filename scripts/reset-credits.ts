@@ -3,12 +3,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log("🔄 Manually resetting daily credits for all users...\n");
+    console.log("🔄 Manually resetting monthly credits for all users...\n");
 
     const result = await prisma.userSubscription.updateMany({
         data: {
-            dailyCreditsUsed: 0,
-            lastCreditReset: new Date(),
+            monthlyCreditsUsed: 0,
+            periodCreditsReset: new Date(),
         },
     });
 
@@ -28,8 +28,8 @@ async function main() {
     for (const user of users) {
         if (user.subscription) {
             console.log(`📧 ${user.email}`);
-            console.log(`   Credits: ${user.subscription.dailyCreditsUsed}/${user.subscription.plan.dailyCredits} used`);
-            console.log(`   Credits Remaining: ${Number(user.subscription.plan.dailyCredits) - Number(user.subscription.dailyCreditsUsed)}`);
+            console.log(`   Credits: ${user.subscription.monthlyCreditsUsed}/${user.subscription.plan.monthlyCredits} used`);
+            console.log(`   Credits Remaining: ${Number(user.subscription.plan.monthlyCredits) - Number(user.subscription.monthlyCreditsUsed)}`);
             console.log('');
         }
     }

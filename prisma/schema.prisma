@@ -228,10 +228,7 @@ model Plan {
   priceMonthlyUsd Float
   features        Json
   maxProjects     Int?
-  // Migration: Keep dailyCredits for backwards compatibility, will be removed later
-  dailyCredits    Int?
-  // New monthly credit system (nullable for migration, will be required later)
-  monthlyCredits  Int?
+  monthlyCredits  Int
   isActive        Boolean            @default(true)
   sortOrder       Int                @default(0)
   createdAt       DateTime           @default(now())
@@ -254,10 +251,6 @@ model UserSubscription {
   cancelledAt        DateTime?
   polarCheckoutId    String?
   polarPaymentId     String?
-  // Migration: Keep for backwards compatibility, will be removed later
-  dailyCreditsUsed   Decimal       @default(0) @db.Decimal(10, 2)
-  lastCreditReset    DateTime      @default(now())
-  // New monthly credit system
   monthlyCreditsUsed Decimal       @default(0) @db.Decimal(10, 2)
   periodCreditsReset DateTime      @default(now())
   createdAt          DateTime      @default(now())

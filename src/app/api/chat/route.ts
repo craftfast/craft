@@ -57,13 +57,13 @@ export async function POST(req: Request) {
         const creditAvailability = await checkUserCreditAvailability(user.id);
 
         if (!creditAvailability.allowed) {
-            console.warn(`🚫 Daily credit limit reached for user ${user.id}`);
+            console.warn(`🚫 Monthly credit limit reached for user ${user.id}`);
             return new Response(
                 JSON.stringify({
                     error: "Credit limit reached",
-                    message: creditAvailability.reason || "Daily credit limit reached. Credits refresh daily at midnight UTC.",
-                    dailyCreditsUsed: creditAvailability.dailyCreditsUsed,
-                    dailyCreditsLimit: creditAvailability.dailyCreditsLimit,
+                    message: creditAvailability.reason || "Monthly credit limit reached. Credits refresh at the start of your next billing period.",
+                    monthlyCreditsUsed: creditAvailability.monthlyCreditsUsed,
+                    monthlyCreditsLimit: creditAvailability.monthlyCreditsLimit,
                     creditsRemaining: creditAvailability.creditsRemaining,
                 }),
                 { status: 429, headers: { "Content-Type": "application/json" } }
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
         }
 
         // Log credit availability
-        console.log(`💰 Credit Availability - Used: ${creditAvailability.dailyCreditsUsed}/${creditAvailability.dailyCreditsLimit || 'unlimited'}, Remaining: ${creditAvailability.creditsRemaining}`);
+        console.log(`💰 Credit Availability - Used: ${creditAvailability.monthlyCreditsUsed}/${creditAvailability.monthlyCreditsLimit || 'unlimited'}, Remaining: ${creditAvailability.creditsRemaining}`);
 
         // Get environment-aware system prompt with projectId
         const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles, projectId);

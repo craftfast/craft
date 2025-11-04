@@ -31,9 +31,9 @@ async function main() {
             console.log(`   ✅ Subscription:`);
             console.log(`      Plan: ${user.subscription.plan.displayName} (${user.subscription.plan.name})`);
             console.log(`      Status: ${user.subscription.status}`);
-            console.log(`      Daily Credits Used: ${user.subscription.dailyCreditsUsed}`);
-            console.log(`      Daily Credits Limit: ${user.subscription.plan.dailyCredits}`);
-            console.log(`      Last Credit Reset: ${user.subscription.lastCreditReset}`);
+            console.log(`      Monthly Credits Used: ${user.subscription.monthlyCreditsUsed}`);
+            console.log(`      Monthly Credits Limit: ${user.subscription.plan.monthlyCredits}`);
+            console.log(`      Period Reset: ${user.subscription.periodCreditsReset}`);
         } else {
             console.log(`   ❌ NO SUBSCRIPTION FOUND!`);
             console.log(`      This user needs a subscription assigned.`);

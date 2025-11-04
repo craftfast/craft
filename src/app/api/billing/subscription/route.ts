@@ -70,17 +70,15 @@ export async function GET() {
 
             // Calculate credit balance for new subscription
             const now = new Date();
-            const resetTime = new Date(subscription.lastCreditReset);
-            resetTime.setDate(resetTime.getDate() + 1);
-
-            const hoursUntilReset = Math.max(
+            const periodEnd = new Date(subscription.currentPeriodEnd);
+            const daysUntilReset = Math.max(
                 0,
-                Math.ceil((resetTime.getTime() - now.getTime()) / (1000 * 60 * 60))
+                Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
             );
 
-            const dailyCreditsUsed = Number(subscription.dailyCreditsUsed);
-            const dailyCreditsLimit = subscription.plan.dailyCredits || 0;
-            const dailyCreditsRemaining = Math.max(0, dailyCreditsLimit - dailyCreditsUsed);
+            const monthlyCreditsUsed = Number(subscription.monthlyCreditsUsed);
+            const monthlyCreditsLimit = subscription.plan.monthlyCredits || 0;
+            const monthlyCreditsRemaining = Math.max(0, monthlyCreditsLimit - monthlyCreditsUsed);
 
             return NextResponse.json({
                 plan: {
@@ -88,7 +86,6 @@ export async function GET() {
                     displayName: subscription.plan.displayName,
                     priceMonthlyUsd: subscription.plan.priceMonthlyUsd,
                     maxProjects: subscription.plan.maxProjects,
-                    dailyCredits: subscription.plan.dailyCredits,
                     monthlyCredits: subscription.plan.monthlyCredits,
                     features: subscription.plan.features,
                 },
@@ -96,29 +93,27 @@ export async function GET() {
                 currentPeriodStart: subscription.currentPeriodStart,
                 currentPeriodEnd: subscription.currentPeriodEnd,
                 cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-                daily: {
-                    limit: dailyCreditsLimit,
-                    used: dailyCreditsUsed,
-                    remaining: dailyCreditsRemaining,
-                    resetTime: resetTime,
-                    hoursUntilReset: hoursUntilReset,
+                monthly: {
+                    limit: monthlyCreditsLimit,
+                    used: monthlyCreditsUsed,
+                    remaining: monthlyCreditsRemaining,
+                    periodEnd: periodEnd,
+                    daysUntilReset: daysUntilReset,
                 },
             });
         }
 
         // Calculate credit balance
         const now = new Date();
-        const resetTime = new Date(user.subscription.lastCreditReset);
-        resetTime.setDate(resetTime.getDate() + 1);
-
-        const hoursUntilReset = Math.max(
+        const periodEnd = new Date(user.subscription.currentPeriodEnd);
+        const daysUntilReset = Math.max(
             0,
-            Math.ceil((resetTime.getTime() - now.getTime()) / (1000 * 60 * 60))
+            Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         );
 
-        const dailyCreditsUsed = Number(user.subscription.dailyCreditsUsed);
-        const dailyCreditsLimit = user.subscription.plan.dailyCredits || 0;
-        const dailyCreditsRemaining = Math.max(0, dailyCreditsLimit - dailyCreditsUsed);
+        const monthlyCreditsUsed = Number(user.subscription.monthlyCreditsUsed);
+        const monthlyCreditsLimit = user.subscription.plan.monthlyCredits || 0;
+        const monthlyCreditsRemaining = Math.max(0, monthlyCreditsLimit - monthlyCreditsUsed);
 
         return NextResponse.json({
             plan: {
@@ -126,7 +121,6 @@ export async function GET() {
                 displayName: user.subscription.plan.displayName,
                 priceMonthlyUsd: user.subscription.plan.priceMonthlyUsd,
                 maxProjects: user.subscription.plan.maxProjects,
-                dailyCredits: user.subscription.plan.dailyCredits,
                 monthlyCredits: user.subscription.plan.monthlyCredits,
                 features: user.subscription.plan.features,
             },
@@ -134,12 +128,12 @@ export async function GET() {
             currentPeriodStart: user.subscription.currentPeriodStart,
             currentPeriodEnd: user.subscription.currentPeriodEnd,
             cancelAtPeriodEnd: user.subscription.cancelAtPeriodEnd,
-            daily: {
-                limit: dailyCreditsLimit,
-                used: dailyCreditsUsed,
-                remaining: dailyCreditsRemaining,
-                resetTime: resetTime,
-                hoursUntilReset: hoursUntilReset,
+            monthly: {
+                limit: monthlyCreditsLimit,
+                used: monthlyCreditsUsed,
+                remaining: monthlyCreditsRemaining,
+                periodEnd: periodEnd,
+                daysUntilReset: daysUntilReset,
             },
         });
     } catch (error) {

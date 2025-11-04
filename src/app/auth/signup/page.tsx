@@ -15,6 +15,7 @@ function SignUpContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const planParam = searchParams.get("plan"); // Capture plan parameter
+  const tierParam = searchParams.get("tier"); // Capture tier parameter
 
   const [step, setStep] = useState(1); // 1 for email, 2 for name/password, 3 for OTP verification
   const [name, setName] = useState("");
@@ -143,6 +144,9 @@ function SignUpContent() {
       if (planParam) {
         const url = new URL(callbackUrl, window.location.origin);
         url.searchParams.set("plan", planParam);
+        if (tierParam) {
+          url.searchParams.set("tier", tierParam);
+        }
         finalRedirectUrl = url.pathname + url.search;
       }
 
@@ -195,11 +199,14 @@ function SignUpContent() {
   const handleOAuthSignUp = async (provider: "google" | "github") => {
     setLoading(true);
 
-    // Construct callback URL with plan parameter if present
+    // Construct callback URL with plan and tier parameters if present
     let finalCallbackUrl = callbackUrl;
     if (planParam) {
       const url = new URL(callbackUrl, window.location.origin);
       url.searchParams.set("plan", planParam);
+      if (tierParam) {
+        url.searchParams.set("tier", tierParam);
+      }
       finalCallbackUrl = url.pathname + url.search;
     }
 

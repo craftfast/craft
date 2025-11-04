@@ -22,12 +22,12 @@ export async function POST(request: Request) {
             );
         }
 
-        // Get the requested daily credits from the request body
+        // Get the requested monthly credits from the request body
         const body = await request.json();
-        const { dailyCredits = 10 } = body; // Default to 10 credits/day ($25/mo)
+        const { monthlyCredits = 500 } = body; // Default to 500 credits/month ($25/mo)
 
         // Find the Pro tier
-        const selectedTier = getProTier(dailyCredits);
+        const selectedTier = getProTier(monthlyCredits);
 
         if (!selectedTier) {
             return NextResponse.json(
@@ -57,9 +57,9 @@ export async function POST(request: Request) {
 
         // Check if user is already on Pro plan with the same tier
         const currentPlan = user.subscription?.plan;
-        if (currentPlan?.name === "PRO" && currentPlan?.dailyCredits === dailyCredits) {
+        if (currentPlan?.name === "PRO" && currentPlan?.monthlyCredits === monthlyCredits) {
             return NextResponse.json(
-                { error: `You are already on the Pro ${dailyCredits} credits/day plan` },
+                { error: `You are already on the Pro ${monthlyCredits} credits/month plan` },
                 { status: 400 }
             );
         }
@@ -88,14 +88,13 @@ export async function POST(request: Request) {
         checkoutUrl.searchParams.set("metadata[userId]", user.id);
         checkoutUrl.searchParams.set("metadata[purchaseType]", "subscription");
         checkoutUrl.searchParams.set("metadata[planName]", "PRO");
-        checkoutUrl.searchParams.set("metadata[dailyCredits]", dailyCredits.toString());
+        checkoutUrl.searchParams.set("metadata[monthlyCredits]", monthlyCredits.toString());
         checkoutUrl.searchParams.set("metadata[billingPeriod]", "MONTHLY");
 
         return NextResponse.json({
             success: true,
             checkoutUrl: checkoutUrl.toString(),
             planName: "PRO",
-            dailyCredits: selectedTier.dailyCredits,
             monthlyCredits: selectedTier.monthlyCredits,
             price: selectedTier.priceMonthly,
             displayPrice: selectedTier.displayPrice,

@@ -74,9 +74,9 @@ async function main() {
 
     if (user.subscription) {
         console.log(`\nCurrent Credits Status:`);
-        console.log(`Daily Limit: ${user.subscription.plan.dailyCredits}`);
-        console.log(`Used Today: ${user.subscription.dailyCreditsUsed}`);
-        console.log(`Remaining: ${Number(user.subscription.plan.dailyCredits) - Number(user.subscription.dailyCreditsUsed)}`);
+        console.log(`Monthly Limit: ${user.subscription.plan.monthlyCredits}`);
+        console.log(`Used This Month: ${user.subscription.monthlyCreditsUsed}`);
+        console.log(`Remaining: ${Number(user.subscription.plan.monthlyCredits) - Number(user.subscription.monthlyCreditsUsed)}`);
     }
 }
 

@@ -167,13 +167,6 @@ export function getProTier(monthlyCredits: number) {
     return PRO_TIERS.find(tier => tier.monthlyCredits === monthlyCredits);
 }
 
-// Helper function for backwards compatibility (deprecated - use getProTier)
-export function getProTierByDailyCredits(dailyCredits: number) {
-    // Convert daily to monthly (approx 30 days)
-    const monthlyCredits = dailyCredits * 30;
-    return PRO_TIERS.find(tier => Math.abs(tier.monthlyCredits - monthlyCredits) < 100);
-}
-
 export const SUPPORT_EMAIL = "support@craft.fast";
 export const SALES_EMAIL = "sales@craft.fast";
 

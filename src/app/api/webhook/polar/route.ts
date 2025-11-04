@@ -144,28 +144,28 @@ export const POST = Webhooks({
 async function handleSubscriptionPayment(userId: string, order: Record<string, unknown>) {
     console.log("Processing subscription payment for user:", userId);
 
-    // Extract metadata to get daily credits tier
+    // Extract metadata to get monthly credits tier
     const metadata = order.metadata as Record<string, unknown> | undefined;
-    const dailyCredits = metadata?.dailyCredits ? Number(metadata.dailyCredits) : 10; // Default to 10 credits/day
+    const monthlyCredits = metadata?.monthlyCredits ? Number(metadata.monthlyCredits) : 500; // Default to 500 credits/month
 
-    console.log(`Pro tier: ${dailyCredits} credits/day`);
+    console.log(`Pro tier: ${monthlyCredits} credits/month`);
 
-    // Find or create the Pro plan with the specific daily credits
+    // Find or create the Pro plan with the specific monthly credits
     let proPlan = await prisma.plan.findFirst({
         where: {
             name: "PRO",
-            dailyCredits: dailyCredits,
+            monthlyCredits: monthlyCredits,
         },
     });
 
     // If plan doesn't exist for this tier, create it
     if (!proPlan) {
-        console.log(`Creating Pro plan for ${dailyCredits} credits/day`);
+        console.log(`Creating Pro plan for ${monthlyCredits} credits/month`);
         const { getProTier } = await import("@/lib/pricing-constants");
-        const tier = getProTier(dailyCredits);
+        const tier = getProTier(monthlyCredits);
 
         if (!tier) {
-            console.error("Invalid Pro tier:", dailyCredits);
+            console.error("Invalid Pro tier:", monthlyCredits);
             return;
         }
 
@@ -173,16 +173,15 @@ async function handleSubscriptionPayment(userId: string, order: Record<string, u
             data: {
                 name: "PRO",
                 displayName: "Pro",
-                description: `Everything you need to build and scale your app. ${tier.dailyCredits} credits/day.`,
+                description: `Everything you need to build and scale your app. ${tier.monthlyCredits} credits/month.`,
                 priceMonthlyUsd: tier.priceMonthly,
                 maxProjects: 999,
-                dailyCredits: tier.dailyCredits,
                 monthlyCredits: tier.monthlyCredits,
                 isActive: true,
                 sortOrder: 1,
                 features: [
                     "Everything in hobby, plus:",
-                    `${tier.dailyCredits} credits per day (~${tier.monthlyCredits}/month)`,
+                    `${tier.monthlyCredits.toLocaleString()} credits/month`,
                     "Unlimited projects",
                     "Import from Figma & GitHub",
                     "Deploy to vercel",
@@ -204,8 +203,8 @@ async function handleSubscriptionPayment(userId: string, order: Record<string, u
             currentPeriodStart,
             currentPeriodEnd,
             cancelAtPeriodEnd: false,
-            dailyCreditsUsed: 0,
-            lastCreditReset: new Date(),
+            monthlyCreditsUsed: 0,
+            periodCreditsReset: new Date(),
             polarCheckoutId: String(order.checkoutId),
             polarPaymentId: String(order.id),
         },
@@ -215,8 +214,8 @@ async function handleSubscriptionPayment(userId: string, order: Record<string, u
             currentPeriodStart,
             currentPeriodEnd,
             cancelAtPeriodEnd: false,
-            dailyCreditsUsed: 0,
-            lastCreditReset: new Date(),
+            monthlyCreditsUsed: 0,
+            periodCreditsReset: new Date(),
             polarPaymentId: String(order.id),
             cancelledAt: null,
         },
@@ -235,7 +234,7 @@ async function handleSubscriptionPayment(userId: string, order: Record<string, u
         },
     });
 
-    console.log(`Subscription payment processed for user ${userId}: Pro ${dailyCredits} credits/day`);
+    console.log(`Subscription payment processed for user ${userId}: Pro ${monthlyCredits} credits/month`);
 }
 
 async function handleSubscriptionActive(subscription: Record<string, unknown>) {

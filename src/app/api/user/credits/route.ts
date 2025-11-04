@@ -19,9 +19,6 @@ export async function GET() {
             subscriptionCreditsUsed: availability.monthlyCreditsUsed,
             planName: availability.planName, // Added: user's subscription plan
             periodEnd: availability.periodEnd, // Billing period end date
-            // Legacy fields for backwards compatibility
-            dailyCreditsUsed: availability.monthlyCreditsUsed,
-            dailyCreditsLimit: availability.monthlyCreditsLimit,
             creditsRemaining: availability.creditsRemaining,
             allowed: availability.allowed,
             reason: availability.reason,

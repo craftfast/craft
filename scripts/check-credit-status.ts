@@ -19,34 +19,27 @@ async function main() {
     }
 
     const now = new Date();
-    const lastReset = new Date(user.subscription.lastCreditReset);
+    const periodStart = new Date(user.subscription.periodCreditsReset);
+    const periodEnd = new Date(user.subscription.currentPeriodEnd);
 
-    // Calculate next reset time (midnight UTC)
-    const nextReset = new Date(lastReset);
-    nextReset.setUTCDate(nextReset.getUTCDate() + 1);
-    nextReset.setUTCHours(0, 0, 0, 0);
-
-    const hoursUntilReset = Math.max(0, (nextReset.getTime() - now.getTime()) / (1000 * 60 * 60));
+    const daysUntilReset = Math.max(0, (periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     console.log("📊 Credit Status Report");
     console.log("========================\n");
     console.log(`User: ${user.email}`);
     console.log(`Plan: ${user.subscription.plan.displayName}`);
-    console.log(`\nDaily Credit Limit: ${user.subscription.plan.dailyCredits}`);
-    console.log(`Daily Credits Used: ${user.subscription.dailyCreditsUsed}`);
-    console.log(`Credits Remaining: ${Number(user.subscription.plan.dailyCredits) - Number(user.subscription.dailyCreditsUsed)}`);
-    console.log(`\nLast Reset: ${lastReset.toLocaleString()}`);
-    console.log(`Next Reset: ${nextReset.toLocaleString()} (${hoursUntilReset.toFixed(1)} hours from now)`);
+    console.log(`\nMonthly Credit Limit: ${user.subscription.plan.monthlyCredits}`);
+    console.log(`Monthly Credits Used: ${user.subscription.monthlyCreditsUsed}`);
+    console.log(`Credits Remaining: ${Number(user.subscription.plan.monthlyCredits) - Number(user.subscription.monthlyCreditsUsed)}`);
+    console.log(`\nPeriod Start: ${periodStart.toLocaleString()}`);
+    console.log(`Period End: ${periodEnd.toLocaleString()} (${daysUntilReset.toFixed(1)} days from now)`);
     console.log(`\nCurrent Time (Local): ${now.toLocaleString()}`);
     console.log(`Current Time (UTC): ${now.toUTCString()}`);
 
-    // Check if we should reset
-    const isNewDay =
-        now.getUTCFullYear() !== lastReset.getUTCFullYear() ||
-        now.getUTCMonth() !== lastReset.getUTCMonth() ||
-        now.getUTCDate() !== lastReset.getUTCDate();
+    // Check if we're past the period end
+    const isPastPeriod = now >= periodEnd;
 
-    if (isNewDay) {
+    if (isPastPeriod) {
         console.log("\n⚠️  Credits should have been reset but weren't!");
         console.log("   The automatic reset may not have triggered.");
     } else {
