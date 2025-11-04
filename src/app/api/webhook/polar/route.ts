@@ -496,6 +496,24 @@ async function handleSubscriptionPaymentFailed(subscription: Record<string, unkn
 
     console.log(`Payment failed for user ${user.id}. Grace period until ${gracePeriodEndsAt.toISOString()}`);
 
-    // TODO: Send dunning email notification
-    // TODO: Schedule retry attempts (days 1, 3, 5, 7)
+    // Send payment failure email notification
+    if (user.subscription) {
+        const { sendPaymentFailedEmail } = await import("@/lib/subscription-emails");
+        const plan = await prisma.plan.findUnique({
+            where: { id: user.subscription.planId }
+        });
+
+        if (plan) {
+            await sendPaymentFailedEmail({
+                user: {
+                    email: user.email,
+                    name: user.name
+                },
+                planName: plan.displayName || plan.name,
+                amount: plan.priceMonthlyUsd,
+                currency: "USD"
+            });
+            console.log(`Payment failure email sent to ${user.email}`);
+        }
+    }
 }

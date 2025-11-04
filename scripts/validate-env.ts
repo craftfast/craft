@@ -128,11 +128,11 @@ const ENV_VARIABLES: EnvValidation[] = [
         description: "GitHub OAuth client secret"
     },
 
-    // Email (optional - for production)
+    // Email (Resend)
     {
-        name: "RESEND_API_KEY",
-        required: false,
-        description: "Resend API key for sending emails"
+        name: "RESEND_ACCOUNT_API_KEY",
+        required: true,
+        description: "Resend API key for sending subscription and notification emails"
     },
 
     // AI Providers

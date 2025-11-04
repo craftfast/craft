@@ -264,10 +264,34 @@ export async function processExpiredGracePeriods(): Promise<{
 
     for (const userId of expiredUserIds) {
         try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                    subscription: {
+                        include: {
+                            plan: true
+                        }
+                    }
+                }
+            });
+
             await endGracePeriod(userId);
 
-            // TODO: Send final notification email
-            // await sendGracePeriodExpiredEmail(userId);
+            // Send final notification email
+            if (user && user.subscription) {
+                const { sendSubscriptionDowngradedEmail } = await import("./subscription-emails");
+                await sendSubscriptionDowngradedEmail({
+                    user: {
+                        email: user.email,
+                        name: user.name
+                    },
+                    planName: user.subscription.plan.displayName || user.subscription.plan.name,
+                    amount: user.subscription.plan.priceMonthlyUsd,
+                    currency: "USD",
+                    reason: "grace_period_expired"
+                });
+                console.log(`Grace period expiration email sent to ${user.email}`);
+            }
         } catch (error) {
             console.error(`Failed to process grace period for user ${userId}:`, error);
             errors.push({
@@ -299,14 +323,35 @@ export async function sendGracePeriodReminders(): Promise<{
 
     for (const user of usersNeedingReminders) {
         try {
-            // TODO: Implement email sending
-            // await sendGracePeriodReminderEmail({
-            //     email: user.email,
-            //     daysRemaining: user.daysRemaining,
-            //     updatePaymentUrl: `${process.env.BETTER_AUTH_URL}/settings/billing`,
-            // });
+            // Get user's subscription details
+            const subscription = await prisma.userSubscription.findUnique({
+                where: { userId: user.userId },
+                include: {
+                    plan: true
+                }
+            });
 
-            console.log(`Reminder sent to ${user.email} (${user.daysRemaining} days remaining)`);
+            const userData = await prisma.user.findUnique({
+                where: { id: user.userId }
+            });
+
+            if (subscription && userData && subscription.gracePeriodEndsAt) {
+                // Send grace period reminder email
+                const { sendGracePeriodReminderEmail } = await import("./subscription-emails");
+                await sendGracePeriodReminderEmail({
+                    user: {
+                        email: user.email,
+                        name: userData.name
+                    },
+                    planName: subscription.plan.displayName || subscription.plan.name,
+                    amount: subscription.plan.priceMonthlyUsd,
+                    currency: "USD",
+                    daysRemaining: user.daysRemaining,
+                    gracePeriodEndsAt: subscription.gracePeriodEndsAt
+                });
+
+                console.log(`Reminder sent to ${user.email} (${user.daysRemaining} days remaining)`);
+            }
         } catch (error) {
             console.error(`Failed to send reminder to user ${user.userId}:`, error);
             errors.push({
