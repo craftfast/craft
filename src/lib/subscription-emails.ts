@@ -476,3 +476,140 @@ export async function sendSubscriptionChangedEmail(
         html,
     });
 }
+
+/**
+ * Send credit usage warning email
+ */
+export async function sendCreditWarningEmail(data: {
+    user: User;
+    planName: string;
+    percentUsed: number;
+    creditsUsed: number;
+    creditsLimit: number;
+    creditsRemaining: number;
+    daysUntilReset: number;
+}): Promise<boolean> {
+    const { user, planName, percentUsed, creditsUsed, creditsLimit, creditsRemaining, daysUntilReset } = data;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const upgradeUrl = `${baseUrl}/settings/billing`;
+
+    const isNearLimit = percentUsed >= 90;
+    const warningLevel = percentUsed >= 95 ? 95 : 90;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Usage Alert</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                            <div style="width: 64px; height: 64px; margin: 0 auto 20px; background-color: ${warningLevel === 95 ? '#fef2f2' : '#fefce8'}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 32px;">${warningLevel === 95 ? '⚠️' : '📊'}</span>
+                            </div>
+                            <h1 style="margin: 0; font-size: 28px; font-weight: 600; color: #171717;">Credit Usage Alert</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 0 40px 40px 40px;">
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #525252;">
+                                Hi${user.name ? ` ${user.name}` : ''},
+                            </p>
+                            
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #525252;">
+                                You've used <strong>${percentUsed.toFixed(1)}%</strong> of your monthly credits on the <strong>${planName}</strong> plan.
+                            </p>
+                            
+                            <!-- Stats Box -->
+                            <div style="margin: 30px 0; padding: 24px; background-color: #fafafa; border-radius: 8px;">
+                                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="padding: 8px 0; font-size: 14px; color: #737373;">Credits Used</td>
+                                        <td align="right" style="padding: 8px 0; font-size: 16px; font-weight: 600; color: #171717;">${creditsUsed.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; font-size: 14px; color: #737373;">Credits Limit</td>
+                                        <td align="right" style="padding: 8px 0; font-size: 16px; font-weight: 600; color: #171717;">${creditsLimit.toLocaleString()}</td>
+                                    </tr>
+                                    <tr style="border-top: 1px solid #e5e5e5;">
+                                        <td style="padding: 12px 0 0 0; font-size: 14px; font-weight: 600; color: #171717;">Credits Remaining</td>
+                                        <td align="right" style="padding: 12px 0 0 0; font-size: 18px; font-weight: 700; color: ${warningLevel === 95 ? '#dc2626' : '#ca8a04'};">${creditsRemaining.toLocaleString()}</td>
+                                    </tr>
+                                </table>
+                                
+                                <!-- Progress Bar -->
+                                <div style="margin-top: 20px; height: 12px; background-color: #e5e5e5; border-radius: 9999px; overflow: hidden;">
+                                    <div style="height: 100%; width: ${percentUsed}%; background-color: ${warningLevel === 95 ? '#dc2626' : '#ca8a04'}; border-radius: 9999px;"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Warning Box -->
+                            <div style="margin: 30px 0; padding: 20px; background-color: ${warningLevel === 95 ? '#fef2f2' : '#fefce8'}; border-left: 4px solid ${warningLevel === 95 ? '#dc2626' : '#ca8a04'}; border-radius: 8px;">
+                                <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: ${warningLevel === 95 ? '#991b1b' : '#854d0e'};">
+                                    ${warningLevel === 95 ? 'Nearly Out of Credits!' : 'Running Low on Credits'}
+                                </p>
+                                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: ${warningLevel === 95 ? '#7f1d1d' : '#713f12'};">
+                                    ${warningLevel === 95
+            ? 'You have very few credits remaining. Consider upgrading to avoid service interruption.'
+            : 'Your credits are running low. You may want to upgrade to a higher tier for more monthly credits.'}
+                                </p>
+                            </div>
+                            
+                            <p style="margin: 20px 0; font-size: 16px; line-height: 1.6; color: #525252;">
+                                Your credits will reset in <strong>${daysUntilReset} day${daysUntilReset !== 1 ? 's' : ''}</strong>. Until then, you can:
+                            </p>
+                            <ul style="margin: 0 0 20px 0; padding-left: 20px; color: #737373; font-size: 14px; line-height: 1.8;">
+                                <li>Continue using your remaining ${creditsRemaining.toLocaleString()} credits</li>
+                                <li>Upgrade to a higher tier for more monthly credits</li>
+                                <li>Monitor your usage in the billing dashboard</li>
+                            </ul>
+                            
+                            <!-- Button -->
+                            <table role="presentation" style="margin: 30px 0; width: 100%;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="${upgradeUrl}" style="display: inline-block; padding: 14px 40px; background-color: #171717; color: #ffffff; text-decoration: none; border-radius: 9999px; font-size: 16px; font-weight: 500;">
+                                            Upgrade Plan
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 20px 0 0 0; font-size: 14px; line-height: 1.6; color: #737373;">
+                                Questions about credits or pricing? <a href="mailto:support@craft.fast" style="color: #0ea5e9; text-decoration: none;">Contact support</a>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px 40px 40px 40px; text-align: center; border-top: 1px solid #e5e5e5;">
+                            <p style="margin: 0; font-size: 12px; color: #a3a3a3;">
+                                © ${new Date().getFullYear()} Craft. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+  `.trim();
+
+    return sendEmail({
+        to: user.email,
+        subject: `${warningLevel === 95 ? '⚠️' : '📊'} Credit Usage Alert - ${percentUsed.toFixed(0)}% Used`,
+        html,
+    });
+}

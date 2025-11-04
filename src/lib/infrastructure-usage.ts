@@ -7,6 +7,8 @@
 import { prisma } from "@/lib/db";
 import { CREDIT_RATES } from "@/lib/pricing-constants";
 import { Prisma } from "@prisma/client";
+import { invalidateCreditCache } from "@/lib/cache";
+import { validateCredits } from "@/lib/subscription-validation";
 
 // ============================================================================
 // SANDBOX USAGE TRACKING (E2B)
@@ -255,6 +257,10 @@ async function deductCreditsFromSubscription(
     usageType: "sandbox" | "database" | "storage" | "deployment",
     costUsd: number
 ): Promise<void> {
+    // Validate credits are non-negative
+    validateCredits(creditsUsed, `${usageType}CreditsUsed`);
+    validateCredits(costUsd, `${usageType}CostUsd`);
+
     // Get user's subscription
     const subscription = await prisma.userSubscription.findUnique({
         where: { userId },
@@ -273,6 +279,9 @@ async function deductCreditsFromSubscription(
             },
         },
     });
+
+    // Invalidate cache after updating credits
+    invalidateCreditCache(userId);
 
     // Update or create usage record for current billing period
     const existingUsageRecord = await prisma.usageRecord.findUnique({
@@ -391,7 +400,7 @@ export async function getCurrentPeriodUsageBreakdown(userId: string): Promise<{
     );
 
     const monthlyCreditsLimit = subscription.plan.monthlyCredits || 100;
-    const monthlyCreditsUsed = Number(subscription.monthlyCreditsUsed || 0);
+    const monthlyCreditsUsed = subscription.monthlyCreditsUsed.toNumber(); // Use Decimal.toNumber()
     const creditsRemaining = Math.max(0, monthlyCreditsLimit - monthlyCreditsUsed);
     const percentUsed = (monthlyCreditsUsed / monthlyCreditsLimit) * 100;
 
@@ -409,23 +418,23 @@ export async function getCurrentPeriodUsageBreakdown(userId: string): Promise<{
         },
         breakdown: {
             ai: {
-                used: Number(usageRecord?.aiCreditsUsed || 0),
+                used: usageRecord?.aiCreditsUsed.toNumber() || 0,
                 cost: usageRecord?.aiCostUsd || 0,
             },
             sandbox: {
-                used: Number(usageRecord?.sandboxCreditsUsed || 0),
+                used: usageRecord?.sandboxCreditsUsed.toNumber() || 0,
                 cost: usageRecord?.sandboxCostUsd || 0,
             },
             database: {
-                used: Number(usageRecord?.databaseCreditsUsed || 0),
+                used: usageRecord?.databaseCreditsUsed.toNumber() || 0,
                 cost: usageRecord?.databaseCostUsd || 0,
             },
             storage: {
-                used: Number(usageRecord?.storageCreditsUsed || 0),
+                used: usageRecord?.storageCreditsUsed.toNumber() || 0,
                 cost: usageRecord?.storageCostUsd || 0,
             },
             deployment: {
-                used: Number(usageRecord?.deployCreditsUsed || 0),
+                used: usageRecord?.deployCreditsUsed.toNumber() || 0,
                 cost: usageRecord?.deployCostUsd || 0,
             },
         },

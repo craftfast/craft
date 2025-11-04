@@ -349,6 +349,15 @@ async function handleSubscriptionUpdate(subscription: Record<string, unknown>) {
         return;
     }
 
+    // Get existing subscription to check if this is a renewal
+    const existingSub = await prisma.userSubscription.findUnique({
+        where: { userId: user.id },
+    });
+
+    const newPeriodStart = new Date(String(subscription.currentPeriodStart));
+    const isRenewal = existingSub &&
+        newPeriodStart > existingSub.currentPeriodStart;
+
     // Map Polar status to our enum
     const statusMap: Record<string, SubscriptionStatus> = {
         active: SubscriptionStatus.ACTIVE,
@@ -366,12 +375,22 @@ async function handleSubscriptionUpdate(subscription: Record<string, unknown>) {
         where: { userId: user.id },
         data: {
             status: mappedStatus,
-            currentPeriodStart: new Date(String(subscription.currentPeriodStart)),
+            currentPeriodStart: newPeriodStart,
             currentPeriodEnd: new Date(String(subscription.currentPeriodEnd)),
+            // Reset credits if this is a renewal (new billing period started)
+            ...(isRenewal && {
+                monthlyCreditsUsed: 0,
+                periodCreditsReset: new Date(),
+            }),
             updatedAt: new Date(),
         },
     });
-    console.log("Subscription updated for user:", user.id);
+
+    if (isRenewal) {
+        console.log("Subscription renewed and credits reset for user:", user.id);
+    } else {
+        console.log("Subscription updated for user:", user.id);
+    }
 }
 
 async function handleSubscriptionCanceled(subscription: Record<string, unknown>) {

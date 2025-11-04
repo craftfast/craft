@@ -92,7 +92,7 @@ export async function calculateProration(
     const creditsDifference = newPlanCredits - oldPlanCredits;
 
     // Get current credit usage
-    const creditsAlreadyUsed = Number(subscription.monthlyCreditsUsed || 0);
+    const creditsAlreadyUsed = subscription.monthlyCreditsUsed.toNumber(); // Use Decimal.toNumber() for precision
     const creditsRemainingOld = Math.max(0, oldPlanCredits - creditsAlreadyUsed);
 
     // SIMPLIFIED: User gets full new plan credits minus what they already used
@@ -159,6 +159,7 @@ export async function applyProration(
 ) {
     const subscription = await prisma.userSubscription.findUnique({
         where: { userId },
+        include: { plan: true },
     });
 
     if (!subscription) {
@@ -178,6 +179,16 @@ export async function applyProration(
         //          → Charge: $75 ($100 - $25)
         //          → Credits: 3000 - 100 = 2900 available
 
+        // Get old usage record before changing plan
+        const oldUsageRecord = await prisma.usageRecord.findUnique({
+            where: {
+                subscriptionId_billingPeriodStart: {
+                    subscriptionId: subscription.id,
+                    billingPeriodStart: subscription.currentPeriodStart,
+                },
+            },
+        });
+
         await prisma.userSubscription.update({
             where: { userId },
             data: {
@@ -186,6 +197,44 @@ export async function applyProration(
                 updatedAt: new Date(),
             },
         });
+
+        // If there's an existing usage record for this period, update it with the new subscription
+        // This ensures usage history is preserved when upgrading mid-period
+        if (oldUsageRecord) {
+            // Create new usage record for the new subscription with carried-over usage
+            const newSubscription = await prisma.userSubscription.findUnique({
+                where: { userId },
+            });
+
+            if (newSubscription) {
+                await prisma.usageRecord.create({
+                    data: {
+                        userId,
+                        subscriptionId: newSubscription.id,
+                        billingPeriodStart: newSubscription.currentPeriodStart,
+                        billingPeriodEnd: newSubscription.currentPeriodEnd,
+                        // Carry over all existing usage
+                        aiCreditsUsed: oldUsageRecord.aiCreditsUsed,
+                        sandboxCreditsUsed: oldUsageRecord.sandboxCreditsUsed,
+                        databaseCreditsUsed: oldUsageRecord.databaseCreditsUsed,
+                        storageCreditsUsed: oldUsageRecord.storageCreditsUsed,
+                        deployCreditsUsed: oldUsageRecord.deployCreditsUsed,
+                        totalCreditsUsed: oldUsageRecord.totalCreditsUsed,
+                        aiCostUsd: oldUsageRecord.aiCostUsd,
+                        sandboxCostUsd: oldUsageRecord.sandboxCostUsd,
+                        databaseCostUsd: oldUsageRecord.databaseCostUsd,
+                        storageCostUsd: oldUsageRecord.storageCostUsd,
+                        deployCostUsd: oldUsageRecord.deployCostUsd,
+                        totalCostUsd: oldUsageRecord.totalCostUsd,
+                    },
+                });
+
+                // Delete the old usage record to avoid duplicates
+                await prisma.usageRecord.delete({
+                    where: { id: oldUsageRecord.id },
+                });
+            }
+        }
 
         // Create payment transaction for prorated amount
         if (proration.proratedPayment > 0) {

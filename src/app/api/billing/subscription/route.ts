@@ -57,7 +57,7 @@ export async function GET() {
                 data: {
                     userId: user.id,
                     planId: hobbyPlan.id,
-                    status: "active",
+                    status: "ACTIVE",
                     currentPeriodStart: new Date(),
                     currentPeriodEnd: new Date(
                         new Date().setMonth(new Date().getMonth() + 1)
@@ -76,7 +76,7 @@ export async function GET() {
                 Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
             );
 
-            const monthlyCreditsUsed = Number(subscription.monthlyCreditsUsed);
+            const monthlyCreditsUsed = subscription.monthlyCreditsUsed.toNumber(); // Use Decimal.toNumber()
             const monthlyCreditsLimit = subscription.plan.monthlyCredits || 0;
             const monthlyCreditsRemaining = Math.max(0, monthlyCreditsLimit - monthlyCreditsUsed);
 
@@ -111,7 +111,7 @@ export async function GET() {
             Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         );
 
-        const monthlyCreditsUsed = Number(user.subscription.monthlyCreditsUsed);
+        const monthlyCreditsUsed = user.subscription.monthlyCreditsUsed.toNumber(); // Use Decimal.toNumber()
         const monthlyCreditsLimit = user.subscription.plan.monthlyCredits || 0;
         const monthlyCreditsRemaining = Math.max(0, monthlyCreditsLimit - monthlyCreditsUsed);
 

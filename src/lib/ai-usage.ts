@@ -4,6 +4,8 @@
  */
 
 import { prisma } from "@/lib/db";
+import { creditCache, getCreditCacheKey, invalidateCreditCache } from "@/lib/cache";
+import { validateTokens, validateModelName, validateCredits } from "@/lib/subscription-validation";
 
 // AI Model pricing per 1M tokens (in USD)
 // Updated from OpenRouter pricing (October 16, 2025)
@@ -377,6 +379,14 @@ export async function checkUserCreditAvailability(
     periodEnd: Date;
     referralCredits?: number; // Added: bonus credits from referrals
 }> {
+    // Check cache first (5 minute TTL)
+    const cacheKey = getCreditCacheKey(userId);
+    const cached = creditCache.get(cacheKey);
+
+    if (cached) {
+        return cached;
+    }
+
     // Reset credits if billing period has ended
     await resetMonthlyCreditsIfNeeded(userId);
 
@@ -396,19 +406,31 @@ export async function checkUserCreditAvailability(
     }
 
     // Get referral credits (1 credit per active referral)
+    // Limit: Maximum 50 referral credits
+    // Expiration: Only count referrals from last 365 days
+    const REFERRAL_CREDIT_LIMIT = 50;
+    const REFERRAL_CREDIT_EXPIRY_DAYS = 365;
+
+    const oneYearAgo = new Date();
+    oneYearAgo.setDate(oneYearAgo.getDate() - REFERRAL_CREDIT_EXPIRY_DAYS);
+
     const activeReferralsCount = await prisma.user.count({
         where: {
             referredById: userId,
             deletedAt: null,
+            createdAt: {
+                gte: oneYearAgo, // Only count referrals from last year
+            },
         },
     });
-    const referralCredits = activeReferralsCount;
+
+    const referralCredits = Math.min(activeReferralsCount, REFERRAL_CREDIT_LIMIT);
 
     // Add referral credits to total limit
     const totalMonthlyLimit = monthlyCreditsLimit + referralCredits;
 
     const monthlyCreditsUsed = subscription?.monthlyCreditsUsed
-        ? Number(subscription.monthlyCreditsUsed)
+        ? subscription.monthlyCreditsUsed.toNumber() // Use Decimal.toNumber() for precision
         : 0;
     const creditsRemaining = Math.round(Math.max(0, totalMonthlyLimit - monthlyCreditsUsed) * 100) / 100;
     const periodEnd = subscription?.currentPeriodEnd || new Date();
@@ -423,7 +445,7 @@ export async function checkUserCreditAvailability(
         reason = `Monthly credit limit reached. Credits reset in ${daysUntilReset} days.`;
     }
 
-    return {
+    const result = {
         allowed,
         reason,
         monthlyCreditsUsed,
@@ -433,6 +455,11 @@ export async function checkUserCreditAvailability(
         periodEnd,
         referralCredits,
     };
+
+    // Cache the result for 5 minutes to reduce database load
+    creditCache.set(cacheKey, result, 300);
+
+    return result;
 }
 
 /**
@@ -454,6 +481,13 @@ export async function processAIUsage(params: {
     creditsUsed: number;
     modelMultiplier: number; // Added for transparency
 }> {
+    // Validate input data
+    validateTokens({
+        inputTokens: params.inputTokens,
+        outputTokens: params.outputTokens,
+    });
+    validateModelName(params.model);
+
     // Track the usage
     const usage = await trackAIUsage(params);
 
@@ -461,6 +495,9 @@ export async function processAIUsage(params: {
     const totalTokens = params.inputTokens + params.outputTokens;
     const creditsUsed = tokensToCredits(totalTokens, params.model);
     const modelMultiplier = getModelCreditMultiplier(params.model);
+
+    // Validate credits are positive
+    validateCredits(creditsUsed, "creditsUsed");
 
     // Reset credits if billing period has ended
     await resetMonthlyCreditsIfNeeded(params.userId);
@@ -527,6 +564,48 @@ export async function processAIUsage(params: {
                 totalCostUsd: usage.costUsd,
             },
         });
+    }
+
+    // Invalidate cache after updating credits
+    invalidateCreditCache(params.userId);
+
+    // Check if user should receive credit usage warning
+    const updatedAvailability = await checkUserCreditAvailability(params.userId);
+    const percentUsed = (updatedAvailability.monthlyCreditsUsed / updatedAvailability.monthlyCreditsLimit) * 100;
+
+    // Send warning emails at 90% and 95% thresholds
+    if ((percentUsed >= 90 && percentUsed < 92) || (percentUsed >= 95 && percentUsed < 97)) {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: params.userId },
+                select: { email: true, name: true, subscription: { include: { plan: true } } },
+            });
+
+            if (user && user.subscription) {
+                const daysUntilReset = Math.ceil(
+                    (updatedAvailability.periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+                );
+
+                const { sendCreditWarningEmail } = await import("@/lib/subscription-emails");
+                await sendCreditWarningEmail({
+                    user: {
+                        email: user.email,
+                        name: user.name,
+                    },
+                    planName: user.subscription.plan.displayName || user.subscription.plan.name,
+                    percentUsed,
+                    creditsUsed: updatedAvailability.monthlyCreditsUsed,
+                    creditsLimit: updatedAvailability.monthlyCreditsLimit,
+                    creditsRemaining: updatedAvailability.creditsRemaining,
+                    daysUntilReset,
+                });
+
+                console.log(`📧 Sent ${percentUsed >= 95 ? '95%' : '90%'} credit usage warning to ${user.email}`);
+            }
+        } catch (emailError) {
+            console.error('Failed to send credit warning email:', emailError);
+            // Don't fail the request if email fails
+        }
     }
 
     return {
