@@ -10,36 +10,25 @@ import { prisma } from "@/lib/db";
 const MODEL_PRICING = {
     // Claude models (Anthropic direct API format)
     "claude-haiku-4-5": { input: 1.0, output: 5.0 },
-    "claude-haiku-3-5": { input: 0.8, output: 4.0 },
     "claude-sonnet-4-5": { input: 3.0, output: 15.0 },
-    "claude-sonnet-3-5": { input: 3.0, output: 15.0 },
 
     // Claude models (with full OpenRouter path)
     "anthropic/claude-sonnet-4.5": { input: 3.0, output: 15.0 },
-    "anthropic/claude-sonnet-3.5": { input: 3.0, output: 15.0 },
     "anthropic/claude-haiku-4.5": { input: 1.0, output: 5.0 },
 
     // Claude models (short names for backwards compatibility)
     "claude-sonnet-4.5": { input: 3.0, output: 15.0 },
-    "claude-sonnet-3.5": { input: 3.0, output: 15.0 },
     "claude-haiku-4.5": { input: 1.0, output: 5.0 },
 
     // GPT models
     "gpt-5": { input: 1.25, output: 10.0 },
     "gpt-5-mini": { input: 0.25, output: 2.0 },
-    "gpt-4-turbo": { input: 10.0, output: 30.0 },
 
-    // Gemini models
-    "gemini-2.5-pro": { input: 1.25, output: 10.0 },
-    "gemini-2.5-flash": { input: 0.3, output: 2.5 },
-
-    // Grok models (with full OpenRouter path)
+    // Grok models (with full OpenRouter path) - Used for project naming
     "x-ai/grok-4-fast": { input: 0.05, output: 0.15 },
-    "x-ai/grok-2": { input: 2.0, output: 6.0 },
 
     // Grok models (short names for backwards compatibility)
     "grok-4-fast": { input: 0.05, output: 0.15 },
-    "grok-2": { input: 2.0, output: 6.0 },
 
     // Default fallback
     default: { input: 1.0, output: 3.0 },

@@ -16,7 +16,7 @@ import {
 export default function ThemeDemo() {
   const { theme, resolvedTheme } = useTheme();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("GPT-4 Turbo");
+  const [selectedModel, setSelectedModel] = useState("GPT-5");
   const [selectedVisibility, setSelectedVisibility] = useState("public");
   const [isVisibilityDropdownOpen, setIsVisibilityDropdownOpen] =
     useState(false);
@@ -82,10 +82,14 @@ export default function ThemeDemo() {
   ];
 
   const models = [
-    { id: "gpt4-turbo", name: "GPT-4 Turbo", cost: "~$0.01/1K tokens" },
-    { id: "gpt4", name: "GPT-4", cost: "~$0.03/1K tokens" },
-    { id: "claude-3.5", name: "Claude 3.5 Sonnet", cost: "~$0.015/1K tokens" },
-    { id: "gpt3.5", name: "GPT-3.5 Turbo", cost: "~$0.002/1K tokens" },
+    { id: "gpt-5-mini", name: "GPT-5 Mini", cost: "0.25× credits" },
+    { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", cost: "0.5× credits" },
+    { id: "gpt-5", name: "GPT-5", cost: "1.0× credits" },
+    {
+      id: "claude-sonnet-4.5",
+      name: "Claude Sonnet 4.5",
+      cost: "1.5× credits",
+    },
   ];
 
   const visibilityOptions = [

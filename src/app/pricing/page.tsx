@@ -104,7 +104,7 @@ function FAQSection() {
     {
       question: "What AI models do you support?",
       answer:
-        "Craft supports leading AI models including GPT-4, GPT-4 Turbo, Claude 3.5 Sonnet, and other cutting-edge models. You can switch between models based on your needs, with credit usage calculated from AI usage.",
+        "Craft supports leading AI models including GPT-5, GPT-5 Mini, Claude Sonnet 4.5, and Claude Haiku 4.5. You can switch between models based on your needs, with credit usage calculated from AI usage.",
     },
     {
       question: "Do unused credits roll over?",
