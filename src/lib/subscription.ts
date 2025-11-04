@@ -4,6 +4,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import { SubscriptionStatus } from "@prisma/client";
 
 export interface SubscriptionDetails {
     id: string;
@@ -13,7 +14,7 @@ export interface SubscriptionDetails {
         displayName: string;
         priceMonthlyUsd: number;
     };
-    status: string;
+    status: SubscriptionStatus;
     currentPeriodStart: Date;
     currentPeriodEnd: Date;
     cancelAtPeriodEnd: boolean;
@@ -86,7 +87,7 @@ export async function assignPlanToUser(
                 planId: plan.id,
                 currentPeriodStart: periodStart,
                 currentPeriodEnd: periodEnd,
-                status: "active",
+                status: SubscriptionStatus.ACTIVE,
                 monthlyCreditsUsed: 0,
                 periodCreditsReset: new Date(),
             },
@@ -102,7 +103,7 @@ export async function assignPlanToUser(
                 planId: plan.id,
                 currentPeriodStart: periodStart,
                 currentPeriodEnd: periodEnd,
-                status: "active",
+                status: SubscriptionStatus.ACTIVE,
                 monthlyCreditsUsed: 0,
                 periodCreditsReset: new Date(),
             },
@@ -170,7 +171,7 @@ export async function reactivateSubscription(
         data: {
             cancelAtPeriodEnd: false,
             cancelledAt: null,
-            status: "active",
+            status: SubscriptionStatus.ACTIVE,
         },
         include: {
             plan: true,
@@ -206,7 +207,7 @@ export async function getExpiringSoonSubscriptions(): Promise<
             currentPeriodEnd: {
                 lte: sevenDaysFromNow,
             },
-            status: "active",
+            status: SubscriptionStatus.ACTIVE,
         },
         include: {
             plan: true,
@@ -236,7 +237,7 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
         where: { userId },
     });
 
-    return subscription?.status === "active";
+    return subscription?.status === SubscriptionStatus.ACTIVE;
 }
 
 /**

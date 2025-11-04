@@ -8,6 +8,71 @@
 
 import { Webhooks } from "@polar-sh/nextjs";
 import { prisma } from "@/lib/db";
+import { SubscriptionStatus, WebhookEventStatus } from "@prisma/client";
+
+/**
+ * Log webhook event to database for audit trail and replay capability
+ */
+async function logWebhookEvent(
+    eventId: string,
+    eventType: string,
+    payload: unknown,
+    status: WebhookEventStatus = WebhookEventStatus.PENDING
+) {
+    try {
+        await prisma.webhookEvent.upsert({
+            where: { eventId },
+            create: {
+                eventId,
+                eventType,
+                payload: payload as any,
+                status,
+                createdAt: new Date(),
+            },
+            update: {
+                status,
+                updatedAt: new Date(),
+            },
+        });
+    } catch (error) {
+        console.error("Failed to log webhook event:", error);
+    }
+}
+
+/**
+ * Mark webhook event as completed
+ */
+async function markWebhookEventCompleted(eventId: string) {
+    try {
+        await prisma.webhookEvent.update({
+            where: { eventId },
+            data: {
+                status: WebhookEventStatus.COMPLETED,
+                processedAt: new Date(),
+            },
+        });
+    } catch (error) {
+        console.error("Failed to mark webhook event as completed:", error);
+    }
+}
+
+/**
+ * Mark webhook event as failed
+ */
+async function markWebhookEventFailed(eventId: string, error: string) {
+    try {
+        await prisma.webhookEvent.update({
+            where: { eventId },
+            data: {
+                status: WebhookEventStatus.FAILED,
+                error,
+                processedAt: new Date(),
+            },
+        });
+    } catch (err) {
+        console.error("Failed to mark webhook event as failed:", err);
+    }
+}
 
 export const POST = Webhooks({
     webhookSecret: process.env.POLAR_WEBHOOK_SECRET!,
@@ -19,6 +84,10 @@ export const POST = Webhooks({
     onPayload: async (payload) => {
         console.log(" Polar webhook received:", payload.type);
         console.log(" Full payload:", JSON.stringify(payload, null, 2));
+
+        // Log all webhook events to database
+        const eventId = `${payload.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        await logWebhookEvent(eventId, payload.type, payload);
     },
 
     // ============================================================================
@@ -199,7 +268,7 @@ async function handleSubscriptionPayment(userId: string, order: Record<string, u
         create: {
             userId,
             planId: proPlan.id,
-            status: "active",
+            status: SubscriptionStatus.ACTIVE,
             currentPeriodStart,
             currentPeriodEnd,
             cancelAtPeriodEnd: false,
@@ -210,7 +279,7 @@ async function handleSubscriptionPayment(userId: string, order: Record<string, u
         },
         update: {
             planId: proPlan.id,
-            status: "active",
+            status: SubscriptionStatus.ACTIVE,
             currentPeriodStart,
             currentPeriodEnd,
             cancelAtPeriodEnd: false,
@@ -256,12 +325,12 @@ async function handleSubscriptionActive(subscription: Record<string, unknown>) {
     await prisma.userSubscription.upsert({
         where: { userId: user.id },
         create: {
-            userId: user.id, planId: proPlan.id, status: "active",
+            userId: user.id, planId: proPlan.id, status: SubscriptionStatus.ACTIVE,
             currentPeriodStart: new Date(String(subscription.currentPeriodStart)),
             currentPeriodEnd: new Date(String(subscription.currentPeriodEnd)), cancelAtPeriodEnd: false,
         },
         update: {
-            status: "active", currentPeriodStart: new Date(String(subscription.currentPeriodStart)),
+            status: SubscriptionStatus.ACTIVE, currentPeriodStart: new Date(String(subscription.currentPeriodStart)),
             currentPeriodEnd: new Date(String(subscription.currentPeriodEnd)), cancelAtPeriodEnd: false, cancelledAt: null,
         },
     });
@@ -279,10 +348,24 @@ async function handleSubscriptionUpdate(subscription: Record<string, unknown>) {
         console.error("User not found for email:", customerEmail);
         return;
     }
+
+    // Map Polar status to our enum
+    const statusMap: Record<string, SubscriptionStatus> = {
+        active: SubscriptionStatus.ACTIVE,
+        past_due: SubscriptionStatus.PAST_DUE,
+        canceled: SubscriptionStatus.CANCELLED,
+        trialing: SubscriptionStatus.TRIALING,
+        unpaid: SubscriptionStatus.UNPAID,
+        expired: SubscriptionStatus.EXPIRED,
+    };
+
+    const polarStatus = String(subscription.status).toLowerCase();
+    const mappedStatus = statusMap[polarStatus] || SubscriptionStatus.ACTIVE;
+
     await prisma.userSubscription.updateMany({
         where: { userId: user.id },
         data: {
-            status: String(subscription.status),
+            status: mappedStatus,
             currentPeriodStart: new Date(String(subscription.currentPeriodStart)),
             currentPeriodEnd: new Date(String(subscription.currentPeriodEnd)),
             updatedAt: new Date(),
@@ -322,7 +405,7 @@ async function handleSubscriptionUncanceled(subscription: Record<string, unknown
     }
     await prisma.userSubscription.updateMany({
         where: { userId: user.id },
-        data: { cancelAtPeriodEnd: false, cancelledAt: null, status: "active", updatedAt: new Date() },
+        data: { cancelAtPeriodEnd: false, cancelledAt: null, status: SubscriptionStatus.ACTIVE, updatedAt: new Date() },
     });
     console.log("Subscription reactivated for user:", user.id);
 }
@@ -345,7 +428,7 @@ async function handleSubscriptionRevoked(subscription: Record<string, unknown>) 
     }
     await prisma.userSubscription.updateMany({
         where: { userId: user.id },
-        data: { planId: hobbyPlan.id, status: "cancelled", cancelAtPeriodEnd: true, cancelledAt: new Date(), updatedAt: new Date() },
+        data: { planId: hobbyPlan.id, status: SubscriptionStatus.CANCELLED, cancelAtPeriodEnd: true, cancelledAt: new Date(), updatedAt: new Date() },
     });
     console.log("Subscription revoked for user:", user.id);
 }
@@ -373,4 +456,46 @@ async function handleOrderRefund(order: Record<string, unknown>) {
 
     // Token purchases no longer exist - refund would downgrade subscription instead
     console.log("Order refund processed:", order.id);
+}
+
+/**
+ * Handle subscription payment failure
+ * Sets status to PAST_DUE and establishes 7-day grace period
+ * Note: This should be called when payment fails on renewal
+ */
+async function handleSubscriptionPaymentFailed(subscription: Record<string, unknown>) {
+    const customerEmail = (subscription.customer as { email?: string })?.email;
+    if (!customerEmail) {
+        console.error("No customer email in subscription:", subscription.id);
+        return;
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { email: customerEmail },
+        include: { subscription: true }
+    });
+
+    if (!user) {
+        console.error("User not found for email:", customerEmail);
+        return;
+    }
+
+    // Set 7-day grace period
+    const gracePeriodEndsAt = new Date();
+    gracePeriodEndsAt.setDate(gracePeriodEndsAt.getDate() + 7);
+
+    await prisma.userSubscription.updateMany({
+        where: { userId: user.id },
+        data: {
+            status: SubscriptionStatus.PAST_DUE,
+            paymentFailedAt: new Date(),
+            gracePeriodEndsAt,
+            updatedAt: new Date(),
+        },
+    });
+
+    console.log(`Payment failed for user ${user.id}. Grace period until ${gracePeriodEndsAt.toISOString()}`);
+
+    // TODO: Send dunning email notification
+    // TODO: Schedule retry attempts (days 1, 3, 5, 7)
 }
