@@ -39,6 +39,9 @@ model User {
   preferredTheme        String               @default("system")
   preferredModel        String               @default("gpt-5")
   enabledModels         String[]             @default(["gpt-5-mini", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4.5"])
+  // Referral system
+  referralCode          String?              @unique
+  referredById          String?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   // Better Auth admin plugin fields
@@ -63,6 +66,10 @@ model User {
   sessions              Session[]
   subscription          UserSubscription?
   twofactors            TwoFactor[]
+  // Referral relations
+  referredBy            User?                @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals             User[]               @relation("UserReferrals")
+  referralCredits       ReferralCredit[]
 
   @@map("users")
 }
@@ -653,4 +660,24 @@ model DeploymentUsage {
   @@index([projectId, createdAt])
   @@index([platform])
   @@map("deployment_usage")
+}
+
+// Referral system
+model ReferralCredit {
+  id              String   @id @default(cuid())
+  userId          String // User who earned the credit
+  referredUserId  String // User who signed up with referral code
+  creditsAwarded  Int      @default(1) // Monthly credits earned
+  awardedForMonth DateTime // Which month this credit is for (YYYY-MM-01)
+  status          String   @default("active") // "active", "revoked" (if referred user deleted account)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, referredUserId, awardedForMonth])
+  @@index([userId, awardedForMonth])
+  @@index([referredUserId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("referral_credits")
 }

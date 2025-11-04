@@ -22,6 +22,7 @@ export async function GET() {
             creditsRemaining: availability.creditsRemaining,
             allowed: availability.allowed,
             reason: availability.reason,
+            referralCredits: availability.referralCredits || 0, // Added: bonus credits from referrals
         });
     } catch (error) {
         console.error("Error fetching credit balance:", error);

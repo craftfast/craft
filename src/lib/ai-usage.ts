@@ -386,6 +386,7 @@ export async function checkUserCreditAvailability(
     creditsRemaining: number;
     planName: "HOBBY" | "PRO" | "ENTERPRISE";
     periodEnd: Date;
+    referralCredits?: number; // Added: bonus credits from referrals
 }> {
     // Reset credits if billing period has ended
     await resetMonthlyCreditsIfNeeded(userId);
@@ -405,17 +406,29 @@ export async function checkUserCreditAvailability(
         planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
     }
 
+    // Get referral credits (1 credit per active referral)
+    const activeReferralsCount = await prisma.user.count({
+        where: {
+            referredById: userId,
+            deletedAt: null,
+        },
+    });
+    const referralCredits = activeReferralsCount;
+
+    // Add referral credits to total limit
+    const totalMonthlyLimit = monthlyCreditsLimit + referralCredits;
+
     const monthlyCreditsUsed = subscription?.monthlyCreditsUsed
         ? Number(subscription.monthlyCreditsUsed)
         : 0;
-    const creditsRemaining = Math.round(Math.max(0, monthlyCreditsLimit - monthlyCreditsUsed) * 100) / 100;
+    const creditsRemaining = Math.round(Math.max(0, totalMonthlyLimit - monthlyCreditsUsed) * 100) / 100;
     const periodEnd = subscription?.currentPeriodEnd || new Date();
 
     // Check if usage is allowed
     let allowed = true;
     let reason: string | undefined;
 
-    if (monthlyCreditsUsed >= monthlyCreditsLimit) {
+    if (monthlyCreditsUsed >= totalMonthlyLimit) {
         allowed = false;
         const daysUntilReset = Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
         reason = `Monthly credit limit reached. Credits reset in ${daysUntilReset} days.`;
@@ -425,10 +438,11 @@ export async function checkUserCreditAvailability(
         allowed,
         reason,
         monthlyCreditsUsed,
-        monthlyCreditsLimit,
+        monthlyCreditsLimit: totalMonthlyLimit,
         creditsRemaining,
         planName,
         periodEnd,
+        referralCredits,
     };
 }
 
