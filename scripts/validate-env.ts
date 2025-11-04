@@ -48,11 +48,8 @@ const ENV_VARIABLES: EnvValidation[] = [
     },
 
     // Polar Product IDs (Hobby Plan)
-    {
-        name: "POLAR_HOBBY_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Hobby plan (free)"
-    },
+    // Note: Hobby is free and not in Polar (Polar minimum is $0.50)
+    // Hobby plan is handled internally in the database only
 
     // Polar Product IDs (Pro Plans - 8 tiers)
     {
@@ -61,34 +58,34 @@ const ENV_VARIABLES: EnvValidation[] = [
         description: "Polar product ID for Pro 500 credits/month ($25)"
     },
     {
-        name: "POLAR_PRO_1000_PRODUCT_ID",
+        name: "POLAR_PRO_1200_PRODUCT_ID",
         required: true,
-        description: "Polar product ID for Pro 1,000 credits/month ($45)"
+        description: "Polar product ID for Pro 1,200 credits/month ($50)"
     },
     {
-        name: "POLAR_PRO_2500_PRODUCT_ID",
+        name: "POLAR_PRO_3000_PRODUCT_ID",
         required: true,
-        description: "Polar product ID for Pro 2,500 credits/month ($100)"
+        description: "Polar product ID for Pro 3,000 credits/month ($100)"
     },
     {
-        name: "POLAR_PRO_5000_PRODUCT_ID",
+        name: "POLAR_PRO_7000_PRODUCT_ID",
         required: true,
-        description: "Polar product ID for Pro 5,000 credits/month ($190)"
+        description: "Polar product ID for Pro 7,000 credits/month ($200)"
     },
     {
-        name: "POLAR_PRO_10000_PRODUCT_ID",
+        name: "POLAR_PRO_16000_PRODUCT_ID",
         required: true,
-        description: "Polar product ID for Pro 10,000 credits/month ($350)"
+        description: "Polar product ID for Pro 16,000 credits/month ($400)"
     },
     {
-        name: "POLAR_PRO_25000_PRODUCT_ID",
+        name: "POLAR_PRO_30000_PRODUCT_ID",
         required: true,
-        description: "Polar product ID for Pro 25,000 credits/month ($800)"
+        description: "Polar product ID for Pro 30,000 credits/month ($700)"
     },
     {
-        name: "POLAR_PRO_50000_PRODUCT_ID",
+        name: "POLAR_PRO_55000_PRODUCT_ID",
         required: true,
-        description: "Polar product ID for Pro 50,000 credits/month ($1,500)"
+        description: "Polar product ID for Pro 55,000 credits/month ($1,200)"
     },
     {
         name: "POLAR_PRO_100000_PRODUCT_ID",

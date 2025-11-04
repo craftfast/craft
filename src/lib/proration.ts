@@ -22,6 +22,11 @@ export interface ProrationResult {
     creditsDifference: number;
     proratedCredits: number;
 
+    // Current usage tracking
+    creditsAlreadyUsed: number;
+    creditsRemainingOld: number;
+    creditsAvailableNew: number;
+
     // Payment adjustments
     oldPlanPrice: number;
     newPlanPrice: number;
@@ -86,16 +91,24 @@ export async function calculateProration(
     const newPlanCredits = newPlan.monthlyCredits;
     const creditsDifference = newPlanCredits - oldPlanCredits;
 
-    // Calculate prorated credits for remaining period
-    const proratedCredits = Math.round(creditsDifference * proratedPercentage);
+    // Get current credit usage
+    const creditsAlreadyUsed = Number(subscription.monthlyCreditsUsed || 0);
+    const creditsRemainingOld = Math.max(0, oldPlanCredits - creditsAlreadyUsed);
+
+    // SIMPLIFIED: User gets full new plan credits minus what they already used
+    // Example: User on 500 credits (used 100) upgrades to 3000 credits
+    //          They get: 3000 - 100 = 2900 credits available
+    const proratedCredits = creditsDifference; // Full difference, not time-based
+    const creditsAvailableNew = Math.max(0, newPlanCredits - creditsAlreadyUsed);
 
     // Calculate payment differences
     const oldPlanPrice = subscription.plan.priceMonthlyUsd;
     const newPlanPrice = newPlan.priceMonthlyUsd;
     const priceDifference = newPlanPrice - oldPlanPrice;
 
-    // Calculate prorated payment for remaining period
-    const proratedPayment = Number((priceDifference * proratedPercentage).toFixed(2));
+    // SIMPLIFIED: Just charge the price difference (not prorated)
+    // If user pays $25 and upgrades to $100, charge $75 for that month
+    const proratedPayment = Math.max(0, priceDifference);
 
     // Determine action recommendations
     const isUpgrade = newPlanPrice > oldPlanPrice;
@@ -107,6 +120,11 @@ export async function calculateProration(
         newPlanCredits,
         creditsDifference,
         proratedCredits,
+
+        // Current usage tracking
+        creditsAlreadyUsed,
+        creditsRemainingOld,
+        creditsAvailableNew,
 
         // Payment adjustments
         oldPlanPrice,
@@ -149,13 +167,22 @@ export async function applyProration(
 
     // For upgrades: Apply immediately
     if (proration.shouldChargeImmediately) {
-        // Update plan immediately
+        // SIMPLE UPGRADE LOGIC:
+        // 1. User pays the price difference (e.g., $100 - $25 = $75)
+        // 2. User's credit usage carries over (e.g., 100 credits used stays at 100)
+        // 3. User gets new plan's full credit limit (e.g., 3000 credits)
+        // 4. Available credits = new limit - used credits (e.g., 3000 - 100 = 2900)
+        //
+        // Example: User on $25/500 credits plan (used 100 credits)
+        //          Upgrades to $100/3000 credits plan
+        //          → Charge: $75 ($100 - $25)
+        //          → Credits: 3000 - 100 = 2900 available
+
         await prisma.userSubscription.update({
             where: { userId },
             data: {
                 planId: newPlanId,
-                // Add prorated credits to monthly allowance
-                // Note: Credits are reset at period end anyway
+                // DO NOT reset monthlyCreditsUsed - usage carries over!
                 updatedAt: new Date(),
             },
         });
@@ -173,6 +200,10 @@ export async function applyProration(
                         type: "proration_upgrade",
                         oldPlanId: subscription.planId,
                         newPlanId,
+                        oldPlanCredits: proration.oldPlanCredits,
+                        newPlanCredits: proration.newPlanCredits,
+                        creditsAlreadyUsed: proration.creditsAlreadyUsed,
+                        creditsAvailableAfterUpgrade: proration.newPlanCredits - proration.creditsAlreadyUsed,
                         proratedPayment: proration.proratedPayment,
                         proratedCredits: proration.proratedCredits,
                         daysRemaining: proration.daysRemaining,
@@ -181,10 +212,14 @@ export async function applyProration(
             });
         }
 
+        const creditsAvailableNow = proration.newPlanCredits - proration.creditsAlreadyUsed;
+
         return {
             action: "upgraded_immediately",
-            message: `Plan upgraded. You've been charged $${proration.proratedPayment.toFixed(2)} for the remaining ${proration.daysRemaining} days.`,
-            creditsAdded: proration.proratedCredits,
+            message: `Plan upgraded! You've been charged $${proration.proratedPayment.toFixed(2)} (price difference). You now have ${creditsAvailableNow.toLocaleString()} credits available (${proration.newPlanCredits.toLocaleString()} total - ${proration.creditsAlreadyUsed.toLocaleString()} used).`,
+            creditsAdded: proration.newPlanCredits - proration.oldPlanCredits,
+            creditsAvailableNow,
+            totalMonthlyLimit: proration.newPlanCredits,
         };
     }
 
@@ -229,7 +264,11 @@ export async function getProrationPreview(
     currentPlan: string;
     newPlan: string;
     immediateCharge: number;
-    creditsAdded: number;
+    creditsCurrentlyUsed: number;
+    creditsCurrentLimit: number;
+    creditsCurrentRemaining: number;
+    creditsNewLimit: number;
+    creditsAfterUpgrade: number;
     effectiveDate: Date;
     summary: string;
 }> {
@@ -251,7 +290,14 @@ export async function getProrationPreview(
     let summary = "";
 
     if (proration.shouldChargeImmediately) {
-        summary = `You'll be charged $${proration.proratedPayment.toFixed(2)} today for upgrading with ${proration.daysRemaining} days remaining in your billing cycle. You'll receive ${proration.proratedCredits} additional credits immediately.`;
+        const creditsAfterUpgrade = proration.newPlanCredits - proration.creditsAlreadyUsed;
+        summary = `You'll be charged $${proration.proratedPayment.toFixed(2)} (the price difference between plans).\n\n` +
+            `Credits:\n` +
+            `• Currently used: ${proration.creditsAlreadyUsed.toLocaleString()} credits\n` +
+            `• Current limit: ${proration.oldPlanCredits.toLocaleString()} credits/month\n` +
+            `• New limit: ${proration.newPlanCredits.toLocaleString()} credits/month\n` +
+            `• Available immediately: ${creditsAfterUpgrade.toLocaleString()} credits\n\n` +
+            `Your ${proration.creditsAlreadyUsed.toLocaleString()} credits used carry over to the new plan!`;
     } else if (proration.shouldRefund) {
         summary = `Your plan will downgrade to ${newPlan.displayName} on ${proration.effectiveDate.toLocaleDateString()}. You'll retain access to ${subscription.plan.displayName} features until then.`;
     } else {
@@ -262,7 +308,11 @@ export async function getProrationPreview(
         currentPlan: subscription.plan.displayName,
         newPlan: newPlan.displayName,
         immediateCharge: proration.shouldChargeImmediately ? proration.proratedPayment : 0,
-        creditsAdded: proration.shouldChargeImmediately ? proration.proratedCredits : 0,
+        creditsCurrentlyUsed: proration.creditsAlreadyUsed,
+        creditsCurrentLimit: proration.oldPlanCredits,
+        creditsCurrentRemaining: proration.creditsRemainingOld,
+        creditsNewLimit: proration.newPlanCredits,
+        creditsAfterUpgrade: proration.newPlanCredits - proration.creditsAlreadyUsed,
         effectiveDate: proration.effectiveDate,
         summary,
     };
