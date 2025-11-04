@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
                 codeFiles: templateFiles, // Start with Next.js template
                 version: 0,
                 generationStatus: "template", // Status: template (ready for AI to customize)
-                preferredModel: selectedModel || "gpt-5", // Save user's selected model
+                preferredModel: selectedModel || "claude-haiku-4-5", // Save user's selected model
             },
         });
 

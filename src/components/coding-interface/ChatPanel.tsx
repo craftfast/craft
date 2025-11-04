@@ -137,13 +137,13 @@ export default function ChatPanel({
   >("general");
   const { balance } = useCreditBalance();
 
-  // Initialize selected model from sessionStorage or default to "gpt-5"
+  // Initialize selected model from sessionStorage or default to "claude-haiku-4-5"
   const [selectedModel, setSelectedModel] = useState(() => {
     if (typeof window !== "undefined") {
       const storedModel = sessionStorage.getItem(`project-${projectId}-model`);
-      return storedModel || "gpt-5";
+      return storedModel || "claude-haiku-4-5";
     }
-    return "gpt-5";
+    return "claude-haiku-4-5";
   });
 
   // Fetch project's preferred model on mount

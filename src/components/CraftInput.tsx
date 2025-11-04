@@ -89,7 +89,7 @@ export default function CraftInput() {
   >("general");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { balance } = useCreditBalance();
-  const [selectedModel, setSelectedModel] = useState("gpt-5"); // Default to standard tier (1.0x)
+  const [selectedModel, setSelectedModel] = useState("claude-haiku-4-5"); // Default to standard tier (1.0x)
   const { data: session } = useSession();
 
   // Fetch user's preferred model on mount
@@ -107,7 +107,7 @@ export default function CraftInput() {
         }
       } catch (error) {
         console.error("Failed to fetch preferred model:", error);
-        // Keep default "gpt-5" on error
+        // Keep default "claude-haiku-4-5" on error
       }
     };
 

@@ -15,30 +15,16 @@ export interface ModelOption {
 // These are the exact models allowed for coding
 const AVAILABLE_MODELS: ModelOption[] = [
   {
-    id: "gpt-5-mini",
-    name: "GPT-5 Mini",
-    multiplier: "0.25×",
-    description: "Fast & affordable",
-    isPremium: false,
-  },
-  {
     id: "claude-haiku-4-5",
     name: "Claude Haiku 4.5",
-    multiplier: "0.5×",
-    description: "Fast & efficient",
-    isPremium: false,
-  },
-  {
-    id: "gpt-5",
-    name: "GPT-5",
     multiplier: "1×",
-    description: "OpenAI's latest",
+    description: "Fast & efficient",
     isPremium: false,
   },
   {
     id: "claude-sonnet-4.5",
     name: "Claude Sonnet 4.5",
-    multiplier: "1.5×",
+    multiplier: "2×",
     description: "Most capable",
     isPremium: true, // PRO+ only
   },
@@ -80,7 +66,7 @@ export function ModelSelector({
   }, [isOpen]);
 
   const selectedModelData =
-    AVAILABLE_MODELS.find((m) => m.id === selectedModel) || AVAILABLE_MODELS[2]; // Default to GPT-5
+    AVAILABLE_MODELS.find((m) => m.id === selectedModel) || AVAILABLE_MODELS[0]; // Default to Claude Haiku 4.5
 
   // Check if user can access a model
   const canAccessModel = (model: ModelOption) => {
@@ -105,7 +91,7 @@ export function ModelSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-full left-0 mb-2 w-72 bg-card border border-border rounded-xl shadow-lg z-[60] overflow-hidden">
+        <div className="absolute bottom-full left-0 mb-2 w-52 bg-card border border-border rounded-xl shadow-lg z-[60] overflow-hidden">
           <div className="max-h-[400px] overflow-y-auto scrollbar-minimal">
             {AVAILABLE_MODELS.map((model) => {
               const hasAccess = canAccessModel(model);

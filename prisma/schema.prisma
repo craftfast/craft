@@ -37,8 +37,8 @@ model User {
   // Custom Craft fields
   preferredChatPosition String               @default("right")
   preferredTheme        String               @default("system")
-  preferredModel        String               @default("gpt-5")
-  enabledModels         String[]             @default(["gpt-5-mini", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4.5"])
+  preferredModel        String               @default("claude-haiku-4-5")
+  enabledModels         String[]             @default(["claude-haiku-4-5", "claude-sonnet-4.5"])
   // Referral system
   referralCode          String?              @unique
   referredById          String?
@@ -172,7 +172,7 @@ model Project {
   generationStatus String           @default("template")
   lastCodeUpdateAt DateTime?
   codeFiles        Json             @default("{}")
-  preferredModel   String           @default("gpt-5")
+  preferredModel   String           @default("claude-haiku-4-5")
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   chatMessages     ChatMessage[]

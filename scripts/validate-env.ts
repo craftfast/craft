@@ -141,11 +141,6 @@ const ENV_VARIABLES: EnvValidation[] = [
         required: true,
         description: "Anthropic API key for Claude models"
     },
-    {
-        name: "OPENAI_API_KEY",
-        required: true,
-        description: "OpenAI API key for GPT models"
-    },
 
     // E2B Sandbox
     {

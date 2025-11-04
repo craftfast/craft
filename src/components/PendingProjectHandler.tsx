@@ -106,7 +106,7 @@ export default function PendingProjectHandler() {
           typeof pendingProject.selectedModel !== "string"
         ) {
           console.log("⚠️ Invalid model selection, using default");
-          pendingProject.selectedModel = "gpt-5"; // Default fallback
+          pendingProject.selectedModel = "claude-haiku-4-5"; // Default fallback
         }
 
         // Validate images array

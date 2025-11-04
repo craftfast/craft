@@ -4,17 +4,14 @@
  * This is the single source of truth for all AI operations in Craft.
  * 
  * Model Configuration:
- * - GPT-5 Mini: 0.25x credit multiplier (cheap) - All plans
- * - Claude Haiku 4.5: 0.5x credit multiplier (fast) - All plans
- * - GPT-5: 1.0x credit multiplier (standard/default) - All plans
- * - Claude Sonnet 4.5: 1.5x credit multiplier (premium) - PRO+ only
+ * - Claude Haiku 4.5: 1.0x credit multiplier (standard/default) - All plans
+ * - Claude Sonnet 4.5: 2.0x credit multiplier (premium) - PRO+ only
  * 
  * The system supports dynamic model selection with credit-based pricing
  * and plan-based restrictions.
  */
 
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, streamText } from "ai";
 import { canUserAccessModel } from "@/lib/models/config";
@@ -23,11 +20,6 @@ import { getUserPlan } from "@/lib/subscription";
 // Create Anthropic client for Claude models
 const anthropic = createAnthropic({
     apiKey: process.env.ANTHROPIC_API_KEY || "",
-});
-
-// Create OpenAI client for GPT models
-const openai = createOpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "",
 });
 
 // Create OpenRouter client for Grok and other models
@@ -41,10 +33,8 @@ const openrouter = createOpenRouter({
 
 const MODELS = {
     // Coding models (user-selectable)
-    GPT_5_MINI: "gpt-5-mini",                  // Cheap tier (0.25x)
-    CLAUDE_HAIKU: "claude-haiku-4-5",          // Fast tier (0.5x)
-    GPT_5: "gpt-5",                            // Standard tier (1.0x)
-    CLAUDE_SONNET: "claude-sonnet-4.5",        // Premium tier (1.5x)
+    CLAUDE_HAIKU: "claude-haiku-4-5",          // Standard tier (1.0x) - Default
+    CLAUDE_SONNET: "claude-sonnet-4.5",        // Premium tier (2.0x)
 
     // Specialized models (via OpenRouter)
     NAMING: "x-ai/grok-4-fast",                // Project naming & creative text
@@ -59,7 +49,7 @@ interface CodingStreamOptions {
     systemPrompt: string;
     projectFiles?: Record<string, string>;
     conversationHistory?: Array<{ role: string; content: string }>;
-    model?: string; // Allow model selection (defaults to GPT-5)
+    model?: string; // Allow model selection (defaults to Claude Haiku 4.5)
     userId?: string; // User ID for plan validation
     onFinish?: (params: {
         model: string;
@@ -88,36 +78,24 @@ function getModelProvider(modelId: string): { provider: any; modelPath: string; 
                 modelPath: "claude-sonnet-4-5",
                 displayName: "Claude Sonnet 4.5"
             };
-        case "gpt-5":
-            return {
-                provider: openai,
-                modelPath: "gpt-5",
-                displayName: "GPT-5"
-            };
-        case "gpt-5-mini":
-            return {
-                provider: openai,
-                modelPath: "gpt-5-mini",
-                displayName: "GPT-5 Mini"
-            };
         default:
-            // Default to GPT-5 (standard tier)
-            console.warn(`⚠️ Unknown model: ${modelId}, defaulting to GPT-5`);
+            // Default to Claude Haiku 4.5 (standard tier)
+            console.warn(`⚠️ Unknown model: ${modelId}, defaulting to Claude Haiku 4.5`);
             return {
-                provider: openai,
-                modelPath: "gpt-5",
-                displayName: "GPT-5"
+                provider: anthropic,
+                modelPath: "claude-haiku-4-5",
+                displayName: "Claude Haiku 4.5"
             };
     }
 }
 
 /**
  * Stream coding responses with dynamic model selection
- * Supports: GPT-5 Mini, Claude Haiku 4.5, GPT-5, Claude Sonnet 4.5
+ * Supports: Claude Haiku 4.5, Claude Sonnet 4.5
  * Validates plan-based access to premium models
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {
-    const { messages, systemPrompt, projectFiles = {}, model: requestedModel = "gpt-5", userId, onFinish } = options;
+    const { messages, systemPrompt, projectFiles = {}, model: requestedModel = "claude-haiku-4-5", userId, onFinish } = options;
 
     // Validate user can access the requested model
     if (userId && requestedModel) {

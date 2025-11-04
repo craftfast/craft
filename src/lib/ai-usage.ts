@@ -22,10 +22,6 @@ const MODEL_PRICING = {
     "claude-sonnet-4.5": { input: 3.0, output: 15.0 },
     "claude-haiku-4.5": { input: 1.0, output: 5.0 },
 
-    // GPT models
-    "gpt-5": { input: 1.25, output: 10.0 },
-    "gpt-5-mini": { input: 0.25, output: 2.0 },
-
     // Grok models (with full OpenRouter path) - Used for project naming
     "x-ai/grok-4-fast": { input: 0.05, output: 0.15 },
 
@@ -250,27 +246,17 @@ export const TOKENS_PER_CREDIT = 10000;
  * Base rate: 1.0x = 10,000 tokens per credit
  * 
  * Allowed Models:
- * - gpt-5-mini: 0.25x (cheap)
- * - claude-haiku-4.5: 0.5x (fast)
- * - gpt-5: 1.0x (standard/default)
- * - claude-sonnet-4.5: 1.5x (premium)
+ * - claude-haiku-4-5: 1.0x (standard/default)
+ * - claude-sonnet-4.5: 2.0x (premium)
  */
 const MODEL_CREDIT_MULTIPLIERS: Record<string, number> = {
-    // Cheap tier
-    "gpt-5-mini": 0.25,
-    "openai/gpt-5-mini": 0.25,
-
-    // Fast tier
-    "claude-haiku-4-5": 0.5,
-    "anthropic/claude-haiku-4.5": 0.5,
-
     // Standard tier (default)
-    "gpt-5": 1.0,
-    "openai/gpt-5": 1.0,
+    "claude-haiku-4-5": 1.0,
+    "anthropic/claude-haiku-4.5": 1.0,
 
     // Premium tier
-    "claude-sonnet-4.5": 1.5,
-    "anthropic/claude-sonnet-4.5": 1.5,
+    "claude-sonnet-4.5": 2.0,
+    "anthropic/claude-sonnet-4.5": 2.0,
 
     // Default fallback - Standard tier
     default: 1.0,
@@ -291,16 +277,12 @@ export function getModelCreditMultiplier(model: string): number {
  * @returns Credits consumed (rounded to 2 decimal places, e.g., 0.25, 1.50, 2.00)
  * 
  * Supported Models:
- * - gpt-5-mini: 0.25x (cheap)
- * - claude-haiku-4.5: 0.5x (fast)
- * - gpt-5: 1.0x (standard/default)
- * - claude-sonnet-4.5: 1.5x (premium)
+ * - claude-haiku-4-5: 1.0x (standard/default)
+ * - claude-sonnet-4.5: 2.0x (premium)
  * 
  * @example tokensToCredits(10000) => 1.00 credit (default 1.0x)
- * @example tokensToCredits(2500, "gpt-5-mini") => 0.06 credits (0.25x: 2500 * 0.25 / 10000 = 0.0625 -> 0.06)
- * @example tokensToCredits(5000, "claude-haiku-4.5") => 0.25 credits (0.5x: 5000 * 0.5 / 10000 = 0.25)
- * @example tokensToCredits(10000, "gpt-5") => 1.00 credit (1.0x: 10000 * 1.0 / 10000 = 1.0)
- * @example tokensToCredits(10000, "claude-sonnet-4.5") => 1.50 credits (1.5x: 10000 * 1.5 / 10000 = 1.5)
+ * @example tokensToCredits(10000, "claude-haiku-4-5") => 1.00 credit (1.0x: 10000 * 1.0 / 10000 = 1.0)
+ * @example tokensToCredits(10000, "claude-sonnet-4.5") => 2.00 credits (2.0x: 10000 * 2.0 / 10000 = 2.0)
  */
 export function tokensToCredits(tokens: number, model?: string): number {
     const multiplier = model ? getModelCreditMultiplier(model) : 1.0;

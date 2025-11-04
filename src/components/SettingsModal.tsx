@@ -184,7 +184,8 @@ export default function SettingsModal({
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
 
   // Model preferences
-  const [preferredModel, setPreferredModel] = useState<string>("gpt-5");
+  const [preferredModel, setPreferredModel] =
+    useState<string>("claude-haiku-4-5");
   const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
     "HOBBY"
   );
@@ -418,7 +419,7 @@ export default function SettingsModal({
       const res = await fetch("/api/user/model-preferences");
       if (res.ok) {
         const data = await res.json();
-        setPreferredModel(data.preferredModel || "gpt-5");
+        setPreferredModel(data.preferredModel || "claude-haiku-4-5");
         setUserPlan(data.userPlan || "HOBBY");
       }
     } catch (error) {

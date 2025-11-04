@@ -16,7 +16,7 @@ import {
 export default function ThemeDemo() {
   const { theme, resolvedTheme } = useTheme();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("GPT-5");
+  const [selectedModel, setSelectedModel] = useState("Claude Haiku 4.5");
   const [selectedVisibility, setSelectedVisibility] = useState("public");
   const [isVisibilityDropdownOpen, setIsVisibilityDropdownOpen] =
     useState(false);
@@ -82,13 +82,11 @@ export default function ThemeDemo() {
   ];
 
   const models = [
-    { id: "gpt-5-mini", name: "GPT-5 Mini", cost: "0.25× credits" },
-    { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", cost: "0.5× credits" },
-    { id: "gpt-5", name: "GPT-5", cost: "1.0× credits" },
+    { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", cost: "1.0× credits" },
     {
       id: "claude-sonnet-4.5",
       name: "Claude Sonnet 4.5",
-      cost: "1.5× credits",
+      cost: "2.0× credits",
     },
   ];
 

@@ -105,10 +105,8 @@ export const CREDIT_RATES = {
     ai: {
         baseRate: 10000, // tokens per credit
         modelMultipliers: {
-            'claude-sonnet-4.5': 1.5,
-            'claude-haiku-4-5': 0.5,
-            'gpt-5': 1.0,
-            'gpt-5-mini': 0.25,
+            'claude-sonnet-4.5': 2,
+            'claude-haiku-4-5': 1,
             'grok-4-fast': 0.1, // Used for project naming
         }
     },

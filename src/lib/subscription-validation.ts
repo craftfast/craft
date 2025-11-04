@@ -82,10 +82,6 @@ const VALID_MODELS = [
     "claude-sonnet-4-5",
     "anthropic/claude-sonnet-4.5",
     "anthropic/claude-haiku-4.5",
-    "gpt-5",
-    "gpt-5-mini",
-    "openai/gpt-5",
-    "openai/gpt-5-mini",
     "x-ai/grok-4-fast",
     "grok-4-fast",
 ] as const;

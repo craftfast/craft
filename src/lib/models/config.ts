@@ -10,7 +10,7 @@ export interface ModelConfig {
     id: string;
     name: string;
     displayName: string;
-    provider: "anthropic" | "openai" | "openrouter";
+    provider: "anthropic" | "openrouter";
     tier: ModelTier;
     creditMultiplier: number;
     description: string;
@@ -23,50 +23,22 @@ export interface ModelConfig {
  */
 export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
     // ============================================================================
-    // CHEAP TIER (0.25x) - Available to all plans
-    // ============================================================================
-    "gpt-5-mini": {
-        id: "gpt-5-mini",
-        name: "gpt-5-mini",
-        displayName: "GPT-5 Mini",
-        provider: "openai",
-        tier: "cheap",
-        creditMultiplier: 0.25,
-        description: "Fast & affordable",
-        minPlanRequired: "HOBBY",
-    },
-
-    // ============================================================================
-    // FAST TIER (0.5x) - Available to all plans
+    // STANDARD TIER (1.0x) - Available to all plans - DEFAULT
     // ============================================================================
     "claude-haiku-4-5": {
         id: "claude-haiku-4-5",
         name: "claude-haiku-4-5",
         displayName: "Claude 4.5 Haiku",
         provider: "anthropic",
-        tier: "fast",
-        creditMultiplier: 0.5,
-        description: "Fast & efficient",
-        minPlanRequired: "HOBBY",
-    },
-
-    // ============================================================================
-    // STANDARD TIER (1.0x) - Available to all plans
-    // ============================================================================
-    "gpt-5": {
-        id: "gpt-5",
-        name: "gpt-5",
-        displayName: "GPT-5",
-        provider: "openai",
         tier: "standard",
-        creditMultiplier: 1.0,
-        description: "OpenAI's latest",
+        creditMultiplier: 1,
+        description: "Fast & efficient",
         minPlanRequired: "HOBBY",
         isDefault: true,
     },
 
     // ============================================================================
-    // PREMIUM TIER (1.5x) - PRO+ only
+    // PREMIUM TIER (2.0x) - PRO+ only
     // ============================================================================
     "claude-sonnet-4.5": {
         id: "claude-sonnet-4.5",
@@ -74,7 +46,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         displayName: "Claude 4.5 Sonnet",
         provider: "anthropic",
         tier: "premium",
-        creditMultiplier: 1.5,
+        creditMultiplier: 2,
         description: "Most capable",
         minPlanRequired: "PRO",
     },
@@ -138,8 +110,8 @@ export function getModelConfig(modelId: string): ModelConfig | null {
  * Get default model for a plan
  */
 export function getDefaultModelForPlan(planName: PlanName): string {
-    // Return GPT-5 as default for all plans
-    return "gpt-5";
+    // Return Claude Haiku 4.5 as default for all plans
+    return "claude-haiku-4-5";
 }
 
 /**

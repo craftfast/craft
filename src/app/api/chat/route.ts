@@ -116,7 +116,7 @@ export async function POST(req: Request) {
             Array.isArray(m.content) && m.content.some((c: { type: string }) => c.type === 'image')
         );
 
-        console.log(`🤖 AI Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}, Model: ${model || 'gpt-5 (default)'}`);
+        console.log(`🤖 AI Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}, Model: ${model || 'claude-haiku-4-5 (default)'}`);
         if (projectFiles && Object.keys(projectFiles).length > 0) {
             console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
         }
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
             systemPrompt,
             projectFiles: projectFiles || {},
             conversationHistory: messages.slice(0, -1),
-            model: model || 'gpt-5', // Pass selected model (default to gpt-5)
+            model: model || 'claude-haiku-4-5', // Pass selected model (default to Claude Haiku)
             // Track usage after stream completes
             onFinish: async (usageData) => {
                 try {
