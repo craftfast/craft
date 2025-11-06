@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { twoFactor } from "@/lib/auth-client";
 import Logo from "@/components/Logo";
 import Link from "next/link";
 
-export default function Verify2FAPage() {
+function Verify2FAContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [code, setCode] = useState("");
@@ -74,11 +74,11 @@ export default function Verify2FAPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950 px-4">
       {/* Logo at top left */}
-            <div className="absolute top-4 left-4">
-              <Link href="/home">
-                <Logo variant="extended" />
-              </Link>
-            </div>
+      <div className="absolute top-4 left-4">
+        <Link href="/home">
+          <Logo variant="extended" />
+        </Link>
+      </div>
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
@@ -159,5 +159,19 @@ export default function Verify2FAPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function Verify2FAPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <Verify2FAContent />
+    </Suspense>
   );
 }

@@ -120,7 +120,17 @@ export default function CodingInterface({
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareUrlCopied, setShareUrlCopied] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
-  const [versions, setVersions] = useState<any[]>([]);
+  const [versions, setVersions] = useState<
+    Array<{
+      id: string;
+      timestamp: string;
+      description?: string;
+      version?: number;
+      name?: string;
+      isBookmarked?: boolean;
+      createdAt?: string;
+    }>
+  >([]);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false);
   const [isSyncGitDialogOpen, setIsSyncGitDialogOpen] = useState(false);
@@ -1111,7 +1121,9 @@ export default function CodingInterface({
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {new Date(version.createdAt).toLocaleString()}
+                          {version.createdAt
+                            ? new Date(version.createdAt).toLocaleString()
+                            : "No date"}
                         </div>
                       </div>
                       <Button

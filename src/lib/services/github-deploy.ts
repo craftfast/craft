@@ -101,7 +101,7 @@ export async function deployToGitHub(
         const tree = await createGitTree(
             integration.accessToken,
             repoData.full_name,
-            files
+            files as Record<string, string | unknown>
         );
 
         const commit = await createGitCommit(
@@ -151,7 +151,7 @@ export async function deployToGitHub(
 async function createGitTree(
     accessToken: string,
     repo: string,
-    files: Record<string, any>
+    files: Record<string, string | unknown>
 ) {
     const tree = Object.entries(files).map(([path, content]) => ({
         path,
@@ -191,7 +191,7 @@ async function createGitCommit(
     message: string,
     parentSha?: string
 ) {
-    const body: any = {
+    const body: { message: string; tree: string; parents?: string[] } = {
         message,
         tree: treeSha,
     };

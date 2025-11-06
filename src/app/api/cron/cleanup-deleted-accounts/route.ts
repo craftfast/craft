@@ -133,10 +133,18 @@ export async function POST(request: NextRequest) {
                             email: `deleted_${user.id}@deleted.local`,
                             name: null,
                             image: null,
-                            password: null,
-                            verificationToken: null,
-                            passwordResetToken: null,
                         },
+                    });
+
+                    // Clear password from Account model
+                    await tx.account.updateMany({
+                        where: { userId: user.id },
+                        data: { password: null },
+                    });
+
+                    // Delete verification tokens
+                    await tx.verificationToken.deleteMany({
+                        where: { identifier: user.email },
                     });
 
                     // Delete two-factor authentication data

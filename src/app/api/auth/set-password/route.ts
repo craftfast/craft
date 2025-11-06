@@ -61,9 +61,10 @@ export async function POST(req: NextRequest) {
                 success: true,
                 message: "Password set successfully. You can now sign in with email and password.",
             });
-        } catch (authError: any) {
+        } catch (authError: unknown) {
             // Handle Better Auth specific errors
-            if (authError.message?.includes("already has a password")) {
+            const error = authError as Error & { message?: string };
+            if (error.message?.includes("already has a password")) {
                 return NextResponse.json(
                     { error: "Password already set. Use change password instead." },
                     { status: 400 }

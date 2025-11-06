@@ -49,7 +49,7 @@ export interface SecurityEventData {
     provider?: string;
     success?: boolean;
     errorReason?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 /**

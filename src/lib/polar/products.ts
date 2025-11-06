@@ -23,7 +23,7 @@ interface PolarProduct {
     prices: PolarPrice[];
     is_archived: boolean;
     organization_id: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 interface PolarPrice {
@@ -66,7 +66,7 @@ export async function getProductDetails(productId: string) {
  */
 export async function syncProductsToDatabase() {
     try {
-        const updates: Promise<any>[] = [];
+        const updates: Promise<unknown>[] = [];
 
         // Map of monthly credits to product environment variable
         const creditsMap = {

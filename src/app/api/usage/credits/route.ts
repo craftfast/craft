@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
     try {
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
         const skip = (page - 1) * limit;
 
         // Build where clause
-        const where: any = {
+        const where: Prisma.AICreditUsageWhereInput = {
             userId: user.id,
         };
 

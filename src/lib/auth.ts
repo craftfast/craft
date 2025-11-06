@@ -268,9 +268,9 @@ export const auth = betterAuth({
 
                         createPolarCustomer(user)
                             .then((result) => {
-                                if (result.success) {
+                                if (result.success && 'customerId' in result) {
                                     console.log(`✅ Polar customer created for OAuth user: ${user.email}`);
-                                } else {
+                                } else if (!result.success && 'error' in result) {
                                     console.error(`❌ Failed to create Polar customer: ${result.error}`);
                                 }
                             })
@@ -316,9 +316,9 @@ export const auth = betterAuth({
                         // Create Polar customer in background (don't block signup)
                         createPolarCustomer(user)
                             .then((result) => {
-                                if (result.success) {
+                                if (result.success && 'customerId' in result) {
                                     console.log(`✅ Polar customer created for user: ${newSession.user.email}`);
-                                } else {
+                                } else if (!result.success && 'error' in result) {
                                     console.error(`❌ Failed to create Polar customer: ${result.error}`);
                                 }
                             })

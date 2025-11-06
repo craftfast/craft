@@ -108,11 +108,11 @@ async function migrateUser(
         // Attempt to create Polar customer
         const result = await createPolarCustomer(fullUser);
 
-        if (result.success) {
+        if (result.success && 'customerId' in result) {
             stats.success++;
             console.log(`  ✅ Created Polar customer for: ${user.email}`);
             return true;
-        } else {
+        } else if (!result.success && 'error' in result) {
             // Check if it's a duplicate error
             if (result.error?.includes("already exists")) {
                 stats.duplicates++;
@@ -131,6 +131,8 @@ async function migrateUser(
             } else {
                 throw new Error(result.error || "Unknown error");
             }
+        } else {
+            throw new Error("Unknown error in createPolarCustomer");
         }
     } catch (error) {
         stats.failed++;

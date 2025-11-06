@@ -34,14 +34,14 @@ export function verifyWebhookSignature(
 export async function logWebhookEvent(
     eventType: string,
     eventId: string,
-    payload: any
+    payload: Record<string, unknown>
 ) {
     try {
         await prisma.polarWebhookEvent.create({
             data: {
                 eventType,
                 eventId,
-                payload,
+                payload: payload as never,
                 status: WebhookEventStatus.PENDING,
             },
         });

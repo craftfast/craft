@@ -25,7 +25,7 @@ interface PolarCustomer {
     created_at: string;
     modified_at?: string | null;
     organization_id: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 /**

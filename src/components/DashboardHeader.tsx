@@ -213,8 +213,18 @@ export default function DashboardHeader({
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
                       {session.user.email}
                     </p>
-                    {(session.user as any).hasPassword &&
-                      !(session.user as any).emailVerified && (
+                    {(
+                      session.user as {
+                        hasPassword?: boolean;
+                        emailVerified?: boolean;
+                      }
+                    ).hasPassword &&
+                      !(
+                        session.user as {
+                          hasPassword?: boolean;
+                          emailVerified?: boolean;
+                        }
+                      ).emailVerified && (
                         <span
                           className="shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-yellow-500/20 border border-yellow-500/40"
                           title="Email not verified"

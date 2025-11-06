@@ -92,7 +92,7 @@ export function validateModelName(model: string): void {
     }
 
     // Allow any model for flexibility, but log warning for unknown models
-    if (!VALID_MODELS.includes(model as any)) {
+    if (!(VALID_MODELS as readonly string[]).includes(model)) {
         console.warn(`⚠️ Unknown model name: ${model}`);
     }
 }

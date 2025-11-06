@@ -30,7 +30,7 @@ interface PolarCheckoutSession {
     product_price_id: string;
     embed_origin?: string | null;
     success_url?: string | null;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 /**

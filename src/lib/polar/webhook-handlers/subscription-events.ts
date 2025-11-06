@@ -6,16 +6,22 @@
 
 import { prisma } from "@/lib/db";
 import { SubscriptionStatus } from "@prisma/client";
+import type { SubscriptionEvent } from "../webhook-types";
 
 /**
  * Handle subscription.created event
  */
-export async function handleSubscriptionCreated(data: any) {
+export async function handleSubscriptionCreated(data: SubscriptionEvent) {
     console.log("Processing subscription.created event:", data.id);
 
     try {
         const subscription = data;
         const customer = subscription.customer;
+
+        if (!customer) {
+            console.error("No customer data in subscription event");
+            return { success: false, error: "No customer data" };
+        }
 
         // Find user by Polar customer ID or external ID
         const user = await prisma.user.findFirst({
@@ -83,7 +89,7 @@ export async function handleSubscriptionCreated(data: any) {
 /**
  * Handle subscription.active event
  */
-export async function handleSubscriptionActive(data: any) {
+export async function handleSubscriptionActive(data: SubscriptionEvent) {
     console.log("Processing subscription.active event:", data.id);
 
     try {
@@ -116,7 +122,7 @@ export async function handleSubscriptionActive(data: any) {
 /**
  * Handle subscription.updated event
  */
-export async function handleSubscriptionUpdated(data: any) {
+export async function handleSubscriptionUpdated(data: SubscriptionEvent) {
     console.log("Processing subscription.updated event:", data.id);
 
     try {
@@ -153,7 +159,7 @@ export async function handleSubscriptionUpdated(data: any) {
 /**
  * Handle subscription.canceled event
  */
-export async function handleSubscriptionCanceled(data: any) {
+export async function handleSubscriptionCanceled(data: SubscriptionEvent) {
     console.log("Processing subscription.canceled event:", data.id);
 
     try {
@@ -182,7 +188,7 @@ export async function handleSubscriptionCanceled(data: any) {
 /**
  * Handle subscription.revoked event
  */
-export async function handleSubscriptionRevoked(data: any) {
+export async function handleSubscriptionRevoked(data: SubscriptionEvent) {
     console.log("Processing subscription.revoked event:", data.id);
 
     try {
@@ -211,7 +217,10 @@ export async function handleSubscriptionRevoked(data: any) {
 /**
  * Handle subscription renewal (period transition)
  */
-export async function handleSubscriptionRenewed(data: any) {
+/**
+ * Handle subscription renewed
+ */
+export async function handleSubscriptionRenewed(data: SubscriptionEvent) {
     console.log("Processing subscription renewal:", data.id);
 
     try {

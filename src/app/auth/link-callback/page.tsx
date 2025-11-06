@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
 
@@ -10,7 +10,7 @@ import { signIn } from "@/lib/auth-client";
  * This page handles the OAuth callback when linking a new provider to an existing account.
  * After successful OAuth, this redirects back to settings with a success message.
  */
-export default function LinkCallbackPage() {
+function LinkCallbackContent() {
   const searchParams = useSearchParams();
   const provider = searchParams.get("provider");
 
@@ -56,5 +56,19 @@ export default function LinkCallbackPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LinkCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <LinkCallbackContent />
+    </Suspense>
   );
 }

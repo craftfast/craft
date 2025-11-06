@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
-import { requireAdmin, isAdmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-auth";
+import { Prisma } from "@prisma/client";
 
 /**
  * GET /api/admin/security-events
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
         const userIdFilter = searchParams.get("userId");
 
         // Build filter - admins can see all events
-        const where: any = {};
+        const where: Prisma.SecurityEventWhereInput = {};
 
         if (eventType) {
             where.eventType = eventType;

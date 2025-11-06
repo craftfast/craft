@@ -5,11 +5,12 @@
  */
 
 import { prisma } from "@/lib/db";
+import type { CustomerEvent } from "../webhook-types";
 
 /**
  * Handle customer.created event
  */
-export async function handleCustomerCreated(data: any) {
+export async function handleCustomerCreated(data: CustomerEvent) {
     console.log("Processing customer.created event:", data.id);
 
     try {
@@ -50,7 +51,7 @@ export async function handleCustomerCreated(data: any) {
 /**
  * Handle customer.updated event
  */
-export async function handleCustomerUpdated(data: any) {
+export async function handleCustomerUpdated(data: CustomerEvent) {
     console.log("Processing customer.updated event:", data.id);
 
     try {
@@ -72,7 +73,11 @@ export async function handleCustomerUpdated(data: any) {
         }
 
         // Update user metadata if needed
-        const updates: any = {};
+        interface UserUpdates {
+            email?: string;
+            name?: string;
+        }
+        const updates: UserUpdates = {};
 
         if (customer.email && customer.email !== user.email) {
             updates.email = customer.email;
@@ -103,7 +108,7 @@ export async function handleCustomerUpdated(data: any) {
 /**
  * Handle customer.deleted event
  */
-export async function handleCustomerDeleted(data: any) {
+export async function handleCustomerDeleted(data: CustomerEvent) {
     console.log("Processing customer.deleted event:", data.id);
 
     try {

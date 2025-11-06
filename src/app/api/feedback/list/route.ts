@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
     try {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
         const sentiment = searchParams.get("sentiment");
 
         // Build where clause
-        const where: any = {};
+        const where: Prisma.FeedbackWhereInput = {};
         if (sentiment) {
             where.sentiment = sentiment;
         }

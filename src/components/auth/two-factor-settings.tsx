@@ -265,9 +265,9 @@ export function TwoFactorSettings({}: TwoFactorSettingsProps) {
                 Set a Password to Enable 2FA
               </p>
               <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                You're currently signed in with a social provider (Google or
-                GitHub). To use two-factor authentication on Craft, you'll need
-                to set a password for your account first. Go to{" "}
+                You&apos;re currently signed in with a social provider (Google
+                or GitHub). To use two-factor authentication on Craft,
+                you&apos;ll need to set a password for your account first. Go to{" "}
                 <span className="font-medium">Account Security</span> to add a
                 password, then return here to enable 2FA.
               </p>

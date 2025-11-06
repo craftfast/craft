@@ -15,9 +15,9 @@ async function createCustomerForUser() {
 
     const result = await createPolarCustomer(user);
 
-    if (result.success) {
+    if (result.success && 'customerId' in result) {
         console.log(`✅ Success! Customer ID: ${result.customerId}`);
-    } else {
+    } else if (!result.success && 'error' in result) {
         console.log(`❌ Failed: ${result.error}`);
     }
 

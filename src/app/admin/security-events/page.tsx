@@ -15,7 +15,7 @@ interface SecurityEvent {
   provider: string | null;
   success: boolean;
   errorReason: string | null;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -83,12 +83,12 @@ export default function SecurityEventsPage() {
   };
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (!isPending && session) {
       fetchEvents();
     }
-  }, [status, filter]);
+  }, [session, isPending, filter]);
 
-  if (status === "loading" || loading) {
+  if (isPending || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-neutral-500">Loading...</div>

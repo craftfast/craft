@@ -67,7 +67,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 Give feedback
               </h2>
               <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                We'd love to hear what went well or how we can improve the
+                We&apos;d love to hear what went well or how we can improve the
                 product experience.
               </p>
             </div>

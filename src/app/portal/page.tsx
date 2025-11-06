@@ -137,7 +137,7 @@ export default function CustomerPortalPage() {
             <CardHeader>
               <CardTitle>No Active Subscription</CardTitle>
               <CardDescription>
-                You don't have an active subscription yet
+                You don&apos;t have an active subscription yet
               </CardDescription>
             </CardHeader>
             <CardContent>

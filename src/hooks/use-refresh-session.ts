@@ -95,7 +95,7 @@ export function useOptimisticSession() {
     const router = useRouter();
 
     const refreshWithOptimistic = useCallback(
-        async (optimisticData?: Record<string, any>) => {
+        async (_optimisticData?: Record<string, unknown>) => {
             try {
                 // Optimistic update is handled by the caller (update UI first)
                 // Then we sync with the server

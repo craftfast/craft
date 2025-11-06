@@ -4,6 +4,9 @@ import { PolarEmbedCheckout } from "@polar-sh/checkout/embed";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
+// Use the actual exported type from Polar
+type EmbedCheckout = InstanceType<typeof PolarEmbedCheckout>;
+
 interface EmbeddedCheckoutProps {
   checkoutUrl: string;
   onSuccess?: () => void;
@@ -25,7 +28,7 @@ export default function EmbeddedCheckout({
   onClose,
   theme = "light",
 }: EmbeddedCheckoutProps) {
-  const checkoutInstanceRef = useRef<any>(null);
+  const checkoutInstanceRef = useRef<EmbedCheckout | null>(null);
   const isInitializingRef = useRef(false);
   const onSuccessRef = useRef(onSuccess);
   const onCloseRef = useRef(onClose);
@@ -56,7 +59,7 @@ export default function EmbeddedCheckout({
     }
 
     isInitializingRef.current = true;
-    let checkoutInstance: any = null;
+    let checkoutInstance: EmbedCheckout | null = null;
 
     console.log("🚀 Creating Polar checkout...");
     console.log("Checkout URL:", checkoutUrl);
@@ -78,7 +81,12 @@ export default function EmbeddedCheckout({
     window.addEventListener("message", debugMessageListener);
 
     // Expose to window for debugging
-    (window as any).debugPolarCheckout = () => {
+    interface WindowWithDebug extends Window {
+      debugPolarCheckout?: () => void;
+      polarCheckoutInstance?: EmbedCheckout | null;
+    }
+
+    (window as WindowWithDebug).debugPolarCheckout = () => {
       console.log("Checkout instance:", checkoutInstance);
       if (checkoutInstance) {
         console.log("Calling close() manually...");
@@ -105,7 +113,7 @@ export default function EmbeddedCheckout({
         clearTimeout(loadTimeout);
         checkoutInstance = checkout;
         checkoutInstanceRef.current = checkout;
-        (window as any).polarCheckoutInstance = checkout;
+        (window as WindowWithDebug).polarCheckoutInstance = checkout;
 
         console.log("✅ Polar checkout loaded and ready");
         console.log(
@@ -117,7 +125,7 @@ export default function EmbeddedCheckout({
           console.log("📦 Loaded event fired");
         });
 
-        checkout.addEventListener("success", (event: any) => {
+        checkout.addEventListener("success", (event) => {
           console.log("💰 Success event fired", event);
           toast.success("Payment successful! Your plan has been upgraded.");
           onSuccessRef.current?.();
@@ -130,12 +138,12 @@ export default function EmbeddedCheckout({
           }
         });
 
-        checkout.addEventListener("close", (event: any) => {
-          console.log("❌ Close event fired", event);
+        checkout.addEventListener("close", () => {
+          console.log("❌ Close event fired");
           checkoutInstance = null;
           checkoutInstanceRef.current = null;
           isInitializingRef.current = false;
-          (window as any).polarCheckoutInstance = null;
+          (window as WindowWithDebug).polarCheckoutInstance = null;
           onCloseRef.current?.();
         });
 
@@ -165,7 +173,7 @@ export default function EmbeddedCheckout({
       checkoutInstanceRef.current = null;
       isInitializingRef.current = false;
     };
-  }, []); // Empty deps - only run once on mount
+  }, [checkoutUrl, theme]); // Include deps that should trigger re-initialization
 
   // Polar manages its own rendering via document.body.appendChild
   return null;

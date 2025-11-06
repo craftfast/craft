@@ -9,17 +9,12 @@ async function createTestUser() {
     const user = await prisma.user.upsert({
         where: { email: 'testuser@craft.test' },
         update: {
-            password: hashedPassword,
-            emailVerified: new Date(),
-            failedLoginAttempts: 0,
-            lockedUntil: null
+            emailVerified: true,
         },
         create: {
             email: 'testuser@craft.test',
             name: 'Test User',
-            password: hashedPassword,
-            emailVerified: new Date(),
-            failedLoginAttempts: 0
+            emailVerified: true,
         }
     });
 

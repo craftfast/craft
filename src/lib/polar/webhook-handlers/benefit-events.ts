@@ -6,11 +6,12 @@
  */
 
 import { prisma } from "@/lib/db";
+import type { BenefitGrant } from "../webhook-types";
 
 /**
  * Handle benefit_grant.created event
  */
-export async function handleBenefitGrantCreated(data: any) {
+export async function handleBenefitGrantCreated(data: BenefitGrant) {
     console.log("Processing benefit_grant.created event:", data.id);
 
     try {
@@ -49,7 +50,7 @@ export async function handleBenefitGrantCreated(data: any) {
 /**
  * Handle benefit_grant.updated event
  */
-export async function handleBenefitGrantUpdated(data: any) {
+export async function handleBenefitGrantUpdated(data: BenefitGrant) {
     console.log("Processing benefit_grant.updated event:", data.id);
 
     try {
@@ -86,7 +87,7 @@ export async function handleBenefitGrantUpdated(data: any) {
 /**
  * Handle benefit_grant.revoked event
  */
-export async function handleBenefitGrantRevoked(data: any) {
+export async function handleBenefitGrantRevoked(data: BenefitGrant) {
     console.log("Processing benefit_grant.revoked event:", data.id);
 
     try {

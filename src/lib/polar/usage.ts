@@ -21,7 +21,7 @@ interface UsageEventParams {
     inputTokens: number;
     outputTokens: number;
     totalCredits: number;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 /**

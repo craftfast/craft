@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
-import { PRO_TIERS, getProTier } from "@/lib/pricing-constants";
+import { getProTier } from "@/lib/pricing-constants";
 import { Polar } from "@polar-sh/sdk";
 
 export async function POST(request: Request) {
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
                 monthlyCredits: monthlyCredits.toString(),
                 billingPeriod: "MONTHLY",
             },
-        } as any); // Using 'as any' temporarily due to SDK type issues
+        } as never); // Type assertion for SDK compatibility
 
         console.log("Checkout session created successfully:", {
             checkoutId: checkout.id,

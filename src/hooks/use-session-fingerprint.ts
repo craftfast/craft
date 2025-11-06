@@ -24,8 +24,8 @@ export function useSessionFingerprint() {
     // Better Auth sessions include ipAddress and userAgent automatically
     const fingerprint = session
         ? {
-            ipAddress: (session as any).session?.ipAddress || "unknown",
-            userAgent: (session as any).session?.userAgent || "unknown",
+            ipAddress: (session as { session?: { ipAddress?: string } }).session?.ipAddress || "unknown",
+            userAgent: (session as { session?: { userAgent?: string } }).session?.userAgent || "unknown",
         }
         : null;
 
@@ -55,8 +55,8 @@ export function useCheckFingerprint() {
         return {
             success: true,
             fingerprint: {
-                ipAddress: (session as any).session?.ipAddress || "unknown",
-                userAgent: (session as any).session?.userAgent || "unknown",
+                ipAddress: (session as { session?: { ipAddress?: string } }).session?.ipAddress || "unknown",
+                userAgent: (session as { session?: { userAgent?: string } }).session?.userAgent || "unknown",
             },
         };
     };

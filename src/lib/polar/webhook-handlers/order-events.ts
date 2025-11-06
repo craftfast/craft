@@ -1,15 +1,16 @@
 /**
  * Polar Order Event Handlers
  * 
- * Handles order and payment events from Polar webhooks.
+ * Handles order-related events from Polar webhooks.
  */
 
 import { prisma } from "@/lib/db";
+import type { OrderEvent } from "../webhook-types";
 
 /**
  * Handle order.created event
  */
-export async function handleOrderCreated(data: any) {
+export async function handleOrderCreated(data: OrderEvent) {
     console.log("Processing order.created event:", data.id);
 
     try {
@@ -69,7 +70,7 @@ export async function handleOrderCreated(data: any) {
 /**
  * Handle order.paid event
  */
-export async function handleOrderPaid(data: any) {
+export async function handleOrderPaid(data: OrderEvent) {
     console.log("Processing order.paid event:", data.id);
 
     try {
@@ -111,7 +112,7 @@ export async function handleOrderPaid(data: any) {
 /**
  * Handle order.refunded event
  */
-export async function handleOrderRefunded(data: any) {
+export async function handleOrderRefunded(data: OrderEvent) {
     console.log("Processing order.refunded event:", data.id);
 
     try {
@@ -141,7 +142,7 @@ export async function handleOrderRefunded(data: any) {
 /**
  * Handle payment failure
  */
-export async function handlePaymentFailed(data: any) {
+export async function handlePaymentFailed(data: OrderEvent) {
     console.log("Processing payment failure for subscription:", data.subscription_id);
 
     try {

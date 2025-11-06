@@ -5,11 +5,12 @@
  */
 
 import { prisma } from "@/lib/db";
+import type { CheckoutEvent } from "../webhook-types";
 
 /**
  * Handle checkout.created event
  */
-export async function handleCheckoutCreated(data: any) {
+export async function handleCheckoutCreated(data: CheckoutEvent) {
     console.log("Processing checkout.created event:", data.id);
 
     try {
@@ -48,7 +49,7 @@ export async function handleCheckoutCreated(data: any) {
 /**
  * Handle checkout.updated event (success/failure)
  */
-export async function handleCheckoutUpdated(data: any) {
+export async function handleCheckoutUpdated(data: CheckoutEvent) {
     console.log("Processing checkout.updated event:", data.id);
 
     try {

@@ -32,9 +32,9 @@ async function fixPolarCustomers() {
             try {
                 const result = await createPolarCustomer(user);
 
-                if (result.success) {
+                if (result.success && 'customerId' in result) {
                     console.log(`✅ Created Polar customer for ${user.email}`);
-                } else {
+                } else if (!result.success && 'error' in result) {
                     console.error(`❌ Failed to create Polar customer for ${user.email}: ${result.error}`);
                 }
             } catch (error) {

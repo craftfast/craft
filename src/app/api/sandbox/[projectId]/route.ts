@@ -369,8 +369,9 @@ export async function POST(
         for (const { normalizedPath, content } of fileEntries) {
             try {
                 await sandbox.files.write(normalizedPath, content as string);
-            } catch (error: any) {
-                console.error(`Failed to write file ${normalizedPath}:`, error.message);
+            } catch (error: unknown) {
+                const err = error as Error;
+                console.error(`Failed to write file ${normalizedPath}:`, err.message);
                 throw error;
             }
         }

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { signIn, useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
 
-export default function ConfirmLinkPage() {
+function ConfirmLinkContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, isPending } = useSession();
@@ -294,5 +294,19 @@ export default function ConfirmLinkPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ConfirmLinkPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <ConfirmLinkContent />
+    </Suspense>
   );
 }

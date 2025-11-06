@@ -62,7 +62,7 @@ interface CodingStreamOptions {
 /**
  * Get the appropriate AI provider and model name for a given model ID
  */
-function getModelProvider(modelId: string): { provider: any; modelPath: string; displayName: string } {
+function getModelProvider(modelId: string): { provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter>; modelPath: string; displayName: string } {
     switch (modelId) {
         case "claude-haiku-4.5":
         case "claude-haiku-4-5":
@@ -131,21 +131,21 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
 
             if (usage) {
                 // AI SDK v5 with Anthropic - uses promptTokens/completionTokens
-                const usageAny = usage as any;
+                const usageData = usage as Record<string, number | undefined>;
                 const inputTokens =
-                    usageAny.promptTokens ||       // ✅ AI SDK v5 primary format
-                    usageAny.inputTokens ||        // Fallback
-                    usageAny.input_tokens ||       // Fallback
-                    usageAny.prompt_tokens || 0;   // Snake case fallback
+                    usageData.promptTokens ||       // ✅ AI SDK v5 primary format
+                    usageData.inputTokens ||        // Fallback
+                    usageData.input_tokens ||       // Fallback
+                    usageData.prompt_tokens || 0;   // Snake case fallback
 
                 const outputTokens =
-                    usageAny.completionTokens ||    // ✅ AI SDK v5 primary format
-                    usageAny.outputTokens ||        // Fallback
-                    usageAny.output_tokens ||       // Fallback
-                    usageAny.completion_tokens || 0;// Snake case fallback
+                    usageData.completionTokens ||    // ✅ AI SDK v5 primary format
+                    usageData.outputTokens ||        // Fallback
+                    usageData.output_tokens ||       // Fallback
+                    usageData.completion_tokens || 0;// Snake case fallback
 
                 const totalTokens =
-                    usageAny.totalTokens ||
+                    usageData.totalTokens ||
                     (inputTokens + outputTokens);
 
                 console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);

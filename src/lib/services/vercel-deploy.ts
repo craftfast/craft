@@ -146,7 +146,7 @@ async function pollVercelDeployment(
     vercelDeploymentId: string,
     deploymentId: string,
     maxAttempts = 60
-): Promise<any> {
+): Promise<{ status: string; url?: string }> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
 
