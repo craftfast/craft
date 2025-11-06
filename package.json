@@ -35,7 +35,10 @@
     "type-check": "tsc --noEmit",
     "db:seed": "tsx prisma/seed.ts",
     "e2b:build:dev": "tsx scripts/build-e2b-dev.ts",
-    "e2b:build:prod": "tsx scripts/build-e2b-prod.ts"
+    "e2b:build:prod": "tsx scripts/build-e2b-prod.ts",
+    "polar:verify": "tsx scripts/verify-polar-env.ts",
+    "polar:migrate": "tsx scripts/migrate-users-to-polar.ts",
+    "polar:migrate:dry": "tsx scripts/migrate-users-to-polar.ts --dry-run"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

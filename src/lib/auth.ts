@@ -17,6 +17,7 @@ import {
 import { sendPasswordResetEmail, sendOTPEmail } from "@/lib/email";
 import { assignPlanToUser } from "@/lib/subscription";
 import { validatePassword } from "@/lib/password-validation";
+import { createPolarCustomer } from "@/lib/polar/customer";
 
 // Validate required environment variables
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -217,11 +218,33 @@ export const auth = betterAuth({
                 }
             }
 
+            // Log all session creations for debugging
+            if (newSession) {
+                console.log(`🔍 New session created on path: ${ctx.path}`);
+            }
+
             // Handle successful OAuth sign-in (Google or GitHub)
-            if (ctx.path.startsWith("/sign-in/social") && newSession) {
-                const provider = ctx.path.includes("google") ? "google" :
-                    ctx.path.includes("github") ? "github" :
-                        "oauth";
+            // Better Auth uses /callback/:id for OAuth callbacks
+            const isOAuthPath = ctx.path.startsWith("/sign-in/social") ||
+                ctx.path.startsWith("/callback/") ||
+                ctx.path.includes("/callback/");
+
+            if (isOAuthPath && newSession) {
+                console.log(`🔍 OAuth sign-in detected: ${ctx.path}`);
+                console.log(`🔍 Full context path: ${JSON.stringify({ path: ctx.path, method: ctx.request?.method })}`);
+
+                // Try to determine provider from the session or accounts
+                let provider = "oauth";
+                try {
+                    const accounts = await prisma.account.findMany({
+                        where: { userId: newSession.session.userId },
+                    });
+                    if (accounts.length > 0) {
+                        provider = accounts[0].providerId || "oauth";
+                    }
+                } catch (e) {
+                    console.log("Could not determine OAuth provider, using 'oauth'");
+                }
 
                 await logLoginSuccess(
                     newSession.session.userId,
@@ -229,6 +252,37 @@ export const auth = betterAuth({
                     request,
                     provider
                 );
+
+                // Create Polar customer if user doesn't have one yet
+                // This handles both new signups and existing users who haven't been migrated
+                try {
+                    const user = await prisma.user.findUnique({
+                        where: { id: newSession.session.userId },
+                    });
+
+                    console.log(`🔍 User fetched: ${user?.email}, polarCustomerId: ${user?.polarCustomerId || 'NOT SET'}`);
+
+                    if (user && !user.polarCustomerId) {
+                        // User doesn't have Polar customer - create one
+                        console.log(`🔄 Creating Polar customer for OAuth user: ${user.email}`);
+
+                        createPolarCustomer(user)
+                            .then((result) => {
+                                if (result.success) {
+                                    console.log(`✅ Polar customer created for OAuth user: ${user.email}`);
+                                } else {
+                                    console.error(`❌ Failed to create Polar customer: ${result.error}`);
+                                }
+                            })
+                            .catch((error) => {
+                                console.error("Error creating Polar customer:", error);
+                            });
+                    } else if (user?.polarCustomerId) {
+                        console.log(`✓ OAuth user already has Polar customer: ${user.email}`);
+                    }
+                } catch (customerError) {
+                    console.error("Error checking OAuth user for Polar customer creation:", customerError);
+                }
             }
 
             // Handle successful account creation
@@ -246,6 +300,37 @@ export const auth = betterAuth({
                 } catch (planError) {
                     console.error("Error assigning Hobby plan:", planError);
                     // Don't fail the registration if plan assignment fails
+                }
+
+                // Create Polar customer account (async, non-blocking)
+                try {
+                    // Fetch user with full details
+                    const user = await prisma.user.findUnique({
+                        where: { id: newSession.session.userId },
+                    });
+
+                    if (user && !user.polarCustomerId) {
+                        // User doesn't have Polar customer - create one
+                        console.log(`🔄 Creating Polar customer for new user: ${user.email}`);
+
+                        // Create Polar customer in background (don't block signup)
+                        createPolarCustomer(user)
+                            .then((result) => {
+                                if (result.success) {
+                                    console.log(`✅ Polar customer created for user: ${newSession.user.email}`);
+                                } else {
+                                    console.error(`❌ Failed to create Polar customer: ${result.error}`);
+                                }
+                            })
+                            .catch((error) => {
+                                console.error("Error creating Polar customer:", error);
+                            });
+                    } else if (user?.polarCustomerId) {
+                        console.log(`✓ User already has Polar customer: ${user.email}`);
+                    }
+                } catch (customerError) {
+                    console.error("Error initiating Polar customer creation:", customerError);
+                    // Don't fail the registration if customer creation fails
                 }
             }
 

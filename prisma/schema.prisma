@@ -56,6 +56,9 @@ model User {
   // Craft-specific soft delete fields
   deletionScheduledAt   DateTime?
   deletedAt             DateTime?
+  // Polar Integration fields
+  polarCustomerId       String?              @unique
+  polarCustomerExtId    String?              @unique
   // Relations
   accounts              Account[]
   files                 File[]
@@ -71,6 +74,8 @@ model User {
   referrals             User[]               @relation("UserReferrals")
   referralCredits       ReferralCredit[]
 
+  @@index([polarCustomerId])
+  @@index([polarCustomerExtId])
   @@map("users")
 }
 
@@ -259,45 +264,54 @@ model Plan {
   monthlyCredits  Int
   isActive        Boolean            @default(true)
   sortOrder       Int                @default(0)
+  // Polar Integration fields
+  polarProductId  String?            @unique
+  polarPriceId    String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   subscriptions   UserSubscription[]
 
   @@index([name])
   @@index([isActive])
+  @@index([polarProductId])
   @@map("plans")
 }
 
 model UserSubscription {
-  id                 String             @id @default(cuid())
-  userId             String             @unique
-  planId             String
-  status             SubscriptionStatus @default(ACTIVE)
-  currentPeriodStart DateTime           @default(now())
-  currentPeriodEnd   DateTime
-  cancelAtPeriodEnd  Boolean            @default(false)
-  cancelledAt        DateTime?
-  polarCheckoutId    String?
-  polarPaymentId     String?
-  monthlyCreditsUsed Decimal            @default(0) @db.Decimal(10, 2)
-  periodCreditsReset DateTime           @default(now())
-  gracePeriodEndsAt  DateTime?
-  paymentFailedAt    DateTime?
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  planId              String
+  status              SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart  DateTime           @default(now())
+  currentPeriodEnd    DateTime
+  cancelAtPeriodEnd   Boolean            @default(false)
+  cancelledAt         DateTime?
+  polarCheckoutId     String?
+  polarPaymentId      String?
+  // Polar Integration fields
+  polarSubscriptionId String?            @unique
+  polarCustomerId     String?
+  monthlyCreditsUsed  Decimal            @default(0) @db.Decimal(10, 2)
+  periodCreditsReset  DateTime           @default(now())
+  gracePeriodEndsAt   DateTime?
+  paymentFailedAt     DateTime?
   // Scheduled plan changes (for downgrades)
-  pendingPlanId      String?
-  planChangeAt       DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  invoices           Invoice[]
-  usageRecords       UsageRecord[]
-  plan               Plan               @relation(fields: [planId], references: [id])
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pendingPlanId       String?
+  planChangeAt        DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  invoices            Invoice[]
+  usageRecords        UsageRecord[]
+  plan                Plan               @relation(fields: [planId], references: [id])
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([planId])
   @@index([status])
   @@index([currentPeriodEnd])
   @@index([gracePeriodEndsAt])
+  @@index([polarSubscriptionId])
+  @@index([polarCustomerId])
   @@map("user_subscriptions")
 }
 
@@ -660,6 +674,45 @@ model DeploymentUsage {
   @@index([projectId, createdAt])
   @@index([platform])
   @@map("deployment_usage")
+}
+
+// ============================================================================
+// POLAR INTEGRATION MODELS
+// ============================================================================
+
+// Polar webhook event tracking
+model PolarWebhookEvent {
+  id           String             @id @default(cuid())
+  eventType    String // e.g., "subscription.created", "order.paid"
+  eventId      String             @unique // Polar's event ID for idempotency
+  payload      Json // Full webhook payload
+  status       WebhookEventStatus @default(PENDING)
+  processedAt  DateTime?
+  errorMessage String?
+  retryCount   Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("polar_webhook_events")
+}
+
+// Polar usage event tracking
+model PolarUsageEvent {
+  id                 String   @id @default(cuid())
+  userId             String
+  externalCustomerId String // Our user.id stored in Polar
+  eventName          String // e.g., "ai_credits_used"
+  metadata           Json // Event metadata (model, tokens, credits, etc.)
+  polarEventId       String?  @unique // Event ID returned by Polar
+  sentAt             DateTime @default(now())
+
+  @@index([userId])
+  @@index([externalCustomerId])
+  @@index([sentAt])
+  @@map("polar_usage_events")
 }
 
 // Referral system

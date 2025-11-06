@@ -1,3 +1,9 @@
+-- CreateEnum
+CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE', 'PAST_DUE', 'CANCELLED', 'TRIALING', 'UNPAID', 'EXPIRED');
+
+-- CreateEnum
+CREATE TYPE "WebhookEventStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -7,8 +13,10 @@ CREATE TABLE "users" (
     "image" TEXT,
     "preferredChatPosition" TEXT NOT NULL DEFAULT 'right',
     "preferredTheme" TEXT NOT NULL DEFAULT 'system',
-    "preferredModel" TEXT NOT NULL DEFAULT 'gpt-5',
-    "enabledModels" TEXT[] DEFAULT ARRAY['gpt-5-mini', 'claude-haiku-4-5', 'gpt-5', 'claude-sonnet-4.5']::TEXT[],
+    "preferredModel" TEXT NOT NULL DEFAULT 'claude-haiku-4-5',
+    "enabledModels" TEXT[] DEFAULT ARRAY['claude-haiku-4-5', 'claude-sonnet-4.5']::TEXT[],
+    "referralCode" TEXT,
+    "referredById" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'user',
@@ -19,6 +27,8 @@ CREATE TABLE "users" (
     "lastLoginMethod" TEXT,
     "deletionScheduledAt" TIMESTAMP(3),
     "deletedAt" TIMESTAMP(3),
+    "polarCustomerId" TEXT,
+    "polarCustomerExtId" TEXT,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -113,7 +123,7 @@ CREATE TABLE "projects" (
     "generationStatus" TEXT NOT NULL DEFAULT 'template',
     "lastCodeUpdateAt" TIMESTAMP(3),
     "codeFiles" JSONB NOT NULL DEFAULT '{}',
-    "preferredModel" TEXT NOT NULL DEFAULT 'gpt-5',
+    "preferredModel" TEXT NOT NULL DEFAULT 'claude-haiku-4-5',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -178,10 +188,11 @@ CREATE TABLE "plans" (
     "priceMonthlyUsd" DOUBLE PRECISION NOT NULL,
     "features" JSONB NOT NULL,
     "maxProjects" INTEGER,
-    "dailyCredits" INTEGER,
-    "monthlyCredits" INTEGER,
+    "monthlyCredits" INTEGER NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "polarProductId" TEXT,
+    "polarPriceId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -193,15 +204,21 @@ CREATE TABLE "user_subscriptions" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "planId" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "status" "SubscriptionStatus" NOT NULL DEFAULT 'ACTIVE',
     "currentPeriodStart" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "currentPeriodEnd" TIMESTAMP(3) NOT NULL,
     "cancelAtPeriodEnd" BOOLEAN NOT NULL DEFAULT false,
     "cancelledAt" TIMESTAMP(3),
     "polarCheckoutId" TEXT,
     "polarPaymentId" TEXT,
-    "dailyCreditsUsed" DECIMAL(10,2) NOT NULL DEFAULT 0,
-    "lastCreditReset" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "polarSubscriptionId" TEXT,
+    "polarCustomerId" TEXT,
+    "monthlyCreditsUsed" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "periodCreditsReset" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "gracePeriodEndsAt" TIMESTAMP(3),
+    "paymentFailedAt" TIMESTAMP(3),
+    "pendingPlanId" TEXT,
+    "planChangeAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -235,7 +252,16 @@ CREATE TABLE "usage_records" (
     "billingPeriodStart" TIMESTAMP(3) NOT NULL,
     "billingPeriodEnd" TIMESTAMP(3) NOT NULL,
     "aiCreditsUsed" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "sandboxCreditsUsed" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "databaseCreditsUsed" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "storageCreditsUsed" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "deployCreditsUsed" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "totalCreditsUsed" DECIMAL(10,2) NOT NULL DEFAULT 0,
     "aiCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "sandboxCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "databaseCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "storageCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "deployCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "totalCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -282,10 +308,31 @@ CREATE TABLE "payment_transactions" (
     "polarSignature" TEXT,
     "failureReason" TEXT,
     "metadata" JSONB,
+    "taxAmount" DOUBLE PRECISION,
+    "taxRate" DOUBLE PRECISION,
+    "taxCountryCode" TEXT,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "payment_transactions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "webhook_events" (
+    "id" TEXT NOT NULL,
+    "eventId" TEXT NOT NULL,
+    "eventType" TEXT NOT NULL,
+    "payload" JSONB NOT NULL,
+    "status" "WebhookEventStatus" NOT NULL DEFAULT 'PENDING',
+    "processedAt" TIMESTAMP(3),
+    "error" TEXT,
+    "retryCount" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "webhook_events_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -430,8 +477,116 @@ CREATE TABLE "rate_limit" (
     CONSTRAINT "rate_limit_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "sandbox_usage" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "sandboxId" TEXT NOT NULL,
+    "startTime" TIMESTAMP(3) NOT NULL,
+    "endTime" TIMESTAMP(3),
+    "durationMin" INTEGER NOT NULL DEFAULT 0,
+    "creditsUsed" DECIMAL(10,4) NOT NULL DEFAULT 0,
+    "costUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "sandbox_usage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "storage_usage" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "projectId" TEXT,
+    "storageType" TEXT NOT NULL,
+    "sizeGB" DECIMAL(10,6) NOT NULL,
+    "operations" INTEGER NOT NULL DEFAULT 0,
+    "creditsUsed" DECIMAL(10,4) NOT NULL DEFAULT 0,
+    "costUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "billingPeriod" TIMESTAMP(3) NOT NULL,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "storage_usage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "deployment_usage" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "deploymentId" TEXT,
+    "platform" TEXT NOT NULL DEFAULT 'vercel',
+    "creditsUsed" DECIMAL(10,4) NOT NULL DEFAULT 0,
+    "costUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "buildDurationMin" INTEGER NOT NULL DEFAULT 0,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "deployment_usage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "polar_webhook_events" (
+    "id" TEXT NOT NULL,
+    "eventType" TEXT NOT NULL,
+    "eventId" TEXT NOT NULL,
+    "payload" JSONB NOT NULL,
+    "status" "WebhookEventStatus" NOT NULL DEFAULT 'PENDING',
+    "processedAt" TIMESTAMP(3),
+    "errorMessage" TEXT,
+    "retryCount" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "polar_webhook_events_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "polar_usage_events" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "externalCustomerId" TEXT NOT NULL,
+    "eventName" TEXT NOT NULL,
+    "metadata" JSONB NOT NULL,
+    "polarEventId" TEXT,
+    "sentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "polar_usage_events_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "referral_credits" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "referredUserId" TEXT NOT NULL,
+    "creditsAwarded" INTEGER NOT NULL DEFAULT 1,
+    "awardedForMonth" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "referral_credits_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_referralCode_key" ON "users"("referralCode");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_polarCustomerId_key" ON "users"("polarCustomerId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_polarCustomerExtId_key" ON "users"("polarCustomerExtId");
+
+-- CreateIndex
+CREATE INDEX "users_polarCustomerId_idx" ON "users"("polarCustomerId");
+
+-- CreateIndex
+CREATE INDEX "users_polarCustomerExtId_idx" ON "users"("polarCustomerExtId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "accounts_userId_providerId_key" ON "accounts"("userId", "providerId");
@@ -515,13 +670,22 @@ CREATE UNIQUE INDEX "project_versions_projectId_version_key" ON "project_version
 CREATE UNIQUE INDEX "plans_name_key" ON "plans"("name");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "plans_polarProductId_key" ON "plans"("polarProductId");
+
+-- CreateIndex
 CREATE INDEX "plans_name_idx" ON "plans"("name");
 
 -- CreateIndex
 CREATE INDEX "plans_isActive_idx" ON "plans"("isActive");
 
 -- CreateIndex
+CREATE INDEX "plans_polarProductId_idx" ON "plans"("polarProductId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "user_subscriptions_userId_key" ON "user_subscriptions"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_subscriptions_polarSubscriptionId_key" ON "user_subscriptions"("polarSubscriptionId");
 
 -- CreateIndex
 CREATE INDEX "user_subscriptions_userId_idx" ON "user_subscriptions"("userId");
@@ -534,6 +698,15 @@ CREATE INDEX "user_subscriptions_status_idx" ON "user_subscriptions"("status");
 
 -- CreateIndex
 CREATE INDEX "user_subscriptions_currentPeriodEnd_idx" ON "user_subscriptions"("currentPeriodEnd");
+
+-- CreateIndex
+CREATE INDEX "user_subscriptions_gracePeriodEndsAt_idx" ON "user_subscriptions"("gracePeriodEndsAt");
+
+-- CreateIndex
+CREATE INDEX "user_subscriptions_polarSubscriptionId_idx" ON "user_subscriptions"("polarSubscriptionId");
+
+-- CreateIndex
+CREATE INDEX "user_subscriptions_polarCustomerId_idx" ON "user_subscriptions"("polarCustomerId");
 
 -- CreateIndex
 CREATE INDEX "ai_credit_usage_userId_createdAt_idx" ON "ai_credit_usage"("userId", "createdAt");
@@ -594,6 +767,18 @@ CREATE INDEX "payment_transactions_polarPaymentId_idx" ON "payment_transactions"
 
 -- CreateIndex
 CREATE INDEX "payment_transactions_createdAt_idx" ON "payment_transactions"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "webhook_events_eventId_key" ON "webhook_events"("eventId");
+
+-- CreateIndex
+CREATE INDEX "webhook_events_eventType_idx" ON "webhook_events"("eventType");
+
+-- CreateIndex
+CREATE INDEX "webhook_events_status_idx" ON "webhook_events"("status");
+
+-- CreateIndex
+CREATE INDEX "webhook_events_createdAt_idx" ON "webhook_events"("createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "vercel_integrations_userId_key" ON "vercel_integrations"("userId");
@@ -685,6 +870,75 @@ CREATE UNIQUE INDEX "rate_limit_key_key" ON "rate_limit"("key");
 -- CreateIndex
 CREATE INDEX "rate_limit_key_idx" ON "rate_limit"("key");
 
+-- CreateIndex
+CREATE INDEX "sandbox_usage_userId_createdAt_idx" ON "sandbox_usage"("userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "sandbox_usage_projectId_createdAt_idx" ON "sandbox_usage"("projectId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "sandbox_usage_sandboxId_idx" ON "sandbox_usage"("sandboxId");
+
+-- CreateIndex
+CREATE INDEX "storage_usage_userId_billingPeriod_idx" ON "storage_usage"("userId", "billingPeriod");
+
+-- CreateIndex
+CREATE INDEX "storage_usage_projectId_billingPeriod_idx" ON "storage_usage"("projectId", "billingPeriod");
+
+-- CreateIndex
+CREATE INDEX "storage_usage_storageType_billingPeriod_idx" ON "storage_usage"("storageType", "billingPeriod");
+
+-- CreateIndex
+CREATE INDEX "deployment_usage_userId_createdAt_idx" ON "deployment_usage"("userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "deployment_usage_projectId_createdAt_idx" ON "deployment_usage"("projectId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "deployment_usage_platform_idx" ON "deployment_usage"("platform");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "polar_webhook_events_eventId_key" ON "polar_webhook_events"("eventId");
+
+-- CreateIndex
+CREATE INDEX "polar_webhook_events_eventType_idx" ON "polar_webhook_events"("eventType");
+
+-- CreateIndex
+CREATE INDEX "polar_webhook_events_status_idx" ON "polar_webhook_events"("status");
+
+-- CreateIndex
+CREATE INDEX "polar_webhook_events_createdAt_idx" ON "polar_webhook_events"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "polar_usage_events_polarEventId_key" ON "polar_usage_events"("polarEventId");
+
+-- CreateIndex
+CREATE INDEX "polar_usage_events_userId_idx" ON "polar_usage_events"("userId");
+
+-- CreateIndex
+CREATE INDEX "polar_usage_events_externalCustomerId_idx" ON "polar_usage_events"("externalCustomerId");
+
+-- CreateIndex
+CREATE INDEX "polar_usage_events_sentAt_idx" ON "polar_usage_events"("sentAt");
+
+-- CreateIndex
+CREATE INDEX "referral_credits_userId_awardedForMonth_idx" ON "referral_credits"("userId", "awardedForMonth");
+
+-- CreateIndex
+CREATE INDEX "referral_credits_referredUserId_idx" ON "referral_credits"("referredUserId");
+
+-- CreateIndex
+CREATE INDEX "referral_credits_status_idx" ON "referral_credits"("status");
+
+-- CreateIndex
+CREATE INDEX "referral_credits_createdAt_idx" ON "referral_credits"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "referral_credits_userId_referredUserId_awardedForMonth_key" ON "referral_credits"("userId", "referredUserId", "awardedForMonth");
+
+-- AddForeignKey
+ALTER TABLE "users" ADD CONSTRAINT "users_referredById_fkey" FOREIGN KEY ("referredById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
 -- AddForeignKey
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -728,6 +982,9 @@ ALTER TABLE "usage_records" ADD CONSTRAINT "usage_records_subscriptionId_fkey" F
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "user_subscriptions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "payment_transactions" ADD CONSTRAINT "payment_transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "github_repositories" ADD CONSTRAINT "github_repositories_githubIntegrationId_fkey" FOREIGN KEY ("githubIntegrationId") REFERENCES "github_integrations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -738,3 +995,6 @@ ALTER TABLE "deployments" ADD CONSTRAINT "deployments_vercelIntegrationId_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "two_factor" ADD CONSTRAINT "two_factor_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "referral_credits" ADD CONSTRAINT "referral_credits_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
