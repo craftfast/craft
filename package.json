@@ -53,6 +53,7 @@
     "@codemirror/view": "^6.38.6",
     "@e2b/code-interpreter": "^2.0.1",
     "@openrouter/ai-sdk-provider": "^1.2.0",
+    "@polar-sh/checkout": "^0.1.14",
     "@polar-sh/nextjs": "^0.4.9",
     "@polar-sh/sdk": "^0.14.0",
     "@prisma/client": "^6.18.0",

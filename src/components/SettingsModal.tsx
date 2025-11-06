@@ -33,6 +33,7 @@ import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
 import { validatePassword } from "@/lib/password-validation";
 import validator from "validator";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import EmbeddedCheckout from "@/components/EmbeddedCheckout";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -206,6 +207,10 @@ export default function SettingsModal({
   >(undefined);
   const [selectedProTierIndex, setSelectedProTierIndex] = useState<number>(0); // Default to first Pro tier (500 credits/month)
   const [isPurchasing, setIsPurchasing] = useState(false);
+
+  // Embedded checkout state
+  const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState<string>("");
 
   // Filters and pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -981,6 +986,57 @@ export default function SettingsModal({
     }
   };
 
+  // Helper function to open embedded checkout
+  const handleOpenEmbeddedCheckout = async (monthlyCredits: number) => {
+    setIsPurchasing(true);
+    try {
+      const response = await fetch("/api/billing/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ monthlyCredits }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout session");
+      }
+
+      // Open embedded checkout
+      setCheckoutUrl(data.checkoutUrl);
+      setShowEmbeddedCheckout(true);
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to initiate checkout. Please try again."
+      );
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
+  // Handle checkout success
+  const handleCheckoutSuccess = async () => {
+    setShowEmbeddedCheckout(false);
+    setCheckoutUrl("");
+
+    // Refresh billing data
+    await fetchBillingData();
+
+    toast.success("Successfully upgraded! Your new plan is now active.");
+  };
+
+  // Handle checkout close
+  const handleCheckoutClose = () => {
+    setShowEmbeddedCheckout(false);
+    setCheckoutUrl("");
+    setIsPurchasing(false);
+  };
+
   const fetchCreditUsage = () => {
     setIsLoadingUsage(true);
 
@@ -1671,43 +1727,11 @@ export default function SettingsModal({
                                 className="w-full rounded-full h-12 text-base font-semibold"
                                 disabled={isPurchasing}
                                 onClick={async () => {
-                                  setIsPurchasing(true);
-                                  try {
-                                    const selectedTier =
-                                      PRO_TIERS[selectedProTierIndex];
-                                    const response = await fetch(
-                                      "/api/billing/upgrade-to-pro",
-                                      {
-                                        method: "POST",
-                                        headers: {
-                                          "Content-Type": "application/json",
-                                        },
-                                        body: JSON.stringify({
-                                          monthlyCredits:
-                                            selectedTier.monthlyCredits,
-                                        }),
-                                      }
-                                    );
-                                    const data = await response.json();
-                                    if (response.ok && data.checkoutUrl) {
-                                      window.location.href = data.checkoutUrl;
-                                    } else {
-                                      throw new Error(
-                                        data.error ||
-                                          "Failed to create checkout"
-                                      );
-                                    }
-                                  } catch (error) {
-                                    console.error(
-                                      "Error purchasing Pro plan:",
-                                      error
-                                    );
-                                    toast.error(
-                                      "Failed to initiate purchase. Please try again."
-                                    );
-                                  } finally {
-                                    setIsPurchasing(false);
-                                  }
+                                  const selectedTier =
+                                    PRO_TIERS[selectedProTierIndex];
+                                  await handleOpenEmbeddedCheckout(
+                                    selectedTier.monthlyCredits
+                                  );
                                 }}
                               >
                                 {isPurchasing ? (
@@ -1782,43 +1806,11 @@ export default function SettingsModal({
                                     subscriptionData?.plan.monthlyCredits
                                 }
                                 onClick={async () => {
-                                  setIsPurchasing(true);
-                                  try {
-                                    const selectedTier =
-                                      PRO_TIERS[selectedProTierIndex];
-                                    const response = await fetch(
-                                      "/api/billing/upgrade-to-pro",
-                                      {
-                                        method: "POST",
-                                        headers: {
-                                          "Content-Type": "application/json",
-                                        },
-                                        body: JSON.stringify({
-                                          monthlyCredits:
-                                            selectedTier.monthlyCredits,
-                                        }),
-                                      }
-                                    );
-                                    const data = await response.json();
-                                    if (response.ok && data.checkoutUrl) {
-                                      window.location.href = data.checkoutUrl;
-                                    } else {
-                                      throw new Error(
-                                        data.error ||
-                                          "Failed to create checkout"
-                                      );
-                                    }
-                                  } catch (error) {
-                                    console.error(
-                                      "Error changing Pro tier:",
-                                      error
-                                    );
-                                    toast.error(
-                                      "Failed to change tier. Please try again."
-                                    );
-                                  } finally {
-                                    setIsPurchasing(false);
-                                  }
+                                  const selectedTier =
+                                    PRO_TIERS[selectedProTierIndex];
+                                  await handleOpenEmbeddedCheckout(
+                                    selectedTier.monthlyCredits
+                                  );
                                 }}
                               >
                                 {isPurchasing ? (
@@ -3764,6 +3756,16 @@ export default function SettingsModal({
         onConfirm={confirmUnlinkProvider}
         onCancel={() => setPendingUnlinkProvider(null)}
       />
+
+      {/* Embedded Checkout Modal */}
+      {showEmbeddedCheckout && checkoutUrl && (
+        <EmbeddedCheckout
+          checkoutUrl={checkoutUrl}
+          onSuccess={handleCheckoutSuccess}
+          onClose={handleCheckoutClose}
+          theme={theme === "dark" ? "dark" : "light"}
+        />
+      )}
     </>
   );
 }

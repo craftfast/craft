@@ -204,6 +204,16 @@ export const POST = Webhooks({
         // Immediate access revocation (payment failed, etc.)
         await handleSubscriptionRevoked(subscription);
     },
+
+    onBenefitGrantCreated: async (payload) => {
+        console.log("🎁 Benefit grant created:", payload.data.id);
+        await handleBenefitGrantCreated(payload);
+    },
+
+    onBenefitGrantRevoked: async (payload) => {
+        console.log("❌ Benefit grant revoked:", payload.data.id);
+        await handleBenefitGrantRevoked(payload);
+    },
 });
 
 // ============================================================================
@@ -535,4 +545,65 @@ async function handleSubscriptionPaymentFailed(subscription: Record<string, unkn
             console.log(`Payment failure email sent to ${user.email}`);
         }
     }
+}
+
+async function handleBenefitGrantCreated(event: any) {
+    console.log("Benefit grant created event received:", JSON.stringify(event, null, 2));
+
+    const benefitGrant = event.data;
+    const { subscription_id, benefit_id, properties } = benefitGrant;
+
+    // Extract credit amount from benefit properties
+    const creditAmount = properties?.grant_amount;
+
+    if (!creditAmount) {
+        console.error("No grant_amount found in benefit properties");
+        return;
+    }
+
+    // Find user by Polar subscription ID
+    const user = await prisma.user.findFirst({
+        where: { polarSubscriptionId: subscription_id },
+        include: { subscription: true }
+    });
+
+    if (!user) {
+        console.error(`No user found with polarSubscriptionId: ${subscription_id}`);
+        return;
+    }
+
+    console.log(`Granting ${creditAmount} credits to user ${user.id}`);
+
+    // Grant credits to user
+    await prisma.user.update({
+        where: { id: user.id },
+        data: {
+            credits: {
+                increment: creditAmount
+            },
+            updatedAt: new Date(),
+        }
+    });
+
+    console.log(`Successfully granted ${creditAmount} credits to user ${user.email}`);
+}
+
+async function handleBenefitGrantRevoked(event: any) {
+    console.log("Benefit grant revoked event received:", JSON.stringify(event, null, 2));
+
+    const benefitGrant = event.data;
+    const { subscription_id } = benefitGrant;
+
+    // Find user by Polar subscription ID
+    const user = await prisma.user.findFirst({
+        where: { polarSubscriptionId: subscription_id }
+    });
+
+    if (!user) {
+        console.error(`No user found with polarSubscriptionId: ${subscription_id}`);
+        return;
+    }
+
+    console.log(`Benefit revoked for user ${user.id}. Credits will not be renewed next period.`);
+    // Note: We typically don't deduct credits when revoked, just stop future grants
 }
