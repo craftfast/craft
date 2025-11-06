@@ -112,7 +112,16 @@ export async function POST(request: Request) {
                 monthlyCredits: monthlyCredits.toString(),
                 billingPeriod: "MONTHLY",
             },
-        } as any); // Using 'as any' temporarily due to SDK type issues        // Return the Polar-hosted checkout URL for embedding
+        } as any); // Using 'as any' temporarily due to SDK type issues
+
+        console.log("Checkout session created successfully:", {
+            checkoutId: checkout.id,
+            checkoutUrl: checkout.url,
+            productPriceId: priceId,
+            embedOrigin: baseUrl,
+        });
+
+        // Return the Polar-hosted checkout URL for embedding
         return NextResponse.json({
             success: true,
             checkoutUrl: checkout.url,
