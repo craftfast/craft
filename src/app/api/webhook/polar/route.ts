@@ -302,7 +302,9 @@ async function handleSubscriptionPayment(userId: string, order: Record<string, u
 
     await prisma.paymentTransaction.create({
         data: {
-            userId,
+            user: {
+                connect: { id: userId },
+            },
             amount: Number(order.amount) / 100,
             currency: String(order.currency).toUpperCase(),
             status: "completed",
