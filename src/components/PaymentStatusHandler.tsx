@@ -18,9 +18,9 @@ export default function PaymentStatusHandler() {
 
     if (checkoutStatus === "success" || paymentSuccess === "true") {
       setStatus("success");
-      // Clean URL after 3 seconds
+      // Clean URL after 3 seconds and redirect to home
       setTimeout(() => {
-        router.replace("/billing");
+        router.replace("/");
       }, 3000);
     } else if (checkoutStatus === "failed") {
       setStatus("failed");
@@ -55,10 +55,10 @@ export default function PaymentStatusHandler() {
               There was an issue processing your payment. Please try again.
             </p>
             <Button
-              onClick={() => router.replace("/billing")}
+              onClick={() => router.replace("/pricing")}
               className="rounded-full"
             >
-              Back to Billing
+              Back to Pricing
             </Button>
           </>
         )}
