@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,90 +11,85 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Check, Copy, Users, Gift, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 
-interface ReferralStats {
+interface ReferralData {
   referralCode: string | null;
   totalReferrals: number;
   totalCreditsEarned: number;
   currentMonthlyCredits: number;
   referrals: Array<{
     id: string;
-    email: string;
+    email: string | null;
     name: string | null;
     createdAt: string;
   }>;
-  creditHistory: Array<{
+  creditHistory?: Array<{
     month: string;
     credits: number;
     activeReferrals: number;
   }>;
 }
 
-export default function ReferralDashboard() {
-  const [stats, setStats] = useState<ReferralStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [generatingCode, setGeneratingCode] = useState(false);
+interface ReferralsTabProps {
+  referralData: ReferralData | null;
+  isLoadingReferralData: boolean;
+  fetchReferralData: () => Promise<void>;
+}
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch("/api/referrals/stats");
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch referral stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function ReferralsTab({
+  referralData,
+  isLoadingReferralData,
+  fetchReferralData,
+}: ReferralsTabProps) {
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
 
   const generateReferralCode = async () => {
-    setGeneratingCode(true);
+    setIsGeneratingCode(true);
     try {
       const response = await fetch("/api/referrals/generate-code", {
         method: "POST",
       });
+
       if (response.ok) {
-        const data = await response.json();
-        setStats((prev) =>
-          prev ? { ...prev, referralCode: data.referralCode } : null
-        );
+        await fetchReferralData();
+        toast.success("Referral code generated successfully");
+      } else {
+        toast.error("Failed to generate referral code");
       }
     } catch (error) {
       console.error("Failed to generate referral code:", error);
+      toast.error("Failed to generate referral code");
     } finally {
-      setGeneratingCode(false);
+      setIsGeneratingCode(false);
     }
   };
 
   const copyReferralLink = () => {
-    if (!stats?.referralCode) return;
+    if (!referralData?.referralCode) return;
 
-    const referralLink = `${window.location.origin}/auth/signup?ref=${stats.referralCode}`;
+    const referralLink = `${window.location.origin}/auth/signup?ref=${referralData.referralCode}`;
     navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedLink(true);
+    toast.success("Referral link copied to clipboard");
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const copyReferralCode = () => {
-    if (!stats?.referralCode) return;
+    if (!referralData?.referralCode) return;
 
-    navigator.clipboard.writeText(stats.referralCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard.writeText(referralData.referralCode);
+    setCopiedCode(true);
+    toast.success("Referral code copied to clipboard");
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  if (loading) {
+  if (isLoadingReferralData) {
     return (
-      <div className="container max-w-6xl mx-auto p-6">
+      <div className="space-y-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-neutral-200 dark:bg-neutral-800 rounded-lg w-64"></div>
           <div className="h-32 bg-neutral-200 dark:bg-neutral-800 rounded-2xl"></div>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="h-32 bg-neutral-200 dark:bg-neutral-800 rounded-2xl"></div>
@@ -106,20 +101,20 @@ export default function ReferralDashboard() {
     );
   }
 
-  const referralLink = stats?.referralCode
+  const referralLink = referralData?.referralCode
     ? `${
         typeof window !== "undefined" ? window.location.origin : ""
-      }/auth/signup?ref=${stats.referralCode}`
+      }/auth/signup?ref=${referralData.referralCode}`
     : "";
 
   return (
-    <div className="container max-w-6xl mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
+        <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
           Referral Program
-        </h1>
-        <p className="text-neutral-600 dark:text-neutral-400 mt-2">
+        </h2>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
           Earn 1 free credit per month for every friend you refer
         </p>
       </div>
@@ -135,14 +130,14 @@ export default function ReferralDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!stats?.referralCode ? (
+          {!referralData?.referralCode ? (
             <div className="text-center py-8">
               <Button
                 onClick={generateReferralCode}
-                disabled={generatingCode}
-                className="rounded-full h-12 px-8"
+                disabled={isGeneratingCode}
+                className="rounded-full h-11 px-8 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200 text-neutral-100 dark:text-neutral-900"
               >
-                {generatingCode ? "Generating..." : "Generate Referral Code"}
+                {isGeneratingCode ? "Generating..." : "Generate Referral Code"}
               </Button>
             </div>
           ) : (
@@ -151,14 +146,14 @@ export default function ReferralDashboard() {
                 <Input
                   value={referralLink}
                   readOnly
-                  className="rounded-full h-12 font-mono text-sm"
+                  className="rounded-full h-11 font-mono text-sm bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800"
                 />
                 <Button
                   onClick={copyReferralLink}
                   variant="outline"
-                  className="rounded-full h-12 px-6 gap-2"
+                  className="rounded-full h-11 px-6 gap-2 border-neutral-200 dark:border-neutral-800"
                 >
-                  {copied ? (
+                  {copiedLink ? (
                     <>
                       <Check className="w-4 h-4" />
                       Copied!
@@ -176,7 +171,7 @@ export default function ReferralDashboard() {
                   Your referral code:
                 </span>
                 <code className="px-3 py-1 bg-neutral-100 dark:bg-neutral-900 rounded-lg text-neutral-900 dark:text-neutral-100 font-mono">
-                  {stats.referralCode}
+                  {referralData.referralCode}
                 </code>
                 <Button
                   onClick={copyReferralCode}
@@ -184,7 +179,7 @@ export default function ReferralDashboard() {
                   size="sm"
                   className="rounded-full h-8 px-3"
                 >
-                  {copied ? (
+                  {copiedCode ? (
                     <Check className="w-3 h-3" />
                   ) : (
                     <Copy className="w-3 h-3" />
@@ -207,7 +202,7 @@ export default function ReferralDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
-              {stats?.totalReferrals || 0}
+              {referralData?.totalReferrals || 0}
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
               Friends who signed up
@@ -224,7 +219,7 @@ export default function ReferralDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
-              +{stats?.currentMonthlyCredits || 0}
+              +{referralData?.currentMonthlyCredits || 0}
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
               Extra credits per month
@@ -241,7 +236,7 @@ export default function ReferralDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
-              {stats?.totalCreditsEarned || 0}
+              {referralData?.totalCreditsEarned || 0}
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
               All-time credits earned
@@ -251,7 +246,7 @@ export default function ReferralDashboard() {
       </div>
 
       {/* Referrals Table */}
-      {stats && stats.referrals.length > 0 && (
+      {referralData && referralData.referrals.length > 0 && (
         <Card className="border-neutral-200 dark:border-neutral-800">
           <CardHeader>
             <CardTitle className="text-neutral-900 dark:text-neutral-100">
@@ -278,7 +273,7 @@ export default function ReferralDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.referrals.map((referral) => (
+                  {referralData.referrals.map((referral) => (
                     <tr
                       key={referral.id}
                       className="border-b border-neutral-100 dark:border-neutral-900 last:border-0"
@@ -287,7 +282,7 @@ export default function ReferralDashboard() {
                         {referral.name || "—"}
                       </td>
                       <td className="py-3 px-4 text-sm text-neutral-600 dark:text-neutral-400">
-                        {referral.email}
+                        {referral.email || "—"}
                       </td>
                       <td className="py-3 px-4 text-sm text-neutral-600 dark:text-neutral-400">
                         {new Date(referral.createdAt).toLocaleDateString()}
