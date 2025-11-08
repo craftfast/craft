@@ -52,9 +52,9 @@ export default function DashboardHeader({
     return credits.toString();
   };
 
-  // Determine if tokens are low (less than 10k) - for mobile menu
+  // Determine if tokens are low (100 or less) - for mobile menu
   const isLowTokens =
-    balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;
+    balance && balance.totalAvailable > 0 && balance.totalAvailable <= 100;
 
   // Determine if tokens are exhausted - for mobile menu
   const isTokensExhausted = balance && balance.totalAvailable === 0;

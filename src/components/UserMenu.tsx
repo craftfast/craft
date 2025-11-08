@@ -80,9 +80,9 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
     return credits.toLocaleString();
   };
 
-  // Determine if credits are low (less than 10k)
+  // Determine if credits are low (100 or less)
   const isLowCredits =
-    balance && balance.totalAvailable > 0 && balance.totalAvailable < 10000;
+    balance && balance.totalAvailable > 0 && balance.totalAvailable <= 100;
 
   // Determine if credits are exhausted
   const isCreditsExhausted = balance && balance.totalAvailable === 0;
