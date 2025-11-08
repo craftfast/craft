@@ -17,12 +17,9 @@ export default async function ProjectsPage() {
 
   return (
     <div className="h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-background" />
-
       {/* Header - Fixed */}
-      <header className="flex-shrink-0 relative z-[40] bg-background/80 backdrop-blur-md">
-        <div className="px-3 sm:px-4 py-2">
+      <header className="flex-shrink-0 relative z-[40]">
+        <div className="px-2 sm:px-4 py-2">
           <DashboardHeader
             planName={subscription?.plan?.name}
             userId={session.user.id}
@@ -32,10 +29,10 @@ export default async function ProjectsPage() {
         </div>
       </header>
 
-      {/* Main Content with padding to account for fixed header */}
-      <main className="relative flex-1 min-h-0 px-2 pb-2 flex flex-col">
-        {/* Projects Section - Full Width with Border - Fixed Height */}
-        <div className="flex-1 min-h-0 border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden flex flex-col">
+      {/* Main Content */}
+      <main className="relative flex-1 min-h-0 flex flex-col">
+        {/* Projects Section - Full Height */}
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           <Projects />
         </div>
       </main>

@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type ViewMode = "grid" | "list";
 type SortOption = "recent" | "name" | "oldest";
@@ -11,6 +14,7 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
+  previewImage?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,7 +24,6 @@ export default function Projects() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +73,25 @@ export default function Projects() {
     return `${Math.floor(diffInDays / 365)} years ago`;
   };
 
+  // Generate a consistent color pattern based on project name
+  const getPlaceholderGradient = (projectName: string) => {
+    const gradients = [
+      "from-neutral-400 to-neutral-600",
+      "from-stone-400 to-stone-600",
+      "from-gray-400 to-gray-600",
+      "from-neutral-500 to-stone-600",
+      "from-stone-500 to-gray-600",
+    ];
+
+    // Simple hash function to get consistent index
+    let hash = 0;
+    for (let i = 0; i < projectName.length; i++) {
+      hash = projectName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % gradients.length;
+    return gradients[index];
+  };
+
   if (!session && !isPending) {
     return (
       <div className="text-center py-12">
@@ -81,97 +103,102 @@ export default function Projects() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Title Bar with Controls - Fixed */}
-      <div className="flex-shrink-0 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 rounded-t-xl">
-        <div className="flex items-center justify-between gap-4 px-4 py-3">
-          <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight flex-shrink-0">
-            Projects
-          </h1>
+    <div className="flex h-full bg-background">
+      {/* Left Sidebar */}
+      <div className="w-64 flex-shrink-0 bg-background overflow-y-auto px-4 py-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className="space-y-6">
+          <div className="space-y-3">
+            {/* Projects Title */}
+            <h1 className="text-md font-semibold text-foreground">
+              Projects
+            </h1>
 
-          {/* Search, Filter, and View Controls */}
-          <div className="flex items-center gap-2 flex-1 max-w-2xl">
-            {/* Search Input */}
-            <div className="flex-1 relative min-w-0">
-              <input
-                type="text"
-                placeholder="Search projects..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 pl-9 bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600 transition-all"
-              />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 dark:text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+            {/* Search */}
+            <div>
+              {/* <label className="block text-sm font-medium text-muted-foreground mb-2">
+                Search
+              </label> */}
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <Input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-9 rounded-lg h-10"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              )}
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Filter Button */}
-            <button
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`px-3 py-2 rounded-lg border transition-all flex items-center gap-2 flex-shrink-0 ${
-                isFilterOpen
-                  ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-100"
-                  : "bg-transparent text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-              }`}
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {/* New Project Button */}
+            <Button asChild size="sm" className="w-full rounded-lg h-10">
+              <Link
+                href="/dashboard"
+                className="flex items-center justify-center gap-2"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                />
-              </svg>
-              <span className="text-sm font-medium hidden md:inline">
-                Filter
-              </span>
-            </button>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                New Project
+              </Link>
+            </Button>
+          </div>
 
-            {/* View Toggle */}
-            <div className="flex bg-transparent border border-neutral-300 dark:border-neutral-700 rounded-lg p-1 flex-shrink-0">
+          {/* View Mode */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              View
+            </label>
+            <div className="flex items-center bg-muted rounded-lg p-1">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded transition-all ${
+                className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
                   viewMode === "grid"
-                    ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                    : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
-                aria-label="Grid view"
               >
                 <svg
                   className="w-4 h-4"
@@ -186,15 +213,15 @@ export default function Projects() {
                     d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
                   />
                 </svg>
+                <span className="text-xs font-medium">Grid</span>
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded transition-all ${
+                className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
                   viewMode === "list"
-                    ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                    : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
-                aria-label="List view"
               >
                 <svg
                   className="w-4 h-4"
@@ -209,133 +236,286 @@ export default function Projects() {
                     d="M4 6h16M4 12h16M4 18h16"
                   />
                 </svg>
+                <span className="text-xs font-medium">List</span>
               </button>
             </div>
           </div>
 
-          {/* New Project Button */}
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-all flex items-center gap-2 shadow-sm border border-neutral-200 dark:border-neutral-700 flex-shrink-0"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span className="hidden sm:inline">New Project</span>
-          </Link>
-        </div>
-
-        {/* Filter Options Dropdown */}
-        {isFilterOpen && (
-          <div className="mx-4 mb-3 border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                  Sort by
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setSortBy("recent")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      sortBy === "recent"
-                        ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                        : "bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-600"
-                    }`}
-                  >
-                    Most Recent
-                  </button>
-                  <button
-                    onClick={() => setSortBy("name")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      sortBy === "name"
-                        ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                        : "bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-600"
-                    }`}
-                  >
-                    Name (A-Z)
-                  </button>
-                  <button
-                    onClick={() => setSortBy("oldest")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      sortBy === "oldest"
-                        ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                        : "bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-600"
-                    }`}
-                  >
-                    Oldest First
-                  </button>
-                </div>
-              </div>
+          {/* Sort By */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Sort by
+            </label>
+            <div className="space-y-2">
+              <Button
+                variant={sortBy === "recent" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortBy("recent")}
+                className="w-full justify-start rounded-lg"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Most Recent
+              </Button>
+              <Button
+                variant={sortBy === "name" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortBy("name")}
+                className="w-full justify-start rounded-lg"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+                  />
+                </svg>
+                Name (A-Z)
+              </Button>
+              <Button
+                variant={sortBy === "oldest" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortBy("oldest")}
+                className="w-full justify-start rounded-lg"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Oldest First
+              </Button>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto px-2 py-4 scrollbar-minimal">
-        {/* Projects Display */}
-        {!loading && !error && projects.length > 0 && (
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                : "flex flex-col gap-3"
-            }
-          >
-            {projects.map((project) => (
-              <Link
-                key={project.id}
-                href={`/chat/${project.id}`}
-                className={`group bg-transparent rounded-2xl border border-stone-200 dark:border-neutral-700 hover:border-stone-300 dark:hover:border-neutral-600 transition-all cursor-pointer ${
-                  viewMode === "grid" ? "p-6" : "p-4"
-                }`}
-              >
-                {viewMode === "grid" ? (
-                  // Grid View
-                  <>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-neutral-700 flex items-center justify-center">
-                        <svg
-                          className="w-5 h-5 text-stone-600 dark:text-neutral-300"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      {/* Right Content Area - Project Showcase with Border */}
+      <div className="flex-1 px-2 pb-2">
+        <div className="h-full border border-border rounded-2xl p-6 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+          {/* Projects Display */}
+          {!loading && !error && projects.length > 0 && (
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                  : "flex flex-col gap-3"
+              }
+            >
+              {projects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/chat/${project.id}`}
+                  className={`group bg-card rounded-2xl border border-border hover:border-muted-foreground/50 hover:shadow-md transition-all cursor-pointer ${
+                    viewMode === "grid" ? "p-5" : "p-4"
+                  }`}
+                >
+                  {viewMode === "grid" ? (
+                    // Grid View
+                    <>
+                      {/* Preview Image */}
+                      <div className="relative w-full aspect-video mb-4 rounded-xl overflow-hidden bg-muted">
+                        {project.previewImage ? (
+                          <Image
+                            src={project.previewImage}
+                            alt={project.name}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                           />
-                        </svg>
+                        ) : (
+                          <div
+                            className={`w-full h-full bg-gradient-to-br ${getPlaceholderGradient(
+                              project.name
+                            )} flex items-center justify-center`}
+                          >
+                            <svg
+                              className="w-12 h-12 text-white/30"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.5}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                        {/* Time Badge */}
+                        <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm">
+                          <span className="text-xs text-white font-medium">
+                            {getRelativeTime(project.createdAt)}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-xs text-stone-500 dark:text-neutral-400">
+
+                      {/* Project Info */}
+                      <h3 className="font-semibold text-foreground mb-2 line-clamp-1 break-words">
+                        {project.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {project.description || "No description"}
+                      </p>
+                    </>
+                  ) : (
+                    // List View
+                    <div className="flex items-center gap-4">
+                      {/* Preview Thumbnail */}
+                      <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+                        {project.previewImage ? (
+                          <Image
+                            src={project.previewImage}
+                            alt={project.name}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                          />
+                        ) : (
+                          <div
+                            className={`w-full h-full bg-gradient-to-br ${getPlaceholderGradient(
+                              project.name
+                            )} flex items-center justify-center`}
+                          >
+                            <svg
+                              className="w-6 h-6 text-white/30"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.5}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Project Info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground mb-1 truncate">
+                          {project.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {project.description || "No description"}
+                        </p>
+                      </div>
+
+                      {/* Time */}
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
                         {getRelativeTime(project.createdAt)}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-foreground mb-2 line-clamp-1 break-words">
-                      {project.name}
-                    </h3>
-                    <p className="text-sm text-stone-600 dark:text-neutral-400 line-clamp-2">
-                      {project.description || "No description"}
-                    </p>
-                  </>
-                ) : (
-                  // List View
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-neutral-700 flex items-center justify-center flex-shrink-0">
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex justify-center items-center py-20">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-foreground"></div>
+                <p className="text-sm text-muted-foreground">
+                  Loading projects...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="flex justify-center items-center py-20">
+              <div className="text-center max-w-md">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <svg
+                    className="w-8 h-8 text-destructive"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Failed to load projects
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6">{error}</p>
+                <Button onClick={fetchProjects} className="rounded-full">
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && projects.length === 0 && (
+            <div className="flex justify-center items-center py-20">
+              <div className="text-center max-w-md">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+                  <svg
+                    className="w-10 h-10 text-muted-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  {searchQuery ? "No projects found" : "No projects yet"}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  {searchQuery
+                    ? "Try adjusting your search criteria"
+                    : "Create your first project to get started"}
+                </p>
+                {!searchQuery && (
+                  <Button asChild className="rounded-full">
+                    <Link href="/dashboard">
                       <svg
-                        className="w-5 h-5 text-stone-600 dark:text-neutral-300"
+                        className="w-4 h-4 mr-2"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -344,76 +524,17 @@ export default function Projects() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          d="M12 4v16m8-8H4"
                         />
                       </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground mb-1 truncate">
-                        {project.name}
-                      </h3>
-                      <p className="text-sm text-stone-600 dark:text-neutral-400 truncate">
-                        {project.description || "No description"}
-                      </p>
-                    </div>
-                    <span className="text-xs text-stone-500 dark:text-neutral-400 flex-shrink-0">
-                      {getRelativeTime(project.createdAt)}
-                    </span>
-                  </div>
+                      Create New Project
+                    </Link>
+                  </Button>
                 )}
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="text-center py-12">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
-            <button
-              onClick={fetchProjects}
-              className="mt-4 px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && !error && projects.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-neutral-400 dark:text-neutral-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                />
-              </svg>
+              </div>
             </div>
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-              {searchQuery ? "No projects found" : "No projects yet"}
-            </h3>
-            <p className="text-neutral-600 dark:text-neutral-400 mb-6">
-              {searchQuery
-                ? "Try adjusting your search criteria"
-                : "Create your first project to get started"}
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
