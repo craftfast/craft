@@ -58,11 +58,19 @@ export async function GET(req: NextRequest) {
                 break;
         }
 
-        // Fetch projects
+        // Fetch projects with file counts
         const projects = await prisma.project.findMany({
             where: whereClause,
             orderBy,
             take: limit ? parseInt(limit) : undefined,
+            include: {
+                _count: {
+                    select: {
+                        fileRecords: true,
+                        chatMessages: true,
+                    },
+                },
+            },
         });
 
         return NextResponse.json({ projects }, { status: 200 });
