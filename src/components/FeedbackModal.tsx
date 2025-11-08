@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { X } from "lucide-react";
+import { cleanModalParams } from "@/lib/url-params";
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -17,6 +18,16 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const [submitStatus, setSubmitStatus] = useState<
     "idle" | "success" | "error"
   >("idle");
+
+  // Clear URL parameters when closing
+  const clearUrlParams = useCallback(() => {
+    cleanModalParams();
+  }, []);
+
+  const handleClose = useCallback(() => {
+    clearUrlParams();
+    onClose();
+  }, [clearUrlParams, onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +48,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         setFeedback("");
         setSentiment(null);
         setTimeout(() => {
-          onClose();
+          handleClose();
           setSubmitStatus("idle");
         }, 2000);
       } else {
@@ -72,7 +83,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
               </p>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex-shrink-0"
               disabled={isSubmitting}
             >
@@ -168,7 +179,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSubmitting}
               className="flex-1 px-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 rounded-full font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

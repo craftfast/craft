@@ -549,31 +549,39 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
       )}
 
       {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        initialTab={settingsInitialTab}
-      />
+      {isSettingsModalOpen && (
+        <SettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+          initialTab={settingsInitialTab}
+        />
+      )}
 
       {/* Projects Modal */}
-      <ProjectsModal
-        isOpen={isProjectsModalOpen}
-        onClose={() => setIsProjectsModalOpen(false)}
-      />
+      {isProjectsModalOpen && (
+        <ProjectsModal
+          isOpen={isProjectsModalOpen}
+          onClose={() => setIsProjectsModalOpen(false)}
+        />
+      )}
 
       {/* Feedback Modal */}
-      <FeedbackModal
-        isOpen={isFeedbackModalOpen}
-        onClose={() => setIsFeedbackModalOpen(false)}
-      />
+      {isFeedbackModalOpen && (
+        <FeedbackModal
+          isOpen={isFeedbackModalOpen}
+          onClose={() => setIsFeedbackModalOpen(false)}
+        />
+      )}
 
       {/* Subscription Modal */}
-      <SubscriptionModal
-        isOpen={isPricingModalOpen}
-        onClose={() => setIsPricingModalOpen(false)}
-        currentPlan={userPlan || "HOBBY"}
-        targetPlan={targetPlan}
-      />
+      {isPricingModalOpen && (
+        <SubscriptionModal
+          isOpen={isPricingModalOpen}
+          onClose={() => setIsPricingModalOpen(false)}
+          currentPlan={userPlan || "HOBBY"}
+          targetPlan={targetPlan}
+        />
+      )}
     </div>
   );
 }

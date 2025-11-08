@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { buildSettingsUrl } from "@/lib/url-params";
 
 interface PlanFeature {
   text: string;
@@ -452,8 +453,12 @@ export default function PricingPage() {
               selectedProTier
             );
             console.log("Pricing page - Tier index:", tierIndex);
-            // Open settings modal with billing tab and selected tier
-            router.push(`/?settings=billing&tier=${tierIndex}`);
+            // Open settings modal with billing tab and selected tier using professional URL builder
+            const url = buildSettingsUrl("/", {
+              tab: "billing",
+              tier: tierIndex,
+            });
+            router.push(url);
           }
         : () => {
             // Find the index of the selected tier

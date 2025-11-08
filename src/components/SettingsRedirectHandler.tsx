@@ -3,23 +3,43 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SettingsModal from "./SettingsModal";
+import {
+  parseSettingsParams,
+  cleanSettingsParams,
+  type SettingsTab,
+  type SettingsOption,
+} from "@/lib/url-params";
 
 interface SettingsRedirectHandlerProps {
   currentPlan: string;
 }
 
 /**
- * Handles the settings modal redirect from pricing page
- * Shows settings modal with billing tab and selected tier when settings parameter is present
+ * Professional URL Query Parameter Handler for Settings Modal
+ *
+ * Supports deep-linking to specific settings with query parameters:
+ * - ?settings=billing&tier=1 - Open billing with tier pre-selected
+ * - ?settings=personalization&option=models&model=claude-opus-4 - Open model preferences with specific model
+ * - ?settings=usage&project=abc123 - Open usage filtered by project
+ * - ?settings=account&option=two-factor - Open two-factor settings
+ *
+ * And many more combinations for professional navigation experience
  */
 export default function SettingsRedirectHandler({
   currentPlan,
 }: SettingsRedirectHandlerProps) {
   const searchParams = useSearchParams();
   const [showModal, setShowModal] = useState(false);
-  const [initialProTierIndex, setInitialProTierIndex] = useState<number | null>(
-    null
-  );
+  const [initialTab, setInitialTab] = useState<SettingsTab>("general");
+  const [initialOption, setInitialOption] = useState<
+    SettingsOption | undefined
+  >();
+  const [initialProTierIndex, setInitialProTierIndex] = useState<number>(0);
+  const [autoTriggerCheckout, setAutoTriggerCheckout] = useState(false);
+  const [initialModel, setInitialModel] = useState<string | undefined>();
+  const [initialProject, setInitialProject] = useState<string | undefined>();
+  const [initialEndpoint, setInitialEndpoint] = useState<string | undefined>();
+  const [initialPage, setInitialPage] = useState<number | undefined>();
   const [hasProcessed, setHasProcessed] = useState(false);
 
   useEffect(() => {
@@ -28,42 +48,32 @@ export default function SettingsRedirectHandler({
       return;
     }
 
-    const settingsParam = searchParams.get("settings");
-    const tierParam = searchParams.get("tier");
+    // Parse all settings parameters
+    const params = parseSettingsParams(searchParams);
 
-    console.log(
-      "SettingsRedirectHandler - settingsParam:",
-      settingsParam,
-      "tierParam:",
-      tierParam
-    );
-
-    // Only show modal if settings parameter exists and it's 'billing'
-    if (settingsParam === "billing") {
-      // Parse tier index, default to 0 if not provided or invalid
-      const tierIndex = tierParam ? parseInt(tierParam, 10) : 0;
-      const validTierIndex = isNaN(tierIndex) ? 0 : tierIndex;
-
-      console.log(
-        "SettingsRedirectHandler - Setting tier index to:",
-        validTierIndex
-      );
-
-      // Set tier index first, then show modal
-      setInitialProTierIndex(validTierIndex);
-      setShowModal(true);
-      setHasProcessed(true);
-
-      // Clean up URL by removing the settings and tier parameters after reading them
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete("settings");
-      newUrl.searchParams.delete("tier");
-      window.history.replaceState({}, "", newUrl.toString());
+    if (!params) {
+      return; // No settings parameter found
     }
+
+    console.log("SettingsRedirectHandler - Parsed params:", params);
+
+    // Configure modal based on parameters
+    setInitialTab(params.tab || "general");
+    setInitialOption(params.option);
+    setInitialProTierIndex(params.tier ?? 0);
+    setAutoTriggerCheckout(params.checkout ?? false);
+    setInitialModel(params.model);
+    setInitialProject(params.project);
+    setInitialEndpoint(params.endpoint);
+    setInitialPage(params.page);
+
+    setShowModal(true);
+    setHasProcessed(true);
+
+    // Don't clean URL here - let the modal handle it on close
   }, [searchParams, hasProcessed]);
 
-  // Only render modal when we have a valid tier index
-  if (!showModal || initialProTierIndex === null) {
+  if (!showModal) {
     return null;
   }
 
@@ -72,11 +82,24 @@ export default function SettingsRedirectHandler({
       isOpen={showModal}
       onClose={() => {
         setShowModal(false);
-        setInitialProTierIndex(null);
+        // Reset all state
+        setInitialTab("general");
+        setInitialOption(undefined);
+        setInitialProTierIndex(0);
+        setAutoTriggerCheckout(false);
+        setInitialModel(undefined);
+        setInitialProject(undefined);
+        setInitialEndpoint(undefined);
+        setInitialPage(undefined);
       }}
-      initialTab="billing"
+      initialTab={initialTab}
+      initialOption={initialOption}
       initialProTierIndex={initialProTierIndex}
-      autoTriggerCheckout={true} // Auto-trigger checkout when coming from pricing page
+      autoTriggerCheckout={autoTriggerCheckout}
+      initialModel={initialModel}
+      initialProject={initialProject}
+      initialEndpoint={initialEndpoint}
+      initialPage={initialPage}
     />
   );
 }

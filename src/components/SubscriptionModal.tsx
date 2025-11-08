@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Check, ExternalLink, X } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { cleanModalParams } from "@/lib/url-params";
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -28,6 +29,16 @@ export default function SubscriptionModal({
   const [selectedTab, setSelectedTab] = useState<PlanType>(
     targetPlan || (currentPlan as PlanType) || "HOBBY"
   );
+
+  // Clear URL parameters when closing
+  const clearUrlParams = useCallback(() => {
+    cleanModalParams();
+  }, []);
+
+  const handleClose = useCallback(() => {
+    clearUrlParams();
+    onClose();
+  }, [clearUrlParams, onClose]);
 
   // Update selected tab when modal opens with a targetPlan
   useEffect(() => {
@@ -137,7 +148,7 @@ export default function SubscriptionModal({
   const currentPlanDisplay = currentPlan === "HOBBY" ? "Hobby" : currentPlan;
 
   return (
-    <DialogPrimitive.Root open={isOpen} onOpenChange={onClose}>
+    <DialogPrimitive.Root open={isOpen} onOpenChange={handleClose}>
       <DialogPrimitive.Portal>
         {/* Modal overlay */}
         <DialogPrimitive.Overlay className="fixed inset-0 z-[100000] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />

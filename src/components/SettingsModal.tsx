@@ -34,6 +34,7 @@ import { validatePassword } from "@/lib/password-validation";
 import validator from "validator";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import EmbeddedCheckout from "@/components/EmbeddedCheckout";
+import type { SettingsOption } from "@/lib/url-params";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -45,8 +46,13 @@ interface SettingsModalProps {
     | "account"
     | "integrations"
     | "personalization";
+  initialOption?: SettingsOption; // Specific section within the tab
   initialProTierIndex?: number;
   autoTriggerCheckout?: boolean; // Auto-trigger checkout when coming from pricing page
+  initialModel?: string; // Pre-select a specific model in personalization
+  initialProject?: string; // Pre-filter by project in usage
+  initialEndpoint?: string; // Pre-filter by endpoint in usage
+  initialPage?: number; // Pre-set page number in usage
 }
 
 interface ExtendedUser {
@@ -170,14 +176,127 @@ export default function SettingsModal({
   isOpen,
   onClose,
   initialTab = "general",
+  initialOption,
   initialProTierIndex = 0,
   autoTriggerCheckout = false,
+  initialModel,
+  initialProject,
+  initialEndpoint,
+  initialPage,
 }: SettingsModalProps) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const { chatPosition, setChatPosition } = useChatPosition();
   const refreshSession = useRefreshSession();
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+  const [activeOption, setActiveOption] = useState<SettingsOption | undefined>(
+    initialOption
+  );
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: SettingsTab) => {
+    setActiveTab(tab);
+    updateUrlParams({ tab });
+  };
+
+  // Helper function to clear all settings URL parameters
+  const clearUrlParams = () => {
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    const paramsToRemove = [
+      "settings",
+      "option",
+      "tier",
+      "checkout",
+      "model",
+      "project",
+      "endpoint",
+      "startDate",
+      "endDate",
+      "page",
+    ];
+
+    let hasChanges = false;
+    paramsToRemove.forEach((param) => {
+      if (url.searchParams.has(param)) {
+        url.searchParams.delete(param);
+        hasChanges = true;
+      }
+    });
+
+    if (hasChanges) {
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
+
+  // Helper function to update URL parameters
+  const updateUrlParams = (params: {
+    tab?: SettingsTab;
+    option?: SettingsOption;
+    model?: string;
+    project?: string;
+    endpoint?: string;
+    page?: number;
+    tier?: number;
+  }) => {
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+
+    // Update tab
+    if (params.tab !== undefined) {
+      url.searchParams.set("settings", params.tab);
+    }
+
+    // Update option
+    if (params.option !== undefined) {
+      url.searchParams.set("option", params.option);
+    } else if (params.tab !== undefined) {
+      // Clear option when changing tabs unless explicitly set
+      url.searchParams.delete("option");
+    }
+
+    // Update model
+    if (params.model !== undefined) {
+      url.searchParams.set("model", params.model);
+    }
+
+    // Update project filter
+    if (params.project !== undefined) {
+      if (params.project === "") {
+        url.searchParams.delete("project");
+      } else {
+        url.searchParams.set("project", params.project);
+      }
+    }
+
+    // Update endpoint filter
+    if (params.endpoint !== undefined) {
+      if (params.endpoint === "") {
+        url.searchParams.delete("endpoint");
+      } else {
+        url.searchParams.set("endpoint", params.endpoint);
+      }
+    }
+
+    // Update page
+    if (params.page !== undefined) {
+      if (params.page === 1) {
+        url.searchParams.delete("page");
+      } else {
+        url.searchParams.set("page", params.page.toString());
+      }
+    }
+
+    // Update tier
+    if (params.tier !== undefined) {
+      url.searchParams.set("tier", params.tier.toString());
+    }
+
+    window.history.replaceState({}, "", url.toString());
+  };
+
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
   const [soundNotifications, setSoundNotifications] = useState(false);
   const [location, setLocation] = useState("");
@@ -392,6 +511,27 @@ export default function SettingsModal({
     isAutoTriggeringCheckout,
   ]);
 
+  // Initialize filters and values from URL parameters
+  useEffect(() => {
+    if (isOpen) {
+      // Set initial model preference if provided
+      if (initialModel) {
+        setPreferredModel(initialModel);
+      }
+
+      // Set initial usage filters if provided
+      if (initialProject) {
+        setSelectedProject(initialProject);
+      }
+      if (initialEndpoint) {
+        setSelectedEndpoint(initialEndpoint);
+      }
+      if (initialPage) {
+        setCurrentPage(initialPage);
+      }
+    }
+  }, [isOpen, initialModel, initialProject, initialEndpoint, initialPage]);
+
   // Fetch model preferences when general or personalization tab is active
   useEffect(() => {
     if (activeTab === "general") {
@@ -517,6 +657,8 @@ export default function SettingsModal({
       if (res.ok) {
         const data = await res.json();
         setPreferredModel(data.preferredModel);
+        // Update URL with selected model
+        updateUrlParams({ model: data.preferredModel });
         toast.success("Model preference updated successfully");
       } else {
         const error = await res.json();
@@ -1152,6 +1294,7 @@ export default function SettingsModal({
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
+        clearUrlParams();
         onClose();
       }
     };
@@ -1308,7 +1451,10 @@ export default function SettingsModal({
       >
         <h1 className="text-xl font-semibold text-foreground">Settings</h1>
         <button
-          onClick={onClose}
+          onClick={() => {
+            clearUrlParams();
+            onClose();
+          }}
           className="p-2 rounded-full hover:bg-muted transition-colors"
         >
           <svg
@@ -1345,7 +1491,7 @@ export default function SettingsModal({
             {menuItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => handleTabChange(item.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
                   activeTab === item.id
                     ? "bg-accent text-accent-foreground"
@@ -1773,9 +1919,12 @@ export default function SettingsModal({
                             <div className="space-y-3">
                               <Select
                                 value={selectedProTierIndex.toString()}
-                                onValueChange={(value) =>
-                                  setSelectedProTierIndex(parseInt(value))
-                                }
+                                onValueChange={(value) => {
+                                  const tierIndex = parseInt(value);
+                                  setSelectedProTierIndex(tierIndex);
+                                  // Update URL with selected tier
+                                  updateUrlParams({ tier: tierIndex });
+                                }}
                               >
                                 <SelectTrigger className="w-full rounded-full h-12 px-6 text-base bg-muted/50 border-input hover:bg-muted/70 transition-colors">
                                   <SelectValue placeholder="Select a Pro tier" />
@@ -1840,9 +1989,12 @@ export default function SettingsModal({
                               </Label>
                               <Select
                                 value={selectedProTierIndex.toString()}
-                                onValueChange={(value) =>
-                                  setSelectedProTierIndex(parseInt(value))
-                                }
+                                onValueChange={(value) => {
+                                  const tierIndex = parseInt(value);
+                                  setSelectedProTierIndex(tierIndex);
+                                  // Update URL with selected tier
+                                  updateUrlParams({ tier: tierIndex });
+                                }}
                               >
                                 <SelectTrigger className="w-full rounded-full h-12 px-6 text-base bg-background border-input hover:bg-muted/50 transition-colors">
                                   <SelectValue placeholder="Select a different tier" />
@@ -2170,8 +2322,11 @@ export default function SettingsModal({
                       <select
                         value={selectedProject}
                         onChange={(e) => {
-                          setSelectedProject(e.target.value);
+                          const value = e.target.value;
+                          setSelectedProject(value);
                           setCurrentPage(1);
+                          // Update URL with project filter
+                          updateUrlParams({ project: value, page: 1 });
                         }}
                         className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-white dark:bg-neutral-800 text-foreground focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       >
@@ -2192,8 +2347,11 @@ export default function SettingsModal({
                       <select
                         value={selectedEndpoint}
                         onChange={(e) => {
-                          setSelectedEndpoint(e.target.value);
+                          const value = e.target.value;
+                          setSelectedEndpoint(value);
                           setCurrentPage(1);
+                          // Update URL with endpoint filter
+                          updateUrlParams({ endpoint: value, page: 1 });
                         }}
                         className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-white dark:bg-neutral-800 text-foreground focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-600"
                       >
@@ -2349,9 +2507,11 @@ export default function SettingsModal({
 
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() =>
-                            setCurrentPage(Math.max(1, currentPage - 1))
-                          }
+                          onClick={() => {
+                            const newPage = Math.max(1, currentPage - 1);
+                            setCurrentPage(newPage);
+                            updateUrlParams({ page: newPage });
+                          }}
                           disabled={currentPage === 1}
                           className="px-3 py-1.5 text-sm font-medium text-muted-foreground bg-white dark:bg-neutral-800 border border-input rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
@@ -2385,7 +2545,10 @@ export default function SettingsModal({
                               return (
                                 <button
                                   key={i}
-                                  onClick={() => setCurrentPage(pageNum)}
+                                  onClick={() => {
+                                    setCurrentPage(pageNum);
+                                    updateUrlParams({ page: pageNum });
+                                  }}
                                   className={`w-8 h-8 text-sm font-medium rounded-lg transition-colors ${
                                     currentPage === pageNum
                                       ? "bg-primary text-neutral-50 dark:text-neutral-900"
@@ -2400,14 +2563,14 @@ export default function SettingsModal({
                         </div>
 
                         <button
-                          onClick={() =>
-                            setCurrentPage(
-                              Math.min(
-                                creditUsageData.pagination.totalPages,
-                                currentPage + 1
-                              )
-                            )
-                          }
+                          onClick={() => {
+                            const newPage = Math.min(
+                              creditUsageData.pagination.totalPages,
+                              currentPage + 1
+                            );
+                            setCurrentPage(newPage);
+                            updateUrlParams({ page: newPage });
+                          }}
                           disabled={
                             currentPage ===
                             creditUsageData.pagination.totalPages

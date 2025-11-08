@@ -7,9 +7,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { ProjectsViewMode, ProjectsSortOption } from "@/lib/url-params";
 
-type ViewMode = "grid" | "list";
-type SortOption = "recent" | "name" | "oldest";
+type ViewMode = ProjectsViewMode;
+type SortOption = ProjectsSortOption;
 
 interface Project {
   id: string;
@@ -33,6 +34,75 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Initialize state from URL parameters on first open
+  useEffect(() => {
+    if (isOpen && !hasInitialized && typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      const view = url.searchParams.get("view") as ViewMode;
+      const sort = url.searchParams.get("sort") as SortOption;
+      const search = url.searchParams.get("search");
+
+      if (view === "grid" || view === "list") {
+        setViewMode(view);
+      }
+      if (sort === "recent" || sort === "name" || sort === "oldest") {
+        setSortBy(sort);
+      }
+      if (search) {
+        setSearchQuery(search);
+      }
+
+      setHasInitialized(true);
+    }
+  }, [isOpen, hasInitialized]);
+
+  // Update URL when filters change
+  const updateUrlParams = (params: {
+    view?: ViewMode;
+    sort?: SortOption;
+    search?: string;
+  }) => {
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("modal", "projects");
+
+    if (params.view !== undefined) {
+      url.searchParams.set("view", params.view);
+    }
+    if (params.sort !== undefined) {
+      url.searchParams.set("sort", params.sort);
+    }
+    if (params.search !== undefined) {
+      if (params.search === "") {
+        url.searchParams.delete("search");
+      } else {
+        url.searchParams.set("search", params.search);
+      }
+    }
+
+    window.history.replaceState({}, "", url.toString());
+  };
+
+  // Clear URL params on close
+  const clearUrlParams = () => {
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("modal");
+    url.searchParams.delete("view");
+    url.searchParams.delete("sort");
+    url.searchParams.delete("search");
+
+    window.history.replaceState({}, "", url.toString());
+  };
+
+  const handleClose = () => {
+    clearUrlParams();
+    onClose();
+  };
 
   useEffect(() => {
     if (session && !isPending && isOpen) {
@@ -102,7 +172,7 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
-        onClose();
+        handleClose();
       }
     };
 
@@ -116,7 +186,7 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, handleClose]);
 
   if (!isOpen) return null;
 
@@ -141,7 +211,7 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
       >
         <h1 className="text-xl font-semibold text-foreground">Projects</h1>
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="p-2 rounded-full hover:bg-muted transition-colors"
         >
           <svg
@@ -191,12 +261,18 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
                   type="text"
                   placeholder="Search projects"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    updateUrlParams({ search: e.target.value });
+                  }}
                   className="pl-9 pr-9 rounded-lg h-10"
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => {
+                      setSearchQuery("");
+                      updateUrlParams({ search: "" });
+                    }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <svg
@@ -252,7 +328,10 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
               </label>
               <div className="flex items-center bg-muted rounded-lg p-1">
                 <button
-                  onClick={() => setViewMode("grid")}
+                  onClick={() => {
+                    setViewMode("grid");
+                    updateUrlParams({ view: "grid" });
+                  }}
                   className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
                     viewMode === "grid"
                       ? "bg-background text-foreground shadow-sm"
@@ -275,7 +354,10 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
                   <span className="text-xs font-medium">Grid</span>
                 </button>
                 <button
-                  onClick={() => setViewMode("list")}
+                  onClick={() => {
+                    setViewMode("list");
+                    updateUrlParams({ view: "list" });
+                  }}
                   className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
                     viewMode === "list"
                       ? "bg-background text-foreground shadow-sm"
@@ -309,7 +391,10 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
                 <Button
                   variant={sortBy === "recent" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSortBy("recent")}
+                  onClick={() => {
+                    setSortBy("recent");
+                    updateUrlParams({ sort: "recent" });
+                  }}
                   className="w-full justify-start rounded-lg"
                 >
                   <svg
@@ -330,7 +415,10 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
                 <Button
                   variant={sortBy === "name" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSortBy("name")}
+                  onClick={() => {
+                    setSortBy("name");
+                    updateUrlParams({ sort: "name" });
+                  }}
                   className="w-full justify-start rounded-lg"
                 >
                   <svg
@@ -351,7 +439,10 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
                 <Button
                   variant={sortBy === "oldest" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSortBy("oldest")}
+                  onClick={() => {
+                    setSortBy("oldest");
+                    updateUrlParams({ sort: "oldest" });
+                  }}
                   className="w-full justify-start rounded-lg"
                 >
                   <svg

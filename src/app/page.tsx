@@ -8,6 +8,7 @@ import PendingProjectHandler from "@/components/PendingProjectHandler";
 import PaymentSuccessHandler from "@/components/PaymentSuccessHandler";
 import PlanRedirectHandler from "@/components/PlanRedirectHandler";
 import SettingsRedirectHandler from "@/components/SettingsRedirectHandler";
+import ModalRedirectHandler from "@/components/ModalRedirectHandler";
 import { getUserSubscription } from "@/lib/subscription";
 
 export default async function Home() {
@@ -35,6 +36,11 @@ export default async function Home() {
           <SettingsRedirectHandler
             currentPlan={subscription?.plan?.name || "HOBBY"}
           />
+        </Suspense>
+
+        {/* Modal Redirect Handler - Shows projects/feedback modals based on URL parameters */}
+        <Suspense fallback={null}>
+          <ModalRedirectHandler />
         </Suspense>
 
         {/* Pending Project Handler - Check for pending project on client side */}
