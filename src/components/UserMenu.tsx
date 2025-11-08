@@ -7,6 +7,7 @@ import Image from "next/image";
 import SettingsModal from "./SettingsModal";
 import FeedbackModal from "./FeedbackModal";
 import SubscriptionModal from "./SubscriptionModal";
+import ProjectsModal from "./ProjectsModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
 import { useCreditBalance } from "@/contexts/CreditBalanceContext";
@@ -37,6 +38,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   >("general");
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
   const [targetPlan, setTargetPlan] = useState<
     "HOBBY" | "PRO" | "ENTERPRISE"
   >();
@@ -191,6 +193,29 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
                 />
               </svg>
               Settings
+            </button>
+
+            <button
+              onClick={() => {
+                setIsUserMenuOpen(false);
+                setIsProjectsModalOpen(true);
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
+              </svg>
+              Projects
             </button>
 
             <button
@@ -528,6 +553,12 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         initialTab={settingsInitialTab}
+      />
+
+      {/* Projects Modal */}
+      <ProjectsModal
+        isOpen={isProjectsModalOpen}
+        onClose={() => setIsProjectsModalOpen(false)}
       />
 
       {/* Feedback Modal */}

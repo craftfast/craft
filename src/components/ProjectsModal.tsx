@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,7 +20,12 @@ interface Project {
   updatedAt: string;
 }
 
-export default function Projects() {
+interface ProjectsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
   const { data: session, isPending } = useSession();
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
@@ -29,13 +35,13 @@ export default function Projects() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session && !isPending) {
+    if (session && !isPending && isOpen) {
       fetchProjects();
     } else if (!session && !isPending) {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, isPending, sortBy, searchQuery]);
+  }, [session, isPending, sortBy, searchQuery, isOpen]);
 
   const fetchProjects = async () => {
     try {
@@ -92,28 +98,81 @@ export default function Projects() {
     return gradients[index];
   };
 
-  if (!session && !isPending) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-neutral-600 dark:text-neutral-400">
-          Please sign in to view your projects.
-        </p>
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const modalContent = (
+    <div
+      className="fixed inset-0 bg-background animate-in fade-in duration-200 flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 99999,
+        backgroundColor: "inherit",
+      }}
+    >
+      {/* Top Header Bar */}
+      <div
+        className="flex-shrink-0 h-16 flex items-center justify-between px-6 bg-background"
+        style={{ zIndex: 100000 }}
+      >
+        <h1 className="text-xl font-semibold text-foreground">Projects</h1>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-full hover:bg-muted transition-colors"
+        >
+          <svg
+            className="w-5 h-5 text-muted-foreground"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
       </div>
-    );
-  }
 
-  return (
-    <div className="flex h-full bg-background">
-      {/* Left Sidebar */}
-      <div className="w-64 flex-shrink-0 bg-background overflow-y-auto px-4 py-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
-        <div className="space-y-6">
-          <div className="space-y-3">
-            {/* Projects Title */}
-            <h1 className="text-md font-semibold text-foreground">
-              Projects
-            </h1>
-
-            {/* Search */}
+      {/* Modal Content */}
+      <div
+        className="flex-1 flex overflow-hidden bg-background"
+        style={{ zIndex: 100000 }}
+      >
+        {/* Left Sidebar - Menu */}
+        <div
+          className="w-64 flex-shrink-0 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full"
+          style={{ position: "relative", zIndex: 100001 }}
+        >
+          <div className="p-3 space-y-6">
+            <div className="space-y-3">
+              {/* Search */}
               <div className="relative">
                 <svg
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
@@ -157,162 +216,166 @@ export default function Projects() {
                 )}
               </div>
 
-            {/* New Project Button */}
-            <Button asChild size="sm" className="w-full rounded-lg h-10">
-              <Link
-                href="/dashboard"
-                className="flex items-center justify-center gap-2"
+              {/* New Project Button */}
+              <Button
+                asChild
+                size="sm"
+                className="w-full rounded-lg h-10"
+                onClick={onClose}
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                <Link
+                  href="/dashboard"
+                  className="flex items-center justify-center gap-2"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                New Project
-              </Link>
-            </Button>
-          </div>
-
-          {/* View Mode */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">
-              View
-            </label>
-            <div className="flex items-center bg-muted rounded-lg p-1">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
-                  viewMode === "grid"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                  />
-                </svg>
-                <span className="text-xs font-medium">Grid</span>
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
-                  viewMode === "list"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-                <span className="text-xs font-medium">List</span>
-              </button>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  New Project
+                </Link>
+              </Button>
             </div>
-          </div>
 
-          {/* Sort By */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-2">
-              Sort by
-            </label>
-            <div className="space-y-2">
-              <Button
-                variant={sortBy === "recent" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSortBy("recent")}
-                className="w-full justify-start rounded-lg"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            {/* View Mode */}
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                View
+              </label>
+              <div className="flex items-center bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
+                    viewMode === "grid"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Most Recent
-              </Button>
-              <Button
-                variant={sortBy === "name" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSortBy("name")}
-                className="w-full justify-start rounded-lg"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 6v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                    />
+                  </svg>
+                  <span className="text-xs font-medium">Grid</span>
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
+                    viewMode === "list"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
-                  />
-                </svg>
-                Name (A-Z)
-              </Button>
-              <Button
-                variant={sortBy === "oldest" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSortBy("oldest")}
-                className="w-full justify-start rounded-lg"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                  <span className="text-xs font-medium">List</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Sort By */}
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                Sort by
+              </label>
+              <div className="space-y-2">
+                <Button
+                  variant={sortBy === "recent" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("recent")}
+                  className="w-full justify-start rounded-lg"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Oldest First
-              </Button>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Most Recent
+                </Button>
+                <Button
+                  variant={sortBy === "name" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("name")}
+                  className="w-full justify-start rounded-lg"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+                    />
+                  </svg>
+                  Name (A-Z)
+                </Button>
+                <Button
+                  variant={sortBy === "oldest" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("oldest")}
+                  className="w-full justify-start rounded-lg"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Oldest First
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Right Content Area - Project Showcase with Border */}
-      <div className="flex-1 px-2 pb-2">
-        <div className="h-full border border-border rounded-2xl p-6 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+        {/* Right Panel - Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 m-2 border border-border rounded-2xl bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
           {/* Projects Display */}
           {!loading && !error && projects.length > 0 && (
             <div
@@ -326,6 +389,7 @@ export default function Projects() {
                 <Link
                   key={project.id}
                   href={`/chat/${project.id}`}
+                  onClick={onClose}
                   className={`group bg-card rounded-2xl border border-border hover:border-muted-foreground/50 hover:shadow-md transition-all cursor-pointer ${
                     viewMode === "grid" ? "p-5" : "p-4"
                   }`}
@@ -507,7 +571,7 @@ export default function Projects() {
                     : "Create your first project to get started"}
                 </p>
                 {!searchQuery && (
-                  <Button asChild className="rounded-full">
+                  <Button asChild className="rounded-full" onClick={onClose}>
                     <Link href="/dashboard">
                       <svg
                         className="w-4 h-4 mr-2"
@@ -532,5 +596,13 @@ export default function Projects() {
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {typeof window !== "undefined"
+        ? createPortal(modalContent, document.body)
+        : null}
+    </>
   );
 }
