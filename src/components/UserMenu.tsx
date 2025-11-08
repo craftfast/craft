@@ -49,7 +49,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
 
   const handleSignOut = async () => {
     await signOut();
-    router.push("/home");
+    router.push("/");
   };
 
   // Fetch user's plan

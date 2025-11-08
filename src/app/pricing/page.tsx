@@ -325,7 +325,7 @@ export default function PricingPage() {
   const handleProPayment = async () => {
     // Redirect to signup if not authenticated
     if (!session?.user) {
-      router.push("/auth/signup?callbackUrl=/dashboard&plan=pro");
+      router.push("/auth/signup?callbackUrl=/&plan=pro");
       return;
     }
 
@@ -394,7 +394,7 @@ export default function PricingPage() {
         : userPlan === "hobby"
         ? "Current plan"
         : "Start Crafting",
-      action: () => router.push("/auth/signup?callbackUrl=/dashboard"),
+      action: () => router.push("/auth/signup?callbackUrl=/"),
       features: [
         {
           text: "100 credits per month",
@@ -438,7 +438,7 @@ export default function PricingPage() {
             );
             console.log("Pricing page (signup) - Tier index:", tierIndex);
             router.push(
-              `/auth/signup?callbackUrl=/dashboard&plan=pro&tier=${tierIndex}`
+              `/auth/signup?callbackUrl=/&plan=pro&tier=${tierIndex}`
             );
           }
         : userPlan === "pro"
@@ -453,7 +453,7 @@ export default function PricingPage() {
             );
             console.log("Pricing page - Tier index:", tierIndex);
             // Open settings modal with billing tab and selected tier
-            router.push(`/dashboard?settings=billing&tier=${tierIndex}`);
+            router.push(`/?settings=billing&tier=${tierIndex}`);
           }
         : () => {
             // Find the index of the selected tier
@@ -464,10 +464,10 @@ export default function PricingPage() {
             console.log("Pricing page - Tier index:", tierIndex);
             console.log(
               "Pricing page - Redirecting to:",
-              `/dashboard?plan=pro&tier=${tierIndex}`
+              `/?plan=pro&tier=${tierIndex}`
             );
-            // Redirect to dashboard with plan and tier parameters
-            router.push(`/dashboard?plan=pro&tier=${tierIndex}`);
+            // Redirect to home with plan and tier parameters
+            router.push(`/?plan=pro&tier=${tierIndex}`);
           },
       features: [
         { text: "Everything in hobby, plus:", included: true, highlight: true },

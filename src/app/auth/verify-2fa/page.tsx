@@ -17,7 +17,7 @@ function Verify2FAContent() {
   const [code, setCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [useBackupCode, setUseBackupCode] = useState(false);
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   const handleVerifyTotp = async (e: React.FormEvent) => {
     e.preventDefault();

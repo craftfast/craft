@@ -109,60 +109,55 @@ export default function Projects() {
         <div className="space-y-6">
           <div className="space-y-3">
             {/* Projects Title */}
-            <h1 className="text-md font-semibold text-foreground">
-              Projects
-            </h1>
+            <h1 className="text-md font-semibold text-foreground">Projects</h1>
 
             {/* Search */}
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <Input
-                  type="text"
-                  placeholder="Search projects"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-9 rounded-lg h-10"
+            <div className="relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              </svg>
+              <Input
+                type="text"
+                placeholder="Search projects"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 rounded-lg h-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
 
             {/* New Project Button */}
             <Button asChild size="sm" className="w-full rounded-lg h-10">
-              <Link
-                href="/dashboard"
-                className="flex items-center justify-center gap-2"
-              >
+              <Link href="/" className="flex items-center justify-center gap-2">
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -508,7 +503,7 @@ export default function Projects() {
                 </p>
                 {!searchQuery && (
                   <Button asChild className="rounded-full">
-                    <Link href="/dashboard">
+                    <Link href="/">
                       <svg
                         className="w-4 h-4 mr-2"
                         fill="none"

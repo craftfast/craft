@@ -35,10 +35,8 @@ export default function PendingProjectHandler() {
       try {
         // Check if localStorage is available (might be disabled in private browsing)
         if (typeof window === "undefined" || !window.localStorage) {
-          console.log(
-            "⚠️ localStorage not available, redirecting to dashboard"
-          );
-          router.push("/dashboard");
+          console.log("⚠️ localStorage not available, redirecting to home");
+          router.push("/");
           return;
         }
 
@@ -46,9 +44,9 @@ export default function PendingProjectHandler() {
         const pendingProjectData = localStorage.getItem("pendingProject");
 
         if (!pendingProjectData) {
-          // No pending project, redirect to dashboard
-          console.log("✅ No pending project found, redirecting to dashboard");
-          router.push("/dashboard");
+          // No pending project, redirect to home
+          console.log("✅ No pending project found, redirecting to home");
+          router.push("/");
           return;
         }
 
@@ -59,7 +57,7 @@ export default function PendingProjectHandler() {
         } catch (parseError) {
           console.error("❌ Failed to parse pending project data:", parseError);
           localStorage.removeItem("pendingProject");
-          router.push("/dashboard");
+          router.push("/");
           return;
         }
 
@@ -71,7 +69,7 @@ export default function PendingProjectHandler() {
         ) {
           console.log("⚠️ Invalid pending project (empty prompt), clearing");
           localStorage.removeItem("pendingProject");
-          router.push("/dashboard");
+          router.push("/");
           return;
         }
 
@@ -84,7 +82,7 @@ export default function PendingProjectHandler() {
             "⚠️ Invalid pending project (missing timestamp), clearing"
           );
           localStorage.removeItem("pendingProject");
-          router.push("/dashboard");
+          router.push("/");
           return;
         }
 
@@ -93,10 +91,10 @@ export default function PendingProjectHandler() {
           Date.now() - pendingProject.timestamp > 24 * 60 * 60 * 1000;
         if (isExpired) {
           console.log(
-            "⏰ Pending project expired, clearing and redirecting to dashboard"
+            "⏰ Pending project expired, clearing and redirecting to home"
           );
           localStorage.removeItem("pendingProject");
-          router.push("/dashboard");
+          router.push("/");
           return;
         }
 
@@ -136,9 +134,9 @@ export default function PendingProjectHandler() {
         if (!response.ok) {
           const errorData = await response.json();
           console.error("Failed to create project:", errorData);
-          // Clear pending project and redirect to dashboard
+          // Clear pending project and redirect to home
           localStorage.removeItem("pendingProject");
-          router.push("/dashboard");
+          router.push("/");
           return;
         }
 
@@ -148,7 +146,7 @@ export default function PendingProjectHandler() {
         if (!data.project?.id) {
           console.error("❌ No project ID in response:", data);
           localStorage.removeItem("pendingProject");
-          router.push("/dashboard");
+          router.push("/");
           return;
         }
 
@@ -200,7 +198,7 @@ export default function PendingProjectHandler() {
         router.push(`/chat/${data.project.id}`);
       } catch (error) {
         console.error("Error handling pending project:", error);
-        // Clear pending project and redirect to dashboard on error
+        // Clear pending project and redirect to home on error
         try {
           if (typeof window !== "undefined" && window.localStorage) {
             localStorage.removeItem("pendingProject");
@@ -211,7 +209,7 @@ export default function PendingProjectHandler() {
             storageError
           );
         }
-        router.push("/dashboard");
+        router.push("/");
       } finally {
         setIsProcessing(false);
       }

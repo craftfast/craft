@@ -35,9 +35,9 @@ export default async function ProjectCodingPage({ params }: PageProps) {
     },
   });
 
-  // If project doesn't exist or user doesn't own it, redirect to dashboard
+  // If project doesn't exist or user doesn't own it, redirect to home
   if (!project || project.userId !== session.user.id) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   // Fetch user's subscription to get their plan

@@ -894,7 +894,7 @@ export default function SettingsModal({
 
     try {
       // Use Better Auth's linkSocial method
-      const callbackURL = `${window.location.origin}/dashboard?linked=${provider}`;
+      const callbackURL = `${window.location.origin}/?linked=${provider}`;
 
       await linkSocial({
         provider,

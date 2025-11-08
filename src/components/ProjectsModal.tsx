@@ -224,7 +224,7 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
                 onClick={onClose}
               >
                 <Link
-                  href="/dashboard"
+                  href="/"
                   className="flex items-center justify-center gap-2"
                 >
                   <svg
@@ -572,7 +572,7 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
                 </p>
                 {!searchQuery && (
                   <Button asChild className="rounded-full" onClick={onClose}>
-                    <Link href="/dashboard">
+                    <Link href="/">
                       <svg
                         className="w-4 h-4 mr-2"
                         fill="none"

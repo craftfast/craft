@@ -59,7 +59,7 @@ export default function HomeHeader() {
         {session?.user ? (
           <>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push("/")}
               className="flex items-center leading-tight gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full border border-neutral-300 dark:border-neutral-600 transition-colors"
             >
               <svg
@@ -76,7 +76,7 @@ export default function HomeHeader() {
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                 />
               </svg>
-              Dashboard
+              Home
             </button>
             <UserMenu user={session.user} />
           </>
@@ -144,12 +144,12 @@ export default function HomeHeader() {
                 </div>
                 <button
                   onClick={() => {
-                    router.push("/dashboard");
+                    router.push("/");
                     setIsMobileMenuOpen(false);
                   }}
                   className="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left"
                 >
-                  Dashboard
+                  Home
                 </button>
                 <div className="border-t border-neutral-200 dark:border-neutral-800 my-2" />
               </>
@@ -187,7 +187,7 @@ export default function HomeHeader() {
               <button
                 onClick={async () => {
                   await signOut();
-                  router.push("/home");
+                  router.push("/");
                   setIsMobileMenuOpen(false);
                 }}
                 className="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full border border-neutral-300 dark:border-neutral-600 transition-colors"
