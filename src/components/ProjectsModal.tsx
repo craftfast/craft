@@ -7,9 +7,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ProjectsViewMode, ProjectsSortOption } from "@/lib/url-params";
+import type { ProjectsSortOption } from "@/lib/url-params";
 
-type ViewMode = ProjectsViewMode;
 type SortOption = ProjectsSortOption;
 
 interface Project {
@@ -28,7 +27,6 @@ interface ProjectsModalProps {
 
 export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
   const { data: session, isPending } = useSession();
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [searchQuery, setSearchQuery] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
@@ -40,13 +38,9 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
   useEffect(() => {
     if (isOpen && !hasInitialized && typeof window !== "undefined") {
       const url = new URL(window.location.href);
-      const view = url.searchParams.get("view") as ViewMode;
       const sort = url.searchParams.get("sort") as SortOption;
       const search = url.searchParams.get("search");
 
-      if (view === "grid" || view === "list") {
-        setViewMode(view);
-      }
       if (sort === "recent" || sort === "name" || sort === "oldest") {
         setSortBy(sort);
       }
@@ -59,19 +53,12 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
   }, [isOpen, hasInitialized]);
 
   // Update URL when filters change
-  const updateUrlParams = (params: {
-    view?: ViewMode;
-    sort?: SortOption;
-    search?: string;
-  }) => {
+  const updateUrlParams = (params: { sort?: SortOption; search?: string }) => {
     if (typeof window === "undefined") return;
 
     const url = new URL(window.location.href);
     url.searchParams.set("modal", "projects");
 
-    if (params.view !== undefined) {
-      url.searchParams.set("view", params.view);
-    }
     if (params.sort !== undefined) {
       url.searchParams.set("sort", params.sort);
     }
@@ -92,7 +79,6 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
 
     const url = new URL(window.location.href);
     url.searchParams.delete("modal");
-    url.searchParams.delete("view");
     url.searchParams.delete("sort");
     url.searchParams.delete("search");
 
@@ -321,67 +307,6 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
               </Button>
             </div>
 
-            {/* View Mode */}
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                View
-              </label>
-              <div className="flex items-center bg-muted rounded-lg p-1">
-                <button
-                  onClick={() => {
-                    setViewMode("grid");
-                    updateUrlParams({ view: "grid" });
-                  }}
-                  className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
-                    viewMode === "grid"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 6v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                    />
-                  </svg>
-                  <span className="text-xs font-medium">Grid</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setViewMode("list");
-                    updateUrlParams({ view: "list" });
-                  }}
-                  className={`flex-1 p-2 rounded transition-all flex items-center justify-center gap-2 ${
-                    viewMode === "list"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
-                  <span className="text-xs font-medium">List</span>
-                </button>
-              </div>
-            </div>
-
             {/* Sort By */}
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">
@@ -469,124 +394,64 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
         <div className="flex-1 overflow-y-auto px-6 py-5 m-2 border border-border rounded-2xl bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
           {/* Projects Display */}
           {!loading && !error && projects.length > 0 && (
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                  : "flex flex-col gap-3"
-              }
-            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {projects.map((project) => (
                 <Link
                   key={project.id}
                   href={`/chat/${project.id}`}
                   onClick={onClose}
-                  className={`group bg-card rounded-2xl border border-border hover:border-muted-foreground/50 hover:shadow-md transition-all cursor-pointer ${
-                    viewMode === "grid" ? "p-5" : "p-4"
-                  }`}
+                  className="group bg-card rounded-2xl border border-border hover:border-muted-foreground/50 hover:shadow-md transition-all cursor-pointer overflow-hidden aspect-video"
                 >
-                  {viewMode === "grid" ? (
-                    // Grid View
-                    <>
-                      {/* Preview Image */}
-                      <div className="relative w-full aspect-video mb-4 rounded-xl overflow-hidden bg-muted">
-                        {project.previewImage ? (
-                          <Image
-                            src={project.previewImage}
-                            alt={project.name}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                          />
-                        ) : (
-                          <div
-                            className={`w-full h-full bg-gradient-to-br ${getPlaceholderGradient(
-                              project.name
-                            )} flex items-center justify-center`}
+                  <div className="relative w-full h-full">
+                    {/* Preview Image */}
+                    <div className="absolute inset-0 rounded-2xl overflow-hidden bg-muted">
+                      {project.previewImage ? (
+                        <Image
+                          src={project.previewImage}
+                          alt={project.name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                        />
+                      ) : (
+                        <div
+                          className={`w-full h-full bg-gradient-to-br ${getPlaceholderGradient(
+                            project.name
+                          )} flex items-center justify-center`}
+                        >
+                          <svg
+                            className="w-12 h-12 text-white/30"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
                           >
-                            <svg
-                              className="w-12 h-12 text-white/30"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.5}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                          </div>
-                        )}
-                        {/* Time Badge */}
-                        <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm">
-                          <span className="text-xs text-white font-medium">
-                            {getRelativeTime(project.createdAt)}
-                          </span>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
                         </div>
-                      </div>
+                      )}
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    </div>
 
-                      {/* Project Info */}
-                      <h3 className="font-semibold text-foreground mb-2 line-clamp-1 break-words">
+                    {/* Project Info Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h3 className="font-semibold text-white line-clamp-2 break-words drop-shadow-lg">
                         {project.name}
                       </h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {project.description || "No description"}
-                      </p>
-                    </>
-                  ) : (
-                    // List View
-                    <div className="flex items-center gap-4">
-                      {/* Preview Thumbnail */}
-                      <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-                        {project.previewImage ? (
-                          <Image
-                            src={project.previewImage}
-                            alt={project.name}
-                            fill
-                            className="object-cover"
-                            sizes="64px"
-                          />
-                        ) : (
-                          <div
-                            className={`w-full h-full bg-gradient-to-br ${getPlaceholderGradient(
-                              project.name
-                            )} flex items-center justify-center`}
-                          >
-                            <svg
-                              className="w-6 h-6 text-white/30"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.5}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
+                    </div>
 
-                      {/* Project Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground mb-1 truncate">
-                          {project.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {project.description || "No description"}
-                        </p>
-                      </div>
-
-                      {/* Time */}
-                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                    {/* Time Badge */}
+                    <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm">
+                      <span className="text-xs text-white font-medium">
                         {getRelativeTime(project.createdAt)}
                       </span>
                     </div>
-                  )}
+                  </div>
                 </Link>
               ))}
             </div>
