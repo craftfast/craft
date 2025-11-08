@@ -6,6 +6,7 @@ import CraftInput from "@/components/CraftInput";
 import RecentProjects from "@/components/RecentProjects";
 import PaymentSuccessHandler from "@/components/PaymentSuccessHandler";
 import PlanRedirectHandler from "@/components/PlanRedirectHandler";
+import SettingsRedirectHandler from "@/components/SettingsRedirectHandler";
 import { getUserSubscription } from "@/lib/subscription";
 
 export default async function DashboardPage() {
@@ -27,6 +28,13 @@ export default async function DashboardPage() {
       {/* Plan Redirect Handler - Shows subscription modal when redirected from pricing with plan parameter */}
       <Suspense fallback={null}>
         <PlanRedirectHandler
+          currentPlan={subscription?.plan?.name || "HOBBY"}
+        />
+      </Suspense>
+
+      {/* Settings Redirect Handler - Shows settings modal with billing tab when redirected from pricing for tier changes */}
+      <Suspense fallback={null}>
+        <SettingsRedirectHandler
           currentPlan={subscription?.plan?.name || "HOBBY"}
         />
       </Suspense>

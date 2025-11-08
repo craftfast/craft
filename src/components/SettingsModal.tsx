@@ -46,6 +46,7 @@ interface SettingsModalProps {
     | "integrations"
     | "personalization";
   initialProTierIndex?: number;
+  autoTriggerCheckout?: boolean; // Auto-trigger checkout when coming from pricing page
 }
 
 interface ExtendedUser {
@@ -170,6 +171,7 @@ export default function SettingsModal({
   onClose,
   initialTab = "general",
   initialProTierIndex = 0,
+  autoTriggerCheckout = false,
 }: SettingsModalProps) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
@@ -207,6 +209,9 @@ export default function SettingsModal({
   >(undefined);
   const [selectedProTierIndex, setSelectedProTierIndex] = useState<number>(0); // Default to first Pro tier (500 credits/month)
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [tierSetFromPricingPage, setTierSetFromPricingPage] = useState(false); // Track if tier was set from pricing page
+  const [isAutoTriggeringCheckout, setIsAutoTriggeringCheckout] =
+    useState(false); // Track when auto-triggering checkout
 
   // Embedded checkout state
   const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
@@ -308,18 +313,29 @@ export default function SettingsModal({
     }
   }, [emailResendCooldown]);
 
-  // Reset to initial tab when modal opens
+  // Reset to initial tab when modal opens, and reset tier flag when modal closes
   useEffect(() => {
     if (isOpen && initialTab) {
       setActiveTab(initialTab);
+    } else if (!isOpen) {
+      // Reset the tier flag when modal closes
+      setTierSetFromPricingPage(false);
     }
   }, [isOpen, initialTab]);
 
   // Set initial Pro tier index when modal opens with billing tab
   useEffect(() => {
-    if (isOpen && initialTab === "billing") {
-      console.log("Setting Pro tier index to:", initialProTierIndex);
+    if (
+      isOpen &&
+      initialTab === "billing" &&
+      initialProTierIndex !== undefined
+    ) {
+      console.log(
+        "Setting Pro tier index from pricing page to:",
+        initialProTierIndex
+      );
       setSelectedProTierIndex(initialProTierIndex);
+      setTierSetFromPricingPage(true); // Mark that tier was explicitly set
     }
   }, [isOpen, initialTab, initialProTierIndex]);
 
@@ -329,6 +345,52 @@ export default function SettingsModal({
       fetchBillingData();
     }
   }, [activeTab]);
+
+  // Auto-trigger checkout when coming from pricing page with tier change action
+  useEffect(() => {
+    if (
+      isOpen &&
+      autoTriggerCheckout &&
+      initialTab === "billing" &&
+      tierSetFromPricingPage &&
+      subscriptionData &&
+      !isPurchasing &&
+      !showEmbeddedCheckout &&
+      !isAutoTriggeringCheckout
+    ) {
+      // Wait for billing data to load, then auto-trigger checkout
+      const selectedTier = PRO_TIERS[selectedProTierIndex];
+      const currentTierCredits = subscriptionData.plan?.monthlyCredits;
+
+      // Only trigger if user is changing to a different tier
+      if (selectedTier && selectedTier.monthlyCredits !== currentTierCredits) {
+        console.log("Auto-triggering checkout for tier:", selectedTier);
+        setIsAutoTriggeringCheckout(true);
+
+        // Show toast to inform user
+        toast.info(
+          `Preparing checkout for ${selectedTier.monthlyCredits} credits/month tier...`,
+          { duration: 3000 }
+        );
+
+        // Small delay to show the UI has loaded before opening checkout
+        setTimeout(() => {
+          handleOpenEmbeddedCheckout(selectedTier.monthlyCredits);
+          setIsAutoTriggeringCheckout(false);
+        }, 800);
+      }
+    }
+  }, [
+    isOpen,
+    autoTriggerCheckout,
+    initialTab,
+    tierSetFromPricingPage,
+    subscriptionData,
+    selectedProTierIndex,
+    isPurchasing,
+    showEmbeddedCheckout,
+    isAutoTriggeringCheckout,
+  ]);
 
   // Fetch model preferences when general or personalization tab is active
   useEffect(() => {
@@ -395,11 +457,20 @@ export default function SettingsModal({
         }
 
         // Set current Pro tier index if user is on Pro plan
-        if (subData.plan?.name === "PRO" && subData.plan?.monthlyCredits) {
+        // BUT only if tier wasn't already set from pricing page
+        if (
+          subData.plan?.name === "PRO" &&
+          subData.plan?.monthlyCredits &&
+          !tierSetFromPricingPage
+        ) {
           const currentTierIndex = PRO_TIERS.findIndex(
             (tier) => tier.monthlyCredits === subData.plan.monthlyCredits
           );
           if (currentTierIndex !== -1) {
+            console.log(
+              "Setting tier index to current plan tier:",
+              currentTierIndex
+            );
             setSelectedProTierIndex(currentTierIndex);
           }
         }
@@ -1585,12 +1656,14 @@ export default function SettingsModal({
             {/* Billing Tab */}
             {activeTab === "billing" && (
               <div className="space-y-6">
-                {isLoadingBilling ? (
+                {isLoadingBilling || isAutoTriggeringCheckout ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="text-center">
                       <div className="w-8 h-8 border-4 border-neutral-200 dark:border-neutral-800 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin mx-auto mb-3"></div>
                       <p className="text-sm text-muted-foreground">
-                        Loading billing information...
+                        {isAutoTriggeringCheckout
+                          ? "Preparing checkout for your selected tier..."
+                          : "Loading billing information..."}
                       </p>
                     </div>
                   </div>

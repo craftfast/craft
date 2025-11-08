@@ -258,6 +258,9 @@ export default function PricingPage() {
   const [selectedProTier, setSelectedProTier] = useState<
     (typeof PRO_TIERS)[number]
   >(PRO_TIERS[0]); // Default to 500 credits/month ($25/mo)
+  const [currentMonthlyCredits, setCurrentMonthlyCredits] = useState<
+    number | null
+  >(null); // Track user's current Pro tier credits
 
   // Fetch user's actual subscription plan (only once when authenticated)
   useEffect(() => {
@@ -265,6 +268,7 @@ export default function PricingPage() {
     if (hasFetchedRef.current || isPending || !session?.user) {
       if (!session?.user) {
         setUserPlan(null);
+        setCurrentMonthlyCredits(null);
         hasFetchedRef.current = false; // Reset if user logs out
       }
       return;
@@ -273,11 +277,11 @@ export default function PricingPage() {
     const fetchUserPlan = async () => {
       setIsLoadingPlan(true);
       try {
-        const response = await fetch("/api/user/subscription");
+        const response = await fetch("/api/billing/subscription");
         if (response.ok) {
           const data = await response.json();
           // Map plan names to lowercase for consistency
-          const planName = data.plan?.toLowerCase();
+          const planName = data.plan?.name?.toLowerCase();
           setUserPlan(
             planName === "pro"
               ? "pro"
@@ -285,6 +289,20 @@ export default function PricingPage() {
               ? "enterprise"
               : "hobby"
           );
+
+          // Store current monthly credits if user is on Pro
+          if (planName === "pro" && data.plan?.monthlyCredits) {
+            setCurrentMonthlyCredits(data.plan.monthlyCredits);
+
+            // Find matching tier and set as selected
+            const matchingTierIndex = PRO_TIERS.findIndex(
+              (tier) => tier.monthlyCredits === data.plan.monthlyCredits
+            );
+            if (matchingTierIndex !== -1) {
+              setSelectedProTier(PRO_TIERS[matchingTierIndex]);
+            }
+          }
+
           hasFetchedRef.current = true; // Mark as fetched
         } else {
           // Default to hobby if fetch fails
@@ -401,7 +419,9 @@ export default function PricingPage() {
         : !session
         ? "Upgrade Now"
         : userPlan === "pro"
-        ? "Current plan"
+        ? selectedProTier.monthlyCredits === currentMonthlyCredits
+          ? "Current Tier"
+          : "Change Tier"
         : userPlan === "enterprise"
         ? "Downgrade to Pro"
         : "Upgrade Now",
@@ -422,7 +442,19 @@ export default function PricingPage() {
             );
           }
         : userPlan === "pro"
-        ? () => {} // No action for current plan
+        ? () => {
+            // For Pro users, redirect to settings billing with selected tier
+            const tierIndex = PRO_TIERS.findIndex(
+              (t) => t.monthlyCredits === selectedProTier.monthlyCredits
+            );
+            console.log(
+              "Pricing page - Pro user changing tier:",
+              selectedProTier
+            );
+            console.log("Pricing page - Tier index:", tierIndex);
+            // Open settings modal with billing tab and selected tier
+            router.push(`/dashboard?settings=billing&tier=${tierIndex}`);
+          }
         : () => {
             // Find the index of the selected tier
             const tierIndex = PRO_TIERS.findIndex(
@@ -562,13 +594,19 @@ export default function PricingPage() {
                     onClick={plan.action}
                     disabled={
                       isLoadingPlan ||
-                      (plan.name === "Pro" && userPlan === "pro") ||
+                      (plan.name === "Pro" &&
+                        userPlan === "pro" &&
+                        selectedProTier.monthlyCredits ===
+                          currentMonthlyCredits) ||
                       (plan.name === "Hobby" && userPlan === "hobby") ||
                       (plan.name === "Enterprise" && userPlan === "enterprise")
                     }
                     className={`w-full px-6 py-3 rounded-full font-medium transition-all duration-200 ${
                       isLoadingPlan ||
-                      (plan.name === "Pro" && userPlan === "pro") ||
+                      (plan.name === "Pro" &&
+                        userPlan === "pro" &&
+                        selectedProTier.monthlyCredits ===
+                          currentMonthlyCredits) ||
                       (plan.name === "Hobby" && userPlan === "hobby") ||
                       (plan.name === "Enterprise" && userPlan === "enterprise")
                         ? "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-not-allowed"
@@ -595,6 +633,13 @@ export default function PricingPage() {
                         <SelectTrigger className="w-full rounded-full h-11 px-4 bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors">
                           <SelectValue placeholder="Select tier">
                             {selectedProTier.monthlyCredits} credits / month
+                            {userPlan === "pro" &&
+                              selectedProTier.monthlyCredits ===
+                                currentMonthlyCredits && (
+                                <span className="ml-2 text-xs text-neutral-600 dark:text-neutral-400">
+                                  (Current)
+                                </span>
+                              )}
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-neutral-200 dark:border-neutral-700">
@@ -604,7 +649,18 @@ export default function PricingPage() {
                               value={tier.monthlyCredits.toString()}
                               className="rounded-lg cursor-pointer"
                             >
-                              {tier.monthlyCredits} credits / month
+                              <div className="flex items-center justify-between w-full">
+                                <span>
+                                  {tier.monthlyCredits} credits / month
+                                </span>
+                                {userPlan === "pro" &&
+                                  tier.monthlyCredits ===
+                                    currentMonthlyCredits && (
+                                    <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300">
+                                      Current
+                                    </span>
+                                  )}
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
