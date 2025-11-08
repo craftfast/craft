@@ -35,7 +35,7 @@ model User {
   emailVerified         Boolean              @default(false)
   image                 String?
   // Custom Craft fields
-  preferredChatPosition String               @default("right")
+  preferredChatPosition String               @default("left")
   preferredTheme        String               @default("system")
   preferredModel        String               @default("claude-haiku-4-5")
   enabledModels         String[]             @default(["claude-haiku-4-5", "claude-sonnet-4.5"])

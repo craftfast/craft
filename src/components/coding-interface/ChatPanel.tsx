@@ -136,6 +136,9 @@ export default function ChatPanel({
     "general" | "billing" | "usage" | "account" | "integrations"
   >("general");
   const { balance } = useCreditBalance();
+  const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
+    "HOBBY"
+  );
 
   // Initialize selected model from sessionStorage or default to "claude-haiku-4-5"
   const [selectedModel, setSelectedModel] = useState(() => {
@@ -145,6 +148,26 @@ export default function ChatPanel({
     }
     return "claude-haiku-4-5";
   });
+
+  // Fetch user's plan on mount
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      try {
+        const response = await fetch("/api/user/model-preferences");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.userPlan) {
+            setUserPlan(data.userPlan);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch user plan:", error);
+        // Keep default "HOBBY" on error
+      }
+    };
+
+    fetchUserPlan();
+  }, []);
 
   // Fetch project's preferred model on mount
   useEffect(() => {
@@ -1534,6 +1557,7 @@ export default function ChatPanel({
                 <ModelSelector
                   selectedModel={selectedModel}
                   onModelChange={setSelectedModel}
+                  userPlan={userPlan}
                 />
               </div>
 

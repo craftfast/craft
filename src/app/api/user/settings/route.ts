@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.json({
-            preferredChatPosition: user.preferredChatPosition || "right",
+            preferredChatPosition: user.preferredChatPosition || "left",
             preferredTheme: user.preferredTheme || "system",
         });
     } catch (error) {

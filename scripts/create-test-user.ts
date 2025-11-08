@@ -10,11 +10,13 @@ async function createTestUser() {
         where: { email: 'testuser@craft.test' },
         update: {
             emailVerified: true,
+            preferredChatPosition: 'left',
         },
         create: {
             email: 'testuser@craft.test',
             name: 'Test User',
             emailVerified: true,
+            preferredChatPosition: 'left',
         }
     });
 

@@ -90,9 +90,12 @@ export default function CraftInput() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { balance } = useCreditBalance();
   const [selectedModel, setSelectedModel] = useState("claude-haiku-4-5"); // Default to standard tier (1.0x)
+  const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
+    "HOBBY"
+  );
   const { data: session } = useSession();
 
-  // Fetch user's preferred model on mount
+  // Fetch user's preferred model and plan on mount
   useEffect(() => {
     const fetchPreferredModel = async () => {
       if (!session?.user) return;
@@ -104,10 +107,13 @@ export default function CraftInput() {
           if (data.preferredModel) {
             setSelectedModel(data.preferredModel);
           }
+          if (data.userPlan) {
+            setUserPlan(data.userPlan);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch preferred model:", error);
-        // Keep default "claude-haiku-4-5" on error
+        // Keep defaults on error
       }
     };
 
@@ -715,6 +721,7 @@ export default function CraftInput() {
             <ModelSelector
               selectedModel={selectedModel}
               onModelChange={setSelectedModel}
+              userPlan={userPlan}
             />
           </div>
 

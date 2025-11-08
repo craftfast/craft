@@ -20,14 +20,14 @@ export function ChatPositionProvider({
   children: React.ReactNode;
 }) {
   const { data: session, isPending } = useSession();
-  const [chatPosition, setChatPositionState] = useState<ChatPosition>("right");
+  const [chatPosition, setChatPositionState] = useState<ChatPosition>("left");
   const [hasLoadedFromDB, setHasLoadedFromDB] = useState(false);
 
   // Reset flag when user logs out
   useEffect(() => {
     if (!session && !isPending) {
       setHasLoadedFromDB(false);
-      setChatPositionState("right"); // Reset to default
+      setChatPositionState("left"); // Reset to default
     }
   }, [session, isPending]);
 
