@@ -48,7 +48,7 @@ async function processWebhookEvent(job: Job<WebhookJobData>): Promise<void> {
 
     try {
         // Update webhook event status to PROCESSING
-        await prisma.webhookEvent.update({
+        await prisma.polarWebhookEvent.updateMany({
             where: { eventId },
             data: {
                 status: "PROCESSING",
@@ -57,16 +57,15 @@ async function processWebhookEvent(job: Job<WebhookJobData>): Promise<void> {
         });
 
         // Process the webhook based on type
-        // Import the actual webhook handlers from the Polar route
         await processWebhookByType(eventType, payload);
 
         // Mark as completed
-        await prisma.webhookEvent.update({
+        await prisma.polarWebhookEvent.updateMany({
             where: { eventId },
             data: {
                 status: "COMPLETED",
                 processedAt: new Date(),
-                error: null,
+                errorMessage: null,
             },
         });
 
@@ -76,11 +75,11 @@ async function processWebhookEvent(job: Job<WebhookJobData>): Promise<void> {
         console.error(`[Worker] ❌ Failed to process webhook ${eventId}:`, errorMessage);
 
         // Update webhook event with error
-        await prisma.webhookEvent.update({
+        await prisma.polarWebhookEvent.updateMany({
             where: { eventId },
             data: {
                 status: "FAILED",
-                error: errorMessage,
+                errorMessage: errorMessage,
                 retryCount: attempt + 1,
             },
         });
@@ -98,18 +97,11 @@ async function processWebhookByType(
     eventType: string,
     payload: Record<string, unknown>
 ): Promise<void> {
-    // For now, we'll just log the event type
-    // In a real implementation, you'd import and call the actual handlers
-    // from src/app/api/webhook/polar/route.ts
-
     console.log(`Processing ${eventType} webhook`);
 
-    // Example: You could dynamically import handlers here
-    // const handlers = await import("@/app/api/webhook/polar/route");
-    // await handlers.processEvent(eventType, payload);
-
-    // For MVP, we assume the webhook was already processed synchronously
-    // This queue is mainly for retry logic
+    // Webhooks are already processed synchronously in /api/webhooks/polar
+    // This queue is mainly for retry logic and async processing
+    // The actual event handlers are in src/lib/polar/webhook-handlers/
 }
 
 /**
