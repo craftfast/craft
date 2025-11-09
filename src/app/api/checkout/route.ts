@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     const checkoutHandler = Checkout({
         accessToken: process.env.POLAR_ACCESS_TOKEN!,
         successUrl: process.env.NEXT_PUBLIC_APP_URL
-            ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`
-            : "http://localhost:3000/dashboard?payment=success",
+            ? `${process.env.NEXT_PUBLIC_APP_URL}/chat?payment=success`
+            : "http://localhost:3000/chat?payment=success",
         server: (process.env.POLAR_SERVER as "sandbox" | "production") || "sandbox",
         // Add embed_origin if provided (for embedded checkout)
         ...(embedOrigin && { embedOrigin }),

@@ -14,7 +14,7 @@ import { getUserSubscription } from "@/lib/subscription";
 export default async function Home() {
   const session = await getSession();
 
-  // Authenticated users see dashboard content
+  // Authenticated users see chat content
   if (session) {
     // Get user's subscription details
     const subscription = await getUserSubscription(session.user.id);

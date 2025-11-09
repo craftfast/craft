@@ -61,7 +61,7 @@ function VerifyEmailOTPContent() {
       setSuccess(true);
       setLoading(false);
 
-      // Redirect to callback URL or dashboard after 2 seconds
+      // Redirect to callback URL or chat after 2 seconds
       setTimeout(() => {
         let finalRedirectUrl = callbackUrl;
         if (planParam) {
@@ -149,7 +149,7 @@ function VerifyEmailOTPContent() {
                 </h1>
                 <p className="text-neutral-600 dark:text-neutral-400">
                   Your email has been successfully verified. Redirecting to
-                  dashboard...
+                  chat...
                 </p>
               </div>
             </div>

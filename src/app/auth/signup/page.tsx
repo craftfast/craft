@@ -157,7 +157,7 @@ function SignUpContent() {
         }
       }
 
-      // Successfully verified and signed in - redirect to dashboard
+      // Successfully verified and signed in - redirect to chat
       let finalRedirectUrl = callbackUrl;
       if (planParam) {
         const url = new URL(callbackUrl, window.location.origin);

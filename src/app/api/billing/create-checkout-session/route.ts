@@ -104,7 +104,7 @@ export async function POST(request: Request) {
             productPriceId: priceId,
             customerEmail: user.email || undefined,
             embedOrigin: baseUrl,
-            successUrl: `${baseUrl}/dashboard?payment=success`,
+            successUrl: `${baseUrl}/chat?payment=success`,
             metadata: {
                 userId: user.id,
                 purchaseType: "subscription",

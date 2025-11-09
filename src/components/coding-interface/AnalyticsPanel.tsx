@@ -94,7 +94,7 @@ export default function AnalyticsPanel({ projectId }: AnalyticsPanelProps) {
           <div className="space-y-3">
             {[
               { path: "/", views: 4234, percentage: 34 },
-              { path: "/dashboard", views: 2156, percentage: 17 },
+              { path: "/chat", views: 2156, percentage: 17 },
               { path: "/pricing", views: 1892, percentage: 15 },
               { path: "/docs", views: 1456, percentage: 12 },
             ].map((page) => (
