@@ -140,13 +140,13 @@ export default function ChatPanel({
     "HOBBY"
   );
 
-  // Initialize selected model from sessionStorage or default to "minimax/minimax-m2"
+  // Initialize selected model from sessionStorage or will use API default
   const [selectedModel, setSelectedModel] = useState(() => {
     if (typeof window !== "undefined") {
       const storedModel = sessionStorage.getItem(`project-${projectId}-model`);
-      return storedModel || "minimax/minimax-m2";
+      return storedModel || ""; // Empty string will trigger fetch from API (uses config default)
     }
-    return "minimax/minimax-m2";
+    return "";
   });
 
   // Fetch user's plan on mount

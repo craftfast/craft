@@ -3,9 +3,8 @@
  * 
  * This is the single source of truth for all AI operations in Craft.
  * 
- * Model Configuration:
- * - Claude Haiku 4.5: 1.0x credit multiplier (standard/default) - All plans
- * - Claude Sonnet 4.5: 2.0x credit multiplier (premium) - PRO+ only
+ * Model Configuration is managed in src/lib/models/config.ts
+ * All models are dynamically loaded from AVAILABLE_MODELS
  * 
  * The system supports dynamic model selection with credit-based pricing
  * and plan-based restrictions.
@@ -14,7 +13,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, streamText } from "ai";
-import { canUserAccessModel } from "@/lib/models/config";
+import { canUserAccessModel, getModelConfig, getDefaultSelectedModel, getFallbackModel } from "@/lib/models/config";
 import { getUserPlan } from "@/lib/subscription";
 
 // Create Anthropic client for Claude models
@@ -31,11 +30,11 @@ const openrouter = createOpenRouter({
 // MODEL CONFIGURATION
 // ============================================================================
 
+/**
+ * Legacy MODELS constant - kept for backward compatibility
+ * All models are now defined in src/lib/models/config.ts
+ */
 const MODELS = {
-    // Coding models (user-selectable)
-    CLAUDE_HAIKU: "claude-haiku-4-5",          // Standard tier (1.0x) - Default
-    CLAUDE_SONNET: "claude-sonnet-4.5",        // Premium tier (2.0x)
-
     // Specialized models (via OpenRouter)
     NAMING: "x-ai/grok-4-fast",                // Project naming & creative text
 } as const;
@@ -61,47 +60,54 @@ interface CodingStreamOptions {
 
 /**
  * Get the appropriate AI provider and model name for a given model ID
+ * Dynamically uses model configuration from config.ts (single source of truth)
  */
 function getModelProvider(modelId: string): { provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter>; modelPath: string; displayName: string } {
-    switch (modelId) {
-        case "minimax/minimax-m2":
+    // Get model config from single source of truth
+    const modelConfig = getModelConfig(modelId);
+
+    if (!modelConfig) {
+        // Use fallback model from config
+        const fallbackId = getFallbackModel("HOBBY");
+        const fallbackConfig = getModelConfig(fallbackId);
+
+        console.warn(`⚠️ Unknown model: ${modelId}, defaulting to ${fallbackConfig?.displayName || fallbackId}`);
+
+        if (fallbackConfig) {
+            const provider = fallbackConfig.provider === "anthropic" ? anthropic : openrouter;
             return {
-                provider: openrouter,
-                modelPath: "minimax/minimax-m2",
-                displayName: "MiniMax M2"
+                provider,
+                modelPath: fallbackConfig.id,
+                displayName: fallbackConfig.displayName
             };
-        case "claude-haiku-4.5":
-        case "claude-haiku-4-5":
-            return {
-                provider: anthropic,
-                modelPath: "claude-haiku-4-5",
-                displayName: "Claude Haiku 4.5"
-            };
-        case "claude-sonnet-4.5":
-        case "claude-sonnet-4-5":
-            return {
-                provider: anthropic,
-                modelPath: "claude-sonnet-4-5",
-                displayName: "Claude Sonnet 4.5"
-            };
-        default:
-            // Default to MiniMax M2 (standard tier)
-            console.warn(`⚠️ Unknown model: ${modelId}, defaulting to MiniMax M2`);
-            return {
-                provider: openrouter,
-                modelPath: "minimax/minimax-m2",
-                displayName: "MiniMax M2"
-            };
+        }
+
+        // Ultimate fallback if config is broken
+        return {
+            provider: openrouter,
+            modelPath: "minimax/minimax-m2",
+            displayName: "MiniMax M2"
+        };
     }
+
+    // Return the appropriate provider based on model config
+    const provider = modelConfig.provider === "anthropic" ? anthropic : openrouter;
+
+    return {
+        provider,
+        modelPath: modelConfig.id,
+        displayName: modelConfig.displayName
+    };
 }
 
 /**
  * Stream coding responses with dynamic model selection
- * Supports: MiniMax M2, Claude Haiku 4.5, Claude Sonnet 4.5
+ * Supports all models from config.ts (single source of truth)
  * Validates plan-based access to premium models
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {
-    const { messages, systemPrompt, projectFiles = {}, model: requestedModel = "claude-haiku-4-5", userId, onFinish } = options;
+    const defaultModel = getDefaultSelectedModel();
+    const { messages, systemPrompt, projectFiles = {}, model: requestedModel = defaultModel, userId, onFinish } = options;
 
     // Validate user can access the requested model
     if (userId && requestedModel) {

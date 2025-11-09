@@ -319,8 +319,11 @@ export default function SettingsModal({
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
 
   // Model preferences
-  const [preferredModel, setPreferredModel] =
-    useState<string>("minimax/minimax-m2");
+  const [preferredModel, setPreferredModel] = useState<string>(() => {
+    // Dynamically import is not possible in useState, so we'll use a lazy initialization pattern
+    // The actual default will be set when data is fetched
+    return "";
+  });
   const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
     "HOBBY"
   );
@@ -675,7 +678,8 @@ export default function SettingsModal({
       const res = await fetch("/api/user/model-preferences");
       if (res.ok) {
         const data = await res.json();
-        setPreferredModel(data.preferredModel || "minimax/minimax-m2");
+        // Backend will provide the default from config if not set
+        setPreferredModel(data.preferredModel || "");
         setUserPlan(data.userPlan || "HOBBY");
       }
     } catch (error) {

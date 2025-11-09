@@ -89,7 +89,7 @@ export default function CraftInput() {
   >("general");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { balance } = useCreditBalance();
-  const [selectedModel, setSelectedModel] = useState("minimax/minimax-m2"); // Default to MiniMax M2 (initial selected model)
+  const [selectedModel, setSelectedModel] = useState(""); // Will be set from API (uses config default)
   const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
     "HOBBY"
   );
@@ -113,7 +113,7 @@ export default function CraftInput() {
         }
       } catch (error) {
         console.error("Failed to fetch preferred model:", error);
-        // Keep defaults on error
+        // Keep empty string - backend will use config default
       }
     };
 

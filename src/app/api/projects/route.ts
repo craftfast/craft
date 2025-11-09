@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { generateProjectName } from "@/lib/ai/agent";
 import { getNextJsTemplate } from "@/lib/templates/nextjs";
+import { getDefaultSelectedModel } from "@/lib/models/config";
 
 // GET /api/projects - Fetch all projects for the authenticated user
 export async function GET(req: NextRequest) {
@@ -178,7 +179,7 @@ export async function POST(req: NextRequest) {
                 codeFiles: templateFiles, // Start with Next.js template
                 version: 0,
                 generationStatus: "template", // Status: template (ready for AI to customize)
-                preferredModel: selectedModel || "claude-haiku-4-5", // Save user's selected model
+                preferredModel: selectedModel || getDefaultSelectedModel(), // Save user's selected model or use config default
             },
         });
 

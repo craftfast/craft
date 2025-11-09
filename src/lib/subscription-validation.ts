@@ -4,6 +4,7 @@
  */
 
 import { Decimal } from "@prisma/client/runtime/library";
+import { getAllModelIds } from "@/lib/models/config";
 
 /**
  * Validate credit amount is non-negative
@@ -76,36 +77,30 @@ export function validateBillingPeriod(start: Date, end: Date): void {
 
 /**
  * Validate model name is in allowed list
+ * Dynamically uses models from config.ts
  */
-const VALID_MODELS = [
-    // Claude models
-    "claude-haiku-4-5",
-    "claude-sonnet-4-5",
-    "anthropic/claude-sonnet-4.5",
-    "anthropic/claude-haiku-4.5",
-    // OpenAI models
-    "openai/gpt-5",
-    "openai/gpt-5-mini",
-    // Google models
-    "google/gemini-2.5-pro-001",
-    "google/gemini-2.5-pro",
-    "google/gemini-2.5-flash",
-    // X.AI models
-    "x-ai/grok-4-fast",
-    "x-ai/grok-code-fast-1",
-    "grok-4-fast",
-    // OpenRouter models
-    "minimax/minimax-m2",
-    "moonshotai/kimi-k2-thinking",
-] as const;
-
 export function validateModelName(model: string): void {
     if (!model || typeof model !== "string") {
         throw new Error("Model name is required and must be a string");
     }
 
+    // Get valid models from config (single source of truth)
+    const validModels = getAllModelIds();
+
+    // Also allow legacy/alternative model names for backwards compatibility
+    const legacyModels = [
+        "anthropic/claude-sonnet-4.5",
+        "anthropic/claude-haiku-4.5",
+        "openai/gpt-5-mini",
+        "google/gemini-2.5-pro",
+        "google/gemini-2.5-flash",
+        "x-ai/grok-4-fast",
+        "x-ai/grok-code-fast-1",
+        "grok-4-fast",
+    ];
+
     // Allow any model for flexibility, but log warning for unknown models
-    if (!(VALID_MODELS as readonly string[]).includes(model)) {
+    if (!validModels.includes(model) && !legacyModels.includes(model)) {
         console.warn(`⚠️ Unknown model name: ${model}`);
     }
 }

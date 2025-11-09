@@ -6,28 +6,37 @@
 import { prisma } from "@/lib/db";
 import { creditCache, getCreditCacheKey, invalidateCreditCache } from "@/lib/cache";
 import { validateTokens, validateModelName, validateCredits } from "@/lib/subscription-validation";
+import { AVAILABLE_MODELS, getModelConfig } from "@/lib/models/config";
+
+/**
+ * Generate model pricing dynamically from config
+ * Single source of truth for all model pricing
+ */
+function generateModelPricing(): Record<string, { input: number; output: number }> {
+    const pricing: Record<string, { input: number; output: number }> = {};
+
+    // Generate from AVAILABLE_MODELS (single source of truth)
+    Object.values(AVAILABLE_MODELS).forEach(model => {
+        if (model.pricing) {
+            pricing[model.id] = model.pricing;
+        }
+    });
+
+    // Add legacy model for project naming (Grok)
+    pricing['grok-4-fast'] = { input: 0.05, output: 0.15 };
+    pricing['x-ai/grok-4-fast'] = { input: 0.05, output: 0.15 };
+
+    // Legacy/alternative model names for backwards compatibility
+    pricing['anthropic/claude-sonnet-4.5'] = pricing['claude-sonnet-4.5'] || { input: 3.0, output: 15.0 };
+    pricing['anthropic/claude-haiku-4.5'] = pricing['claude-haiku-4-5'] || { input: 1.0, output: 5.0 };
+
+    return pricing;
+}
 
 // AI Model pricing per 1M tokens (in USD)
-// Updated from OpenRouter pricing (October 16, 2025)
+// Dynamically generated from config.ts (single source of truth)
 const MODEL_PRICING = {
-    // Claude models (Anthropic direct API format)
-    "claude-haiku-4-5": { input: 1.0, output: 5.0 },
-    "claude-sonnet-4-5": { input: 3.0, output: 15.0 },
-
-    // Claude models (with full OpenRouter path)
-    "anthropic/claude-sonnet-4.5": { input: 3.0, output: 15.0 },
-    "anthropic/claude-haiku-4.5": { input: 1.0, output: 5.0 },
-
-    // Claude models (short names for backwards compatibility)
-    "claude-sonnet-4.5": { input: 3.0, output: 15.0 },
-    "claude-haiku-4.5": { input: 1.0, output: 5.0 },
-
-    // Grok models (with full OpenRouter path) - Used for project naming
-    "x-ai/grok-4-fast": { input: 0.05, output: 0.15 },
-
-    // Grok models (short names for backwards compatibility)
-    "grok-4-fast": { input: 0.05, output: 0.15 },
-
+    ...generateModelPricing(),
     // Default fallback
     default: { input: 1.0, output: 3.0 },
 } as const;
@@ -240,24 +249,33 @@ export async function getUserAIUsage(
 export const TOKENS_PER_CREDIT = 10000;
 
 /**
- * Model-based credit multipliers
- * These multipliers adjust credit consumption based on model capability/cost
+ * Generate model credit multipliers dynamically from config
+ * Single source of truth for all model multipliers
  * 
  * Base rate: 1.0x = 10,000 tokens per credit
- * 
- * Allowed Models:
- * - claude-haiku-4-5: 1.0x (standard/default)
- * - claude-sonnet-4.5: 2.0x (premium)
+ * Multipliers are based on output token pricing from config.ts
+ */
+function generateModelCreditMultipliers(): Record<string, number> {
+    const multipliers: Record<string, number> = {};
+
+    // Generate from AVAILABLE_MODELS (single source of truth)
+    Object.values(AVAILABLE_MODELS).forEach(model => {
+        multipliers[model.id] = model.creditMultiplier;
+    });
+
+    // Legacy/alternative model names for backwards compatibility
+    multipliers['anthropic/claude-haiku-4.5'] = multipliers['claude-haiku-4-5'] || 0.5;
+    multipliers['anthropic/claude-sonnet-4.5'] = multipliers['claude-sonnet-4.5'] || 1.5;
+
+    return multipliers;
+}
+
+/**
+ * Model-based credit multipliers
+ * Dynamically generated from config.ts (single source of truth)
  */
 const MODEL_CREDIT_MULTIPLIERS: Record<string, number> = {
-    // Standard tier (default)
-    "claude-haiku-4-5": 1.0,
-    "anthropic/claude-haiku-4.5": 1.0,
-
-    // Premium tier
-    "claude-sonnet-4.5": 2.0,
-    "anthropic/claude-sonnet-4.5": 2.0,
-
+    ...generateModelCreditMultipliers(),
     // Default fallback - Standard tier
     default: 1.0,
 };

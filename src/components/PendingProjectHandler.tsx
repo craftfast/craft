@@ -103,8 +103,10 @@ export default function PendingProjectHandler() {
           !pendingProject.selectedModel ||
           typeof pendingProject.selectedModel !== "string"
         ) {
-          console.log("⚠️ Invalid model selection, using default");
-          pendingProject.selectedModel = "claude-haiku-4-5"; // Default fallback
+          console.log(
+            "⚠️ Invalid model selection, backend will use config default"
+          );
+          pendingProject.selectedModel = ""; // Empty string - backend will use config default
         }
 
         // Validate images array

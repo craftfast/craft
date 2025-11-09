@@ -5,6 +5,8 @@
  * Credits cover AI generation, sandbox usage, database, storage, and deployments
  */
 
+import { AVAILABLE_MODELS } from "@/lib/models/config";
+
 export const PRICING = {
     HOBBY: {
         name: "Hobby",
@@ -99,24 +101,32 @@ export const PRO_TIERS = [
     { monthlyCredits: 100000, priceMonthly: 2000, displayPrice: "$2,000/mo", polarEnvKey: "POLAR_PRO_100000_PRODUCT_ID" },
 ] as const;
 
+/**
+ * Generate model multipliers dynamically from config
+ * This ensures pricing is always in sync with available models
+ */
+function generateModelMultipliers(): Record<string, number> {
+    const multipliers: Record<string, number> = {};
+
+    // Generate from AVAILABLE_MODELS (single source of truth)
+    Object.values(AVAILABLE_MODELS).forEach(model => {
+        multipliers[model.id] = model.creditMultiplier;
+    });
+
+    // Add legacy model for project naming (Grok)
+    multipliers['grok-4-fast'] = 0.1;
+    multipliers['x-ai/grok-4-fast'] = 0.1;
+
+    return multipliers;
+}
+
 // Credit consumption rates for different resource types
 export const CREDIT_RATES = {
     // AI Usage (1 credit = 10,000 tokens)
-    // Multipliers based on actual output token pricing from OpenRouter ($1/M = 0.1x)
+    // Multipliers dynamically generated from config.ts (single source of truth)
     ai: {
         baseRate: 10000, // tokens per credit
-        modelMultipliers: {
-            // Free Tier Models (HOBBY+)
-            'minimax/minimax-m2': 0.1,              // $1.02/M output
-            'claude-haiku-4-5': 0.5,                // $5/M output
-            // Premium Models (PRO+)
-            'moonshotai/kimi-k2-thinking': 0.25,    // $2.50/M output
-            'google/gemini-2.5-pro-001': 1.0,       // $10/M output
-            'openai/gpt-5': 1.0,                    // $10/M output
-            'claude-sonnet-4.5': 1.5,               // $15/M output
-            // Legacy/System Models
-            'grok-4-fast': 0.1,                     // Used for project naming (estimated)
-        }
+        modelMultipliers: generateModelMultipliers()
     },
 
     // Sandbox Usage (E2B)

@@ -3,6 +3,7 @@ import { streamCodingResponse } from "@/lib/ai/agent";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { checkUserCreditAvailability, processAIUsage } from "@/lib/ai-usage";
+import { getDefaultSelectedModel } from "@/lib/models/config";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -116,7 +117,8 @@ export async function POST(req: Request) {
             Array.isArray(m.content) && m.content.some((c: { type: string }) => c.type === 'image')
         );
 
-        console.log(`🤖 AI Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}, Model: ${model || 'claude-haiku-4-5 (default)'}`);
+        const defaultModel = getDefaultSelectedModel();
+        console.log(`🤖 AI Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}, Model: ${model || `${defaultModel} (default)`}`);
         if (projectFiles && Object.keys(projectFiles).length > 0) {
             console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
         }
@@ -127,7 +129,7 @@ export async function POST(req: Request) {
             systemPrompt,
             projectFiles: projectFiles || {},
             conversationHistory: messages.slice(0, -1),
-            model: model || 'claude-haiku-4-5', // Pass selected model (default to Claude Haiku)
+            model: model || defaultModel, // Pass selected model or use config default
             // Track usage after stream completes
             onFinish: async (usageData) => {
                 try {

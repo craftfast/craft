@@ -15,6 +15,10 @@ export interface ModelConfig {
     creditMultiplier: number;
     description: string;
     minPlanRequired: PlanName; // Minimum plan required to access this model
+    pricing?: {
+        input: number; // USD per 1M input tokens
+        output: number; // USD per 1M output tokens
+    };
 }
 
 /**
@@ -34,6 +38,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         creditMultiplier: 0.1, // $1.02/M output tokens
         description: "MiniMax reasoning model",
         minPlanRequired: "HOBBY",
+        pricing: { input: 0.51, output: 1.02 }, // Estimated pricing
     },
     "moonshotai/kimi-k2-thinking": {
         id: "moonshotai/kimi-k2-thinking",
@@ -44,6 +49,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         creditMultiplier: 0.25, // $2.50/M output tokens
         description: "Advanced reasoning model",
         minPlanRequired: "PRO",
+        pricing: { input: 1.0, output: 2.5 }, // Estimated pricing
     },
     "claude-haiku-4-5": {
         id: "claude-haiku-4-5",
@@ -54,6 +60,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         creditMultiplier: 0.5, // $5/M output tokens
         description: "Fast & efficient",
         minPlanRequired: "HOBBY",
+        pricing: { input: 1.0, output: 5.0 },
     },
     "google/gemini-2.5-pro-001": {
         id: "google/gemini-2.5-pro-001",
@@ -64,6 +71,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         creditMultiplier: 1.0, // $10/M output tokens
         description: "Google's most advanced model",
         minPlanRequired: "PRO",
+        pricing: { input: 2.5, output: 10.0 }, // Estimated pricing
     },
     "openai/gpt-5": {
         id: "openai/gpt-5",
@@ -74,6 +82,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         creditMultiplier: 1.0, // $10/M output tokens
         description: "OpenAI's most advanced model",
         minPlanRequired: "PRO",
+        pricing: { input: 2.5, output: 10.0 }, // Estimated pricing
     },
     "claude-sonnet-4.5": {
         id: "claude-sonnet-4.5",
@@ -84,6 +93,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         creditMultiplier: 1.5, // $15/M output tokens
         description: "Most capable",
         minPlanRequired: "PRO",
+        pricing: { input: 3.0, output: 15.0 },
     },
 };
 
@@ -144,10 +154,15 @@ export function getModelConfig(modelId: string): ModelConfig | null {
 /**
  * Get fallback model when user's preferred model is not accessible
  * This is NOT a "default model" - just a fallback for edge cases
+ * Always returns the first HOBBY-tier model (lowest tier)
  */
 export function getFallbackModel(planName: PlanName): string {
-    // Always fall back to minimax-m2 (available on all plans)
-    return "minimax/minimax-m2";
+    // Find the first model available on HOBBY plan (lowest tier)
+    const hobbyModels = getModelsForPlan("HOBBY");
+    if (hobbyModels.length === 0) {
+        throw new Error("No models available for HOBBY plan - configuration error");
+    }
+    return hobbyModels[0].id;
 }
 
 /**
@@ -180,24 +195,30 @@ export function getFreeTierModels(): ModelConfig[] {
 
 /**
  * Get initial enabled models for new users
- * All 6 models are enabled by default - users can personalize based on their needs
+ * All models from AVAILABLE_MODELS are enabled by default - users can personalize based on their needs
  * Premium models will only be accessible to Pro users in the coding interface
  */
 export function getDefaultEnabledModels(): string[] {
-    return [
-        "minimax/minimax-m2",
-        "moonshotai/kimi-k2-thinking",
-        "claude-haiku-4-5",
-        "google/gemini-2.5-pro-001",
-        "openai/gpt-5",
-        "claude-sonnet-4.5",
-    ];
+    return getAllModelIds();
 }
 
 /**
  * Get initial preferred model for new users
  * This is set as the selected model when a user signs up
+ * Returns the first standard-tier HOBBY model (typically the fastest/cheapest)
  */
 export function getDefaultSelectedModel(): string {
-    return "claude-haiku-4-5";
+    // Find the first standard-tier model available on HOBBY plan
+    const hobbyModels = getModelsForPlan("HOBBY");
+    const standardModel = hobbyModels.find(m => m.tier === "standard");
+
+    if (standardModel) {
+        return standardModel.id;
+    }
+
+    // Fallback to first HOBBY model if no standard tier found
+    if (hobbyModels.length === 0) {
+        throw new Error("No models available for HOBBY plan - configuration error");
+    }
+    return hobbyModels[0].id;
 }
