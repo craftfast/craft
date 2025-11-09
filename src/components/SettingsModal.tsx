@@ -320,7 +320,7 @@ export default function SettingsModal({
 
   // Model preferences
   const [preferredModel, setPreferredModel] =
-    useState<string>("claude-haiku-4-5");
+    useState<string>("minimax/minimax-m2");
   const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
     "HOBBY"
   );
@@ -675,7 +675,7 @@ export default function SettingsModal({
       const res = await fetch("/api/user/model-preferences");
       if (res.ok) {
         const data = await res.json();
-        setPreferredModel(data.preferredModel || "claude-haiku-4-5");
+        setPreferredModel(data.preferredModel || "minimax/minimax-m2");
         setUserPlan(data.userPlan || "HOBBY");
       }
     } catch (error) {
@@ -1530,10 +1530,12 @@ export default function SettingsModal({
             clearUrlParams();
             onClose();
           }}
-          className="p-2 rounded-full hover:bg-muted transition-colors"
+          className="p-2 rounded-full hover:bg-muted transition-colors group"
+          title="Close settings (Esc)"
+          aria-label="Close settings"
         >
           <svg
-            className="w-5 h-5 text-muted-foreground"
+            className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

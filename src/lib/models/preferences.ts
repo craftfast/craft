@@ -8,7 +8,7 @@ import {
     canUserAccessModel,
     filterModelsByPlan,
     getAllModelIds,
-    getDefaultModelForPlan,
+    getFallbackModel,
     getModelsForPlan,
     type ModelConfig,
     type PlanName,
@@ -52,13 +52,36 @@ export async function getUserModelPreferences(
     const availableModels = getModelsForPlan(userPlan);
 
     // Filter user's enabled models to only include accessible ones
-    const enabledModels = filterModelsByPlan(user.enabledModels, userPlan);
+    let enabledModels = filterModelsByPlan(user.enabledModels, userPlan);
+
+    // If no models are enabled, initialize with the standard initial set
+    if (enabledModels.length === 0) {
+        const { getDefaultEnabledModels } = await import("./config");
+        const initialModels = getDefaultEnabledModels();
+        // Only enable models that the user can access
+        enabledModels = initialModels.filter((id) => canUserAccessModel(id, userPlan));
+
+        // Update database
+        await prisma.user.update({
+            where: { id: userId },
+            data: { enabledModels },
+        });
+    }
+
+    // Ensure selected model is always in enabled models
+    let preferredModel = user.preferredModel;
+    if (!enabledModels.includes(preferredModel)) {
+        enabledModels.push(preferredModel);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { enabledModels },
+        });
+    }
 
     // Validate preferred model is accessible
-    let preferredModel = user.preferredModel;
     if (!canUserAccessModel(preferredModel, userPlan)) {
-        // Fall back to default if preferred model is not accessible
-        preferredModel = getDefaultModelForPlan(userPlan);
+        // Fall back to minimax-m2 if preferred model is not accessible
+        preferredModel = getFallbackModel(userPlan);
     }
 
     return {
@@ -93,6 +116,7 @@ export async function updatePreferredModel(
 
 /**
  * Enable or disable a model for the user
+ * Note: The selected/preferred model cannot be disabled
  */
 export async function toggleModelEnabled(
     userId: string,
@@ -110,11 +134,16 @@ export async function toggleModelEnabled(
 
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { enabledModels: true },
+        select: { enabledModels: true, preferredModel: true },
     });
 
     if (!user) {
         throw new Error("User not found");
+    }
+
+    // Cannot disable the selected model
+    if (!enabled && modelId === user.preferredModel) {
+        throw new Error("Cannot disable the selected model. Please select a different model first.");
     }
 
     let enabledModels = [...user.enabledModels];
@@ -128,7 +157,7 @@ export async function toggleModelEnabled(
         // Remove model
         enabledModels = enabledModels.filter((id) => id !== modelId);
 
-        // Ensure at least one model is enabled
+        // Ensure at least one model is enabled (this should always be true due to selected model check above)
         if (enabledModels.length === 0) {
             throw new Error("At least one model must be enabled");
         }
@@ -142,6 +171,7 @@ export async function toggleModelEnabled(
 
 /**
  * Update all enabled models at once
+ * Note: The selected/preferred model will be automatically included
  */
 export async function updateEnabledModels(
     userId: string,
@@ -149,6 +179,16 @@ export async function updateEnabledModels(
 ): Promise<void> {
     if (modelIds.length === 0) {
         throw new Error("At least one model must be enabled");
+    }
+
+    // Get user's selected model
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { preferredModel: true },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
     }
 
     // Verify user can access all requested models
@@ -164,9 +204,12 @@ export async function updateEnabledModels(
         );
     }
 
+    // Ensure selected model is always included
+    const finalModelIds = [...new Set([...modelIds, user.preferredModel])];
+
     await prisma.user.update({
         where: { id: userId },
-        data: { enabledModels: modelIds },
+        data: { enabledModels: finalModelIds },
     });
 }
 
@@ -175,9 +218,15 @@ export async function updateEnabledModels(
  */
 export async function resetModelPreferences(userId: string): Promise<void> {
     const userPlan = await getUserPlan(userId);
-    const defaultModel = getDefaultModelForPlan(userPlan);
-    const availableModels = getModelsForPlan(userPlan);
-    const enabledModels = availableModels.map((m) => m.id);
+
+    // Import default functions
+    const { getDefaultSelectedModel, getDefaultEnabledModels } = await import("./config");
+
+    const defaultModel = getDefaultSelectedModel();
+    const defaultModels = getDefaultEnabledModels();
+
+    // Only enable models that the user can access
+    const enabledModels = defaultModels.filter((id) => canUserAccessModel(id, userPlan));
 
     await prisma.user.update({
         where: { id: userId },
@@ -209,8 +258,8 @@ export async function getUserPreferredModel(userId: string): Promise<string> {
         return user.preferredModel;
     }
 
-    // Fall back to default
-    return getDefaultModelForPlan(userPlan);
+    // Fall back to minimax-m2
+    return getFallbackModel(userPlan);
 }
 
 /**

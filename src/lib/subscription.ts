@@ -77,6 +77,12 @@ export async function assignPlanToUser(
         where: { userId },
     });
 
+    // Initialize enabled models with defaults
+    // Default: minimax-m2 (selected), claude-sonnet-4.5, gpt-5 (filtered by plan access)
+    const { getDefaultEnabledModels, canUserAccessModel } = await import("./models/config");
+    const defaultModels = getDefaultEnabledModels();
+    const enabledModels = defaultModels.filter((id) => canUserAccessModel(id, planName));
+
     let subscription;
 
     if (existing) {
@@ -95,6 +101,12 @@ export async function assignPlanToUser(
                 plan: true,
             },
         });
+
+        // Update user's enabled models for the new plan
+        await prisma.user.update({
+            where: { id: userId },
+            data: { enabledModels },
+        });
     } else {
         // Create new subscription with initialized monthly credits
         subscription = await prisma.userSubscription.create({
@@ -110,6 +122,12 @@ export async function assignPlanToUser(
             include: {
                 plan: true,
             },
+        });
+
+        // Initialize user's enabled models
+        await prisma.user.update({
+            where: { id: userId },
+            data: { enabledModels },
         });
     }
 

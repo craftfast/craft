@@ -64,6 +64,12 @@ interface CodingStreamOptions {
  */
 function getModelProvider(modelId: string): { provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter>; modelPath: string; displayName: string } {
     switch (modelId) {
+        case "minimax/minimax-m2":
+            return {
+                provider: openrouter,
+                modelPath: "minimax/minimax-m2",
+                displayName: "MiniMax M2"
+            };
         case "claude-haiku-4.5":
         case "claude-haiku-4-5":
             return {
@@ -79,19 +85,19 @@ function getModelProvider(modelId: string): { provider: ReturnType<typeof create
                 displayName: "Claude Sonnet 4.5"
             };
         default:
-            // Default to Claude Haiku 4.5 (standard tier)
-            console.warn(`⚠️ Unknown model: ${modelId}, defaulting to Claude Haiku 4.5`);
+            // Default to MiniMax M2 (standard tier)
+            console.warn(`⚠️ Unknown model: ${modelId}, defaulting to MiniMax M2`);
             return {
-                provider: anthropic,
-                modelPath: "claude-haiku-4-5",
-                displayName: "Claude Haiku 4.5"
+                provider: openrouter,
+                modelPath: "minimax/minimax-m2",
+                displayName: "MiniMax M2"
             };
     }
 }
 
 /**
  * Stream coding responses with dynamic model selection
- * Supports: Claude Haiku 4.5, Claude Sonnet 4.5
+ * Supports: MiniMax M2, Claude Haiku 4.5, Claude Sonnet 4.5
  * Validates plan-based access to premium models
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {

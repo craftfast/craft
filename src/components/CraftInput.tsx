@@ -89,7 +89,7 @@ export default function CraftInput() {
   >("general");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { balance } = useCreditBalance();
-  const [selectedModel, setSelectedModel] = useState("claude-haiku-4-5"); // Default to standard tier (1.0x)
+  const [selectedModel, setSelectedModel] = useState("minimax/minimax-m2"); // Default to MiniMax M2 (initial selected model)
   const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
     "HOBBY"
   );

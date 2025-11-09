@@ -140,13 +140,13 @@ export default function ChatPanel({
     "HOBBY"
   );
 
-  // Initialize selected model from sessionStorage or default to "claude-haiku-4-5"
+  // Initialize selected model from sessionStorage or default to "minimax/minimax-m2"
   const [selectedModel, setSelectedModel] = useState(() => {
     if (typeof window !== "undefined") {
       const storedModel = sessionStorage.getItem(`project-${projectId}-model`);
-      return storedModel || "claude-haiku-4-5";
+      return storedModel || "minimax/minimax-m2";
     }
-    return "claude-haiku-4-5";
+    return "minimax/minimax-m2";
   });
 
   // Fetch user's plan on mount

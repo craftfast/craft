@@ -101,13 +101,21 @@ export const PRO_TIERS = [
 
 // Credit consumption rates for different resource types
 export const CREDIT_RATES = {
-    // AI Usage (existing - 1 credit = 10,000 tokens)
+    // AI Usage (1 credit = 10,000 tokens)
+    // Multipliers based on actual output token pricing from OpenRouter ($1/M = 0.1x)
     ai: {
         baseRate: 10000, // tokens per credit
         modelMultipliers: {
-            'claude-sonnet-4.5': 2,
-            'claude-haiku-4-5': 1,
-            'grok-4-fast': 0.1, // Used for project naming
+            // Free Tier Models (HOBBY+)
+            'minimax/minimax-m2': 0.1,              // $1.02/M output
+            'claude-haiku-4-5': 0.5,                // $5/M output
+            // Premium Models (PRO+)
+            'moonshotai/kimi-k2-thinking': 0.25,    // $2.50/M output
+            'google/gemini-2.5-pro-001': 1.0,       // $10/M output
+            'openai/gpt-5': 1.0,                    // $10/M output
+            'claude-sonnet-4.5': 1.5,               // $15/M output
+            // Legacy/System Models
+            'grok-4-fast': 0.1,                     // Used for project naming (estimated)
         }
     },
 

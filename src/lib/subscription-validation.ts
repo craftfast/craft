@@ -78,12 +78,25 @@ export function validateBillingPeriod(start: Date, end: Date): void {
  * Validate model name is in allowed list
  */
 const VALID_MODELS = [
+    // Claude models
     "claude-haiku-4-5",
     "claude-sonnet-4-5",
     "anthropic/claude-sonnet-4.5",
     "anthropic/claude-haiku-4.5",
+    // OpenAI models
+    "openai/gpt-5",
+    "openai/gpt-5-mini",
+    // Google models
+    "google/gemini-2.5-pro-001",
+    "google/gemini-2.5-pro",
+    "google/gemini-2.5-flash",
+    // X.AI models
     "x-ai/grok-4-fast",
+    "x-ai/grok-code-fast-1",
     "grok-4-fast",
+    // OpenRouter models
+    "minimax/minimax-m2",
+    "moonshotai/kimi-k2-thinking",
 ] as const;
 
 export function validateModelName(model: string): void {
