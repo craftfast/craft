@@ -51,15 +51,15 @@ export async function getUserModelPreferences(
     // Get all models available for user's plan
     const availableModels = getModelsForPlan(userPlan);
 
-    // Filter user's enabled models to only include accessible ones
-    let enabledModels = filterModelsByPlan(user.enabledModels, userPlan);
+    // Get user's enabled models (including premium models they may have enabled)
+    // The frontend will show premium models with a lock icon for hobby users
+    let enabledModels = user.enabledModels;
 
     // If no models are enabled, initialize with the standard initial set
     if (enabledModels.length === 0) {
         const { getDefaultEnabledModels } = await import("./config");
         const initialModels = getDefaultEnabledModels();
-        // Only enable models that the user can access
-        enabledModels = initialModels.filter((id) => canUserAccessModel(id, userPlan));
+        enabledModels = initialModels;
 
         // Update database
         await prisma.user.update({
