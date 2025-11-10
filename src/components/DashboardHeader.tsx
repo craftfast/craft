@@ -7,7 +7,6 @@ import UserMenu from "./UserMenu";
 import Logo from "./Logo";
 import CreditCounter from "./CreditCounter";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
-import SubscriptionModal from "./SubscriptionModal";
 import SettingsModal from "./SettingsModal";
 
 interface DashboardHeaderProps {
@@ -29,14 +28,7 @@ export default function DashboardHeader({
   const router = useRouter();
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [pricingModalMode, setPricingModalMode] = useState<
-    "all" | "tokens" | "pro"
-  >("all");
-  const [targetPlan, setTargetPlan] = useState<
-    "HOBBY" | "PRO" | "ENTERPRISE"
-  >();
   const { balance } = useCreditBalance(); // Only for mobile menu detailed breakdown
 
   const showPlanBadge =
@@ -110,15 +102,8 @@ export default function DashboardHeader({
         <div className="flex items-center gap-2 justify-end">
           <CreditCounter
             onClickAction={() => {
-              if (planName === "HOBBY") {
-                // Open subscription modal to upgrade
-                setPricingModalMode("pro");
-                setTargetPlan("PRO");
-                setIsPricingModalOpen(true);
-              } else {
-                // Open settings modal to billing tab
-                setIsSettingsOpen(true);
-              }
+              // Open settings modal to billing tab
+              setIsSettingsOpen(true);
             }}
           />
           {session?.user && <UserMenu user={session.user} />}
@@ -338,8 +323,7 @@ export default function DashboardHeader({
                 </button>
                 <button
                   onClick={() => {
-                    setPricingModalMode("all");
-                    setIsPricingModalOpen(true);
+                    setIsSettingsOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors text-left"
@@ -420,16 +404,6 @@ export default function DashboardHeader({
             )}
           </nav>
         </div>
-      )}
-
-      {/* Subscription Modal */}
-      {pricingModalMode !== "tokens" && (
-        <SubscriptionModal
-          isOpen={isPricingModalOpen}
-          onClose={() => setIsPricingModalOpen(false)}
-          currentPlan={planName}
-          targetPlan={targetPlan}
-        />
       )}
 
       {/* Settings Modal (for billing/tier changes) */}

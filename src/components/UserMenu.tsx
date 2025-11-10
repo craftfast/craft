@@ -6,7 +6,6 @@ import { signOut } from "@/lib/auth-client";
 import Image from "next/image";
 import SettingsModal from "./SettingsModal";
 import FeedbackModal from "./FeedbackModal";
-import SubscriptionModal from "./SubscriptionModal";
 import ProjectsModal from "./ProjectsModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
@@ -37,11 +36,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
     "general" | "billing" | "usage" | "account" | "integrations"
   >("general");
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
-  const [targetPlan, setTargetPlan] = useState<
-    "HOBBY" | "PRO" | "ENTERPRISE"
-  >();
   const [userPlan, setUserPlan] = useState<
     "HOBBY" | "PRO" | "ENTERPRISE" | null
   >(null);
@@ -570,16 +565,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
         <FeedbackModal
           isOpen={isFeedbackModalOpen}
           onClose={() => setIsFeedbackModalOpen(false)}
-        />
-      )}
-
-      {/* Subscription Modal */}
-      {isPricingModalOpen && (
-        <SubscriptionModal
-          isOpen={isPricingModalOpen}
-          onClose={() => setIsPricingModalOpen(false)}
-          currentPlan={userPlan || "HOBBY"}
-          targetPlan={targetPlan}
         />
       )}
     </div>

@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/select";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import SubscriptionModal from "./SubscriptionModal";
 import { TwoFactorSettings } from "@/components/auth/two-factor-settings";
 import OTPInput from "@/components/auth/OTPInput";
 import { PRO_TIERS } from "@/lib/pricing-constants";
@@ -338,10 +337,6 @@ export default function SettingsModal({
   const [subscriptionHistory, setSubscriptionHistory] =
     useState<SubscriptionHistoryData | null>(null);
   const [isLoadingBilling, setIsLoadingBilling] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [targetPlan, setTargetPlan] = useState<
-    "HOBBY" | "PRO" | "ENTERPRISE" | undefined
-  >(undefined);
   const [selectedProTierIndex, setSelectedProTierIndex] = useState<number>(0); // Default to first Pro tier (100 credits/month)
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [tierSetFromPricingPage, setTierSetFromPricingPage] = useState(false); // Track if tier was set from pricing page
@@ -1794,21 +1789,6 @@ export default function SettingsModal({
       {typeof window !== "undefined"
         ? createPortal(modalContent, document.body)
         : null}
-
-      {/* Subscription Modal for upgrades */}
-      <SubscriptionModal
-        isOpen={showSubscriptionModal}
-        onClose={() => {
-          setShowSubscriptionModal(false);
-          setTargetPlan(undefined); // Reset target plan
-          // Refresh billing data after modal closes
-          if (activeTab === "billing") {
-            fetchBillingData();
-          }
-        }}
-        currentPlan={subscriptionData?.plan.name || "HOBBY"}
-        targetPlan={targetPlan}
-      />
 
       {/* Password Setup Modal */}
       <PasswordSetupModal

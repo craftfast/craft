@@ -9,7 +9,6 @@ import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.min.css";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
-import SubscriptionModal from "../SubscriptionModal";
 import SettingsModal from "../SettingsModal";
 import { ModelSelector } from "@/components/ModelSelector";
 import { Textarea } from "@/components/ui/textarea";
@@ -130,7 +129,6 @@ export default function ChatPanel({
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const [showPricingModal, setShowPricingModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
     "general" | "billing" | "usage" | "account" | "integrations"
@@ -1716,12 +1714,6 @@ export default function ChatPanel({
           </div>
         </div>
       )}
-
-      {/* Subscription Modal */}
-      <SubscriptionModal
-        isOpen={showPricingModal}
-        onClose={() => setShowPricingModal(false)}
-      />
 
       {/* Settings Modal */}
       <SettingsModal

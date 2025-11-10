@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import SubscriptionModal from "./SubscriptionModal";
 import SettingsModal from "./SettingsModal";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,7 +81,6 @@ export default function CraftInput() {
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const [showPricingModal, setShowPricingModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
     "general" | "billing" | "usage" | "account" | "integrations"
@@ -920,7 +918,7 @@ export default function CraftInput() {
       )}
 
       {/* Error Message Display */}
-      {errorMessage && !showPricingModal && (
+      {errorMessage && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setErrorMessage(null)}
@@ -961,15 +959,6 @@ export default function CraftInput() {
           </div>
         </div>
       )}
-
-      {/* Subscription Modal */}
-      <SubscriptionModal
-        isOpen={showPricingModal}
-        onClose={() => {
-          setShowPricingModal(false);
-          setErrorMessage(null);
-        }}
-      />
 
       {/* Settings Modal */}
       <SettingsModal
