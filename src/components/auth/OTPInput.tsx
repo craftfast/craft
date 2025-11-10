@@ -134,19 +134,22 @@ export default function OTPInput({
           className={cn(
             // Base styles
             "w-12 h-14 text-center text-2xl font-semibold",
-            "rounded-xl border-2 transition-all duration-200",
-            "bg-white dark:bg-neutral-900",
+            "rounded-lg border-2 transition-all duration-200",
+            "bg-white dark:bg-neutral-950",
+            "outline-none",
 
             // Default state
             "border-neutral-200 dark:border-neutral-800",
             "text-neutral-900 dark:text-neutral-50",
 
-            // Hover state
-            "hover:border-neutral-300 dark:hover:border-neutral-700",
+            // Hover state (only when not disabled)
+            !disabled &&
+              "hover:border-neutral-300 dark:hover:border-neutral-700",
 
             // Focus state
             focusedIndex === index &&
-              "border-neutral-900 dark:border-neutral-50 ring-4 ring-neutral-900/10 dark:ring-neutral-50/10",
+              !error &&
+              "border-neutral-900 dark:border-neutral-100 ring-2 ring-neutral-900/20 dark:ring-neutral-100/20",
 
             // Error state
             error && "border-red-500 dark:border-red-500 focus:ring-red-500/10",
