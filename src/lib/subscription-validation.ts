@@ -87,20 +87,8 @@ export function validateModelName(model: string): void {
     // Get valid models from config (single source of truth)
     const validModels = getAllModelIds();
 
-    // Also allow legacy/alternative model names for backwards compatibility
-    const legacyModels = [
-        "anthropic/claude-sonnet-4.5",
-        "anthropic/claude-haiku-4.5",
-        "openai/gpt-5-mini",
-        "google/gemini-2.5-pro",
-        "google/gemini-2.5-flash",
-        "x-ai/grok-4-fast",
-        "x-ai/grok-code-fast-1",
-        "grok-4-fast",
-    ];
-
     // Allow any model for flexibility, but log warning for unknown models
-    if (!validModels.includes(model) && !legacyModels.includes(model)) {
+    if (!validModels.includes(model)) {
         console.warn(`⚠️ Unknown model name: ${model}`);
     }
 }

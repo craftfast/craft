@@ -715,14 +715,14 @@ export default function SettingsModal({
         setPreferredModel(data.preferredModel);
         // Update URL with selected model
         updateUrlParams({ model: data.preferredModel });
-        toast.success("Model preference updated successfully");
+        toast.success("Coding model preference updated successfully");
       } else {
         const error = await res.json();
-        toast.error(error.error || "Failed to update model preference");
+        toast.error(error.error || "Failed to update coding model preference");
       }
     } catch (error) {
       console.error("Error saving model preference:", error);
-      toast.error("Failed to update model preference");
+      toast.error("Failed to update coding model preference");
     } finally {
       setIsSavingModelPrefs(false);
     }

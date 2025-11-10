@@ -14,8 +14,11 @@ export interface ModelOption {
 }
 
 // Convert centralized model config to ModelOption format
-const AVAILABLE_MODELS: ModelOption[] = Object.values(MODEL_CONFIG).map(
-  (model) => ({
+// IMPORTANT: Only show models that support "coding" use case
+// Other use cases (naming, chat, analysis) use system defaults and are not user-selectable
+const AVAILABLE_MODELS: ModelOption[] = Object.values(MODEL_CONFIG)
+  .filter((model) => model.useCases.includes("coding")) // Only coding models
+  .map((model) => ({
     id: model.id,
     name: model.displayName,
     multiplier: `${model.creditMultiplier}×`,
@@ -23,8 +26,7 @@ const AVAILABLE_MODELS: ModelOption[] = Object.values(MODEL_CONFIG).map(
     description: model.description,
     isPremium:
       model.minPlanRequired === "PRO" || model.minPlanRequired === "ENTERPRISE",
-  })
-);
+  }));
 
 interface ModelSelectorProps {
   selectedModel: string;

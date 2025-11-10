@@ -23,14 +23,6 @@ function generateModelPricing(): Record<string, { input: number; output: number 
         }
     });
 
-    // Add legacy model for project naming (Grok)
-    pricing['grok-4-fast'] = { input: 0.05, output: 0.15 };
-    pricing['x-ai/grok-4-fast'] = { input: 0.05, output: 0.15 };
-
-    // Legacy/alternative model names for backwards compatibility
-    pricing['anthropic/claude-sonnet-4.5'] = pricing['claude-sonnet-4.5'] || { input: 3.0, output: 15.0 };
-    pricing['anthropic/claude-haiku-4.5'] = pricing['claude-haiku-4-5'] || { input: 1.0, output: 5.0 };
-
     return pricing;
 }
 
@@ -263,10 +255,6 @@ function generateModelCreditMultipliers(): Record<string, number> {
     Object.values(AVAILABLE_MODELS).forEach(model => {
         multipliers[model.id] = model.creditMultiplier;
     });
-
-    // Legacy/alternative model names for backwards compatibility
-    multipliers['anthropic/claude-haiku-4.5'] = multipliers['claude-haiku-4-5'] || 0.5;
-    multipliers['anthropic/claude-sonnet-4.5'] = multipliers['claude-sonnet-4.5'] || 1.5;
 
     return multipliers;
 }

@@ -3,6 +3,12 @@
  * 
  * This is the single source of truth for all AI operations in Craft.
  * 
+ * MODEL SELECTION STRATEGY:
+ * - Coding: Uses user's preferred model (from model preferences) - DEFAULT: minimax-m2
+ * - Naming: Uses system default (grok-4-fast) - NOT user-configurable
+ * - Chat: Uses system default (claude-haiku-4-5) - NOT user-configurable  
+ * - Analysis: Uses system default (claude-sonnet-4.5) - NOT user-configurable
+ * 
  * Model Configuration is managed in src/lib/models/config.ts
  * All models are dynamically loaded from AVAILABLE_MODELS
  * 
@@ -13,7 +19,13 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, streamText } from "ai";
-import { canUserAccessModel, getModelConfig, getDefaultSelectedModel, getFallbackModel } from "@/lib/models/config";
+import {
+    canUserAccessModel,
+    getModelConfig,
+    getDefaultSelectedModel,
+    getFallbackModel,
+    getDefaultModelForUseCase
+} from "@/lib/models/config";
 import { getUserPlan } from "@/lib/subscription";
 
 // Create Anthropic client for Claude models
@@ -21,7 +33,7 @@ const anthropic = createAnthropic({
     apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
-// Create OpenRouter client for Grok and other models
+// Create OpenRouter client for most models (Grok, MiniMax, etc.)
 const openrouter = createOpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY || "",
 });
@@ -29,26 +41,23 @@ const openrouter = createOpenRouter({
 // ============================================================================
 // MODEL CONFIGURATION
 // ============================================================================
-
-/**
- * Legacy MODELS constant - kept for backward compatibility
- * All models are now defined in src/lib/models/config.ts
- */
-const MODELS = {
-    // Specialized models (via OpenRouter)
-    NAMING: "x-ai/grok-4-fast",                // Project naming & creative text
-} as const;
+// All model configurations are now managed in src/lib/models/config.ts
+// 
+// CODING: User's preferred model (user-configurable via settings)
+// OTHER USE CASES: System defaults (not user-configurable)
 
 // ============================================================================
-// CODING AGENT (Dynamic Model Selection)
+// CODING AGENT (User's Preferred Model)
 // ============================================================================
+// This agent respects the user's model preference from settings
+// Users can select any model they have access to based on their plan
 
 interface CodingStreamOptions {
     messages: unknown[]; // Pre-formatted messages from the API
     systemPrompt: string;
     projectFiles?: Record<string, string>;
     conversationHistory?: Array<{ role: string; content: string }>;
-    model?: string; // Allow model selection (defaults to Claude Haiku 4.5)
+    model?: string; // User's preferred coding model (from preferences)
     userId?: string; // User ID for plan validation
     onFinish?: (params: {
         model: string;
@@ -91,6 +100,7 @@ function getModelProvider(modelId: string): { provider: ReturnType<typeof create
     }
 
     // Return the appropriate provider based on model config
+    // Anthropic models use Anthropic SDK, everything else uses OpenRouter (including x-ai/grok)
     const provider = modelConfig.provider === "anthropic" ? anthropic : openrouter;
 
     return {
@@ -184,8 +194,10 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
 }
 
 // ============================================================================
-// NAMING AGENT (Grok 4 Fast for creative naming)
+// NAMING AGENT (System Default - NOT User-Configurable)
 // ============================================================================
+// Uses system default model for cost optimization
+// Users cannot change this - it's automatically selected
 
 interface NamingOptions {
     description: string;
@@ -194,8 +206,9 @@ interface NamingOptions {
 }
 
 /**
- * Generate a creative project name using Grok 4 Fast
- * Falls back to Claude Sonnet if Grok fails
+ * Generate a creative project name using system default model
+ * System automatically selects the optimal model for naming tasks
+ * Users CANNOT configure this - it uses getDefaultModelForUseCase("naming")
  */
 export async function generateProjectName(options: NamingOptions): Promise<string> {
     const { description, maxWords = 4, temperature = 0.7 } = options;
@@ -227,12 +240,13 @@ Examples of WRONG outputs (DO NOT DO THIS):
 
 Project name (1-${maxWords} words only, no code):`;
 
-    // Try Grok first
+    // Generate project name using the optimal model for naming
     try {
-        console.log(`🤖 AI Agent: Generating project name with Grok 4 Fast`);
+        const namingModelId = getDefaultModelForUseCase("naming");
+        console.log(`🤖 AI Agent: Generating project name with ${namingModelId}`);
 
         const result = await generateText({
-            model: openrouter.chat(MODELS.NAMING),
+            model: openrouter.chat(namingModelId),
             system: systemPrompt,
             prompt: userPrompt,
             temperature,

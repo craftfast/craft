@@ -122,11 +122,13 @@ export default function PersonalizationTab({
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-foreground mb-4">
-          AI Model Preferences
+          Coding Model Preferences
         </h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Enable models you want to use and click on an enabled model to make it
-          your preferred default. Premium models require a Pro plan.
+          Select your preferred model for <strong>coding tasks only</strong>. Enable models you want to use and click on an enabled model to make it your preferred coding model. Premium models require a Pro plan.
+        </p>
+        <p className="text-xs text-muted-foreground/80 mb-4 italic">
+          Note: Other tasks like project naming use optimized system defaults and cannot be changed.
         </p>
 
         {isLoadingModelPrefs || isLoadingEnabledModels ? (

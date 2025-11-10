@@ -116,10 +116,6 @@ function generateModelMultipliers(): Record<string, number> {
         multipliers[model.id] = model.creditMultiplier;
     });
 
-    // Add legacy model for project naming (Grok)
-    multipliers['grok-4-fast'] = 0.1;
-    multipliers['x-ai/grok-4-fast'] = 0.1;
-
     return multipliers;
 }
 
