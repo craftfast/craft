@@ -97,11 +97,16 @@ export default function CraftInput() {
 
   // Fetch user's preferred model and plan on mount
   useEffect(() => {
-    const fetchPreferredModel = async () => {
-      if (!session?.user) return;
+    // Skip if user is not authenticated
+    if (!session?.user) return;
 
+    let isMounted = true;
+
+    const fetchPreferredModel = async () => {
       try {
         const response = await fetch("/api/user/model-preferences");
+        if (!isMounted) return;
+
         if (response.ok) {
           const data = await response.json();
           if (data.preferredModel) {
@@ -112,13 +117,18 @@ export default function CraftInput() {
           }
         }
       } catch (error) {
+        if (!isMounted) return;
         console.error("Failed to fetch preferred model:", error);
         // Keep empty string - backend will use config default
       }
     };
 
     fetchPreferredModel();
-  }, [session?.user]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session]);
 
   // Check if tokens are low or exhausted
   const isLowTokens =

@@ -496,10 +496,13 @@ export default function SettingsModal({
 
   // Fetch billing data when billing tab is active
   useEffect(() => {
+    // Only fetch if modal is open and user is authenticated
+    if (!isOpen || !session?.user) return;
+
     if (activeTab === "billing") {
       fetchBillingData();
     }
-  }, [activeTab]);
+  }, [activeTab, isOpen, session]);
 
   // Auto-trigger checkout when coming from pricing page with tier change action
   useEffect(() => {
@@ -570,21 +573,29 @@ export default function SettingsModal({
 
   // Fetch model preferences when general or personalization tab is active
   useEffect(() => {
+    // Only fetch if modal is open and user is authenticated
+    if (!isOpen || !session?.user) return;
+
     if (activeTab === "general") {
       fetchUserProfile();
     }
     if (activeTab === "general" || activeTab === "personalization") {
       fetchModelPreferences();
     }
-  }, [activeTab]);
+  }, [activeTab, isOpen, session]);
 
   // Fetch usage data when usage tab is active
   useEffect(() => {
+    // Only fetch if modal is open and user is authenticated
+    if (!isOpen || !session?.user) return;
+
     if (activeTab === "usage") {
       fetchCreditUsage();
     }
   }, [
     activeTab,
+    isOpen,
+    session,
     currentPage,
     selectedProject,
     selectedEndpoint,
@@ -594,6 +605,9 @@ export default function SettingsModal({
 
   // Fetch linked accounts when account tab is active
   useEffect(() => {
+    // Only fetch if modal is open and user is authenticated
+    if (!isOpen || !session?.user) return;
+
     if (activeTab === "account") {
       fetchLinkedAccounts();
       fetchDeletionStatus();
@@ -609,14 +623,17 @@ export default function SettingsModal({
         window.history.replaceState({}, "", window.location.pathname);
       }
     }
-  }, [activeTab]);
+  }, [activeTab, isOpen, session]);
 
   // Fetch referral data when referrals tab is active
   useEffect(() => {
+    // Only fetch if modal is open and user is authenticated
+    if (!isOpen || !session?.user) return;
+
     if (activeTab === "referrals") {
       fetchReferralData();
     }
-  }, [activeTab]);
+  }, [activeTab, isOpen, session]);
 
   const fetchBillingData = async () => {
     setIsLoadingBilling(true);

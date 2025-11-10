@@ -44,11 +44,15 @@ export function ModelSelector({
   const [isLoadingModels, setIsLoadingModels] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch enabled models
+  // Fetch enabled models - memo to prevent duplicate calls
   useEffect(() => {
+    let isMounted = true;
+
     const fetchEnabledModels = async () => {
       try {
         const res = await fetch("/api/user/model-preferences");
+        if (!isMounted) return;
+
         if (res.ok) {
           const data = await res.json();
           setEnabledModels(data.enabledModels || []);
@@ -57,14 +61,21 @@ export function ModelSelector({
           setEnabledModels(AVAILABLE_MODELS.map((m) => m.id));
         }
       } catch (error) {
+        if (!isMounted) return;
         console.error("Error fetching enabled models:", error);
         // Fallback to showing all models for non-logged-in users
         setEnabledModels(AVAILABLE_MODELS.map((m) => m.id));
       } finally {
-        setIsLoadingModels(false);
+        if (isMounted) {
+          setIsLoadingModels(false);
+        }
       }
     };
     fetchEnabledModels();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Close dropdown when clicking outside

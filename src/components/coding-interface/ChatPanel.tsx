@@ -151,9 +151,13 @@ export default function ChatPanel({
 
   // Fetch user's plan on mount
   useEffect(() => {
+    let isMounted = true;
+
     const fetchUserPlan = async () => {
       try {
         const response = await fetch("/api/user/model-preferences");
+        if (!isMounted) return;
+
         if (response.ok) {
           const data = await response.json();
           if (data.userPlan) {
@@ -161,12 +165,17 @@ export default function ChatPanel({
           }
         }
       } catch (error) {
+        if (!isMounted) return;
         console.error("Failed to fetch user plan:", error);
         // Keep default "HOBBY" on error
       }
     };
 
     fetchUserPlan();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Fetch project's preferred model on mount
