@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
         // Get the requested monthly credits from the request body
         const body = await request.json();
-        const { monthlyCredits = 500 } = body; // Default to 500 credits/month ($25/mo)
+        const { monthlyCredits = 100 } = body; // Default to 100 credits/month ($25/mo)
 
         // Find the Pro tier
         const selectedTier = getProTier(monthlyCredits);

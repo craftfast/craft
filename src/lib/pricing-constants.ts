@@ -13,7 +13,7 @@ export const PRICING = {
         priceMonthly: 0,
         displayPriceMonthly: "Free",
         maxProjects: 3, // Limited to 3 projects
-        monthlyCredits: 100, // 100 credits per month
+        monthlyCredits: 10, // 10 credits per month
         features: {
             aiChat: true,
             unlimitedProjects: false,
@@ -91,14 +91,17 @@ export const PRICING = {
 // Pro plan tiers with monthly credit allocations
 // Credits cover: AI generation, sandbox, database, storage, deployments
 export const PRO_TIERS = [
-    { monthlyCredits: 500, priceMonthly: 25, displayPrice: "$25/mo", polarEnvKey: "POLAR_PRO_500_PRODUCT_ID" },
-    { monthlyCredits: 1200, priceMonthly: 50, displayPrice: "$50/mo", polarEnvKey: "POLAR_PRO_1200_PRODUCT_ID" },
-    { monthlyCredits: 3000, priceMonthly: 100, displayPrice: "$100/mo", polarEnvKey: "POLAR_PRO_3000_PRODUCT_ID" },
-    { monthlyCredits: 7000, priceMonthly: 200, displayPrice: "$200/mo", polarEnvKey: "POLAR_PRO_7000_PRODUCT_ID" },
-    { monthlyCredits: 16000, priceMonthly: 400, displayPrice: "$400/mo", polarEnvKey: "POLAR_PRO_16000_PRODUCT_ID" },
-    { monthlyCredits: 30000, priceMonthly: 700, displayPrice: "$700/mo", polarEnvKey: "POLAR_PRO_30000_PRODUCT_ID" },
-    { monthlyCredits: 55000, priceMonthly: 1200, displayPrice: "$1,200/mo", polarEnvKey: "POLAR_PRO_55000_PRODUCT_ID" },
-    { monthlyCredits: 100000, priceMonthly: 2000, displayPrice: "$2,000/mo", polarEnvKey: "POLAR_PRO_100000_PRODUCT_ID" },
+    { monthlyCredits: 100, priceMonthly: 25, displayPrice: "$25/mo", polarEnvKey: "POLAR_PRO_100_PRODUCT_ID" },
+    { monthlyCredits: 200, priceMonthly: 50, displayPrice: "$50/mo", polarEnvKey: "POLAR_PRO_200_PRODUCT_ID" },
+    { monthlyCredits: 400, priceMonthly: 100, displayPrice: "$100/mo", polarEnvKey: "POLAR_PRO_400_PRODUCT_ID" },
+    { monthlyCredits: 800, priceMonthly: 200, displayPrice: "$200/mo", polarEnvKey: "POLAR_PRO_800_PRODUCT_ID" },
+    { monthlyCredits: 1200, priceMonthly: 300, displayPrice: "$300/mo", polarEnvKey: "POLAR_PRO_1200_PRODUCT_ID" },
+    { monthlyCredits: 1800, priceMonthly: 450, displayPrice: "$450/mo", polarEnvKey: "POLAR_PRO_1800_PRODUCT_ID" },
+    { monthlyCredits: 2500, priceMonthly: 625, displayPrice: "$625/mo", polarEnvKey: "POLAR_PRO_2500_PRODUCT_ID" },
+    { monthlyCredits: 3500, priceMonthly: 875, displayPrice: "$875/mo", polarEnvKey: "POLAR_PRO_3500_PRODUCT_ID" },
+    { monthlyCredits: 5000, priceMonthly: 1250, displayPrice: "$1,250/mo", polarEnvKey: "POLAR_PRO_5000_PRODUCT_ID" },
+    { monthlyCredits: 7000, priceMonthly: 1750, displayPrice: "$1,750/mo", polarEnvKey: "POLAR_PRO_7000_PRODUCT_ID" },
+    { monthlyCredits: 10000, priceMonthly: 2250, displayPrice: "$2,250/mo", polarEnvKey: "POLAR_PRO_10000_PRODUCT_ID" },
 ] as const;
 
 /**
@@ -189,10 +192,10 @@ export type PlanName = "HOBBY" | "PRO" | "ENTERPRISE";
 export function getPlanPrice(planName: PlanName, monthlyCredits?: number): number {
     if (planName === "PRO" && monthlyCredits) {
         const tier = getProTier(monthlyCredits);
-        return tier?.priceMonthly ?? 50; // Default to $50 if tier not found
+        return tier?.priceMonthly ?? 25; // Default to $25 if tier not found
     }
     if (planName === "PRO") {
-        return 50; // Default Pro price
+        return 25; // Default Pro price
     }
     const plan = PRICING[planName];
     return plan.priceMonthly ?? 0;
@@ -204,10 +207,10 @@ export function getPlanPrice(planName: PlanName, monthlyCredits?: number): numbe
 export function getDisplayPrice(planName: PlanName, monthlyCredits?: number): string {
     if (planName === "PRO" && monthlyCredits) {
         const tier = getProTier(monthlyCredits);
-        return tier?.displayPrice ?? "$50/mo";
+        return tier?.displayPrice ?? "$25/mo";
     }
     if (planName === "PRO") {
-        return "$50/mo"; // Default Pro price
+        return "$25/mo"; // Default Pro price
     }
     const plan = PRICING[planName];
     return plan.displayPriceMonthly;

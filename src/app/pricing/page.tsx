@@ -50,10 +50,10 @@ function FAQSection() {
       question: "How does billing work?",
       answer: (
         <>
-          <strong>Hobby:</strong> Free forever with up to 3 projects and 100
+          <strong>Hobby:</strong> Free forever with up to 3 projects and 10
           credits/month. Perfect for trying out Craft. <strong>Pro:</strong>{" "}
-          Choose from multiple tiers ranging from $25/month (500 credits/month)
-          to $2,000/month (100,000 credits/month). Connect your own Supabase
+          Choose from multiple tiers ranging from $25/month (100 credits/month)
+          to $2,250/month (10,000 credits/month). Connect your own Supabase
           account for database and storage.
         </>
       ),
@@ -63,9 +63,9 @@ function FAQSection() {
       answer: (
         <>
           <strong>Hobby:</strong> Limited to 3 projects, no Figma/GitHub
-          imports, includes Craft branding, and 100 credits per month.{" "}
+          imports, includes Craft branding, and 10 credits per month.{" "}
           <strong>Pro:</strong> Unlimited projects, Figma/GitHub imports,
-          without branding, and 500-100,000 credits per month based on your
+          without branding, and 100-10,000 credits per month based on your
           selected tier. You can change between Pro tiers anytime.
         </>
       ),
@@ -83,7 +83,7 @@ function FAQSection() {
     {
       question: "How do credits work?",
       answer:
-        "Credits are your monthly AI usage allocation. Hobby gets 100 credits/month. Pro plans range from 500 to 100,000 credits/month depending on your tier. Credits refresh monthly and don't roll over.",
+        "Credits are your monthly AI usage allocation. Hobby gets 10 credits/month. Pro plans range from 100 to 10,000 credits/month depending on your tier. Credits refresh monthly and don't roll over.",
     },
     {
       question: "What happens if I run out of credits?",
@@ -258,7 +258,7 @@ export default function PricingPage() {
   const hasFetchedRef = useRef(false);
   const [selectedProTier, setSelectedProTier] = useState<
     (typeof PRO_TIERS)[number]
-  >(PRO_TIERS[0]); // Default to 500 credits/month ($25/mo)
+  >(PRO_TIERS[0]); // Default to 100 credits/month ($25/mo)
   const [currentMonthlyCredits, setCurrentMonthlyCredits] = useState<
     number | null
   >(null); // Track user's current Pro tier credits

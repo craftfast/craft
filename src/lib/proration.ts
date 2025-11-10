@@ -96,8 +96,8 @@ export async function calculateProration(
     const creditsRemainingOld = Math.max(0, oldPlanCredits - creditsAlreadyUsed);
 
     // SIMPLIFIED: User gets full new plan credits minus what they already used
-    // Example: User on 500 credits (used 100) upgrades to 3000 credits
-    //          They get: 3000 - 100 = 2900 credits available
+    // Example: User on 100 credits (used 20) upgrades to 400 credits
+    //          They get: 400 - 20 = 380 credits available
     const proratedCredits = creditsDifference; // Full difference, not time-based
     const creditsAvailableNew = Math.max(0, newPlanCredits - creditsAlreadyUsed);
 
@@ -170,14 +170,14 @@ export async function applyProration(
     if (proration.shouldChargeImmediately) {
         // SIMPLE UPGRADE LOGIC:
         // 1. User pays the price difference (e.g., $100 - $25 = $75)
-        // 2. User's credit usage carries over (e.g., 100 credits used stays at 100)
-        // 3. User gets new plan's full credit limit (e.g., 3000 credits)
-        // 4. Available credits = new limit - used credits (e.g., 3000 - 100 = 2900)
+        // 2. User's credit usage carries over (e.g., 20 credits used stays at 20)
+        // 3. User gets new plan's full credit limit (e.g., 400 credits)
+        // 4. Available credits = new limit - used credits (e.g., 400 - 20 = 380)
         //
-        // Example: User on $25/500 credits plan (used 100 credits)
-        //          Upgrades to $100/3000 credits plan
+        // Example: User on $25/100 credits plan (used 20 credits)
+        //          Upgrades to $100/400 credits plan
         //          → Charge: $75 ($100 - $25)
-        //          → Credits: 3000 - 100 = 2900 available
+        //          → Credits: 400 - 20 = 380 available
 
         // Get old usage record before changing plan
         const oldUsageRecord = await prisma.usageRecord.findUnique({

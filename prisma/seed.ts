@@ -16,10 +16,10 @@ async function main() {
             description: "Try Craft with basic features. Limited to 3 projects.",
             priceMonthlyUsd: 0,
             maxProjects: 3, // Limited to 3 projects
-            monthlyCredits: 100, // 100 credits per month
+            monthlyCredits: 10, // 10 credits per month
             sortOrder: 0,
             features: [
-                "100 credits per month",
+                "10 credits per month",
                 "Up to 3 projects",
                 "AI-powered code generation",
                 "Sandbox environments",
@@ -35,11 +35,11 @@ async function main() {
             description: "Everything you need to build and scale your apps.",
             priceMonthlyUsd: 25, // Base Pro tier starts at $25
             maxProjects: 999, // Unlimited projects
-            monthlyCredits: 500, // Base Pro tier: 500 credits/month
+            monthlyCredits: 100, // Base Pro tier: 100 credits/month
             sortOrder: 1,
             features: [
                 "Everything in Hobby, plus:",
-                "500-100,000 credits/month (based on tier)",
+                "100-10,000 credits/month (based on tier)",
                 "Unlimited projects",
                 "All AI models",
                 "Import from Figma & GitHub",
@@ -80,8 +80,8 @@ async function main() {
 
     console.log("\n🎉 Database seeding completed successfully!");
     console.log("\nPlan Summary:");
-    console.log("- HOBBY: Free forever, 100 credits/month, up to 3 projects");
-    console.log("- PRO: $25-2000/month, 500-100,000 credits/month, unlimited projects");
+    console.log("- HOBBY: Free forever, 10 credits/month, up to 3 projects");
+    console.log("- PRO: $25-2250/month, 100-10,000 credits/month, unlimited projects");
     console.log("- ENTERPRISE: Contact sales, custom monthly credit allocation, dedicated support");
     console.log("\nCredit Usage:");
     console.log("- AI Generation: 1 credit = 10,000 tokens (varies by model)");

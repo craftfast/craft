@@ -215,7 +215,7 @@ export default function ChatPanel({
 
   // Check if tokens are low or exhausted
   const isLowTokens =
-    balance && balance.totalAvailable > 0 && balance.totalAvailable <= 100;
+    balance && balance.totalAvailable > 0 && balance.totalAvailable <= 10;
   const isTokensExhausted = balance && balance.totalAvailable === 0;
 
   // Close preview modal on Escape key

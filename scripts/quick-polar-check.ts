@@ -20,14 +20,17 @@ async function quickCheck() {
 
     // Check product IDs
     const productIds = [
-        "POLAR_PRO_500_PRODUCT_ID",
+        "POLAR_PRO_100_PRODUCT_ID",
+        "POLAR_PRO_200_PRODUCT_ID",
+        "POLAR_PRO_400_PRODUCT_ID",
+        "POLAR_PRO_800_PRODUCT_ID",
         "POLAR_PRO_1200_PRODUCT_ID",
-        "POLAR_PRO_3000_PRODUCT_ID",
+        "POLAR_PRO_1800_PRODUCT_ID",
+        "POLAR_PRO_2500_PRODUCT_ID",
+        "POLAR_PRO_3500_PRODUCT_ID",
+        "POLAR_PRO_5000_PRODUCT_ID",
         "POLAR_PRO_7000_PRODUCT_ID",
-        "POLAR_PRO_16000_PRODUCT_ID",
-        "POLAR_PRO_30000_PRODUCT_ID",
-        "POLAR_PRO_55000_PRODUCT_ID",
-        "POLAR_PRO_100000_PRODUCT_ID",
+        "POLAR_PRO_10000_PRODUCT_ID",
     ];
 
     const configuredProducts = productIds.filter(

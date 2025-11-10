@@ -342,7 +342,7 @@ export default function SettingsModal({
   const [targetPlan, setTargetPlan] = useState<
     "HOBBY" | "PRO" | "ENTERPRISE" | undefined
   >(undefined);
-  const [selectedProTierIndex, setSelectedProTierIndex] = useState<number>(0); // Default to first Pro tier (500 credits/month)
+  const [selectedProTierIndex, setSelectedProTierIndex] = useState<number>(0); // Default to first Pro tier (100 credits/month)
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [tierSetFromPricingPage, setTierSetFromPricingPage] = useState(false); // Track if tier was set from pricing page
   const [isAutoTriggeringCheckout, setIsAutoTriggeringCheckout] =
