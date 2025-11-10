@@ -50,11 +50,13 @@ function FAQSection() {
       question: "How does billing work?",
       answer: (
         <>
+          <strong>Billing is simple and monthly:</strong>{" "}
           <strong>Hobby:</strong> Free forever with up to 3 projects and 10
           credits/month. Perfect for trying out Craft. <strong>Pro:</strong>{" "}
-          Choose from multiple tiers ranging from $25/month (100 credits/month)
-          to $2,250/month (10,000 credits/month). Connect your own Supabase
-          account for database and storage.
+          Choose from 11 flexible monthly tiers ranging from $25/month (100
+          credits) to $2,250/month (10,000 credits). No annual commitment
+          required—billed monthly and cancel anytime. All plans include access
+          to Supabase, Vercel, and other integrations.
         </>
       ),
     },
@@ -148,9 +150,9 @@ function FAQSection() {
         "If you downgrade from Pro to Hobby, you'll need to select 3 projects to keep active. Other projects will be archived and can be restored by upgrading back to Pro. All your data is safely preserved.",
     },
     {
-      question: "Do you offer discounts for annual plans?",
+      question: "Do you offer annual billing or discounts?",
       answer:
-        "Currently, we offer monthly billing only. Higher Pro tiers provide better value with more credits per dollar. Contact sales@craft.fast for information about annual contracts for Enterprise plans.",
+        "All plans use simple monthly billing with no long-term commitments. You can cancel anytime without penalties. Higher Pro tiers provide better value with more credits per dollar (e.g., $0.25/credit at the 100-credit tier vs. $0.225/credit at the 10,000-credit tier). For Enterprise customers needing annual contracts or volume discounts, please contact sales@craft.fast.",
     },
     {
       question: "What kind of support do you provide?",
@@ -398,7 +400,7 @@ export default function PricingPage() {
       action: () => router.push("/auth/signup?callbackUrl=/"),
       features: [
         {
-          text: "100 credits per month",
+          text: "10 credits per month",
           included: true,
           highlight: true,
         },
@@ -547,9 +549,28 @@ export default function PricingPage() {
               Find a plan to craft your apps
             </h1>
             <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
-              Simple, transparent pricing for builders. Choose from monthly
-              credit allocations that match your AI usage needs.
+              Simple, transparent pricing for builders. Choose from flexible
+              monthly plans with credit allocations that match your AI usage
+              needs.
             </p>
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-full">
+              <svg
+                className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Monthly billing • Cancel anytime
+              </span>
+            </div>
           </div>
 
           {/* Pricing Cards - Hobby, Pro, and Enterprise */}
