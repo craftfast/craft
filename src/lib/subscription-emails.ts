@@ -8,6 +8,8 @@
  * - Plan changes
  */
 
+import { PRICING } from "@/lib/pricing-constants";
+
 import { sendEmail } from "./email";
 
 interface User {
@@ -302,7 +304,7 @@ export async function sendSubscriptionDowngradedEmail(
                                 </p>
                                 <ul style="margin: 0; padding-left: 20px; color: #075985; font-size: 14px; line-height: 1.8;">
                                     <li>You're now on the <strong>Hobby plan</strong></li>
-                                    <li>Monthly credit limit: <strong>100 credits</strong></li>
+                                    <li>Monthly credit limit: <strong>${PRICING.HOBBY.monthlyCredits} credits</strong></li>
                                     <li>All your projects are still safe</li>
                                     <li>You can upgrade anytime</li>
                                 </ul>

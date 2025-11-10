@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { cleanModalParams } from "@/lib/url-params";
+import { PRICING, PRO_TIERS } from "@/lib/pricing-constants";
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -110,8 +111,8 @@ export default function SubscriptionModal({
       price: "$0",
       period: "/month",
       features: [
-        "10 credits per month",
-        "Up to 3 projects",
+        `${PRICING.HOBBY.monthlyCredits} credits per month`,
+        `Up to ${PRICING.HOBBY.maxProjects} projects`,
         "AI code generation",
         "Live preview",
         "Community support",
@@ -122,7 +123,9 @@ export default function SubscriptionModal({
       price: "$25+",
       period: "/month",
       features: [
-        "100-10,000 credits per month",
+        `${PRO_TIERS[0].monthlyCredits}-${PRO_TIERS[
+          PRO_TIERS.length - 1
+        ].monthlyCredits.toLocaleString()} credits per month`,
         "Unlimited projects",
         "Multiple pricing tiers",
         "Priority support",

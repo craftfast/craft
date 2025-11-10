@@ -5,7 +5,7 @@
  */
 
 import { prisma } from "@/lib/db";
-import { CREDIT_RATES } from "@/lib/pricing-constants";
+import { CREDIT_RATES, getDefaultMonthlyCredits } from "@/lib/pricing-constants";
 import { Prisma } from "@prisma/client";
 import { invalidateCreditCache } from "@/lib/cache";
 import { validateCredits } from "@/lib/subscription-validation";
@@ -399,7 +399,8 @@ export async function getCurrentPeriodUsageBreakdown(userId: string): Promise<{
         (subscription.currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    const monthlyCreditsLimit = subscription.plan.monthlyCredits || 100;
+    const planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
+    const monthlyCreditsLimit = subscription.plan.monthlyCredits || getDefaultMonthlyCredits(planName);
     const monthlyCreditsUsed = subscription.monthlyCreditsUsed.toNumber(); // Use Decimal.toNumber()
     const creditsRemaining = Math.max(0, monthlyCreditsLimit - monthlyCreditsUsed);
     const percentUsed = (monthlyCreditsUsed / monthlyCreditsLimit) * 100;

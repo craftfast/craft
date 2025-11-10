@@ -187,6 +187,20 @@ export const SALES_EMAIL = "sales@craft.fast";
 export type PlanName = "HOBBY" | "PRO" | "ENTERPRISE";
 
 /**
+ * Get default monthly credits for a plan (single source of truth)
+ */
+export function getDefaultMonthlyCredits(planName: PlanName): number {
+    if (planName === "HOBBY") {
+        return PRICING.HOBBY.monthlyCredits;
+    }
+    if (planName === "PRO") {
+        return PRO_TIERS[0].monthlyCredits; // Default to first Pro tier (100 credits)
+    }
+    // ENTERPRISE has custom allocation, but use a reasonable default
+    return 0;
+}
+
+/**
  * Get plan monthly price for a specific Pro tier
  */
 export function getPlanPrice(planName: PlanName, monthlyCredits?: number): number {

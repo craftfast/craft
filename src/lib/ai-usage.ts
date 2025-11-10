@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { creditCache, getCreditCacheKey, invalidateCreditCache } from "@/lib/cache";
 import { validateTokens, validateModelName, validateCredits } from "@/lib/subscription-validation";
 import { AVAILABLE_MODELS, getModelConfig } from "@/lib/models/config";
+import { getDefaultMonthlyCredits } from "@/lib/pricing-constants";
 
 /**
  * Generate model pricing dynamically from config
@@ -396,13 +397,16 @@ export async function checkUserCreditAvailability(
         include: { plan: true },
     });
 
-    // Determine monthly credit limit from plan
-    let monthlyCreditsLimit: number = 100; // Default to HOBBY tier
+    // Determine monthly credit limit from plan (using single source of truth)
     let planName: "HOBBY" | "PRO" | "ENTERPRISE" = "HOBBY";
+    let monthlyCreditsLimit: number;
 
     if (subscription?.plan) {
-        monthlyCreditsLimit = subscription.plan.monthlyCredits || 100;
         planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
+        monthlyCreditsLimit = subscription.plan.monthlyCredits || getDefaultMonthlyCredits(planName);
+    } else {
+        // No subscription yet - use default for HOBBY plan
+        monthlyCreditsLimit = getDefaultMonthlyCredits("HOBBY");
     }
 
     // Get referral credits (1 credit per active referral)

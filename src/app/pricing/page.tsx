@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import Logo from "@/components/Logo";
 import HeaderNav from "@/components/HeaderNav";
 import Footer from "@/components/Footer";
-import { PRO_TIERS } from "@/lib/pricing-constants";
+import { PRO_TIERS, PRICING } from "@/lib/pricing-constants";
 import {
   Select,
   SelectContent,
@@ -51,12 +51,17 @@ function FAQSection() {
       answer: (
         <>
           <strong>Billing is simple and monthly:</strong>{" "}
-          <strong>Hobby:</strong> Free forever with up to 3 projects and 10
-          credits/month. Perfect for trying out Craft. <strong>Pro:</strong>{" "}
-          Choose from 11 flexible monthly tiers ranging from $25/month (100
-          credits) to $2,250/month (10,000 credits). No annual commitment
-          required—billed monthly and cancel anytime. All plans include access
-          to Supabase, Vercel, and other integrations.
+          <strong>Hobby:</strong> Free forever with up to{" "}
+          {PRICING.HOBBY.maxProjects} projects and{" "}
+          {PRICING.HOBBY.monthlyCredits} credits/month. Perfect for trying out
+          Craft. <strong>Pro:</strong> Choose from {PRO_TIERS.length} flexible
+          monthly tiers ranging from ${PRO_TIERS[0].priceMonthly}/month (
+          {PRO_TIERS[0].monthlyCredits} credits) to $
+          {PRO_TIERS[PRO_TIERS.length - 1].priceMonthly.toLocaleString()}/month
+          ({PRO_TIERS[PRO_TIERS.length - 1].monthlyCredits.toLocaleString()}{" "}
+          credits). No annual commitment required—billed monthly and cancel
+          anytime. All plans include access to Supabase, Vercel, and other
+          integrations.
         </>
       ),
     },
@@ -64,11 +69,14 @@ function FAQSection() {
       question: "What's the difference between Hobby and Pro?",
       answer: (
         <>
-          <strong>Hobby:</strong> Limited to 3 projects, no Figma/GitHub
-          imports, includes Craft branding, and 10 credits per month.{" "}
+          <strong>Hobby:</strong> Limited to {PRICING.HOBBY.maxProjects}{" "}
+          projects, no Figma/GitHub imports, includes Craft branding, and{" "}
+          {PRICING.HOBBY.monthlyCredits} credits per month.{" "}
           <strong>Pro:</strong> Unlimited projects, Figma/GitHub imports,
-          without branding, and 100-10,000 credits per month based on your
-          selected tier. You can change between Pro tiers anytime.
+          without branding, and {PRO_TIERS[0].monthlyCredits}-
+          {PRO_TIERS[PRO_TIERS.length - 1].monthlyCredits.toLocaleString()}{" "}
+          credits per month based on your selected tier. You can change between
+          Pro tiers anytime.
         </>
       ),
     },
@@ -84,8 +92,13 @@ function FAQSection() {
     },
     {
       question: "How do credits work?",
-      answer:
-        "Credits are your monthly AI usage allocation. Hobby gets 10 credits/month. Pro plans range from 100 to 10,000 credits/month depending on your tier. Credits refresh monthly and don't roll over.",
+      answer: `Credits are your monthly AI usage allocation. Hobby gets ${
+        PRICING.HOBBY.monthlyCredits
+      } credits/month. Pro plans range from ${
+        PRO_TIERS[0].monthlyCredits
+      } to ${PRO_TIERS[
+        PRO_TIERS.length - 1
+      ].monthlyCredits.toLocaleString()} credits/month depending on your tier. Credits refresh monthly and don't roll over.`,
     },
     {
       question: "What happens if I run out of credits?",
