@@ -13,8 +13,6 @@ CREATE TABLE "users" (
     "image" TEXT,
     "preferredChatPosition" TEXT NOT NULL DEFAULT 'left',
     "preferredTheme" TEXT NOT NULL DEFAULT 'system',
-    "preferredModel" TEXT NOT NULL DEFAULT 'minimax/minimax-m2',
-    "enabledModels" TEXT[] DEFAULT ARRAY['minimax/minimax-m2', 'moonshotai/kimi-k2-thinking', 'claude-haiku-4-5', 'google/gemini-2.5-pro-001', 'openai/gpt-5', 'claude-sonnet-4.5']::TEXT[],
     "referralCode" TEXT,
     "referredById" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -123,7 +121,6 @@ CREATE TABLE "projects" (
     "generationStatus" TEXT NOT NULL DEFAULT 'template',
     "lastCodeUpdateAt" TIMESTAMP(3),
     "codeFiles" JSONB NOT NULL DEFAULT '{}',
-    "preferredModel" TEXT NOT NULL DEFAULT 'minimax/minimax-m2',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
