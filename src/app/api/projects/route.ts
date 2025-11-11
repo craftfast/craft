@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
             try {
                 const generatedName = await generateProjectName({
                     description: description.trim(),
+                    userId: user.id,
                     maxWords: 4,
                     temperature: 0.7,
                 });

@@ -86,8 +86,9 @@ export default function CraftInput() {
     "general" | "billing" | "usage" | "account" | "integrations"
   >("general");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isBillingError, setIsBillingError] = useState(false);
   const { balance } = useCreditBalance();
-  const [selectedTier, setSelectedTier] = useState<ModelTier>("best"); // Default to "best" mode
+  const [selectedTier, setSelectedTier] = useState<ModelTier>("fast"); // Default to "fast" mode
   const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
     "HOBBY"
   );
@@ -99,12 +100,9 @@ export default function CraftInput() {
       case "fast":
         return "minimax/minimax-m2"; // Fast model
       case "expert":
-        return "claude-sonnet-4.5"; // Expert model
-      case "best":
+        return "moonshotai/kimi-k2-thinking"; // Expert model
       default:
-        // Best mode - automatically selects between fast and expert
-        // For now, default to fast (can be enhanced with logic to auto-switch)
-        return "minimax/minimax-m2";
+        return "minimax/minimax-m2"; // Fallback to fast
     }
   };
 
@@ -129,7 +127,7 @@ export default function CraftInput() {
       } catch (error) {
         if (!isMounted) return;
         console.error("Failed to fetch user plan:", error);
-        // Keep "best" as default tier and "HOBBY" as default plan
+        // Keep "fast" as default tier and "HOBBY" as default plan
       }
     };
 
@@ -341,6 +339,7 @@ export default function CraftInput() {
 
     setIsCreating(true);
     setErrorMessage(null); // Clear any previous errors
+    setIsBillingError(false); // Clear billing error flag
 
     try {
       // Check if user is authenticated
@@ -422,8 +421,7 @@ export default function CraftInput() {
         setErrorMessage(
           "Out of credits this month. Upgrade to Pro to continue."
         );
-        setSettingsInitialTab("billing");
-        setShowSettingsModal(true);
+        setIsBillingError(true);
         setIsCreating(false);
         return;
       }
@@ -475,13 +473,13 @@ export default function CraftInput() {
         // Check if it's a project limit error
         if (errorData.code === "PROJECT_LIMIT_REACHED") {
           setErrorMessage(errorData.error);
-          setSettingsInitialTab("billing");
-          setShowSettingsModal(true);
+          setIsBillingError(true);
         } else {
           // Show generic error message
           setErrorMessage(
             errorData.error || "Failed to create project. Please try again."
           );
+          setIsBillingError(false);
         }
 
         setIsCreating(false);
@@ -962,12 +960,41 @@ export default function CraftInput() {
                 <p className="text-sm text-muted-foreground">{errorMessage}</p>
               </div>
             </div>
-            <Button
-              onClick={() => setErrorMessage(null)}
-              className="w-full rounded-full"
-            >
-              Close
-            </Button>
+            {isBillingError ? (
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    setErrorMessage(null);
+                    setIsBillingError(false);
+                  }}
+                  variant="outline"
+                  className="flex-1 rounded-full"
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    setErrorMessage(null);
+                    setIsBillingError(false);
+                    setSettingsInitialTab("billing");
+                    setShowSettingsModal(true);
+                  }}
+                  className="flex-1 rounded-full"
+                >
+                  Upgrade
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => {
+                  setErrorMessage(null);
+                  setIsBillingError(false);
+                }}
+                className="w-full rounded-full"
+              >
+                Close
+              </Button>
+            )}
           </div>
         </div>
       )}

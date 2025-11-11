@@ -117,8 +117,7 @@ export async function POST(req: Request) {
             Array.isArray(m.content) && m.content.some((c: { type: string }) => c.type === 'image')
         );
 
-        const defaultModel = getDefaultSelectedModel();
-        console.log(`🤖 AI Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}, Model: ${model || `${defaultModel} (default)`}`);
+        console.log(`🤖 AI Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}`);
         if (projectFiles && Object.keys(projectFiles).length > 0) {
             console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
         }
@@ -129,7 +128,7 @@ export async function POST(req: Request) {
             systemPrompt,
             projectFiles: projectFiles || {},
             conversationHistory: messages.slice(0, -1),
-            model: model || defaultModel, // Pass selected model or use config default
+            userId: user.id, // Pass user ID to determine plan and model access
             // Track usage after stream completes
             onFinish: async (usageData) => {
                 try {

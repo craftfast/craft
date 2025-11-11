@@ -4,9 +4,10 @@
  * This is the single source of truth for all AI operations in Craft.
  * 
  * AUTOMATIC MODEL SELECTION:
- * - Coding: minimax-m2 (fast, efficient code generation)
+ * - Coding: minimax-m2 (optimized for agentic workflows with tool use support)
  * - Reasoning: kimi-k2-thinking (deep reasoning for complex tasks)
- * - Naming: grok-4-fast (fast & cheap for creative names)
+ * - Naming: gpt-oss-20b (fast & cheap for creative names)
+ * - Memory: grok-4-fast (large context window for context generation)
  * - Chat: claude-haiku-4-5 (balanced for conversations)
  * 
  * All models are automatically selected - no user configuration needed.
@@ -18,9 +19,8 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, streamText } from "ai";
 import {
     getModelConfig,
-    getDefaultCodingModel,
-    getDefaultReasoningModel,
-    getDefaultModelForUseCase
+    getDefaultModelForUseCase,
+    type PlanName
 } from "@/lib/models/config";
 import { getUserPlan } from "@/lib/subscription";
 
@@ -37,24 +37,21 @@ const openrouter = createOpenRouter({
 // ============================================================================
 // MODEL CONFIGURATION
 // ============================================================================
-// All model configurations are now managed in src/lib/models/config.ts
-// 
-// CODING: User's preferred model (user-configurable via settings)
-// OTHER USE CASES: System defaults (not user-configurable)
+// All model configurations are managed in src/lib/models/config.ts
+// Models are automatically selected based on use case - no user configuration
 
 // ============================================================================
-// CODING AGENT (User's Preferred Model)
+// CODING AGENT (Automatic Model Selection)
 // ============================================================================
-// This agent respects the user's model preference from settings
-// Users can select any model they have access to based on their plan
+// System automatically uses MiniMax M2 for coding tasks
+// Optimized for agentic workflows with tool use support
 
 interface CodingStreamOptions {
     messages: unknown[]; // Pre-formatted messages from the API
     systemPrompt: string;
     projectFiles?: Record<string, string>;
     conversationHistory?: Array<{ role: string; content: string }>;
-    model?: string; // User's preferred coding model (from preferences)
-    userId?: string; // User ID for plan validation
+    userId: string; // User ID to determine plan and model access
     onFinish?: (params: {
         model: string;
         inputTokens: number;
@@ -67,7 +64,7 @@ interface CodingStreamOptions {
  * Get the appropriate AI provider and model name for a given model ID
  * Dynamically uses model configuration from config.ts (single source of truth)
  */
-function getModelProvider(modelId: string): { provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter>; modelPath: string; displayName: string } {
+function getModelProvider(modelId: string): { provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter>; modelPath: string; displayName: string; providerType: "anthropic" | "openrouter" } {
     // Get model config from single source of truth
     const modelConfig = getModelConfig(modelId);
 
@@ -78,30 +75,41 @@ function getModelProvider(modelId: string): { provider: ReturnType<typeof create
         return {
             provider: openrouter,
             modelPath: "minimax/minimax-m2",
-            displayName: "MiniMax M2"
+            displayName: "MiniMax M2",
+            providerType: "openrouter"
         };
     }
 
     // Return the appropriate provider based on model config
     // Anthropic models use Anthropic SDK, everything else uses OpenRouter (including x-ai/grok)
     const provider = modelConfig.provider === "anthropic" ? anthropic : openrouter;
+    const providerType = modelConfig.provider === "anthropic" ? "anthropic" : "openrouter";
 
     return {
         provider,
         modelPath: modelConfig.id,
-        displayName: modelConfig.displayName
+        displayName: modelConfig.displayName,
+        providerType
     };
 }
 
 /**
  * Stream coding responses using automatic model selection
- * Always uses minimax-m2 for coding tasks
+ * Uses the coding-specific model (minimax-m2) optimized for agentic workflows
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {
-    const codingModel = getDefaultCodingModel();
-    const { messages, systemPrompt, projectFiles = {}, onFinish } = options;
+    const { messages, systemPrompt, projectFiles = {}, userId, onFinish } = options;
 
-    const { provider, modelPath, displayName } = getModelProvider(codingModel);
+    // Get user's plan to determine model access
+    const userPlan = await getUserPlan(userId);
+
+    // Get the coding-specific model based on user's plan
+    const codingModel = getDefaultModelForUseCase("coding", userPlan);
+    if (!codingModel) {
+        throw new Error(`No coding model available for plan: ${userPlan}`);
+    }
+
+    const { provider, modelPath, displayName, providerType } = getModelProvider(codingModel);
 
     console.log(`⚡ AI Agent: Using ${displayName} (${codingModel}) for coding`);
 
@@ -109,8 +117,12 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
     }
 
-    // Both Anthropic and OpenAI providers use the same call pattern
-    const modelInstance = provider(modelPath);
+    // Different providers use different call patterns
+    // Anthropic: anthropic(modelPath)
+    // OpenRouter: openrouter.chat(modelPath)
+    const modelInstance = providerType === "anthropic"
+        ? provider(modelPath)
+        : (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
 
     // Stream the response with usage tracking
     const result = streamText({
@@ -164,24 +176,24 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
 }
 
 // ============================================================================
-// NAMING AGENT (System Default - NOT User-Configurable)
+// NAMING AGENT (Automatic Model Selection)
 // ============================================================================
-// Uses system default model for cost optimization
-// Users cannot change this - it's automatically selected
+// System automatically uses GPT-OSS-20B for cost-effective project naming
+// Optimized for fast, creative name generation
 
 interface NamingOptions {
     description: string;
+    userId: string; // User ID to determine plan and model access
     maxWords?: number;
     temperature?: number;
 }
 
 /**
- * Generate a creative project name using system default model
- * System automatically selects the optimal model for naming tasks
- * Users CANNOT configure this - it uses getDefaultModelForUseCase("naming")
+ * Generate a creative project name using the naming model
+ * System automatically uses GPT-OSS-20B for quick, cost-effective naming tasks
  */
 export async function generateProjectName(options: NamingOptions): Promise<string> {
-    const { description, maxWords = 4, temperature = 0.7 } = options;
+    const { description, userId, maxWords = 4, temperature = 0.7 } = options;
 
     const systemPrompt = `You are a naming assistant. You ONLY generate short project names.
 
@@ -210,13 +222,27 @@ Examples of WRONG outputs (DO NOT DO THIS):
 
 Project name (1-${maxWords} words only, no code):`;
 
-    // Generate project name using the optimal model for naming
+    // Generate project name using the naming model (GPT-OSS-20B)
     try {
-        const namingModelId = getDefaultModelForUseCase("naming");
-        console.log(`🤖 AI Agent: Generating project name with ${namingModelId}`);
+        // Get user's plan to determine model access
+        const userPlan = await getUserPlan(userId);
+
+        const namingModelId = getDefaultModelForUseCase("naming", userPlan);
+        if (!namingModelId) {
+            console.warn(`⚠️ No naming model available for plan: ${userPlan}`);
+            throw new Error(`No naming model available for plan: ${userPlan}`);
+        }
+
+        const { provider, modelPath, displayName, providerType } = getModelProvider(namingModelId);
+        console.log(`🤖 AI Agent: Generating project name with ${displayName} (${namingModelId})`);
+
+        // Different providers use different call patterns
+        const modelInstance = providerType === "anthropic"
+            ? provider(modelPath)
+            : (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
 
         const result = await generateText({
-            model: openrouter.chat(namingModelId),
+            model: modelInstance as never,
             system: systemPrompt,
             prompt: userPrompt,
             temperature,
@@ -251,8 +277,8 @@ Project name (1-${maxWords} words only, no code):`;
         console.log(`✨ Generated name: ${rawName}`);
         return rawName;
 
-    } catch (grokError) {
-        console.error(`❌ Grok naming failed:`, grokError instanceof Error ? grokError.message : 'Unknown error');
+    } catch (namingError) {
+        console.error(`❌ Naming model failed:`, namingError instanceof Error ? namingError.message : 'Unknown error');
         return "New Project";
     }
 }

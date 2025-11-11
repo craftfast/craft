@@ -138,13 +138,13 @@ export default function ChatPanel({
     "HOBBY"
   );
 
-  // Initialize selected tier from sessionStorage or use "best" as default
+  // Initialize selected tier from sessionStorage or use "fast" as default
   const [selectedTier, setSelectedTier] = useState<ModelTier>(() => {
     if (typeof window !== "undefined") {
       const storedTier = sessionStorage.getItem(`project-${projectId}-tier`);
-      return (storedTier as ModelTier) || "best";
+      return (storedTier as ModelTier) || "fast";
     }
-    return "best";
+    return "fast";
   });
 
   // Convert tier to actual model ID
@@ -153,11 +153,9 @@ export default function ChatPanel({
       case "fast":
         return "minimax/minimax-m2"; // Fast model
       case "expert":
-        return "claude-sonnet-4.5"; // Expert model
-      case "best":
+        return "moonshotai/kimi-k2-thinking"; // Expert model
       default:
-        // Best mode - automatically selects between fast and expert
-        return "minimax/minimax-m2";
+        return "minimax/minimax-m2"; // Fallback to fast
     }
   };
 
@@ -193,7 +191,7 @@ export default function ChatPanel({
   // Load tier preference from sessionStorage on mount
   useEffect(() => {
     const savedTier = sessionStorage.getItem(`project-${projectId}-tier`);
-    if (savedTier && ["best", "fast", "expert"].includes(savedTier)) {
+    if (savedTier && ["fast", "expert"].includes(savedTier)) {
       setSelectedTier(savedTier as ModelTier);
     }
   }, [projectId]);

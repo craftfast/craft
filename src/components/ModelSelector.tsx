@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Zap, Brain, Sparkles, Check, ChevronDown } from "lucide-react";
+import { Zap, Brain, Check, ChevronDown } from "lucide-react";
 
 // Model tier types
-export type ModelTier = "best" | "fast" | "expert";
+export type ModelTier = "fast" | "expert";
 
 interface ModelSelectorProps {
   selectedTier: ModelTier;
@@ -42,13 +42,6 @@ export function ModelSelector({
   }, [isOpen]);
 
   const tiers = [
-    {
-      id: "best" as ModelTier,
-      name: "Best",
-      icon: Sparkles,
-      description: "Auto-selects between Fast & Expert",
-      color: "text-neutral-700 dark:text-neutral-300",
-    },
     {
       id: "fast" as ModelTier,
       name: "Fast",
