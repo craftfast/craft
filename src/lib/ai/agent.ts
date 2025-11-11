@@ -10,12 +10,12 @@
  * - Required capabilities (multimodal, web search, function calling)
  * - Cost efficiency (selects cheapest model that meets requirements)
  * 
- * Examples:
- * - Text-only coding → minimax-m2 (0.1x, cheapest)
- * - Image + coding → gemini-2.5-flash (0.2x, multimodal)
- * - Web search needed → gpt-5-mini or gemini (web search capable)
- * - Naming → gpt-oss-20b (0.014x, ultra-cheap)
- * - Memory → grok-4-fast (0.05x, 2M context window)
+ * Selection Process:
+ * - Text-only tasks → Fast tier models (optimized for speed and cost)
+ * - Multimodal tasks → Models with image/video support
+ * - Web search needed → Models with web search capabilities
+ * - Naming tasks → Ultra-cheap, fast models
+ * - Memory tasks → Models with large context windows
  * 
  * All models are automatically selected - no user configuration needed.
  * Model Configuration is managed in src/lib/models/config.ts
@@ -29,33 +29,29 @@ import { createXai } from "@ai-sdk/xai";
 import { generateText, streamText } from "ai";
 import {
     getModelConfig,
-    getDefaultModelForUseCase,
     selectModelForUseCase,
-    type PlanName
+    getDefaultFastModel,
 } from "@/lib/models/config";
 import { getUserPlan } from "@/lib/subscription";
 
-// Create OpenRouter client for most models (Grok, MiniMax, etc.)
+// Create AI provider clients
+// Provider selection is handled dynamically based on model configuration
 const openrouter = createOpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY || "",
 });
 
-// Create Anthropic client for Claude models
 const anthropic = createAnthropic({
     apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
-// Create OpenAI client for GPT models
 const openai = createOpenAI({
     apiKey: process.env.OPENAI_API_KEY || "",
 });
 
-// Create Google client for Gemini models
 const google = createGoogleGenerativeAI({
     apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || "",
 });
 
-// Create xAI client for Grok models
 const xai = createXai({
     apiKey: process.env.XAI_API_KEY || "",
 });
@@ -139,15 +135,18 @@ function getModelProvider(modelId: string): {
     const modelConfig = getModelConfig(modelId);
 
     if (!modelConfig) {
-        console.warn(`⚠️ Unknown model: ${modelId}, defaulting to minimax-m2`);
+        console.warn(`⚠️ Unknown model: ${modelId}, falling back to default fast model`);
 
-        // Ultimate fallback
-        return {
-            provider: openrouter,
-            modelPath: "minimax/minimax-m2",
-            displayName: "MiniMax M2",
-            providerType: "openrouter"
-        };
+        // Ultimate fallback - use the default fast model from config
+        const fallbackModelId = getDefaultFastModel();
+        const fallbackConfig = getModelConfig(fallbackModelId);
+
+        if (!fallbackConfig) {
+            throw new Error("Configuration error: Default fast model not found in config");
+        }
+
+        // Recursively call with the fallback model
+        return getModelProvider(fallbackModelId);
     }
 
     // Return the appropriate provider based on model config
@@ -310,7 +309,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
 // ============================================================================
 // NAMING AGENT (Automatic Model Selection)
 // ============================================================================
-// System automatically uses GPT-OSS-20B for cost-effective project naming
+// System automatically selects the most cost-effective naming model
 // Optimized for fast, creative name generation
 
 interface NamingOptions {
@@ -322,7 +321,7 @@ interface NamingOptions {
 
 /**
  * Generate a creative project name using the naming model
- * System automatically uses GPT-OSS-20B for quick, cost-effective naming tasks
+ * System automatically selects the most cost-effective model for quick naming tasks
  */
 export async function generateProjectName(options: NamingOptions): Promise<string> {
     const { description, userId, maxWords = 4, temperature = 0.7 } = options;
