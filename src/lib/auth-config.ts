@@ -224,6 +224,58 @@ export const auth = betterAuth({
                     request,
                     provider
                 );
+
+                // Check if user has a subscription - if not, assign HOBBY plan (new OAuth user)
+                try {
+                    const existingSubscription = await prisma.userSubscription.findUnique({
+                        where: { userId: newSession.session.userId },
+                    });
+
+                    if (!existingSubscription) {
+                        // Check if this is a newly created user (created in last 10 seconds)
+                        const user = await prisma.user.findUnique({
+                            where: { id: newSession.session.userId },
+                            select: { createdAt: true },
+                        });
+
+                        const isNewUser = user && (Date.now() - user.createdAt.getTime()) < 10000; // 10 seconds
+
+                        if (isNewUser) {
+                            // New OAuth user - assign HOBBY plan - CRITICAL: Must succeed
+                            console.log(`🆕 New OAuth user detected (created ${Math.floor((Date.now() - user.createdAt.getTime()) / 1000)}s ago), assigning HOBBY plan: ${newSession.user.email}`);
+
+                            try {
+                                await assignPlanToUser(newSession.session.userId, "HOBBY");
+                                console.log(`✅ Hobby plan assigned to OAuth user: ${newSession.user.email}`);
+                            } catch (planError) {
+                                console.error("❌ CRITICAL: Failed to assign Hobby plan to new OAuth user:", planError);
+
+                                // Delete the user to prevent account without subscription
+                                try {
+                                    await prisma.user.delete({
+                                        where: { id: newSession.session.userId },
+                                    });
+                                    console.log(`🗑️ Deleted OAuth user ${newSession.user.email} due to plan assignment failure`);
+                                } catch (deleteError) {
+                                    console.error("Failed to delete OAuth user after plan assignment failure:", deleteError);
+                                }
+
+                                // Throw error to fail the registration
+                                throw new Error("Failed to assign subscription plan. Please contact support.");
+                            }
+                        } else {
+                            // Existing user without subscription - this is a data integrity issue
+                            // DO NOT delete - just log error and let them contact support
+                            console.error(`⚠️ CRITICAL DATA ISSUE: Existing OAuth user ${newSession.user.email} (created ${user?.createdAt}) has no subscription. User NOT deleted - manual intervention required.`);
+                        }
+                    }
+                } catch (subscriptionCheckError) {
+                    console.error("Error checking subscription for OAuth user:", subscriptionCheckError);
+                    // Re-throw if it's our intentional error
+                    if (subscriptionCheckError instanceof Error && subscriptionCheckError.message.includes("Failed to assign subscription plan")) {
+                        throw subscriptionCheckError;
+                    }
+                }
             }
 
             // Handle successful account creation
@@ -234,13 +286,25 @@ export const auth = betterAuth({
                     request
                 );
 
-                // Assign default Hobby plan to new user
+                // Assign default Hobby plan to new user - CRITICAL: Must succeed
                 try {
                     await assignPlanToUser(newSession.session.userId, "HOBBY");
                     console.log(`✅ Hobby plan assigned to user: ${newSession.user.email}`);
                 } catch (planError) {
-                    console.error("Error assigning Hobby plan:", planError);
-                    // Don't fail the registration if plan assignment fails
+                    console.error("❌ CRITICAL: Failed to assign Hobby plan to new user:", planError);
+
+                    // Delete the user to prevent account without subscription
+                    try {
+                        await prisma.user.delete({
+                            where: { id: newSession.session.userId },
+                        });
+                        console.log(`🗑️ Deleted user ${newSession.user.email} due to plan assignment failure`);
+                    } catch (deleteError) {
+                        console.error("Failed to delete user after plan assignment failure:", deleteError);
+                    }
+
+                    // Throw error to fail the registration
+                    throw new Error("Failed to assign subscription plan. Please contact support.");
                 }
             }
 

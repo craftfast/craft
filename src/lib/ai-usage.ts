@@ -500,7 +500,7 @@ export async function processAIUsage(params: {
     });
 
     if (!subscription) {
-        throw new Error("No subscription found for user");
+        throw new Error("No subscription found for user - this is a critical error. User should have been assigned HOBBY plan during signup.");
     }
 
     // Update monthly credits used

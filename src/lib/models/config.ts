@@ -121,7 +121,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
     },
     "x-ai/grok-4-fast": {
         id: "x-ai/grok-4-fast",
-        name: "x-ai/grok-4-fast",
+        name: "grok-4-fast-non-reasoning", // X.AI API model name (no prefix)
         displayName: "Grok 4 Fast",
         provider: "x-ai",
         tier: "fast",
@@ -165,7 +165,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
     },
     "openai/gpt-5-mini": {
         id: "openai/gpt-5-mini",
-        name: "openai/gpt-5-mini",
+        name: "gpt-5-mini", // OpenAI API model name (no prefix)
         displayName: "GPT-5 Mini",
         provider: "openai",
         tier: "fast",
@@ -187,7 +187,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
     },
     "google/gemini-2.5-flash-001": {
         id: "google/gemini-2.5-flash-001",
-        name: "google/gemini-2.5-flash-001",
+        name: "gemini-2.5-flash", // Google API model name (no prefix)
         displayName: "Gemini 2.5 Flash",
         provider: "google",
         tier: "fast",
@@ -229,31 +229,9 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         },
         pricing: { input: 1.0, output: 2.5 },
     },
-    "openai/gpt-5": {
-        id: "openai/gpt-5",
-        name: "openai/gpt-5",
-        displayName: "GPT-5",
-        provider: "openai",
-        tier: "expert",
-        creditMultiplier: 1.0,
-        description: "OpenAI's most advanced model",
-        planSupport: ["PRO", "ENTERPRISE"],
-        useCase: "coding",
-        capabilities: {
-            supportedInputs: ["text", "image", "audio"],
-            supportedOutputs: ["text", "code", "structured-data"],
-            maxContextLength: 128000,
-            supportsStreaming: true,
-            supportsSystemPrompts: true,
-            supportsWebSearch: true,
-            supportsFunctionCalling: false,
-            supportsJsonMode: false,
-        },
-        pricing: { input: 2.5, output: 10.0 },
-    },
-    "claude-sonnet-4.5": {
-        id: "claude-sonnet-4.5",
-        name: "claude-sonnet-4.5",
+    "anthropic/claude-sonnet-4.5": {
+        id: "anthropic/claude-sonnet-4.5",
+        name: "claude-sonnet-4-5", // Anthropic API model name (no prefix)
         displayName: "Claude 4.5 Sonnet",
         provider: "anthropic",
         tier: "expert",
@@ -275,7 +253,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
     },
     "google/gemini-2.5-pro-001": {
         id: "google/gemini-2.5-pro-001",
-        name: "google/gemini-2.5-pro-001",
+        name: "gemini-2.5-pro", // Google API model name (no prefix)
         displayName: "Gemini 2.5 Pro",
         provider: "google",
         tier: "expert",
@@ -295,31 +273,9 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         },
         pricing: { input: 2.5, output: 10.0 },
     },
-    "openai/gpt-5-codex": {
-        id: "openai/gpt-5-codex",
-        name: "openai/gpt-5-codex",
-        displayName: "GPT-5 Codex",
-        provider: "openai",
-        tier: "expert",
-        creditMultiplier: 1.5,
-        description: "Advanced code generation and understanding model",
-        planSupport: ["PRO", "ENTERPRISE"],
-        useCase: "coding",
-        capabilities: {
-            supportedInputs: ["text"],
-            supportedOutputs: ["text", "code", "structured-data"],
-            maxContextLength: 128000,
-            supportsStreaming: true,
-            supportsSystemPrompts: true,
-            supportsWebSearch: false,
-            supportsFunctionCalling: false,
-            supportsJsonMode: false,
-        },
-        pricing: { input: 3.0, output: 15.0 },
-    },
     "openai/dall-e-3": {
         id: "openai/dall-e-3",
-        name: "openai/dall-e-3",
+        name: "dall-e-3", // Actual OpenAI API model name
         displayName: "DALL-E 3",
         provider: "openai",
         tier: "expert",
@@ -385,7 +341,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
     },
     "openai/whisper-large-v3": {
         id: "openai/whisper-large-v3",
-        name: "openai/whisper-large-v3",
+        name: "whisper-1", // Actual OpenAI API model name
         displayName: "Whisper Large v3",
         provider: "openai",
         tier: "fast",

@@ -84,14 +84,14 @@ interface CodingStreamOptions {
 }
 
 /**
- * Detect requirements from message content
- * Analyzes messages to determine what capabilities are needed
+ * Detect requirements from message content using Grok 4 Fast
+ * Uses AI to intelligently analyze if web search or other capabilities are needed
  */
-function detectRequirements(messages: unknown[], systemPrompt: string): {
+async function detectRequirements(messages: unknown[], systemPrompt: string): Promise<{
     hasImages: boolean;
     hasWebSearchRequest: boolean;
     needsFunctionCalling: boolean;
-} {
+}> {
     let hasImages = false;
     let hasWebSearchRequest = false;
     let needsFunctionCalling = false;
@@ -111,12 +111,60 @@ function detectRequirements(messages: unknown[], systemPrompt: string): {
         }
     }
 
-    // Check for web search indicators in system prompt or last message
-    const textToCheck = systemPrompt + JSON.stringify(messagesArray.slice(-2));
-    const webSearchKeywords = ['http://', 'https://', 'search the web', 'look up', 'find information about'];
-    hasWebSearchRequest = webSearchKeywords.some(keyword =>
-        textToCheck.toLowerCase().includes(keyword.toLowerCase())
-    );
+    // Use Grok 4 Fast to intelligently detect if web search is needed
+    try {
+        const lastMessage = messagesArray[messagesArray.length - 1];
+        const userPrompt = lastMessage && typeof lastMessage === 'object' && 'content' in lastMessage
+            ? JSON.stringify((lastMessage as { content?: unknown }).content)
+            : '';
+
+        const analysisPrompt = `Analyze this coding request and determine if it requires real-time web search:
+
+User request: ${userPrompt}
+
+Does this request need web search? Answer with JSON:
+{
+  "needsWebSearch": boolean,
+  "reason": "brief explanation"
+}
+
+Requirements for web search:
+- Asking about current events, news, or "what's happening"
+- Requesting information about recent updates or releases
+- Explicitly asking to "search" or "look up" information
+- Questions about real-time data or latest versions
+
+NOT requiring web search:
+- Standard coding tasks
+- Creating components or features
+- Debugging code
+- General programming questions
+- URLs in context (just references, not search requests)`;
+
+        const { provider, modelPath } = getModelProvider("x-ai/grok-4-fast");
+        const modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
+
+        const result = await generateText({
+            model: modelInstance,
+            prompt: analysisPrompt,
+            maxOutputTokens: 200,
+        });
+
+        const analysis = JSON.parse(result.text);
+        hasWebSearchRequest = analysis.needsWebSearch === true;
+
+        if (hasWebSearchRequest) {
+            console.log(`🔍 Web search detected: ${analysis.reason}`);
+        }
+    } catch (error) {
+        console.warn('⚠️ Could not analyze web search requirement, using fallback detection');
+        // Fallback to simple keyword detection
+        const textToCheck = systemPrompt + JSON.stringify(messagesArray.slice(-2));
+        const webSearchKeywords = ['search the web', 'look up online', 'latest news', 'what is happening'];
+        hasWebSearchRequest = webSearchKeywords.some(keyword =>
+            textToCheck.toLowerCase().includes(keyword.toLowerCase())
+        );
+    }
 
     return { hasImages, hasWebSearchRequest, needsFunctionCalling };
 }
@@ -179,7 +227,7 @@ function getModelProvider(modelId: string): {
 
     return {
         provider,
-        modelPath: modelConfig.id,
+        modelPath: modelConfig.name, // Use the actual API model name
         displayName: modelConfig.displayName,
         providerType
     };
@@ -196,7 +244,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     const userPlan = await getUserPlan(userId);
 
     // Detect requirements from messages
-    const { hasImages, hasWebSearchRequest, needsFunctionCalling } = detectRequirements(messages, systemPrompt);
+    const { hasImages, hasWebSearchRequest, needsFunctionCalling } = await detectRequirements(messages, systemPrompt);
 
     // Build required inputs based on detected content
     const requiredInputs: Array<"text" | "image"> = ["text"];
