@@ -1,19 +1,15 @@
 /**
  * AI Model Configuration System
- * Defines available models, pricing tiers, plan-based restrictions, and use cases
+ * Defines available models and automatic task-based model selection
  * 
- * USER PREFERENCE PHILOSOPHY:
- * - Users can ONLY select their preferred model for CODING tasks
- * - All other use cases (naming, chat, analysis) use SYSTEM DEFAULTS
- * - This keeps UX simple while optimizing cost/quality per task type
- * 
- * SYSTEM DEFAULTS (non-user-configurable):
+ * AUTOMATIC MODEL SELECTION:
+ * System automatically selects the optimal model for each task type:
+ * - Coding: minimax/minimax-m2 (fast, efficient code generation)
+ * - Reasoning/Analysis: moonshotai/kimi-k2-thinking (deep reasoning)
  * - Naming: x-ai/grok-4-fast (fast & cheap for creative names)
  * - Chat: claude-haiku-4-5 (balanced for conversations)
- * - Analysis: claude-sonnet-4.5 (premium for deep reasoning)
  * 
- * USER PREFERENCES (user-configurable):
- * - Coding: User's preferred model from settings (default: minimax/minimax-m2)
+ * NO USER PREFERENCES: Models are automatically selected for optimal performance and cost
  */
 
 export type ModelTier = "free" | "standard" | "premium";
@@ -21,15 +17,13 @@ export type PlanName = "HOBBY" | "PRO" | "ENTERPRISE";
 
 /**
  * Model use cases - categorizes models by their intended purpose
- * 
- * IMPORTANT: Only "coding" is user-configurable via preferences
- * All other use cases use fixed system defaults
+ * System automatically selects the optimal model for each use case
  */
 export type ModelUseCase =
-    | "coding"          // Code generation, editing, debugging (USER CHOOSES)
-    | "naming"          // Project naming (SYSTEM DEFAULT: grok-4-fast)
-    | "chat"            // General conversations (SYSTEM DEFAULT: claude-haiku-4-5)
-    | "analysis"        // Deep reasoning (SYSTEM DEFAULT: claude-sonnet-4.5)
+    | "coding"          // Code generation, editing, debugging (AUTO: minimax-m2)
+    | "reasoning"       // Deep reasoning, complex analysis (AUTO: kimi-k2-thinking)
+    | "naming"          // Project naming (AUTO: grok-4-fast)
+    | "chat"            // General conversations (AUTO: claude-haiku-4-5)
     | "image"           // Image generation (future)
     | "audio"           // Audio generation/transcription (future)
     | "video";          // Video generation (future)
@@ -119,11 +113,11 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         name: "moonshotai/kimi-k2-thinking",
         displayName: "Kimi K2 Thinking",
         provider: "openrouter",
-        tier: "premium",
+        tier: "standard",
         creditMultiplier: 0.25, // $2.50/M output tokens
         description: "Advanced reasoning model",
-        minPlanRequired: "PRO",
-        useCases: ["coding", "analysis", "chat"], // Deep reasoning capabilities
+        minPlanRequired: "HOBBY",
+        useCases: ["reasoning", "chat"], // Deep reasoning capabilities
         pricing: { input: 1.0, output: 2.5 }, // Estimated pricing
     },
     "claude-haiku-4-5": {
@@ -147,7 +141,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         creditMultiplier: 1.0, // $10/M output tokens
         description: "Google's most advanced model",
         minPlanRequired: "PRO",
-        useCases: ["coding", "analysis", "chat"], // Multimodal capabilities
+        useCases: ["reasoning", "chat"], // Multimodal capabilities
         pricing: { input: 2.5, output: 10.0 }, // Estimated pricing
     },
     "openai/gpt-5": {
@@ -159,7 +153,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         creditMultiplier: 1.0, // $10/M output tokens
         description: "OpenAI's most advanced model",
         minPlanRequired: "PRO",
-        useCases: ["coding", "analysis", "chat"], // General purpose excellence
+        useCases: ["reasoning", "chat"], // General purpose excellence
         pricing: { input: 2.5, output: 10.0 }, // Estimated pricing
     },
     "claude-sonnet-4.5": {
@@ -171,7 +165,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         creditMultiplier: 1.5, // $15/M output tokens
         description: "Most capable",
         minPlanRequired: "PRO",
-        useCases: ["coding", "analysis", "chat"], // Best overall quality
+        useCases: ["reasoning", "chat"], // Best overall quality
         pricing: { input: 3.0, output: 15.0 },
     },
 };
@@ -273,22 +267,19 @@ export function getFreeTierModels(): ModelConfig[] {
 }
 
 /**
- * Get initial enabled models for new users
- * All models from AVAILABLE_MODELS are enabled by default - users can personalize based on their needs
- * Premium models will only be accessible to Pro users in the coding interface
+ * Get the default coding model
+ * Always returns minimax-m2 for all coding tasks
  */
-export function getDefaultEnabledModels(): string[] {
-    return getAllModelIds();
+export function getDefaultCodingModel(): string {
+    return "minimax/minimax-m2";
 }
 
 /**
- * Get initial preferred model for new users
- * This is set as the selected model when a user signs up
- * Always returns minimax-m2 as the default coding model (fastest & cheapest)
+ * Get the default reasoning model
+ * Always returns kimi-k2-thinking for complex reasoning tasks
  */
-export function getDefaultSelectedModel(): string {
-    // Always default to minimax-m2 for coding
-    return "minimax/minimax-m2";
+export function getDefaultReasoningModel(): string {
+    return "moonshotai/kimi-k2-thinking";
 }
 
 /**
@@ -301,68 +292,31 @@ export function getModelsForUseCase(useCase: ModelUseCase): ModelConfig[] {
 }
 
 /**
- * SYSTEM DEFAULT MODELS FOR NON-CODING USE CASES
- * These are fixed defaults chosen for optimal cost/quality balance
- * Users CANNOT change these - only their coding model preference
- * 
- * - Naming: Fast, cheap model for creative project names
- * - Chat: Balanced model for general conversations  
- * - Analysis: Premium model for deep reasoning tasks
+ * SYSTEM DEFAULT MODELS
+ * All models are automatically selected based on task type
+ * No user configuration needed
  */
-const SYSTEM_USE_CASE_DEFAULTS: Record<Exclude<ModelUseCase, "coding" | "image" | "audio" | "video">, string> = {
-    naming: "x-ai/grok-4-fast",        // Fast & cheap for creative names
-    chat: "claude-haiku-4-5",          // Balanced for conversations
-    analysis: "claude-sonnet-4.5",     // Premium for deep reasoning
+const SYSTEM_USE_CASE_DEFAULTS: Record<Exclude<ModelUseCase, "image" | "audio" | "video">, string> = {
+    coding: "minimax/minimax-m2",           // Fast & efficient for code generation
+    reasoning: "moonshotai/kimi-k2-thinking", // Deep reasoning for complex tasks
+    naming: "x-ai/grok-4-fast",             // Fast & cheap for creative names
+    chat: "claude-haiku-4-5",               // Balanced for conversations
 };
 
 /**
  * Get the default model for a specific use case
- * 
- * IMPORTANT: 
- * - For CODING: Uses user's preferred model (from preferences)
- * - For OTHER use cases: Uses system defaults (users cannot change)
- * 
- * This function returns system defaults for non-coding tasks.
- * For coding tasks, use getUserPreferredModel() instead.
+ * All use cases have fixed system defaults for optimal performance
  */
-export function getDefaultModelForUseCase(
-    useCase: ModelUseCase,
-    userPlan?: PlanName
-): string {
-    // For non-coding use cases, return the fixed system default
-    if (useCase !== "coding") {
-        const defaultModel = SYSTEM_USE_CASE_DEFAULTS[useCase as keyof typeof SYSTEM_USE_CASE_DEFAULTS];
-        if (defaultModel) {
-            return defaultModel;
-        }
-        // Fallback for future use cases (image, audio, video)
-        console.warn(`No system default for use case: ${useCase}, using fallback`);
+export function getDefaultModelForUseCase(useCase: ModelUseCase): string {
+    const defaultModel = SYSTEM_USE_CASE_DEFAULTS[useCase as keyof typeof SYSTEM_USE_CASE_DEFAULTS];
+
+    if (defaultModel) {
+        return defaultModel;
     }
 
-    // For coding or as fallback, use dynamic selection
-    const useCaseModels = getModelsForUseCase(useCase);
-
-    if (useCaseModels.length === 0) {
-        throw new Error(`No models available for use case: ${useCase}`);
-    }
-
-    // Filter by user's plan if provided
-    const accessibleModels = userPlan
-        ? useCaseModels.filter((m) => canUserAccessModel(m.id, userPlan))
-        : useCaseModels.filter((m) => m.minPlanRequired === "HOBBY");
-
-    if (accessibleModels.length === 0) {
-        throw new Error(
-            `No accessible models for use case: ${useCase} with plan: ${userPlan || "HOBBY"}`
-        );
-    }
-
-    // Sort by creditMultiplier (lower = cheaper) and return the first
-    const sortedModels = accessibleModels.sort(
-        (a, b) => a.creditMultiplier - b.creditMultiplier
-    );
-
-    return sortedModels[0].id;
+    // Fallback for future use cases (image, audio, video)
+    console.warn(`No system default for use case: ${useCase}, using coding model as fallback`);
+    return SYSTEM_USE_CASE_DEFAULTS.coding;
 }
 
 /**
@@ -378,21 +332,14 @@ export function modelSupportsUseCase(
 }
 
 /**
- * Get all system default models (non-coding use cases)
- * These are NOT user-configurable
+ * Get all system default models
+ * All models are automatically selected - no user configuration
  */
 export function getSystemDefaultModels(): Record<string, string> {
     return {
+        coding: SYSTEM_USE_CASE_DEFAULTS.coding,
+        reasoning: SYSTEM_USE_CASE_DEFAULTS.reasoning,
         naming: SYSTEM_USE_CASE_DEFAULTS.naming,
         chat: SYSTEM_USE_CASE_DEFAULTS.chat,
-        analysis: SYSTEM_USE_CASE_DEFAULTS.analysis,
     };
-}
-
-/**
- * Check if a use case allows user preference
- * Only "coding" is user-configurable
- */
-export function isUserConfigurableUseCase(useCase: ModelUseCase): boolean {
-    return useCase === "coding";
 }

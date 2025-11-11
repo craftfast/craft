@@ -7,7 +7,7 @@ import SettingsModal from "./SettingsModal";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ModelSelector } from "@/components/ModelSelector";
+import { ModelSelector, ModelTier } from "@/components/ModelSelector";
 import { useSession } from "@/lib/auth-client";
 
 interface ImageAttachment {
@@ -87,11 +87,26 @@ export default function CraftInput() {
   >("general");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { balance } = useCreditBalance();
-  const [selectedModel, setSelectedModel] = useState(""); // Will be set from API (uses config default)
+  const [selectedTier, setSelectedTier] = useState<ModelTier>("best"); // Default to "best" mode
   const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
     "HOBBY"
   );
   const { data: session } = useSession();
+
+  // Convert tier to actual model ID
+  const getModelIdFromTier = (tier: ModelTier): string => {
+    switch (tier) {
+      case "fast":
+        return "minimax/minimax-m2"; // Fast model
+      case "expert":
+        return "claude-sonnet-4.5"; // Expert model
+      case "best":
+      default:
+        // Best mode - automatically selects between fast and expert
+        // For now, default to fast (can be enhanced with logic to auto-switch)
+        return "minimax/minimax-m2";
+    }
+  };
 
   // Fetch user's preferred model and plan on mount
   useEffect(() => {
@@ -100,28 +115,25 @@ export default function CraftInput() {
 
     let isMounted = true;
 
-    const fetchPreferredModel = async () => {
+    const fetchUserPlan = async () => {
       try {
-        const response = await fetch("/api/user/model-preferences");
+        const response = await fetch("/api/user/plan");
         if (!isMounted) return;
 
         if (response.ok) {
           const data = await response.json();
-          if (data.preferredModel) {
-            setSelectedModel(data.preferredModel);
-          }
-          if (data.userPlan) {
-            setUserPlan(data.userPlan);
+          if (data.plan) {
+            setUserPlan(data.plan);
           }
         }
       } catch (error) {
         if (!isMounted) return;
-        console.error("Failed to fetch preferred model:", error);
-        // Keep empty string - backend will use config default
+        console.error("Failed to fetch user plan:", error);
+        // Keep "best" as default tier and "HOBBY" as default plan
       }
     };
 
-    fetchPreferredModel();
+    fetchUserPlan();
 
     return () => {
       isMounted = false;
@@ -368,14 +380,14 @@ export default function CraftInput() {
           }
         }
 
-        // Store the prompt, images, and selected model in localStorage
+        // Store the prompt, images, and selected tier in localStorage
         try {
           localStorage.setItem(
             "pendingProject",
             JSON.stringify({
               prompt: trimmedInput, // Use trimmed input
               images: selectedImages,
-              selectedModel: selectedModel,
+              selectedModel: getModelIdFromTier(selectedTier), // Convert tier to model ID
               timestamp: Date.now(),
             })
           );
@@ -425,7 +437,7 @@ export default function CraftInput() {
         body: JSON.stringify({
           name: "New Project", // Default name
           description: input,
-          selectedModel: selectedModel, // Save user's selected model
+          selectedModel: getModelIdFromTier(selectedTier), // Convert tier to model ID
         }),
       });
 
@@ -433,7 +445,7 @@ export default function CraftInput() {
         const data = await response.json();
         console.log("Project created:", data);
 
-        // Store images and selected model in sessionStorage if project was created
+        // Store images and selected tier in sessionStorage if project was created
         if (data.project?.id) {
           if (selectedImages.length > 0) {
             sessionStorage.setItem(
@@ -442,10 +454,10 @@ export default function CraftInput() {
             );
           }
 
-          // Store selected model for the chat interface
+          // Store selected tier for the chat interface
           sessionStorage.setItem(
-            `project-${data.project.id}-model`,
-            selectedModel
+            `project-${data.project.id}-tier`,
+            selectedTier
           );
         }
 
@@ -727,8 +739,8 @@ export default function CraftInput() {
 
             {/* Model Selector */}
             <ModelSelector
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
+              selectedTier={selectedTier}
+              onTierChange={setSelectedTier}
               userPlan={userPlan}
             />
           </div>

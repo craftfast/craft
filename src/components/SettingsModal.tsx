@@ -60,7 +60,6 @@ interface SettingsModalProps {
   initialOption?: SettingsOption; // Specific section within the tab
   initialProTierIndex?: number;
   autoTriggerCheckout?: boolean; // Auto-trigger checkout when coming from pricing page
-  initialModel?: string; // Pre-select a specific model in personalization
   initialProject?: string; // Pre-filter by project in usage
   initialEndpoint?: string; // Pre-filter by endpoint in usage
   initialPage?: number; // Pre-set page number in usage
@@ -191,7 +190,6 @@ export default function SettingsModal({
   initialOption,
   initialProTierIndex = 0,
   autoTriggerCheckout = false,
-  initialModel,
   initialProject,
   initialEndpoint,
   initialPage,
@@ -316,18 +314,6 @@ export default function SettingsModal({
   const [creditUsageData, setCreditUsageData] =
     useState<CreditUsageData | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
-
-  // Model preferences
-  const [preferredModel, setPreferredModel] = useState<string>(() => {
-    // Dynamically import is not possible in useState, so we'll use a lazy initialization pattern
-    // The actual default will be set when data is fetched
-    return "";
-  });
-  const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
-    "HOBBY"
-  );
-  const [isLoadingModelPrefs, setIsLoadingModelPrefs] = useState(false);
-  const [isSavingModelPrefs, setIsSavingModelPrefs] = useState(false);
 
   // Billing state
   const [subscriptionData, setSubscriptionData] =
@@ -548,11 +534,6 @@ export default function SettingsModal({
   // Initialize filters and values from URL parameters
   useEffect(() => {
     if (isOpen) {
-      // Set initial model preference if provided
-      if (initialModel) {
-        setPreferredModel(initialModel);
-      }
-
       // Set initial usage filters if provided
       if (initialProject) {
         setSelectedProject(initialProject);
@@ -564,18 +545,15 @@ export default function SettingsModal({
         setCurrentPage(initialPage);
       }
     }
-  }, [isOpen, initialModel, initialProject, initialEndpoint, initialPage]);
+  }, [isOpen, initialProject, initialEndpoint, initialPage]);
 
-  // Fetch model preferences when general or personalization tab is active
+  // Fetch user profile when general tab is active
   useEffect(() => {
     // Only fetch if modal is open and user is authenticated
     if (!isOpen || !session?.user) return;
 
     if (activeTab === "general") {
       fetchUserProfile();
-    }
-    if (activeTab === "general" || activeTab === "personalization") {
-      fetchModelPreferences();
     }
   }, [activeTab, isOpen, session]);
 
@@ -681,50 +659,6 @@ export default function SettingsModal({
       console.error("Error fetching billing data:", error);
     } finally {
       setIsLoadingBilling(false);
-    }
-  };
-
-  const fetchModelPreferences = async () => {
-    setIsLoadingModelPrefs(true);
-    try {
-      const res = await fetch("/api/user/model-preferences");
-      if (res.ok) {
-        const data = await res.json();
-        // Backend will provide the default from config if not set
-        setPreferredModel(data.preferredModel || "");
-        setUserPlan(data.userPlan || "HOBBY");
-      }
-    } catch (error) {
-      console.error("Error fetching model preferences:", error);
-    } finally {
-      setIsLoadingModelPrefs(false);
-    }
-  };
-
-  const saveModelPreference = async (modelId: string) => {
-    setIsSavingModelPrefs(true);
-    try {
-      const res = await fetch("/api/user/model-preferences", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preferredModel: modelId }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setPreferredModel(data.preferredModel);
-        // Update URL with selected model
-        updateUrlParams({ model: data.preferredModel });
-        toast.success("Coding model preference updated successfully");
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to update coding model preference");
-      }
-    } catch (error) {
-      console.error("Error saving model preference:", error);
-      toast.error("Failed to update coding model preference");
-    } finally {
-      setIsSavingModelPrefs(false);
     }
   };
 
@@ -1616,15 +1550,7 @@ export default function SettingsModal({
             )}
 
             {/* Personalization Tab */}
-            {activeTab === "personalization" && (
-              <PersonalizationTab
-                preferredModel={preferredModel}
-                userPlan={userPlan}
-                isLoadingModelPrefs={isLoadingModelPrefs}
-                isSavingModelPrefs={isSavingModelPrefs}
-                onSaveModelPreference={saveModelPreference}
-              />
-            )}
+            {activeTab === "personalization" && <PersonalizationTab />}
 
             {/* Billing Tab */}
             {activeTab === "billing" && (

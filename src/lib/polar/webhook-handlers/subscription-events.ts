@@ -51,13 +51,6 @@ export async function handleSubscriptionCreated(data: SubscriptionEvent) {
             return { success: false, error: "Plan not found" };
         }
 
-        // Initialize enabled models with defaults (filtered by plan access)
-        const { getDefaultEnabledModels, canUserAccessModel } = await import("@/lib/models/config");
-        const defaultModels = getDefaultEnabledModels();
-        const enabledModels = defaultModels.filter((id) =>
-            canUserAccessModel(id, plan.name as "HOBBY" | "PRO" | "ENTERPRISE")
-        );
-
         // Create or update subscription
         await prisma.userSubscription.upsert({
             where: { userId: user.id },
@@ -82,13 +75,7 @@ export async function handleSubscriptionCreated(data: SubscriptionEvent) {
             },
         });
 
-        // Update user's enabled models for the new plan
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { enabledModels },
-        });
-
-        console.log(`Subscription created for user ${user.id} with enabled models: ${enabledModels.join(", ")}`);
+        console.log(`Subscription created for user ${user.id}`);
         return { success: true };
     } catch (error) {
         console.error("Error handling subscription.created:", error);
@@ -107,29 +94,6 @@ export async function handleSubscriptionActive(data: SubscriptionEvent) {
 
     try {
         const subscription = data;
-
-        // Find the subscription and plan to determine enabled models
-        const userSubscription = await prisma.userSubscription.findFirst({
-            where: { polarSubscriptionId: subscription.id },
-            include: { plan: true },
-        });
-
-        if (userSubscription) {
-            // Initialize enabled models with defaults (filtered by plan access)
-            const { getDefaultEnabledModels, canUserAccessModel } = await import("@/lib/models/config");
-            const defaultModels = getDefaultEnabledModels();
-            const enabledModels = defaultModels.filter((id) =>
-                canUserAccessModel(id, userSubscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE")
-            );
-
-            // Update user's enabled models
-            await prisma.user.update({
-                where: { id: userSubscription.userId },
-                data: { enabledModels },
-            });
-
-            console.log(`Enabled models updated for user ${userSubscription.userId}: ${enabledModels.join(", ")}`);
-        }
 
         // Update subscription status to ACTIVE
         await prisma.userSubscription.updateMany({

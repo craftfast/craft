@@ -3,27 +3,23 @@
  * 
  * This is the single source of truth for all AI operations in Craft.
  * 
- * MODEL SELECTION STRATEGY:
- * - Coding: Uses user's preferred model (from model preferences) - DEFAULT: minimax-m2
- * - Naming: Uses system default (grok-4-fast) - NOT user-configurable
- * - Chat: Uses system default (claude-haiku-4-5) - NOT user-configurable  
- * - Analysis: Uses system default (claude-sonnet-4.5) - NOT user-configurable
+ * AUTOMATIC MODEL SELECTION:
+ * - Coding: minimax-m2 (fast, efficient code generation)
+ * - Reasoning: kimi-k2-thinking (deep reasoning for complex tasks)
+ * - Naming: grok-4-fast (fast & cheap for creative names)
+ * - Chat: claude-haiku-4-5 (balanced for conversations)
  * 
+ * All models are automatically selected - no user configuration needed.
  * Model Configuration is managed in src/lib/models/config.ts
- * All models are dynamically loaded from AVAILABLE_MODELS
- * 
- * The system supports dynamic model selection with credit-based pricing
- * and plan-based restrictions.
  */
 
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, streamText } from "ai";
 import {
-    canUserAccessModel,
     getModelConfig,
-    getDefaultSelectedModel,
-    getFallbackModel,
+    getDefaultCodingModel,
+    getDefaultReasoningModel,
     getDefaultModelForUseCase
 } from "@/lib/models/config";
 import { getUserPlan } from "@/lib/subscription";
@@ -76,22 +72,9 @@ function getModelProvider(modelId: string): { provider: ReturnType<typeof create
     const modelConfig = getModelConfig(modelId);
 
     if (!modelConfig) {
-        // Use fallback model from config
-        const fallbackId = getFallbackModel("HOBBY");
-        const fallbackConfig = getModelConfig(fallbackId);
+        console.warn(`⚠️ Unknown model: ${modelId}, defaulting to minimax-m2`);
 
-        console.warn(`⚠️ Unknown model: ${modelId}, defaulting to ${fallbackConfig?.displayName || fallbackId}`);
-
-        if (fallbackConfig) {
-            const provider = fallbackConfig.provider === "anthropic" ? anthropic : openrouter;
-            return {
-                provider,
-                modelPath: fallbackConfig.id,
-                displayName: fallbackConfig.displayName
-            };
-        }
-
-        // Ultimate fallback if config is broken
+        // Ultimate fallback
         return {
             provider: openrouter,
             modelPath: "minimax/minimax-m2",
@@ -111,29 +94,16 @@ function getModelProvider(modelId: string): { provider: ReturnType<typeof create
 }
 
 /**
- * Stream coding responses with dynamic model selection
- * Supports all models from config.ts (single source of truth)
- * Validates plan-based access to premium models
+ * Stream coding responses using automatic model selection
+ * Always uses minimax-m2 for coding tasks
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {
-    const defaultModel = getDefaultSelectedModel();
-    const { messages, systemPrompt, projectFiles = {}, model: requestedModel = defaultModel, userId, onFinish } = options;
+    const codingModel = getDefaultCodingModel();
+    const { messages, systemPrompt, projectFiles = {}, onFinish } = options;
 
-    // Validate user can access the requested model
-    if (userId && requestedModel) {
-        const userPlan = await getUserPlan(userId);
-        const hasAccess = canUserAccessModel(requestedModel, userPlan);
+    const { provider, modelPath, displayName } = getModelProvider(codingModel);
 
-        if (!hasAccess) {
-            throw new Error(
-                `Model ${requestedModel} requires Pro plan. Please upgrade to access premium models.`
-            );
-        }
-    }
-
-    const { provider, modelPath, displayName } = getModelProvider(requestedModel);
-
-    console.log(`⚡ AI Agent: Using ${displayName} (${requestedModel})`);
+    console.log(`⚡ AI Agent: Using ${displayName} (${codingModel}) for coding`);
 
     if (Object.keys(projectFiles).length > 0) {
         console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
@@ -175,7 +145,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
                 if (onFinish) {
                     try {
                         await onFinish({
-                            model: requestedModel, // Return the requested model ID
+                            model: codingModel, // Return the coding model ID
                             inputTokens,
                             outputTokens,
                             totalTokens,

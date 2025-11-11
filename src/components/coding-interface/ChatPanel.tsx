@@ -10,7 +10,7 @@ import "highlight.js/styles/github-dark.min.css";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import SettingsModal from "../SettingsModal";
-import { ModelSelector } from "@/components/ModelSelector";
+import { ModelSelector, ModelTier } from "@/components/ModelSelector";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -138,14 +138,28 @@ export default function ChatPanel({
     "HOBBY"
   );
 
-  // Initialize selected model from sessionStorage or will use API default
-  const [selectedModel, setSelectedModel] = useState(() => {
+  // Initialize selected tier from sessionStorage or use "best" as default
+  const [selectedTier, setSelectedTier] = useState<ModelTier>(() => {
     if (typeof window !== "undefined") {
-      const storedModel = sessionStorage.getItem(`project-${projectId}-model`);
-      return storedModel || ""; // Empty string will trigger fetch from API (uses config default)
+      const storedTier = sessionStorage.getItem(`project-${projectId}-tier`);
+      return (storedTier as ModelTier) || "best";
     }
-    return "";
+    return "best";
   });
+
+  // Convert tier to actual model ID
+  const getModelIdFromTier = (tier: ModelTier): string => {
+    switch (tier) {
+      case "fast":
+        return "minimax/minimax-m2"; // Fast model
+      case "expert":
+        return "claude-sonnet-4.5"; // Expert model
+      case "best":
+      default:
+        // Best mode - automatically selects between fast and expert
+        return "minimax/minimax-m2";
+    }
+  };
 
   // Fetch user's plan on mount
   useEffect(() => {
@@ -153,13 +167,13 @@ export default function ChatPanel({
 
     const fetchUserPlan = async () => {
       try {
-        const response = await fetch("/api/user/model-preferences");
+        const response = await fetch("/api/user/plan");
         if (!isMounted) return;
 
         if (response.ok) {
           const data = await response.json();
-          if (data.userPlan) {
-            setUserPlan(data.userPlan);
+          if (data.plan) {
+            setUserPlan(data.plan);
           }
         }
       } catch (error) {
@@ -176,49 +190,19 @@ export default function ChatPanel({
     };
   }, []);
 
-  // Fetch project's preferred model on mount
+  // Load tier preference from sessionStorage on mount
   useEffect(() => {
-    const fetchProjectPreferredModel = async () => {
-      try {
-        const response = await fetch(`/api/projects/${projectId}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.project?.preferredModel) {
-            setSelectedModel(data.project.preferredModel);
-            // Update sessionStorage
-            sessionStorage.setItem(
-              `project-${projectId}-model`,
-              data.project.preferredModel
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch project preferred model:", error);
-        // Keep default or sessionStorage value
-      }
-    };
-
-    fetchProjectPreferredModel();
+    const savedTier = sessionStorage.getItem(`project-${projectId}-tier`);
+    if (savedTier && ["best", "fast", "expert"].includes(savedTier)) {
+      setSelectedTier(savedTier as ModelTier);
+    }
   }, [projectId]);
 
-  // Save model to project when it changes
+  // Save tier preference to sessionStorage when it changes
   useEffect(() => {
-    const updateProjectModel = async () => {
-      try {
-        await fetch(`/api/projects/${projectId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ preferredModel: selectedModel }),
-        });
-        // Update sessionStorage
-        sessionStorage.setItem(`project-${projectId}-model`, selectedModel);
-      } catch (error) {
-        console.error("Failed to update project model:", error);
-      }
-    };
-
-    updateProjectModel();
-  }, [selectedModel, projectId]);
+    // Store tier preference in sessionStorage only
+    sessionStorage.setItem(`project-${projectId}-tier`, selectedTier);
+  }, [selectedTier, projectId]);
 
   // Check if tokens are low or exhausted
   const isLowTokens =
@@ -831,7 +815,7 @@ export default function ChatPanel({
           taskType: "coding",
           projectFiles, // Send existing project files for context
           projectId, // Required for AI usage tracking
-          model: selectedModel, // Include selected model
+          model: getModelIdFromTier(selectedTier), // Convert tier to model ID
         }),
       });
 
@@ -1562,8 +1546,8 @@ export default function ChatPanel({
 
                 {/* Model Selector */}
                 <ModelSelector
-                  selectedModel={selectedModel}
-                  onModelChange={setSelectedModel}
+                  selectedTier={selectedTier}
+                  onTierChange={setSelectedTier}
                   userPlan={userPlan}
                 />
               </div>

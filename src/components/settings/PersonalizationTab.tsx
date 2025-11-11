@@ -1,301 +1,275 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AVAILABLE_MODELS } from "@/lib/models/config";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-interface PersonalizationTabProps {
-  preferredModel: string;
-  userPlan: "HOBBY" | "PRO" | "ENTERPRISE";
-  isLoadingModelPrefs: boolean;
-  isSavingModelPrefs: boolean;
-  onSaveModelPreference: (modelId: string) => void;
-}
+export default function PersonalizationTab() {
+  const [customInstructions, setCustomInstructions] = useState("");
+  const [selectedTone, setSelectedTone] = useState<string | null>("default");
+  const [occupation, setOccupation] = useState("");
+  const [techStack, setTechStack] = useState("");
 
-export default function PersonalizationTab({
-  preferredModel,
-  userPlan,
-  isLoadingModelPrefs,
-  isSavingModelPrefs,
-  onSaveModelPreference,
-}: PersonalizationTabProps) {
-  const [enabledModels, setEnabledModels] = useState<string[]>([]);
-  const [isLoadingEnabledModels, setIsLoadingEnabledModels] = useState(true);
-  const [isTogglingModel, setIsTogglingModel] = useState<string | null>(null);
+  // Memory and features
+  const [enableMemory, setEnableMemory] = useState(true);
+  const [referenceChatHistory, setReferenceChatHistory] = useState(true);
 
-  // Fetch enabled models
+  // Advanced capabilities
+  const [enableWebSearch, setEnableWebSearch] = useState(false);
+  const [enableImageGeneration, setEnableImageGeneration] = useState(false);
+
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Auto-save on changes
   useEffect(() => {
-    const fetchEnabledModels = async () => {
-      try {
-        const res = await fetch("/api/user/model-preferences");
-        if (res.ok) {
-          const data = await res.json();
-          setEnabledModels(data.enabledModels || []);
-        }
-      } catch (error) {
-        console.error("Error fetching enabled models:", error);
-      } finally {
-        setIsLoadingEnabledModels(false);
-      }
-    };
-    fetchEnabledModels();
-  }, []);
-
-  // Toggle model enabled/disabled
-  const handleToggleModel = async (modelId: string) => {
-    const model = AVAILABLE_MODELS[modelId];
-
-    // Cannot disable the preferred model
-    if (modelId === preferredModel) {
-      toast.error(
-        `Cannot disable ${model.displayName}. Please select a different model first.`
-      );
-      return;
+    if (hasChanges) {
+      const timer = setTimeout(() => {
+        // TODO: Implement API call to save preferences
+        toast.success("Preferences saved");
+        setHasChanges(false);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
+  }, [
+    customInstructions,
+    selectedTone,
+    occupation,
+    techStack,
+    enableMemory,
+    referenceChatHistory,
+    enableWebSearch,
+    enableImageGeneration,
+    hasChanges,
+  ]);
 
-    // Prevent multiple clicks while already toggling
-    if (isTogglingModel === modelId) {
-      return;
-    }
+  const toneOptions = [
+    {
+      id: "default",
+      label: "Default",
+      description: "Balanced and helpful",
+    },
+    {
+      id: "concise",
+      label: "Concise",
+      description: "Brief, to-the-point responses",
+    },
+    { id: "detailed", label: "Detailed", description: "Thorough explanations" },
+    {
+      id: "encouraging",
+      label: "Encouraging",
+      description: "Positive and supportive",
+    },
+    {
+      id: "professional",
+      label: "Professional",
+      description: "Formal and technical",
+    },
+  ];
 
-    setIsTogglingModel(modelId);
-
-    // Save previous state before optimistic update
-    const previousEnabledModels = [...enabledModels];
-
-    // Determine if we're enabling or disabling based on current state
-    const isCurrentlyEnabled = enabledModels.includes(modelId);
-    const enabled = !isCurrentlyEnabled;
-
-    // Optimistic update for instant feedback
-    const newEnabledModels = enabled
-      ? [...enabledModels, modelId]
-      : enabledModels.filter((id) => id !== modelId);
-    setEnabledModels(newEnabledModels);
-
-    try {
-      const res = await fetch("/api/user/model-preferences", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabledModels: newEnabledModels }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setEnabledModels(data.enabledModels);
-        toast.success(
-          `${model?.displayName} ${enabled ? "enabled" : "disabled"}`,
-          { duration: 2000 }
-        );
-      } else {
-        // Revert on error
-        setEnabledModels(previousEnabledModels);
-        const error = await res.json();
-        toast.error(error.error || "Failed to update model");
-      }
-    } catch (error) {
-      // Revert on error
-      setEnabledModels(previousEnabledModels);
-      console.error("Error toggling model:", error);
-      toast.error("Failed to update model");
-    } finally {
-      setIsTogglingModel(null);
-    }
-  };
-
-  // Handle selecting a model as preferred
-  const handleSelectModel = (modelId: string) => {
-    const isEnabled = enabledModels.includes(modelId);
-
-    // Only allow selecting enabled models
-    if (!isEnabled) {
-      toast.error("Please enable the model first before selecting it");
-      return;
-    }
-
-    if (!isSavingModelPrefs && preferredModel !== modelId) {
-      onSaveModelPreference(modelId);
-    }
+  const handleChange = () => {
+    setHasChanges(true);
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-foreground mb-4">
-          Coding Model Preferences
+          Response Style
         </h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Select your preferred model for <strong>coding tasks only</strong>. Enable models you want to use and click on an enabled model to make it your preferred coding model. Premium models require a Pro plan.
-        </p>
-        <p className="text-xs text-muted-foreground/80 mb-4 italic">
-          Note: Other tasks like project naming use optimized system defaults and cannot be changed.
+          Customize how Craft AI responds and assists you
         </p>
 
-        {isLoadingModelPrefs || isLoadingEnabledModels ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-4 border-neutral-200 dark:border-neutral-800 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin"></div>
+        <div className="space-y-3">
+          <Label className="text-muted-foreground">Response Tone</Label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {toneOptions.map((tone) => (
+              <Button
+                key={tone.id}
+                onClick={() => {
+                  setSelectedTone(tone.id === selectedTone ? null : tone.id);
+                  handleChange();
+                }}
+                variant={selectedTone === tone.id ? "default" : "outline"}
+                className="justify-start rounded-xl"
+              >
+                {tone.label}
+              </Button>
+            ))}
           </div>
-        ) : (
-          <div className="space-y-3">
-            {Object.values(AVAILABLE_MODELS)
-              .sort((a, b) => a.creditMultiplier - b.creditMultiplier)
-              .map((model) => {
-                const isAccessible =
-                  model.minPlanRequired === "HOBBY" ||
-                  (model.minPlanRequired === "PRO" &&
-                    (userPlan === "PRO" || userPlan === "ENTERPRISE")) ||
-                  (model.minPlanRequired === "ENTERPRISE" &&
-                    userPlan === "ENTERPRISE");
-                const isSelected = preferredModel === model.id;
-                const isEnabled = enabledModels.includes(model.id);
-                const isToggling = isTogglingModel === model.id;
-
-                return (
-                  <div
-                    key={model.id}
-                    onClick={() => isAccessible && handleSelectModel(model.id)}
-                    className={`w-full p-4 rounded-xl border-2 transition-all cursor-pointer hover:border-primary/50 ${
-                      isSelected
-                        ? "border-primary bg-primary/5"
-                        : "border-border"
-                    } ${
-                      !isAccessible || !isEnabled
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-foreground">
-                            {model.displayName}
-                          </span>
-                          {!isAccessible && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-700 dark:text-yellow-400 text-xs font-medium">
-                              <svg
-                                className="w-3 h-3"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              Pro
-                            </span>
-                          )}
-                          {isSelected && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-medium">
-                              <svg
-                                className="w-3 h-3"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              Preferred
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {model.description}
-                          {!isAccessible && " • Upgrade to Pro to access"}
-                        </p>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {model.creditMultiplier}× credits
-                          </span>
-                          {isAccessible && (
-                            <div className="flex items-center gap-2">
-                              {/* Enable/Disable Toggle - Can toggle all except preferred model */}
-                              {!isSelected && (
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleToggleModel(model.id);
-                                    }}
-                                    disabled={isToggling}
-                                    className="relative inline-flex h-5 w-9 items-center rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{
-                                      backgroundColor: isEnabled
-                                        ? "rgb(34, 197, 94)"
-                                        : "rgb(163, 163, 163)",
-                                    }}
-                                    title={
-                                      isEnabled
-                                        ? "Disable model"
-                                        : "Enable model"
-                                    }
-                                  >
-                                    <span
-                                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                        isEnabled
-                                          ? "translate-x-5"
-                                          : "translate-x-0.5"
-                                      }`}
-                                    />
-                                  </button>
-                                  {isToggling && (
-                                    <div className="w-4 h-4 border-2 border-neutral-300 dark:border-neutral-600 border-t-neutral-900 dark:border-t-neutral-100 rounded-full animate-spin"></div>
-                                  )}
-                                  <span className="text-xs text-muted-foreground">
-                                    {isEnabled ? "Enabled" : "Disabled"}
-                                  </span>
-                                </div>
-                              )}
-                              {/* Show "Click to select" hint for enabled but not preferred models */}
-                              {isEnabled && !isSelected && (
-                                <span className="text-xs text-muted-foreground italic">
-                                  Click to make preferred
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        )}
+        </div>
       </div>
 
-      <div className="border-t border-border pt-6">
+      <div>
         <h3 className="text-lg font-semibold text-foreground mb-4">
           Custom Instructions
         </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Manage your custom user rules or preferences for the LLM.
+        <p className="text-sm text-muted-foreground mb-3">
+          Add specific preferences for how AI should respond
         </p>
-        <div className="p-4 bg-muted/50 rounded-xl border border-input">
-          <div className="flex items-start gap-3">
-            <svg
-              className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-foreground mb-1">
-                Premium Feature
+        <Textarea
+          value={customInstructions}
+          onChange={(e) => {
+            setCustomInstructions(e.target.value);
+            handleChange();
+          }}
+          placeholder="Example: Always provide code examples when explaining concepts. Prefer TypeScript over JavaScript."
+          className="min-h-[100px] rounded-xl"
+        />
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-4">
+          Developer Profile
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Help AI provide more relevant coding assistance
+        </p>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-muted-foreground mb-3">Role / Title</Label>
+            <Input
+              value={occupation}
+              onChange={(e) => {
+                setOccupation(e.target.value);
+                handleChange();
+              }}
+              placeholder="e.g., Full-stack developer, Frontend engineer"
+              className="rounded-xl"
+            />
+          </div>
+
+          <div>
+            <Label className="text-muted-foreground mb-3">
+              Tech Stack & Preferences
+            </Label>
+            <Textarea
+              value={techStack}
+              onChange={(e) => {
+                setTechStack(e.target.value);
+                handleChange();
+              }}
+              placeholder="e.g., React, TypeScript, Node.js, Tailwind CSS"
+              className="min-h-[80px] rounded-xl"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-4">
+          Memory & Context
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Control how AI remembers and uses information
+        </p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                Save memories
               </p>
-              <p className="text-sm text-muted-foreground">
-                Custom instructions are not available on the Free plan.
+              <p className="text-xs text-muted-foreground">
+                Let AI save key information about your preferences and projects
+              </p>
+            </div>
+            <Switch
+              checked={enableMemory}
+              onCheckedChange={(checked) => {
+                setEnableMemory(checked);
+                handleChange();
+              }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                Reference chat history
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Allow AI to reference previous conversations for better context
+              </p>
+            </div>
+            <Switch
+              checked={referenceChatHistory}
+              onCheckedChange={(checked) => {
+                setReferenceChatHistory(checked);
+                handleChange();
+              }}
+            />
+          </div>
+
+          {enableMemory && (
+            <Button
+              variant="outline"
+              className="w-full rounded-xl"
+              onClick={() => toast.info("Memory management coming soon")}
+            >
+              Manage saved memories
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-4">
+          Advanced Capabilities
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Enable additional AI features for enhanced functionality
+        </p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Web search</p>
+              <p className="text-xs text-muted-foreground">
+                Search the web for current information and documentation
+              </p>
+            </div>
+            <Switch
+              checked={enableWebSearch}
+              onCheckedChange={(checked) => {
+                setEnableWebSearch(checked);
+                handleChange();
+              }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                Image generation
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Generate images for designs, mockups, and visual assets
+              </p>
+            </div>
+            <Switch
+              checked={enableImageGeneration}
+              onCheckedChange={(checked) => {
+                setEnableImageGeneration(checked);
+                handleChange();
+              }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input opacity-50">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-foreground">
+                  Code execution
+                </p>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+                  Always enabled
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Core feature - runs code in sandboxed environment
               </p>
             </div>
           </div>

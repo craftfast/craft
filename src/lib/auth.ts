@@ -18,7 +18,6 @@ import { sendPasswordResetEmail, sendOTPEmail } from "@/lib/email";
 import { assignPlanToUser } from "@/lib/subscription";
 import { validatePassword } from "@/lib/password-validation";
 import { createPolarCustomer } from "@/lib/polar/customer";
-import { getDefaultEnabledModels, getDefaultSelectedModel } from "@/lib/models/config";
 
 // Validate required environment variables
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -264,25 +263,6 @@ export const auth = betterAuth({
                     console.log(`🔍 User fetched: ${user?.email}, polarCustomerId: ${user?.polarCustomerId || 'NOT SET'}`);
 
                     if (user) {
-                        // Check if user needs model preferences initialization (new user)
-                        // New users will have the Prisma default values, which we want to replace
-                        const needsModelInit = !user.enabledModels || user.enabledModels.length === 0;
-
-                        if (needsModelInit) {
-                            try {
-                                await prisma.user.update({
-                                    where: { id: user.id },
-                                    data: {
-                                        preferredModel: getDefaultSelectedModel(),
-                                        enabledModels: getDefaultEnabledModels(),
-                                    },
-                                });
-                                console.log(`✅ Model preferences initialized for OAuth user: ${user.email}`);
-                            } catch (modelError) {
-                                console.error("Error initializing model preferences for OAuth user:", modelError);
-                            }
-                        }
-
                         if (!user.polarCustomerId) {
                             // User doesn't have Polar customer - create one
                             console.log(`🔄 Creating Polar customer for OAuth user: ${user.email}`);
@@ -322,21 +302,6 @@ export const auth = betterAuth({
                 } catch (planError) {
                     console.error("Error assigning Hobby plan:", planError);
                     // Don't fail the registration if plan assignment fails
-                }
-
-                // Initialize model preferences from config (single source of truth)
-                try {
-                    await prisma.user.update({
-                        where: { id: newSession.session.userId },
-                        data: {
-                            preferredModel: getDefaultSelectedModel(),
-                            enabledModels: getDefaultEnabledModels(),
-                        },
-                    });
-                    console.log(`✅ Model preferences initialized for user: ${newSession.user.email}`);
-                } catch (modelError) {
-                    console.error("Error initializing model preferences:", modelError);
-                    // Don't fail the registration if model initialization fails
                 }
 
                 // Create Polar customer account (async, non-blocking)

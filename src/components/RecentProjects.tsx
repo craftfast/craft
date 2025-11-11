@@ -12,7 +12,6 @@ interface Project {
   description: string | null;
   createdAt: string;
   updatedAt: string;
-  preferredModel?: string;
   _count?: {
     fileRecords: number;
     chatMessages: number;
