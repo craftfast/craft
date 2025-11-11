@@ -3,12 +3,19 @@
  * 
  * This is the single source of truth for all AI operations in Craft.
  * 
- * AUTOMATIC MODEL SELECTION:
- * - Coding: minimax-m2 (optimized for agentic workflows with tool use support)
- * - Reasoning: kimi-k2-thinking (deep reasoning for complex tasks)
- * - Naming: gpt-oss-20b (fast & cheap for creative names)
- * - Memory: grok-4-fast (large context window for context generation)
- * - Chat: claude-haiku-4-5 (balanced for conversations)
+ * INTELLIGENT MODEL SELECTION:
+ * Models are automatically selected based on:
+ * - Use case (coding, naming, memory, etc.)
+ * - User's plan (HOBBY, PRO, ENTERPRISE)
+ * - Required capabilities (multimodal, web search, function calling)
+ * - Cost efficiency (selects cheapest model that meets requirements)
+ * 
+ * Examples:
+ * - Text-only coding → minimax-m2 (0.1x, cheapest)
+ * - Image + coding → gemini-2.5-flash (0.2x, multimodal)
+ * - Web search needed → gpt-5-mini or gemini (web search capable)
+ * - Naming → gpt-oss-20b (0.014x, ultra-cheap)
+ * - Memory → grok-4-fast (0.05x, 2M context window)
  * 
  * All models are automatically selected - no user configuration needed.
  * Model Configuration is managed in src/lib/models/config.ts
@@ -16,22 +23,41 @@
 
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createXai } from "@ai-sdk/xai";
 import { generateText, streamText } from "ai";
 import {
     getModelConfig,
     getDefaultModelForUseCase,
+    selectModelForUseCase,
     type PlanName
 } from "@/lib/models/config";
 import { getUserPlan } from "@/lib/subscription";
+
+// Create OpenRouter client for most models (Grok, MiniMax, etc.)
+const openrouter = createOpenRouter({
+    apiKey: process.env.OPENROUTER_API_KEY || "",
+});
 
 // Create Anthropic client for Claude models
 const anthropic = createAnthropic({
     apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
-// Create OpenRouter client for most models (Grok, MiniMax, etc.)
-const openrouter = createOpenRouter({
-    apiKey: process.env.OPENROUTER_API_KEY || "",
+// Create OpenAI client for GPT models
+const openai = createOpenAI({
+    apiKey: process.env.OPENAI_API_KEY || "",
+});
+
+// Create Google client for Gemini models
+const google = createGoogleGenerativeAI({
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || "",
+});
+
+// Create xAI client for Grok models
+const xai = createXai({
+    apiKey: process.env.XAI_API_KEY || "",
 });
 
 // ============================================================================
@@ -41,10 +67,10 @@ const openrouter = createOpenRouter({
 // Models are automatically selected based on use case - no user configuration
 
 // ============================================================================
-// CODING AGENT (Automatic Model Selection)
+// CODING AGENT (Intelligent Model Selection)
 // ============================================================================
-// System automatically uses MiniMax M2 for coding tasks
-// Optimized for agentic workflows with tool use support
+// System automatically selects the most efficient model based on requirements
+// Considers input types, capabilities needed, and cost efficiency
 
 interface CodingStreamOptions {
     messages: unknown[]; // Pre-formatted messages from the API
@@ -52,6 +78,7 @@ interface CodingStreamOptions {
     projectFiles?: Record<string, string>;
     conversationHistory?: Array<{ role: string; content: string }>;
     userId: string; // User ID to determine plan and model access
+    tier?: "fast" | "expert"; // Optional: specify tier (defaults to fast)
     onFinish?: (params: {
         model: string;
         inputTokens: number;
@@ -61,10 +88,53 @@ interface CodingStreamOptions {
 }
 
 /**
+ * Detect requirements from message content
+ * Analyzes messages to determine what capabilities are needed
+ */
+function detectRequirements(messages: unknown[], systemPrompt: string): {
+    hasImages: boolean;
+    hasWebSearchRequest: boolean;
+    needsFunctionCalling: boolean;
+} {
+    let hasImages = false;
+    let hasWebSearchRequest = false;
+    let needsFunctionCalling = false;
+
+    // Check if messages contain image content
+    // AI SDK format: { role: 'user', content: [{ type: 'image', ... }] }
+    const messagesArray = Array.isArray(messages) ? messages : [];
+    for (const msg of messagesArray) {
+        if (msg && typeof msg === 'object' && 'content' in msg) {
+            const content = (msg as { content?: unknown }).content;
+            if (Array.isArray(content)) {
+                hasImages = content.some((part: unknown) =>
+                    part && typeof part === 'object' && 'type' in part && part.type === 'image'
+                );
+                if (hasImages) break;
+            }
+        }
+    }
+
+    // Check for web search indicators in system prompt or last message
+    const textToCheck = systemPrompt + JSON.stringify(messagesArray.slice(-2));
+    const webSearchKeywords = ['http://', 'https://', 'search the web', 'look up', 'find information about'];
+    hasWebSearchRequest = webSearchKeywords.some(keyword =>
+        textToCheck.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    return { hasImages, hasWebSearchRequest, needsFunctionCalling };
+}
+
+/**
  * Get the appropriate AI provider and model name for a given model ID
  * Dynamically uses model configuration from config.ts (single source of truth)
  */
-function getModelProvider(modelId: string): { provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter>; modelPath: string; displayName: string; providerType: "anthropic" | "openrouter" } {
+function getModelProvider(modelId: string): {
+    provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter> | ReturnType<typeof createOpenAI> | ReturnType<typeof createGoogleGenerativeAI> | ReturnType<typeof createXai>;
+    modelPath: string;
+    displayName: string;
+    providerType: "anthropic" | "openrouter" | "openai" | "google" | "x-ai"
+} {
     // Get model config from single source of truth
     const modelConfig = getModelConfig(modelId);
 
@@ -81,9 +151,32 @@ function getModelProvider(modelId: string): { provider: ReturnType<typeof create
     }
 
     // Return the appropriate provider based on model config
-    // Anthropic models use Anthropic SDK, everything else uses OpenRouter (including x-ai/grok)
-    const provider = modelConfig.provider === "anthropic" ? anthropic : openrouter;
-    const providerType = modelConfig.provider === "anthropic" ? "anthropic" : "openrouter";
+    let provider;
+    let providerType: "anthropic" | "openrouter" | "openai" | "google" | "x-ai";
+
+    switch (modelConfig.provider) {
+        case "anthropic":
+            provider = anthropic;
+            providerType = "anthropic";
+            break;
+        case "openai":
+            provider = openai;
+            providerType = "openai";
+            break;
+        case "google":
+            provider = google;
+            providerType = "google";
+            break;
+        case "x-ai":
+            provider = xai;
+            providerType = "x-ai";
+            break;
+        case "openrouter":
+        default:
+            provider = openrouter;
+            providerType = "openrouter";
+            break;
+    }
 
     return {
         provider,
@@ -94,19 +187,38 @@ function getModelProvider(modelId: string): { provider: ReturnType<typeof create
 }
 
 /**
- * Stream coding responses using automatic model selection
- * Uses the coding-specific model (minimax-m2) optimized for agentic workflows
+ * Stream coding responses using intelligent model selection
+ * Automatically selects the most efficient model based on requirements
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {
-    const { messages, systemPrompt, projectFiles = {}, userId, onFinish } = options;
+    const { messages, systemPrompt, projectFiles = {}, userId, tier = "fast", onFinish } = options;
 
     // Get user's plan to determine model access
     const userPlan = await getUserPlan(userId);
 
-    // Get the coding-specific model based on user's plan
-    const codingModel = getDefaultModelForUseCase("coding", userPlan);
+    // Detect requirements from messages
+    const { hasImages, hasWebSearchRequest, needsFunctionCalling } = detectRequirements(messages, systemPrompt);
+
+    // Build required inputs based on detected content
+    const requiredInputs: Array<"text" | "image"> = ["text"];
+    if (hasImages) {
+        requiredInputs.push("image");
+        console.log("🖼️ Detected image input - selecting multimodal model");
+    }
+
+    // Select the most efficient model that meets all requirements
+    const codingModel = selectModelForUseCase({
+        useCase: "coding",
+        tier, // Use specified tier (defaults to fast)
+        userPlan,
+        requiredInputs,
+        requiredOutputs: ["code", "text"],
+        requiresWebSearch: hasWebSearchRequest || undefined,
+        requiresFunctionCalling: needsFunctionCalling || undefined,
+    });
+
     if (!codingModel) {
-        throw new Error(`No coding model available for plan: ${userPlan}`);
+        throw new Error(`No coding model available for plan: ${userPlan} with specified requirements`);
     }
 
     const { provider, modelPath, displayName, providerType } = getModelProvider(codingModel);
@@ -120,9 +232,29 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     // Different providers use different call patterns
     // Anthropic: anthropic(modelPath)
     // OpenRouter: openrouter.chat(modelPath)
-    const modelInstance = providerType === "anthropic"
-        ? provider(modelPath)
-        : (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+    // OpenAI: openai(modelPath) or openai.chat(modelPath)
+    // Google: google(modelPath)
+    // xAI: xai(modelPath)
+    let modelInstance;
+    switch (providerType) {
+        case "anthropic":
+            modelInstance = (provider as ReturnType<typeof createAnthropic>)(modelPath);
+            break;
+        case "openai":
+            // OpenAI models can use both formats, prefer direct call
+            modelInstance = (provider as ReturnType<typeof createOpenAI>)(modelPath);
+            break;
+        case "google":
+            modelInstance = (provider as ReturnType<typeof createGoogleGenerativeAI>)(modelPath);
+            break;
+        case "x-ai":
+            modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
+            break;
+        case "openrouter":
+        default:
+            modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+            break;
+    }
 
     // Stream the response with usage tracking
     const result = streamText({
@@ -222,12 +354,20 @@ Examples of WRONG outputs (DO NOT DO THIS):
 
 Project name (1-${maxWords} words only, no code):`;
 
-    // Generate project name using the naming model (GPT-OSS-20B)
+    // Generate project name using intelligent model selection
     try {
         // Get user's plan to determine model access
         const userPlan = await getUserPlan(userId);
 
-        const namingModelId = getDefaultModelForUseCase("naming", userPlan);
+        // Select the most efficient naming model
+        const namingModelId = selectModelForUseCase({
+            useCase: "naming",
+            tier: "fast",
+            userPlan,
+            requiredInputs: ["text"],
+            requiredOutputs: ["text"],
+        });
+
         if (!namingModelId) {
             console.warn(`⚠️ No naming model available for plan: ${userPlan}`);
             throw new Error(`No naming model available for plan: ${userPlan}`);
@@ -237,9 +377,25 @@ Project name (1-${maxWords} words only, no code):`;
         console.log(`🤖 AI Agent: Generating project name with ${displayName} (${namingModelId})`);
 
         // Different providers use different call patterns
-        const modelInstance = providerType === "anthropic"
-            ? provider(modelPath)
-            : (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+        let modelInstance;
+        switch (providerType) {
+            case "anthropic":
+                modelInstance = (provider as ReturnType<typeof createAnthropic>)(modelPath);
+                break;
+            case "openai":
+                modelInstance = (provider as ReturnType<typeof createOpenAI>)(modelPath);
+                break;
+            case "google":
+                modelInstance = (provider as ReturnType<typeof createGoogleGenerativeAI>)(modelPath);
+                break;
+            case "x-ai":
+                modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
+                break;
+            case "openrouter":
+            default:
+                modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+                break;
+        }
 
         const result = await generateText({
             model: modelInstance as never,

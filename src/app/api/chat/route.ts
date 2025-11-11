@@ -44,7 +44,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { messages, taskType, projectFiles, projectId, model } = await req.json();
+        const { messages, taskType, projectFiles, projectId, tier } = await req.json();
 
         // Validate projectId
         if (!projectId) {
@@ -53,6 +53,9 @@ export async function POST(req: Request) {
                 { status: 400, headers: { "Content-Type": "application/json" } }
             );
         }
+
+        // Validate and sanitize tier (only allow "fast" or "expert")
+        const validTier: "fast" | "expert" = tier === "expert" ? "expert" : "fast";
 
         // Check if user has available credits before processing
         const creditAvailability = await checkUserCreditAvailability(user.id);
@@ -129,6 +132,7 @@ export async function POST(req: Request) {
             projectFiles: projectFiles || {},
             conversationHistory: messages.slice(0, -1),
             userId: user.id, // Pass user ID to determine plan and model access
+            tier: validTier, // Pass user's tier preference (fast/expert)
             // Track usage after stream completes
             onFinish: async (usageData) => {
                 try {

@@ -147,17 +147,7 @@ export default function ChatPanel({
     return "fast";
   });
 
-  // Convert tier to actual model ID
-  const getModelIdFromTier = (tier: ModelTier): string => {
-    switch (tier) {
-      case "fast":
-        return "minimax/minimax-m2"; // Fast model
-      case "expert":
-        return "moonshotai/kimi-k2-thinking"; // Expert model
-      default:
-        return "minimax/minimax-m2"; // Fallback to fast
-    }
-  };
+  // No longer needed - we pass tier directly, not model ID
 
   // Fetch user's plan on mount
   useEffect(() => {
@@ -547,8 +537,21 @@ export default function ChatPanel({
     }
   };
 
+  // Function to clean AI response content from model-specific markers
+  const cleanAIResponse = (content: string): string => {
+    return content
+      .replace(/minimax:tool_call[^\n]*/gi, "") // Remove MiniMax tool call markers
+      .replace(/\btool_call[^\n]*/gi, "") // Remove generic tool call text
+      .replace(/<\|tool_call\|>/gi, "") // Remove tool call tags
+      .replace(/<\|end_tool_call\|>/gi, "") // Remove end tool call tags
+      .replace(/^Content\s*$/gim, "") // Remove standalone "Content" markers
+      .trim();
+  };
+
   // Function to extract code blocks from markdown (including incomplete ones during streaming)
   const extractCodeBlocks = (content: string, includePartial = false) => {
+    // Clean the content first
+    const cleanedContent = cleanAIResponse(content);
     // Enhanced regex to support multiple file path formats:
     // 1. ```language // path/to/file.ext
     // 2. ```language /* path/to/file.ext */
@@ -558,7 +561,7 @@ export default function ChatPanel({
     const files: { path: string; content: string; language: string }[] = [];
     let match;
 
-    while ((match = codeBlockRegex.exec(content)) !== null) {
+    while ((match = codeBlockRegex.exec(cleanedContent)) !== null) {
       let language = match[1] || "text";
       const filePathLine = match[2]?.trim() || "";
       const code = match[3];
@@ -602,7 +605,7 @@ export default function ChatPanel({
     // If includePartial is true, also extract incomplete code blocks (for streaming)
     if (includePartial) {
       const partialRegex = /```([^\s\n]*)\s*([^\n]*?)\n([\s\S]+?)$/;
-      const partialMatch = partialRegex.exec(content);
+      const partialMatch = partialRegex.exec(cleanedContent);
 
       if (partialMatch) {
         let language = partialMatch[1] || "text";
@@ -648,7 +651,9 @@ export default function ChatPanel({
   // Function to remove code blocks from content for display
   // Always removes ALL code blocks to keep chat clean like v0
   const removeCodeBlocks = (content: string) => {
-    return content
+    // First clean AI response markers, then remove code blocks
+    const cleaned = cleanAIResponse(content);
+    return cleaned
       .replace(
         /```[^\s\n]*\s*[^\n]*?\n[\s\S]+?```/g,
         "" // Remove complete code blocks
@@ -813,7 +818,7 @@ export default function ChatPanel({
           taskType: "coding",
           projectFiles, // Send existing project files for context
           projectId, // Required for AI usage tracking
-          model: getModelIdFromTier(selectedTier), // Convert tier to model ID
+          tier: selectedTier, // Pass tier directly ("fast" or "expert")
         }),
       });
 

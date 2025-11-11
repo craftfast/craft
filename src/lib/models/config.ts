@@ -61,7 +61,7 @@ export interface ModelConfig {
     tier: ModelTier;
     creditMultiplier: number;
     description: string;
-    minPlanRequired: PlanName; // Minimum plan required to access this model
+    planSupport: PlanName[]; // Plans that can access this model (e.g., ["HOBBY", "PRO", "ENTERPRISE"])
     useCase: ModelUseCase; // Primary use case categorization for this model
     capabilities: ModelCapabilities; // What this model can do
     pricing?: {
@@ -105,7 +105,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.014,
         description: "Open-weight 21B MoE model with function calling",
-        minPlanRequired: "HOBBY",
+        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "naming",
         capabilities: {
             supportedInputs: ["text"],
@@ -127,7 +127,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.05,
         description: "Context memory generation with 2M token context window",
-        minPlanRequired: "HOBBY",
+        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "memory",
         capabilities: {
             supportedInputs: ["text"],
@@ -149,7 +149,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.1,
         description: "Optimized for end-to-end coding and agentic workflows with tool use support",
-        minPlanRequired: "HOBBY",
+        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text"],
@@ -171,7 +171,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.15,
         description: "Compact, efficient model for coding tasks",
-        minPlanRequired: "HOBBY",
+        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text"],
@@ -193,7 +193,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.2,
         description: "Fast Google model with multimodal capabilities",
-        minPlanRequired: "HOBBY",
+        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text", "image", "audio", "video", "pdf", "document"],
@@ -215,7 +215,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "expert",
         creditMultiplier: 0.25,
         description: "Expert model with deep reasoning",
-        minPlanRequired: "PRO",
+        planSupport: ["PRO", "ENTERPRISE"],
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text"],
@@ -229,28 +229,6 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         },
         pricing: { input: 1.0, output: 2.5 },
     },
-    "google/gemini-2.5-pro-001": {
-        id: "google/gemini-2.5-pro-001",
-        name: "google/gemini-2.5-pro-001",
-        displayName: "Gemini 2.5 Pro",
-        provider: "google",
-        tier: "expert",
-        creditMultiplier: 1.0,
-        description: "Google's advanced model with multimodal capabilities",
-        minPlanRequired: "PRO",
-        useCase: "coding",
-        capabilities: {
-            supportedInputs: ["text", "image", "audio", "video", "pdf", "document"],
-            supportedOutputs: ["text", "code", "structured-data"],
-            maxContextLength: 2000000,
-            supportsStreaming: true,
-            supportsSystemPrompts: true,
-            supportsWebSearch: true,
-            supportsFunctionCalling: false,
-            supportsJsonMode: false,
-        },
-        pricing: { input: 2.5, output: 10.0 },
-    },
     "openai/gpt-5": {
         id: "openai/gpt-5",
         name: "openai/gpt-5",
@@ -259,12 +237,56 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "expert",
         creditMultiplier: 1.0,
         description: "OpenAI's most advanced model",
-        minPlanRequired: "PRO",
+        planSupport: ["PRO", "ENTERPRISE"],
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text", "image", "audio"],
             supportedOutputs: ["text", "code", "structured-data"],
             maxContextLength: 128000,
+            supportsStreaming: true,
+            supportsSystemPrompts: true,
+            supportsWebSearch: true,
+            supportsFunctionCalling: false,
+            supportsJsonMode: false,
+        },
+        pricing: { input: 2.5, output: 10.0 },
+    },
+    "claude-sonnet-4.5": {
+        id: "claude-sonnet-4.5",
+        name: "claude-sonnet-4.5",
+        displayName: "Claude 4.5 Sonnet",
+        provider: "anthropic",
+        tier: "expert",
+        creditMultiplier: 1.5,
+        description: "Most capable model with best quality",
+        planSupport: ["PRO", "ENTERPRISE"],
+        useCase: "coding",
+        capabilities: {
+            supportedInputs: ["text", "image", "pdf", "document"],
+            supportedOutputs: ["text", "code", "structured-data"],
+            maxContextLength: 200000,
+            supportsStreaming: true,
+            supportsSystemPrompts: true,
+            supportsWebSearch: false,
+            supportsFunctionCalling: false,
+            supportsJsonMode: false,
+        },
+        pricing: { input: 3.0, output: 15.0 },
+    },
+    "google/gemini-2.5-pro-001": {
+        id: "google/gemini-2.5-pro-001",
+        name: "google/gemini-2.5-pro-001",
+        displayName: "Gemini 2.5 Pro",
+        provider: "google",
+        tier: "expert",
+        creditMultiplier: 1.0,
+        description: "Google's advanced model with multimodal capabilities",
+        planSupport: ["PRO", "ENTERPRISE"],
+        useCase: "coding",
+        capabilities: {
+            supportedInputs: ["text", "image", "audio", "video", "pdf", "document"],
+            supportedOutputs: ["text", "code", "structured-data"],
+            maxContextLength: 2000000,
             supportsStreaming: true,
             supportsSystemPrompts: true,
             supportsWebSearch: true,
@@ -281,34 +303,12 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "expert",
         creditMultiplier: 1.5,
         description: "Advanced code generation and understanding model",
-        minPlanRequired: "PRO",
+        planSupport: ["PRO", "ENTERPRISE"],
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text"],
             supportedOutputs: ["text", "code", "structured-data"],
             maxContextLength: 128000,
-            supportsStreaming: true,
-            supportsSystemPrompts: true,
-            supportsWebSearch: false,
-            supportsFunctionCalling: false,
-            supportsJsonMode: false,
-        },
-        pricing: { input: 3.0, output: 15.0 },
-    },
-    "claude-sonnet-4.5": {
-        id: "claude-sonnet-4.5",
-        name: "claude-sonnet-4.5",
-        displayName: "Claude 4.5 Sonnet",
-        provider: "anthropic",
-        tier: "expert",
-        creditMultiplier: 1.5,
-        description: "Most capable model with best quality",
-        minPlanRequired: "PRO",
-        useCase: "coding",
-        capabilities: {
-            supportedInputs: ["text", "image", "pdf", "document"],
-            supportedOutputs: ["text", "code", "structured-data"],
-            maxContextLength: 200000,
             supportsStreaming: true,
             supportsSystemPrompts: true,
             supportsWebSearch: false,
@@ -325,7 +325,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "expert",
         creditMultiplier: 4.0,
         description: "Advanced AI image generation",
-        minPlanRequired: "PRO",
+        planSupport: ["PRO", "ENTERPRISE"],
         useCase: "image-generation",
         capabilities: {
             supportedInputs: ["text"],
@@ -347,7 +347,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.35,
         description: "Fast and flexible image generation",
-        minPlanRequired: "HOBBY",
+        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "image-generation",
         capabilities: {
             supportedInputs: ["text", "image"],
@@ -369,7 +369,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "expert",
         creditMultiplier: 0.5,
         description: "High-quality photorealistic image generation",
-        minPlanRequired: "PRO",
+        planSupport: ["PRO", "ENTERPRISE"],
         useCase: "image-generation",
         capabilities: {
             supportedInputs: ["text", "image"],
@@ -391,7 +391,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.06,
         description: "Speech-to-text transcription and translation",
-        minPlanRequired: "HOBBY",
+        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "audio-transcription",
         capabilities: {
             supportedInputs: ["audio"],
@@ -413,7 +413,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.3,
         description: "High-quality text-to-speech generation",
-        minPlanRequired: "HOBBY",
+        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "audio-generation",
         capabilities: {
             supportedInputs: ["text"],
@@ -435,7 +435,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "expert",
         creditMultiplier: 5.0,
         description: "Text-to-video and image-to-video generation",
-        minPlanRequired: "PRO",
+        planSupport: ["PRO", "ENTERPRISE"],
         useCase: "video-generation",
         capabilities: {
             supportedInputs: ["text", "image"],
@@ -457,7 +457,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "expert",
         creditMultiplier: 3.0,
         description: "High-quality video generation from text and images",
-        minPlanRequired: "PRO",
+        planSupport: ["PRO", "ENTERPRISE"],
         useCase: "video-generation",
         capabilities: {
             supportedInputs: ["text", "image"],
@@ -484,17 +484,8 @@ export function getAllModelIds(): string[] {
  * Get all models available for a specific plan
  */
 export function getModelsForPlan(planName: PlanName): ModelConfig[] {
-    const planHierarchy: Record<PlanName, number> = {
-        HOBBY: 0,
-        PRO: 1,
-        ENTERPRISE: 2,
-    };
-
-    const userPlanLevel = planHierarchy[planName];
-
     return Object.values(AVAILABLE_MODELS).filter((model) => {
-        const requiredPlanLevel = planHierarchy[model.minPlanRequired];
-        return userPlanLevel >= requiredPlanLevel;
+        return model.planSupport.includes(planName);
     });
 }
 
@@ -508,16 +499,7 @@ export function canUserAccessModel(
     const model = AVAILABLE_MODELS[modelId];
     if (!model) return false;
 
-    const planHierarchy: Record<PlanName, number> = {
-        HOBBY: 0,
-        PRO: 1,
-        ENTERPRISE: 2,
-    };
-
-    const userPlanLevel = planHierarchy[userPlan];
-    const requiredPlanLevel = planHierarchy[model.minPlanRequired];
-
-    return userPlanLevel >= requiredPlanLevel;
+    return model.planSupport.includes(userPlan);
 }
 
 /**
@@ -642,7 +624,10 @@ export function modelSupportsOutput(modelId: string, outputType: ModelOutputType
 
 /**
  * Get the best model for a specific input/output combination
- * Prioritizes models based on tier and capability match
+ * Uses sequential matching - returns FIRST model that matches requirements (no sorting)
+ * This ensures predictable model selection based on AVAILABLE_MODELS order
+ * 
+ * @deprecated Use selectModelForUseCase instead for more control
  */
 export function getBestModelForCapabilities(
     inputType: ModelInputType,
@@ -650,25 +635,22 @@ export function getBestModelForCapabilities(
     userPlan: PlanName,
     preferredTier?: ModelTier
 ): string | null {
-    const availableModels = Object.values(AVAILABLE_MODELS).filter((model) => {
+    // Get all models, maintaining order from AVAILABLE_MODELS
+    const allModels = Object.values(AVAILABLE_MODELS);
+
+    // Sequential matching - return first model that matches ALL requirements
+    for (const model of allModels) {
         const hasInputSupport = model.capabilities.supportedInputs.includes(inputType);
         const hasOutputSupport = model.capabilities.supportedOutputs.includes(outputType);
-        const hasAccess = canUserAccessModel(model.id, userPlan);
+        const hasAccess = model.planSupport.includes(userPlan);
         const matchesTier = preferredTier ? model.tier === preferredTier : true;
-        return hasInputSupport && hasOutputSupport && hasAccess && matchesTier;
-    });
 
-    if (availableModels.length === 0) return null;
-
-    // Sort by tier (expert first) and credit multiplier (lower cost first within tier)
-    availableModels.sort((a, b) => {
-        if (a.tier !== b.tier) {
-            return a.tier === "expert" ? -1 : 1;
+        if (hasInputSupport && hasOutputSupport && hasAccess && matchesTier) {
+            return model.id; // Return first match
         }
-        return a.creditMultiplier - b.creditMultiplier;
-    });
+    }
 
-    return availableModels[0].id;
+    return null; // No model matches requirements
 }
 
 /**
@@ -712,23 +694,30 @@ export function getMediaGenerationModels(tier?: ModelTier): ModelConfig[] {
 
 /**
  * Get the default model for a specific use case
+ * This is a convenience function that uses selectModelForUseCase internally
+ * Defaults to "fast" tier for efficiency
  */
 export function getDefaultModelForUseCase(useCase: ModelUseCase, userPlan: PlanName): string | null {
-    const models = getModelsByUseCase(useCase).filter((model) =>
-        canUserAccessModel(model.id, userPlan)
-    );
-
-    if (models.length === 0) return null;
-
-    // Sort by tier (fast first for efficiency) and credit multiplier
-    models.sort((a, b) => {
-        if (a.tier !== b.tier) {
-            return a.tier === "fast" ? -1 : 1;
-        }
-        return a.creditMultiplier - b.creditMultiplier;
+    // Try fast tier first (more efficient)
+    const fastModel = selectModelForUseCase({
+        useCase,
+        tier: "fast",
+        userPlan,
     });
 
-    return models[0].id;
+    if (fastModel) return fastModel;
+
+    // Fallback to expert tier if user has PRO+ plan and fast tier not available
+    if (userPlan === "PRO" || userPlan === "ENTERPRISE") {
+        const expertModel = selectModelForUseCase({
+            useCase,
+            tier: "expert",
+            userPlan,
+        });
+        return expertModel;
+    }
+
+    return null;
 }
 
 /**
@@ -758,6 +747,189 @@ export function modelSupportsWebSearch(modelId: string): boolean {
     if (!model) return false;
     return model.capabilities.supportsWebSearch;
 }
+
+/**
+ * Model Selection Requirements
+ * Used to specify what capabilities are needed for automatic model selection
+ */
+export interface ModelSelectionRequirements {
+    useCase: ModelUseCase;
+    tier: ModelTier;
+    userPlan: PlanName;
+    requiredInputs?: ModelInputType[]; // If specified, model must support ALL these input types
+    requiredOutputs?: ModelOutputType[]; // If specified, model must support ALL these output types
+    requiresWebSearch?: boolean; // If true, model must support web search
+    requiresFunctionCalling?: boolean; // If true, model must support function calling
+    requiresJsonMode?: boolean; // If true, model must support JSON mode
+}
+
+/**
+ * Intelligent Model Selection Algorithm
+ * 
+ * This function implements the sequential matching logic for automatic model selection:
+ * 
+ * 1. For NAMING use case:
+ *    - Returns the first available model (currently only GPT-OSS-20B)
+ *    - Simple text in/out, no complex requirements needed
+ * 
+ * 2. For MEMORY use case:
+ *    - Returns the first available model (currently only Grok 4 Fast)
+ *    - Large context window, cheap, text in/out
+ * 
+ * 3. For CODING use case:
+ *    - Collects all models that match requirements
+ *    - Sorts by creditMultiplier (cheapest/fastest first)
+ *    - Returns the most efficient model that matches ALL requirements
+ * 
+ * 4. For IMAGE/AUDIO/VIDEO GENERATION:
+ *    - Same approach: match requirements, then pick most efficient
+ * 
+ * 5. Fallback:
+ *    - If no model matches requirements, returns cheapest accessible model
+ * 
+ * @param requirements - The model selection requirements
+ * @returns The model ID that best matches requirements, or null if none found
+ */
+export function selectModelForUseCase(requirements: ModelSelectionRequirements): string | null {
+    const { useCase, tier, userPlan, requiredInputs, requiredOutputs, requiresWebSearch, requiresFunctionCalling, requiresJsonMode } = requirements;
+
+    // Get all models for this use case and tier
+    const candidateModels = Object.values(AVAILABLE_MODELS).filter((model) => {
+        return model.useCase === useCase && model.tier === tier;
+    });
+
+    if (candidateModels.length === 0) {
+        return null; // No models available for this use case + tier combination
+    }
+
+    // SPECIAL CASE: Naming and Memory use cases
+    // These only have one model each, so just return the first one if user has access
+    if (useCase === "naming" || useCase === "memory") {
+        const accessibleModel = candidateModels.find((model) => model.planSupport.includes(userPlan));
+        return accessibleModel ? accessibleModel.id : null;
+    }
+
+    // GENERAL CASE: Collect all matching models
+    const matchingModels: ModelConfig[] = [];
+
+    for (const model of candidateModels) {
+        // Check 1: User must have access to this model's plan
+        if (!model.planSupport.includes(userPlan)) {
+            continue;
+        }
+
+        // Check 2: Model must support all required input types
+        if (requiredInputs && requiredInputs.length > 0) {
+            const supportsAllInputs = requiredInputs.every((inputType) =>
+                model.capabilities.supportedInputs.includes(inputType)
+            );
+            if (!supportsAllInputs) {
+                continue;
+            }
+        }
+
+        // Check 3: Model must support all required output types
+        if (requiredOutputs && requiredOutputs.length > 0) {
+            const supportsAllOutputs = requiredOutputs.every((outputType) =>
+                model.capabilities.supportedOutputs.includes(outputType)
+            );
+            if (!supportsAllOutputs) {
+                continue;
+            }
+        }
+
+        // Check 4: Model must support web search if required
+        if (requiresWebSearch && !model.capabilities.supportsWebSearch) {
+            continue;
+        }
+
+        // Check 5: Model must support function calling if required
+        if (requiresFunctionCalling && !model.capabilities.supportsFunctionCalling) {
+            continue;
+        }
+
+        // Check 6: Model must support JSON mode if required
+        if (requiresJsonMode && !model.capabilities.supportsJsonMode) {
+            continue;
+        }
+
+        // All checks passed! Add to matching models
+        matchingModels.push(model);
+    }
+
+    // If we have matching models, return the most efficient one (lowest cost)
+    if (matchingModels.length > 0) {
+        // Sort by creditMultiplier (lower = cheaper/faster)
+        matchingModels.sort((a, b) => a.creditMultiplier - b.creditMultiplier);
+        return matchingModels[0].id;
+    }
+
+    // FALLBACK 1: No model matched all requirements
+    // Return cheapest model that user has access to (ignore capability requirements)
+    const accessibleModels = candidateModels.filter((model) => model.planSupport.includes(userPlan));
+    if (accessibleModels.length > 0) {
+        accessibleModels.sort((a, b) => a.creditMultiplier - b.creditMultiplier);
+        console.warn(`⚠️ No model found matching all requirements for ${useCase}/${tier}, falling back to ${accessibleModels[0].id}`);
+        return accessibleModels[0].id;
+    }
+
+    // FALLBACK 2: User doesn't have access to any models for this use case + tier
+    // This shouldn't happen in production, but return null to be safe
+    console.error(`❌ No accessible models found for ${useCase}/${tier} with plan ${userPlan}`);
+    return null;
+}
+
+/**
+ * USAGE EXAMPLES:
+ * 
+ * // Example 1: Simple naming (text in, text out)
+ * const namingModel = selectModelForUseCase({
+ *     useCase: "naming",
+ *     tier: "fast",
+ *     userPlan: "HOBBY"
+ * });
+ * // Returns: "openai/gpt-oss-20b" (first and only naming model)
+ * 
+ * // Example 2: Simple coding (text in, code out)
+ * const codingModel = selectModelForUseCase({
+ *     useCase: "coding",
+ *     tier: "fast",
+ *     userPlan: "HOBBY",
+ *     requiredInputs: ["text"],
+ *     requiredOutputs: ["code"]
+ * });
+ * // Returns: "minimax/minimax-m2" (cheapest model that matches: 0.1x multiplier)
+ * 
+ * // Example 3: Multimodal coding (image + text in, code out)
+ * const multimodalModel = selectModelForUseCase({
+ *     useCase: "coding",
+ *     tier: "fast",
+ *     userPlan: "HOBBY",
+ *     requiredInputs: ["text", "image"],
+ *     requiredOutputs: ["code"]
+ * });
+ * // Returns: "google/gemini-2.5-flash-001" (only fast model supporting image input)
+ * 
+ * // Example 4: Coding with web search
+ * const webSearchModel = selectModelForUseCase({
+ *     useCase: "coding",
+ *     tier: "expert",
+ *     userPlan: "PRO",
+ *     requiresWebSearch: true
+ * });
+ * // Returns: "openai/gpt-5" (1.0x) or "google/gemini-2.5-pro-001" (1.0x) - cheapest with web search
+ * 
+ * // Example 5: Image generation
+ * const imageModel = selectModelForUseCase({
+ *     useCase: "image-generation",
+ *     tier: "fast",
+ *     userPlan: "HOBBY"
+ * });
+ * // Returns: "stability/stable-diffusion-3" (first and only fast image model)
+ */
+
+
+
 
 
 

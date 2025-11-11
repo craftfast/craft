@@ -94,17 +94,7 @@ export default function CraftInput() {
   );
   const { data: session } = useSession();
 
-  // Convert tier to actual model ID
-  const getModelIdFromTier = (tier: ModelTier): string => {
-    switch (tier) {
-      case "fast":
-        return "minimax/minimax-m2"; // Fast model
-      case "expert":
-        return "moonshotai/kimi-k2-thinking"; // Expert model
-      default:
-        return "minimax/minimax-m2"; // Fallback to fast
-    }
-  };
+  // No longer needed - we pass tier directly, not model ID
 
   // Fetch user's preferred model and plan on mount
   useEffect(() => {
@@ -386,7 +376,7 @@ export default function CraftInput() {
             JSON.stringify({
               prompt: trimmedInput, // Use trimmed input
               images: selectedImages,
-              selectedModel: getModelIdFromTier(selectedTier), // Convert tier to model ID
+              selectedTier: selectedTier, // Store tier ("fast" or "expert")
               timestamp: Date.now(),
             })
           );
@@ -435,10 +425,9 @@ export default function CraftInput() {
         body: JSON.stringify({
           name: "New Project", // Default name
           description: input,
-          selectedModel: getModelIdFromTier(selectedTier), // Convert tier to model ID
+          // No selectedModel needed - tier is stored in sessionStorage
         }),
       });
-
       if (response.ok) {
         const data = await response.json();
         console.log("Project created:", data);
