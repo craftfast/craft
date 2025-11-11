@@ -48,6 +48,7 @@ export function ModelSelector({
       icon: Zap,
       description: "Quick responses, lower cost",
       color: "text-neutral-600 dark:text-neutral-400",
+      fill: true,
     },
     {
       id: "expert" as ModelTier,
@@ -56,6 +57,7 @@ export function ModelSelector({
       description: "Deep reasoning, premium quality",
       color: "text-neutral-800 dark:text-neutral-200",
       isPremium: true,
+      fill: true,
     },
   ];
 
@@ -73,7 +75,10 @@ export function ModelSelector({
         aria-label="Select model tier"
         title="Select model tier"
       >
-        <SelectedIcon className={`w-3 h-3 ${selectedTierData.color}`} />
+        <SelectedIcon
+          className={`w-3 h-3 ${selectedTierData.color}`}
+          fill="currentColor"
+        />
         <span className="font-medium">{selectedTierData.name}</span>
         <ChevronDown
           className={`w-3 h-3 text-muted-foreground transition-transform ${
@@ -113,6 +118,7 @@ export function ModelSelector({
                 >
                   <TierIcon
                     className={`w-4 h-4 mt-0.5 flex-shrink-0 ${tier.color}`}
+                    fill="currentColor"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

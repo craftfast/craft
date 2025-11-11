@@ -687,7 +687,7 @@ export default function CraftInput() {
 
         {/* Second row - Controls */}
         <div className="flex items-center justify-between px-1 pt-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0">
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
