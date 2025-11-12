@@ -29,8 +29,8 @@ import { createXai } from "@ai-sdk/xai";
 import { generateText, streamText, stepCountIs } from "ai";
 import {
     getModelConfig,
-    selectModelForUseCase,
-    getDefaultFastModel,
+    getOrchestratorModel,
+    getCodingModel,
 } from "@/lib/models/config";
 import { getUserPlan } from "@/lib/subscription";
 import { tools } from "@/lib/ai/tools";
@@ -92,7 +92,7 @@ interface CodingStreamOptions {
 }
 
 /**
- * Detect requirements from message content using Grok 4 Fast
+ * Detect requirements from message content using Grok 4 Fast (Orchestrator)
  * Uses AI to intelligently analyze if web search or other capabilities are needed
  */
 async function detectRequirements(messages: unknown[], systemPrompt: string): Promise<{
@@ -119,7 +119,7 @@ async function detectRequirements(messages: unknown[], systemPrompt: string): Pr
         }
     }
 
-    // Use Grok 4 Fast to intelligently detect if web search is needed
+    // Use Grok 4 Fast (Orchestrator) to intelligently detect if web search is needed
     try {
         const lastMessage = messagesArray[messagesArray.length - 1];
         const userPrompt = lastMessage && typeof lastMessage === 'object' && 'content' in lastMessage
@@ -149,7 +149,8 @@ NOT requiring web search:
 - General programming questions
 - URLs in context (just references, not search requests)`;
 
-        const { provider, modelPath } = getModelProvider("x-ai/grok-4-fast");
+        const orchestratorModelId = getOrchestratorModel();
+        const { provider, modelPath } = getModelProvider(orchestratorModelId);
         const modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
 
         const result = await generateText({
@@ -191,14 +192,14 @@ function getModelProvider(modelId: string): {
     const modelConfig = getModelConfig(modelId);
 
     if (!modelConfig) {
-        console.warn(`⚠️ Unknown model: ${modelId}, falling back to default fast model`);
+        console.warn(`⚠️ Unknown model: ${modelId}, falling back to fast coding model`);
 
-        // Ultimate fallback - use the default fast model from config
-        const fallbackModelId = getDefaultFastModel();
+        // Ultimate fallback - use the fast coding model
+        const fallbackModelId = getCodingModel("fast");
         const fallbackConfig = getModelConfig(fallbackModelId);
 
         if (!fallbackConfig) {
-            throw new Error("Configuration error: Default fast model not found in config");
+            throw new Error("Configuration error: Fast coding model not found in config");
         }
 
         // Recursively call with the fallback model
@@ -301,28 +302,8 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     // Detect requirements from messages
     const { hasImages, hasWebSearchRequest, needsFunctionCalling } = await detectRequirements(messages, systemPrompt);
 
-    // Build required inputs based on detected content
-    const requiredInputs: Array<"text" | "image"> = ["text"];
-    if (hasImages) {
-        requiredInputs.push("image");
-        console.log("🖼️ Detected image input - selecting multimodal model");
-    }
-
-    // Select the most efficient model that meets all requirements
-    // PHASE 1: ALWAYS require function calling for coding tasks
-    const codingModel = selectModelForUseCase({
-        useCase: "coding",
-        tier, // Use specified tier (defaults to fast)
-        userPlan,
-        requiredInputs,
-        requiredOutputs: ["code", "text"],
-        requiresWebSearch: hasWebSearchRequest || undefined,
-        requiresFunctionCalling: true, // ⚡ PHASE 1: FORCE tool-capable models
-    });
-
-    if (!codingModel) {
-        throw new Error(`No coding model available for plan: ${userPlan} with specified requirements`);
-    }
+    // Get the coding model based on user-selected tier
+    const codingModel = getCodingModel(tier);
 
     const { provider, modelPath, displayName, providerType } = getModelProvider(codingModel);
 
@@ -556,19 +537,8 @@ Project name (1-${maxWords} words only, no code):`;
         // Get user's plan to determine model access
         const userPlan = await getUserPlan(userId);
 
-        // Select the most efficient naming model
-        const namingModelId = selectModelForUseCase({
-            useCase: "naming",
-            tier: "fast",
-            userPlan,
-            requiredInputs: ["text"],
-            requiredOutputs: ["text"],
-        });
-
-        if (!namingModelId) {
-            console.warn(`⚠️ No naming model available for plan: ${userPlan}`);
-            throw new Error(`No naming model available for plan: ${userPlan}`);
-        }
+        // Use Grok 4 Fast (Orchestrator) for naming
+        const namingModelId = getOrchestratorModel();
 
         const { provider, modelPath, displayName, providerType } = getModelProvider(namingModelId);
         console.log(`🤖 AI Agent: Generating project name with ${displayName} (${namingModelId})`);
