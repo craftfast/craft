@@ -202,10 +202,32 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
             supportsStreaming: true,
             supportsSystemPrompts: true,
             supportsWebSearch: true,
-            supportsFunctionCalling: false,
-            supportsJsonMode: false,
+            supportsFunctionCalling: true, // ✅ PHASE 1: Gemini supports function calling
+            supportsJsonMode: true,
         },
         pricing: { input: 0.5, output: 1.5 },
+    },
+    "anthropic/claude-haiku-4.5": {
+        id: "anthropic/claude-haiku-4.5",
+        name: "claude-haiku-4-5", // Anthropic API model name
+        displayName: "Claude 4.5 Haiku",
+        provider: "anthropic",
+        tier: "fast",
+        creditMultiplier: 0.5, // Pricing: $1 input / $5 output per 1M tokens
+        description: "Fast and efficient Claude model with excellent tool use capabilities",
+        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
+        useCase: "coding",
+        capabilities: {
+            supportedInputs: ["text", "image", "pdf", "document"],
+            supportedOutputs: ["text", "code", "structured-data"],
+            maxContextLength: 200000,
+            supportsStreaming: true,
+            supportsSystemPrompts: true,
+            supportsWebSearch: false,
+            supportsFunctionCalling: true, // ✅ Claude has excellent tool use
+            supportsJsonMode: true,
+        },
+        pricing: { input: 1.0, output: 5.0 },
     },
     "moonshotai/kimi-k2-thinking": {
         id: "moonshotai/kimi-k2-thinking",
@@ -246,8 +268,8 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
             supportsStreaming: true,
             supportsSystemPrompts: true,
             supportsWebSearch: false,
-            supportsFunctionCalling: false,
-            supportsJsonMode: false,
+            supportsFunctionCalling: true, // ✅ PHASE 1: Claude supports tool use
+            supportsJsonMode: true,
         },
         pricing: { input: 3.0, output: 15.0 },
     },
@@ -268,8 +290,8 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
             supportsStreaming: true,
             supportsSystemPrompts: true,
             supportsWebSearch: true,
-            supportsFunctionCalling: false,
-            supportsJsonMode: false,
+            supportsFunctionCalling: true, // ✅ PHASE 1: Gemini Pro supports function calling
+            supportsJsonMode: true,
         },
         pricing: { input: 2.5, output: 10.0 },
     },
@@ -509,10 +531,10 @@ export function getFastModels(): ModelConfig[] {
 
 /**
  * Get the default fast model
- * Returns minimax-m2 as the primary fast model (optimized for agentic workflows)
+ * Returns Claude 4.5 Haiku as the primary fast model (excellent tool use capabilities)
  */
 export function getDefaultFastModel(): string {
-    return "minimax/minimax-m2";
+    return "anthropic/claude-haiku-4.5";
 }
 
 /**

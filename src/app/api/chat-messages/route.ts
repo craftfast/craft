@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { projectId, role, content, fileIds, fileChanges } = body;
+        const { projectId, role, content, fileIds, fileChanges, toolCalls } = body;
 
         // Debug logging
         console.log("📨 Received chat message request:", {
@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
             hasContent: !!content,
             fileIds: fileIds?.length || 0,
             fileChanges: fileChanges?.length || 0,
+            toolCalls: toolCalls?.length || 0,
         });
 
         if (!projectId || !role || !content) {
@@ -135,6 +136,7 @@ export async function POST(req: NextRequest) {
                 role,
                 content,
                 fileChanges: fileChanges || undefined,
+                toolCalls: toolCalls || undefined,
             },
         });
 

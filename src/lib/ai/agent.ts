@@ -26,13 +26,17 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createXai } from "@ai-sdk/xai";
-import { generateText, streamText } from "ai";
+import { generateText, streamText, stepCountIs } from "ai";
 import {
     getModelConfig,
     selectModelForUseCase,
     getDefaultFastModel,
 } from "@/lib/models/config";
 import { getUserPlan } from "@/lib/subscription";
+import { tools } from "@/lib/ai/tools";
+import { SSEStreamWriter } from "@/lib/ai/sse-events";
+import { createAgentLoop, type AgentLoopCoordinator } from "@/lib/ai/agent-loop-coordinator";
+import { setToolContext, clearToolContext } from "@/lib/ai/tool-context";
 
 // Create AI provider clients
 // Provider selection is handled dynamically based on model configuration
@@ -75,6 +79,10 @@ interface CodingStreamOptions {
     conversationHistory?: Array<{ role: string; content: string }>;
     userId: string; // User ID to determine plan and model access
     tier?: "fast" | "expert"; // Optional: specify tier (defaults to fast)
+    sseWriter?: SSEStreamWriter; // Optional: SSE writer for real-time tool events
+    projectId?: string; // Optional: project ID for agent loop state management
+    sessionId?: string; // Optional: session ID for agent loop coordination
+    enableAgentLoop?: boolean; // Optional: enable Think→Act→Observe→Reflect pattern (Phase 2)
     onFinish?: (params: {
         model: string;
         inputTokens: number;
@@ -94,7 +102,7 @@ async function detectRequirements(messages: unknown[], systemPrompt: string): Pr
 }> {
     let hasImages = false;
     let hasWebSearchRequest = false;
-    let needsFunctionCalling = false;
+    const needsFunctionCalling = true; // Always enable function calling for coding tasks
 
     // Check if messages contain image content
     // AI SDK format: { role: 'user', content: [{ type: 'image', ... }] }
@@ -236,9 +244,56 @@ function getModelProvider(modelId: string): {
 /**
  * Stream coding responses using intelligent model selection
  * Automatically selects the most efficient model based on requirements
+ * 
+ * Phase 2: Supports agent loop coordination for multi-step reasoning
  */
 export async function streamCodingResponse(options: CodingStreamOptions) {
-    const { messages, systemPrompt, projectFiles = {}, userId, tier = "fast", onFinish } = options;
+    const {
+        messages,
+        systemPrompt,
+        projectFiles = {},
+        conversationHistory = [],
+        userId,
+        tier = "fast",
+        sseWriter,
+        projectId,
+        sessionId,
+        enableAgentLoop = false,
+        onFinish
+    } = options;
+
+    // ⚡ Phase 2: Initialize agent loop if enabled
+    let agentLoop: AgentLoopCoordinator | undefined;
+    // TEMPORARILY DISABLED: Agent loop causing empty message issues with Claude
+    // Will re-enable after fixing message formatting
+    if (enableAgentLoop && projectId && sessionId) {
+        console.log('🔄 Agent Loop enabled - Think→Act→Observe→Reflect');
+
+        // Get last user message for analysis
+        const lastMessage = messages[messages.length - 1];
+        const userMessage = typeof lastMessage === 'object' && lastMessage !== null && 'content' in lastMessage
+            ? String((lastMessage as { content: unknown }).content)
+            : '';
+
+        agentLoop = createAgentLoop({
+            sessionId,
+            projectId,
+            userId,
+            userMessage,
+            projectFiles,
+            conversationHistory,
+            sseWriter,
+        });
+
+        // Execute THINK phase before streaming
+        try {
+            await agentLoop.executeTurn(userMessage);
+        } catch (error) {
+            console.error('❌ Agent loop initialization failed:', error);
+            // Continue without agent loop if it fails
+            agentLoop = undefined;
+        }
+    }
 
     // Get user's plan to determine model access
     const userPlan = await getUserPlan(userId);
@@ -254,6 +309,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     }
 
     // Select the most efficient model that meets all requirements
+    // PHASE 1: ALWAYS require function calling for coding tasks
     const codingModel = selectModelForUseCase({
         useCase: "coding",
         tier, // Use specified tier (defaults to fast)
@@ -261,7 +317,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         requiredInputs,
         requiredOutputs: ["code", "text"],
         requiresWebSearch: hasWebSearchRequest || undefined,
-        requiresFunctionCalling: needsFunctionCalling || undefined,
+        requiresFunctionCalling: true, // ⚡ PHASE 1: FORCE tool-capable models
     });
 
     if (!codingModel) {
@@ -270,7 +326,8 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
 
     const { provider, modelPath, displayName, providerType } = getModelProvider(codingModel);
 
-    console.log(`⚡ AI Agent: Using ${displayName} (${codingModel}) for coding`);
+    console.log(`⚡ AI Agent: Using ${displayName} (${codingModel}) for coding with TOOL USE enabled`);
+    console.log(`🛠️ Available tools: ${Object.keys(tools).join(', ')}`);
 
     if (Object.keys(projectFiles).length > 0) {
         console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
@@ -303,14 +360,107 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
             break;
     }
 
-    // Stream the response with usage tracking
+    // Track tool execution timing for SSE events
+    const toolStartTimes = new Map<string, number>();
+
+    // Set tool context so tools can access SSE writer and project info
+    setToolContext({
+        sseWriter,
+        projectId,
+        userId,
+        sessionId,
+    });
+
+    // Stream the response with TOOLS ENABLED and usage tracking
+    // ⚡ CRITICAL FIX: Use stopWhen to allow multiple tool execution rounds
+    // This ensures the agent continues calling tools until the task is complete
     const result = streamText({
         model: modelInstance,
         system: systemPrompt,
         messages: messages as never, // AI SDK will handle the validation
-        onFinish: async ({ usage }) => {
-            console.log('🔍 Raw usage object:', JSON.stringify(usage, null, 2));
-            console.log('🔍 Available properties:', Object.keys(usage));
+        tools, // ⚡ PHASE 1: ENABLE ALL TOOLS
+        stopWhen: stepCountIs(10), // ⚡ CRITICAL: Allow up to 10 steps (tool execution rounds) to complete the task
+        // ⚡ SSE: Emit tool events in real-time as they execute
+        onStepFinish: ({ toolCalls, toolResults }) => {
+            // Track tool calls that just started
+            if (toolCalls && toolCalls.length > 0) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                toolCalls.forEach((tc: any) => {
+                    const startTime = Date.now();
+                    const toolCallId = tc.toolCallId || tc.id || String(Date.now());
+                    const toolName = tc.toolName || tc.name || 'unknown';
+                    const args = tc.args || tc.arguments || {};
+
+                    toolStartTimes.set(toolCallId, startTime);
+
+                    console.log(`🔧 Tool started: ${toolName} (${toolCallId})`);
+
+                    // ⚡ Phase 2: Track in agent loop
+                    if (agentLoop) {
+                        agentLoop.trackToolExecution(toolCallId, toolName, args as Record<string, unknown>);
+                    }
+
+                    // Emit SSE event: tool-call-start
+                    if (sseWriter) {
+                        sseWriter.writeToolCallStart(toolCallId, toolName, args as Record<string, unknown>);
+                    }
+                });
+            }
+
+            // Track tool results that just completed
+            if (toolResults && toolResults.length > 0) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                toolResults.forEach((tr: any) => {
+                    const toolCallId = tr.toolCallId || tr.id || String(Date.now());
+                    const toolName = tr.toolName || tr.name || 'unknown';
+                    const result = tr.result || tr.output;
+                    const error = tr.error;
+                    const startTime = toolStartTimes.get(toolCallId) || Date.now();
+
+                    console.log(`✅ Tool completed: ${toolName} (${toolCallId})`);
+
+                    // ⚡ Phase 2: Update agent loop state
+                    if (agentLoop) {
+                        agentLoop.updateToolExecution(toolCallId, result, error);
+                    }
+
+                    // Emit SSE event: tool-call-complete
+                    if (sseWriter) {
+                        sseWriter.writeToolCallComplete(toolCallId, toolName, error ? 'error' : 'success', {
+                            result,
+                            error,
+                            startedAt: startTime,
+                        });
+
+                        // ⚡ SPECIAL: If triggerPreview tool completed successfully, emit preview-ready event
+                        if (toolName === 'triggerPreview' && !error && result && projectId) {
+                            const previewResult = result as { success?: boolean; filesGenerated?: number };
+                            if (previewResult.success) {
+                                console.log('🎬 Emitting preview-ready event to frontend');
+                                sseWriter.writePreviewReady(
+                                    projectId,
+                                    previewResult.filesGenerated || 0,
+                                    'Files ready for preview'
+                                );
+                            }
+                        }
+                    }
+                });
+            }
+        },
+        onFinish: async ({ usage, toolCalls, toolResults }) => {
+            // Clean up tool context
+            clearToolContext();
+
+            console.log('🔍 Stream finished');
+            console.log(`🔧 Tool calls made: ${toolCalls?.length || 0}`);
+            console.log(`📝 Tool results: ${toolResults?.length || 0}`);
+
+            // Log which tools were used
+            if (toolCalls && toolCalls.length > 0) {
+                const toolNames = toolCalls.map((tc: { toolName: string }) => tc.toolName).join(', ');
+                console.log(`🛠️ Tools used: ${toolNames}`);
+            }
 
             if (usage) {
                 // AI SDK v5 with Anthropic - uses promptTokens/completionTokens

@@ -4,6 +4,7 @@ import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { checkUserCreditAvailability, processAIUsage } from "@/lib/ai-usage";
 import { getDefaultSelectedModel } from "@/lib/models/config";
+import { SSEStreamWriter } from "@/lib/ai/sse-events";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { messages, taskType, projectFiles, projectId, tier } = await req.json();
+        const { messages, taskType, projectFiles, projectId, tier, enableAgentLoop = true } = await req.json();
 
         // Validate projectId
         if (!projectId) {
@@ -69,6 +70,9 @@ export async function POST(req: Request) {
 
         // Validate and sanitize tier (only allow "fast" or "expert")
         const validTier: "fast" | "expert" = tier === "expert" ? "expert" : "fast";
+
+        // Generate session ID for agent loop coordination
+        const sessionId = `session-${user.id}-${projectId}-${Date.now()}`;
 
         // Check if user has available credits before processing
         const creditAvailability = await checkUserCreditAvailability(user.id);
@@ -139,10 +143,11 @@ export async function POST(req: Request) {
 
                 // If there are images with valid URLs
                 if (imageParts.length > 0 && imageParts.some((p) => p.image_url?.url)) {
+                    const textContent = textPart?.text || 'Please analyze this image.'; // ✅ Never send empty text
                     return {
                         role: m.role,
                         content: [
-                            { type: 'text' as const, text: textPart?.text || '' },
+                            { type: 'text' as const, text: textContent },
                             ...imageParts
                                 .filter((p) => p.image_url?.url) // Only include images with URLs
                                 .map((p) => ({
@@ -153,20 +158,32 @@ export async function POST(req: Request) {
                     };
                 }
                 // Fallback to text only if images are missing URLs
+                const fallbackText = textPart?.text || (m.content[0] as TextContent)?.text || 'Continue.';
                 return {
                     role: m.role,
-                    content: textPart?.text || (m.content[0] as TextContent)?.text || '',
+                    content: fallbackText,
                 };
             }
             // Regular text-only messages
             return {
                 role: m.role,
-                content: m.content,
+                content: m.content || 'Continue.', // ✅ Never send empty content
             };
         });
 
+        // Filter out any messages with empty content (safety check)
+        const validMessages = formattedMessages.filter((m: { content: unknown }) => {
+            if (typeof m.content === 'string') {
+                return m.content.trim().length > 0;
+            }
+            if (Array.isArray(m.content)) {
+                return m.content.length > 0;
+            }
+            return true;
+        });
+
         // Check if any messages contain images
-        const hasImages = formattedMessages.some((m: { content: unknown }) =>
+        const hasImages = validMessages.some((m: { content: unknown }) =>
             Array.isArray(m.content) && m.content.some((c: { type: string }) => c.type === 'image')
         );
 
@@ -183,56 +200,107 @@ export async function POST(req: Request) {
                 ? lastUserMessage.content.find((c: { type: string }) => c.type === 'text')?.text || ''
                 : '';
 
-        // Use the centralized AI agent for smart routing and streaming
-        const result = await streamCodingResponse({
-            messages: formattedMessages,
-            systemPrompt,
-            projectFiles: projectFiles || {},
-            conversationHistory: messages.slice(0, -1),
-            userId: user.id, // Pass user ID to determine plan and model access
-            tier: validTier, // Pass user's tier preference (fast/expert)
-            // Track usage after stream completes
-            onFinish: async (usageData) => {
-                try {
-                    await processAIUsage({
-                        userId: user.id,
-                        projectId,
-                        model: usageData.model,
-                        inputTokens: usageData.inputTokens,
-                        outputTokens: usageData.outputTokens,
-                        endpoint: '/api/chat',
-                        callType: 'chat', // This is a chat interaction
-                    });
-                    console.log(`✅ Usage tracked - User: ${user.id}, Tokens: ${usageData.totalTokens}`);
-                } catch (trackingError) {
-                    console.error('❌ Failed to track usage:', trackingError);
-                    // Don't fail the request if tracking fails
-                }
+        // ⚡ SSE: Create custom readable stream for Server-Sent Events
+        // This allows us to interleave text deltas and tool execution events
+        const sseWriter = new SSEStreamWriter();
+        let textStreamReader: ReadableStreamDefaultReader<string> | null = null;
 
-                // Capture memories from conversation (async, non-blocking) - only if enabled
-                if (userMessageText && user.enableMemory) {
-                    try {
-                        const { captureMemoriesFromConversation } = await import('@/lib/memory/service');
-                        captureMemoriesFromConversation({
-                            userId: user.id,
-                            userMessage: userMessageText,
-                            projectId,
-                        }).then((count) => {
-                            if (count > 0) {
-                                console.log(`🧠 Captured ${count} new memories from conversation`);
+        const sseStream = new ReadableStream({
+            async start(controller) {
+                sseWriter.setController(controller);
+
+                try {
+                    // Start streaming from AI with SSE writer for tool events
+                    const result = await streamCodingResponse({
+                        messages: validMessages, // ✅ Use validated messages
+                        systemPrompt,
+                        projectFiles: projectFiles || {},
+                        conversationHistory: messages.slice(0, -1),
+                        userId: user.id,
+                        tier: validTier,
+                        sseWriter, // ⚡ Pass SSE writer for real-time tool events
+                        projectId, // ⚡ Phase 2: Project ID for agent loop
+                        sessionId, // ⚡ Phase 2: Session ID for agent loop
+                        enableAgentLoop, // ⚡ Phase 2: Enable Think→Act→Observe→Reflect
+                        onFinish: async (usageData) => {
+                            try {
+                                await processAIUsage({
+                                    userId: user.id,
+                                    projectId,
+                                    model: usageData.model,
+                                    inputTokens: usageData.inputTokens,
+                                    outputTokens: usageData.outputTokens,
+                                    endpoint: '/api/chat',
+                                    callType: 'chat',
+                                });
+                                console.log(`✅ Usage tracked - User: ${user.id}, Tokens: ${usageData.totalTokens}`);
+                            } catch (trackingError) {
+                                console.error('❌ Failed to track usage:', trackingError);
                             }
-                        }).catch((err) => {
-                            console.warn('⚠️ Memory capture failed:', err);
-                        });
-                    } catch (importError) {
-                        console.warn('⚠️ Could not import memory service:', importError);
+
+                            // Capture memories (async, non-blocking)
+                            if (userMessageText && user.enableMemory) {
+                                try {
+                                    const { captureMemoriesFromConversation } = await import('@/lib/memory/service');
+                                    captureMemoriesFromConversation({
+                                        userId: user.id,
+                                        userMessage: userMessageText,
+                                        projectId,
+                                    }).then((count) => {
+                                        if (count > 0) {
+                                            console.log(`🧠 Captured ${count} new memories from conversation`);
+                                        }
+                                    }).catch((err) => {
+                                        console.warn('⚠️ Memory capture failed:', err);
+                                    });
+                                } catch (importError) {
+                                    console.warn('⚠️ Could not import memory service:', importError);
+                                }
+                            }
+
+                            // Emit done event
+                            sseWriter.writeDone({
+                                totalTokens: usageData.totalTokens,
+                                inputTokens: usageData.inputTokens,
+                                outputTokens: usageData.outputTokens,
+                            });
+                        },
+                    });
+
+                    // Get text stream from AI SDK result
+                    textStreamReader = result.textStream.getReader();
+
+                    // Read and forward text chunks as SSE events
+                    while (true) {
+                        const { done, value } = await textStreamReader.read();
+                        if (done) break;
+
+                        // Emit text-delta event
+                        if (value) {
+                            sseWriter.writeTextDelta(value);
+                        }
                     }
+                } catch (error) {
+                    console.error('❌ SSE stream error:', error);
+                    controller.error(error);
+                } finally {
+                    controller.close();
                 }
+            },
+            cancel() {
+                console.log('🛑 SSE stream cancelled by client');
+                textStreamReader?.cancel();
             },
         });
 
-        // AI SDK v5: Use toTextStreamResponse() for streaming responses
-        return result.toTextStreamResponse();
+        // Return SSE stream with proper headers
+        return new Response(sseStream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            },
+        });
     } catch (error) {
         console.error("AI Chat Error:", error);
         return new Response(

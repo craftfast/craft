@@ -13,12 +13,9 @@ import SettingsModal from "../SettingsModal";
 import { ModelSelector, ModelTier } from "@/components/ModelSelector";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  extractDependencyCommands,
-  getAllPackages,
-  hasDependencyCommands,
-} from "@/lib/ai/extract-deps";
 import { notifyCreditUpdate } from "@/lib/credit-events";
+import { toast } from "sonner";
+import ToolCallDisplay from "./ToolCallDisplay";
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -67,6 +64,17 @@ interface FileChange {
   language?: string;
 }
 
+interface ToolCall {
+  id: string;
+  name: string;
+  status: "running" | "success" | "error";
+  args?: Record<string, string | number | boolean>;
+  result?: string | Record<string, unknown>;
+  error?: string;
+  startedAt: number;
+  completedAt?: number;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -79,6 +87,7 @@ interface Message {
     cost: number;
   };
   fileChanges?: FileChange[]; // Track file changes in assistant responses
+  toolCalls?: ToolCall[]; // Track tool executions in assistant responses
 }
 
 interface ChatPanelProps {
@@ -86,14 +95,12 @@ interface ChatPanelProps {
   projectDescription?: string | null;
   projectVersion?: number; // Project version (0 = new project, 1+ = has updates)
   projectFiles?: Record<string, string>; // Existing project files
-  onFilesCreated?: (
-    files: { path: string; content: string }[],
-    packages?: string[]
-  ) => void;
+  onFilesCreated?: (files: { path: string; content: string }[]) => void;
   onStreamingFiles?: (files: Record<string, string>) => void; // Real-time streaming files
   triggerNewChat?: number;
   onGeneratingStatusChange?: (isGenerating: boolean) => void;
   onFileClick?: (path: string) => void; // Handle file clicks from file changes card
+  onRefreshProject?: () => Promise<void>; // Refresh project data from database
 }
 
 export default function ChatPanel({
@@ -106,6 +113,7 @@ export default function ChatPanel({
   triggerNewChat = 0,
   onGeneratingStatusChange,
   onFileClick,
+  onRefreshProject,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -119,6 +127,9 @@ export default function ChatPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [activeToolCalls, setActiveToolCalls] = useState<Map<string, ToolCall>>(
+    new Map()
+  ); // Track tool executions
   const [selectedImages, setSelectedImages] = useState<ImageAttachment[]>([]);
   const [previewImage, setPreviewImage] = useState<ImageAttachment | null>(
     null
@@ -489,7 +500,8 @@ export default function ChatPanel({
     role: "user" | "assistant",
     content: string,
     fileIds?: string[],
-    fileChanges?: FileChange[]
+    fileChanges?: FileChange[],
+    toolCalls?: ToolCall[]
   ) => {
     try {
       // Validate content before sending
@@ -507,6 +519,7 @@ export default function ChatPanel({
         contentPreview: content?.substring(0, 100),
         fileIds: fileIds?.length || 0,
         fileChanges: fileChanges?.length || 0,
+        toolCalls: toolCalls?.length || 0,
       });
 
       const response = await fetch("/api/chat-messages", {
@@ -521,6 +534,7 @@ export default function ChatPanel({
           fileIds: fileIds && fileIds.length > 0 ? fileIds : undefined,
           fileChanges:
             fileChanges && fileChanges.length > 0 ? fileChanges : undefined,
+          toolCalls: toolCalls && toolCalls.length > 0 ? toolCalls : undefined,
         }),
       });
 
@@ -548,127 +562,9 @@ export default function ChatPanel({
       .trim();
   };
 
-  // Function to extract code blocks from markdown (including incomplete ones during streaming)
-  const extractCodeBlocks = (content: string, includePartial = false) => {
-    // Clean the content first
-    const cleanedContent = cleanAIResponse(content);
-    // Enhanced regex to support multiple file path formats:
-    // 1. ```language // path/to/file.ext
-    // 2. ```language /* path/to/file.ext */
-    // 3. ```language path/to/file.ext (no comment)
-    // 4. ```path/to/file.ext (language inferred from extension)
-    const codeBlockRegex = /```([^\s\n]*)\s*([^\n]*?)\n([\s\S]+?)```/g;
-    const files: { path: string; content: string; language: string }[] = [];
-    let match;
-
-    while ((match = codeBlockRegex.exec(cleanedContent)) !== null) {
-      let language = match[1] || "text";
-      const filePathLine = match[2]?.trim() || "";
-      const code = match[3];
-
-      // Extract file path from comment or direct path
-      let filePath = "";
-
-      // Check for // comment style
-      if (filePathLine.startsWith("//")) {
-        filePath = filePathLine.replace(/^\/\/\s*/, "").trim();
-      }
-      // Check for /* */ comment style
-      else if (filePathLine.startsWith("/*")) {
-        filePath = filePathLine
-          .replace(/^\/\*\s*/, "")
-          .replace(/\s*\*\/\s*$/, "")
-          .trim();
-      }
-      // Check if first line contains a file path (has extension)
-      else if (filePathLine && /\.\w+/.test(filePathLine)) {
-        filePath = filePathLine.trim();
-      }
-      // Check if language looks like a file path (e.g., src/app/page.tsx)
-      else if (language && language.includes("/") && /\.\w+/.test(language)) {
-        filePath = language;
-        // Infer language from extension
-        const ext = filePath.split(".").pop()?.toLowerCase();
-        language = ext || "text";
-      }
-
-      if (filePath && code) {
-        console.log(`🔍 Extracted file: ${filePath} (${language})`);
-        files.push({
-          path: filePath,
-          content: code.trim(),
-          language,
-        });
-      }
-    }
-
-    // If includePartial is true, also extract incomplete code blocks (for streaming)
-    if (includePartial) {
-      const partialRegex = /```([^\s\n]*)\s*([^\n]*?)\n([\s\S]+?)$/;
-      const partialMatch = partialRegex.exec(cleanedContent);
-
-      if (partialMatch) {
-        let language = partialMatch[1] || "text";
-        const filePathLine = partialMatch[2]?.trim() || "";
-        const code = partialMatch[3];
-
-        let filePath = "";
-
-        if (filePathLine.startsWith("//")) {
-          filePath = filePathLine.replace(/^\/\/\s*/, "").trim();
-        } else if (filePathLine.startsWith("/*")) {
-          filePath = filePathLine
-            .replace(/^\/\*\s*/, "")
-            .replace(/\s*\*\/\s*$/, "")
-            .trim();
-        } else if (filePathLine && /\.\w+/.test(filePathLine)) {
-          filePath = filePathLine.trim();
-        } else if (
-          language &&
-          language.includes("/") &&
-          /\.\w+/.test(language)
-        ) {
-          filePath = language;
-          const ext = filePath.split(".").pop()?.toLowerCase();
-          language = ext || "text";
-        }
-
-        // Only add if we haven't already added this complete file
-        if (filePath && code && !files.some((f) => f.path === filePath)) {
-          files.push({
-            path: filePath,
-            content: code, // Don't trim for partial blocks
-            language,
-          });
-        }
-      }
-    }
-
-    console.log(`📦 Total files extracted: ${files.length}`);
-    return files;
-  };
-
-  // Function to remove code blocks from content for display
-  // Always removes ALL code blocks to keep chat clean like v0
-  const removeCodeBlocks = (content: string) => {
-    // First clean AI response markers, then remove code blocks
-    const cleaned = cleanAIResponse(content);
-    return cleaned
-      .replace(
-        /```[^\s\n]*\s*[^\n]*?\n[\s\S]+?```/g,
-        "" // Remove complete code blocks
-      )
-      .replace(
-        /```[^\s\n]*\s*[^\n]*?\n[\s\S]+?$/,
-        "" // Remove incomplete/streaming code blocks (no closing ```)
-      )
-      .replace(/\n{3,}/g, "\n\n") // Clean up extra newlines
-      .trim();
-  };
   // Function to save files to the project
   const saveFiles = async (
-    files: { path: string; content: string; language: string }[],
-    packages?: string[]
+    files: { path: string; content: string; language: string }[]
   ): Promise<FileChange[]> => {
     try {
       const fileChanges: FileChange[] = [];
@@ -704,11 +600,10 @@ export default function ChatPanel({
         `✅ BATCH SAVE COMPLETE: Saved ${files.length} files in single batch request`
       );
 
-      // Notify parent component about new files and packages
+      // Notify parent component about new files
       if (onFilesCreated) {
         onFilesCreated(
-          files.map((f) => ({ path: f.path, content: f.content })),
-          packages
+          files.map((f) => ({ path: f.path, content: f.content }))
         );
       }
 
@@ -826,7 +721,7 @@ export default function ChatPanel({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Read the standard text stream from AI SDK
+      // ⚡ SSE: Parse Server-Sent Events stream
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       const assistantMessage: Message = {
@@ -842,13 +737,220 @@ export default function ChatPanel({
         let fullContent = "";
         let hasNotifiedFileGeneration = false; // Track if we've notified about file generation
         let lastStreamedContent = ""; // Track last streamed content to avoid duplicate updates
+        const messageToolCalls = new Map<string, ToolCall>(); // Track tools for this message
+        let buffer = ""; // Buffer for SSE parsing
+        const streamingFilesMap = new Map<string, string>(); // Track streaming file content
+        const completeFilesSet = new Set<string>(); // Track completed files
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           const chunk = decoder.decode(value);
-          fullContent += chunk;
+          buffer += chunk;
+
+          // Parse complete SSE events (format: "event: <type>\ndata: <json>\n\n")
+          const events = buffer.split("\n\n");
+          buffer = events.pop() || ""; // Keep incomplete event in buffer
+
+          for (const eventStr of events) {
+            if (!eventStr.trim()) continue;
+
+            const lines = eventStr.split("\n");
+            let eventType = "";
+            let eventData = "";
+
+            for (const line of lines) {
+              if (line.startsWith("event: ")) {
+                eventType = line.slice(7).trim();
+              } else if (line.startsWith("data: ")) {
+                eventData = line.slice(6).trim();
+              }
+            }
+
+            if (!eventType || !eventData) continue;
+
+            try {
+              const data = JSON.parse(eventData);
+
+              // Handle different event types
+              switch (eventType) {
+                case "text-delta":
+                  // Accumulate text content
+                  fullContent += data.content || "";
+                  break;
+
+                case "file-stream-start": {
+                  // File generation started
+                  const { file } = data;
+                  console.log(`📝 File streaming started: ${file.path}`);
+
+                  // Initialize empty content for this file
+                  streamingFilesMap.set(file.path, "");
+
+                  // Notify parent when we first detect file generation
+                  if (!hasNotifiedFileGeneration) {
+                    onGeneratingStatusChange?.(true);
+                    hasNotifiedFileGeneration = true;
+                  }
+
+                  // Create initial file changes card entry
+                  const fileChange: FileChange = {
+                    path: file.path,
+                    type: file.isNew ? "added" : "modified",
+                    language: file.language,
+                  };
+
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMessage.id
+                        ? {
+                            ...m,
+                            fileChanges: [
+                              ...(m.fileChanges || []).filter(
+                                (fc) => fc.path !== file.path
+                              ),
+                              fileChange,
+                            ],
+                          }
+                        : m
+                    )
+                  );
+                  break;
+                }
+
+                case "file-stream-delta": {
+                  // File content chunk received
+                  const { file } = data;
+                  const currentContent = streamingFilesMap.get(file.path) || "";
+                  const newContent = currentContent + file.contentDelta;
+                  streamingFilesMap.set(file.path, newContent);
+
+                  // Send streaming files to parent for live code view
+                  if (onStreamingFiles) {
+                    const filesObj: Record<string, string> = {};
+                    streamingFilesMap.forEach((content, path) => {
+                      filesObj[path] = content;
+                    });
+                    onStreamingFiles(filesObj);
+                  }
+                  break;
+                }
+
+                case "file-stream-complete": {
+                  // File generation completed
+                  const { file } = data;
+                  console.log(`✅ File streaming complete: ${file.path}`);
+
+                  // Mark file as complete
+                  completeFilesSet.add(file.path);
+                  streamingFilesMap.set(file.path, file.content);
+
+                  // Send final file content
+                  if (onStreamingFiles) {
+                    const filesObj: Record<string, string> = {};
+                    streamingFilesMap.forEach((content, path) => {
+                      filesObj[path] = content;
+                    });
+                    onStreamingFiles(filesObj);
+                  }
+                  break;
+                }
+
+                case "tool-call-start": {
+                  // Tool execution started
+                  const { toolCall: tc } = data;
+                  const toolCall: ToolCall = {
+                    id: tc.id,
+                    name: tc.name,
+                    status: "running",
+                    args: tc.args,
+                    startedAt: tc.startedAt,
+                  };
+                  messageToolCalls.set(tc.id, toolCall);
+
+                  console.log(`🔧 Tool started: ${tc.name}`);
+
+                  // Show toast notification
+                  toast.info(`Running ${tc.name}...`, {
+                    id: `tool-${tc.id}`,
+                  });
+                  break;
+                }
+
+                case "tool-call-complete": {
+                  // Tool execution completed
+                  const { toolCall: tc } = data;
+                  const existingTool = messageToolCalls.get(tc.id);
+
+                  if (existingTool) {
+                    existingTool.status = tc.status;
+                    existingTool.result = tc.result;
+                    existingTool.error = tc.error;
+                    existingTool.completedAt = tc.completedAt;
+                  }
+
+                  console.log(
+                    `✅ Tool completed: ${tc.name} (${tc.status}) in ${tc.duration}ms`
+                  );
+
+                  // Update toast notification
+                  if (tc.status === "success") {
+                    toast.success(`✓ ${tc.name} completed`, {
+                      id: `tool-${tc.id}`,
+                      description: `Finished in ${tc.duration}ms`,
+                    });
+                  } else {
+                    toast.error(`✗ ${tc.name} failed`, {
+                      id: `tool-${tc.id}`,
+                      description: tc.error || "Unknown error",
+                    });
+                  }
+                  break;
+                }
+
+                case "preview-ready": {
+                  // Preview is ready to start
+                  const {
+                    projectId: previewProjectId,
+                    filesGenerated,
+                    reason,
+                  } = data;
+                  console.log(
+                    `🎬 Preview ready: ${filesGenerated} files (${
+                      reason || "no reason"
+                    })`
+                  );
+
+                  // Notify parent to trigger preview
+                  // The PreviewPanel will detect this through its effect hook
+                  // We signal this by updating the generation status
+                  onGeneratingStatusChange?.(false);
+
+                  // Refresh project data to get updated generationStatus
+                  if (onRefreshProject) {
+                    onRefreshProject().then(() => {
+                      console.log(
+                        "✅ Project data refreshed after preview-ready"
+                      );
+                    });
+                  }
+
+                  toast.success("Preview Ready!", {
+                    description: `${filesGenerated} files are ready to preview`,
+                  });
+                  break;
+                }
+
+                case "done":
+                  // Stream complete
+                  console.log("🏁 Stream complete", data.metadata);
+                  break;
+              }
+            } catch (parseError) {
+              console.warn("Failed to parse SSE event:", parseError);
+            }
+          }
 
           // Only process streaming every ~50ms or when done to reduce updates
           const shouldUpdate =
@@ -856,101 +958,109 @@ export default function ChatPanel({
 
           if (!shouldUpdate) continue;
 
-          // Extract files during streaming (including partial ones) to stream to code editor
-          const streamingFiles = extractCodeBlocks(fullContent, true);
-
-          // Notify parent when we first detect file generation
-          if (!hasNotifiedFileGeneration && streamingFiles.length > 0) {
-            onGeneratingStatusChange?.(true);
-            hasNotifiedFileGeneration = true;
-          }
-
-          // Send streaming files to parent for live code view (no database save yet)
-          // Only send if content has meaningfully changed
-          if (onStreamingFiles && streamingFiles.length > 0) {
-            const filesMap: Record<string, string> = {};
-            streamingFiles.forEach((f) => {
-              filesMap[f.path] = f.content;
-            });
-            onStreamingFiles(filesMap);
-          }
-
-          // Extract complete code blocks for file changes card
-          const completeFiles = extractCodeBlocks(fullContent, false);
-          const streamingFileChanges: FileChange[] = completeFiles.map((f) => ({
-            path: f.path,
-            type: projectFiles && projectFiles[f.path] ? "modified" : "added",
-            language: f.language,
+          // Build file changes list from SSE streamed files
+          const streamingFileChanges: FileChange[] = Array.from(
+            streamingFilesMap.keys()
+          ).map((path) => ({
+            path,
+            type: projectFiles && projectFiles[path] ? "modified" : "added",
+            language: path.split(".").pop(), // Simple language detection from extension
           }));
 
-          // During streaming, hide code blocks from text content
+          // Update message content and metadata
           lastStreamedContent = fullContent;
-          const displayContent = removeCodeBlocks(fullContent);
+          assistantMessage.content = fullContent.trim();
 
-          // Update message with file changes (shown in card) and cleaned content
-          assistantMessage.content = displayContent.trim();
+          // Convert tool calls map to array for display
+          const toolCallsArray = Array.from(messageToolCalls.values());
 
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMessage.id
                 ? {
                     ...m,
-                    content: displayContent.trim(),
+                    content: fullContent.trim(),
                     fileChanges:
                       streamingFileChanges.length > 0
                         ? streamingFileChanges
                         : undefined,
+                    toolCalls:
+                      toolCallsArray.length > 0 ? toolCallsArray : undefined,
                   }
                 : m
             )
           );
         }
 
-        // After streaming is complete, extract and save code blocks
-        const extractedFiles = extractCodeBlocks(fullContent);
-        if (extractedFiles.length > 0) {
+        // After streaming is complete, save files from SSE events
+        if (streamingFilesMap.size > 0) {
           console.log(
-            `📝 Extracted ${extractedFiles.length} files from AI response`
+            `📝 Saving ${streamingFilesMap.size} files from SSE stream`
           );
 
-          // Check for dependency installation commands
-          let packagesToInstall: string[] | undefined;
-          if (hasDependencyCommands(fullContent)) {
-            const commands = extractDependencyCommands(fullContent);
-            packagesToInstall = getAllPackages(commands);
-            console.log(
-              `📦 Found dependencies to install: ${packagesToInstall.join(
-                ", "
-              )}`
-            );
-          }
-
-          const fileChanges = await saveFiles(
-            extractedFiles,
-            packagesToInstall
+          const filesToSave = Array.from(streamingFilesMap.entries()).map(
+            ([path, content]) => ({
+              path,
+              content,
+              language: path.split(".").pop() || "txt",
+            })
           );
 
-          // Update the message to remove code blocks from display and add file changes
-          const contentWithoutCode = removeCodeBlocks(fullContent);
-          const finalContent =
-            contentWithoutCode.trim().length > 0
-              ? contentWithoutCode
-              : "Created project files";
+          const fileChanges = await saveFiles(filesToSave);
+
+          // Update the message with file changes
+          const finalContent = fullContent.trim() || "Created project files";
+
+          // Convert tool calls map to array for message
+          const toolCallsArray = Array.from(messageToolCalls.values());
 
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMessage.id
-                ? { ...m, content: finalContent, fileChanges }
+                ? {
+                    ...m,
+                    content: finalContent,
+                    fileChanges,
+                    toolCalls:
+                      toolCallsArray.length > 0 ? toolCallsArray : undefined,
+                  }
                 : m
             )
           );
 
-          // Save assistant message with cleaned content and file changes
-          await saveMessage("assistant", finalContent, undefined, fileChanges);
+          // Save assistant message with cleaned content, file changes, and tool calls
+          await saveMessage(
+            "assistant",
+            finalContent,
+            undefined,
+            fileChanges,
+            toolCallsArray
+          );
         } else {
           // Save assistant message as-is (with validation)
           const contentToSave = fullContent.trim() || "Response received";
-          await saveMessage("assistant", contentToSave);
+
+          // Convert tool calls map to array for message
+          const toolCallsArray = Array.from(messageToolCalls.values());
+
+          // Update message with tool calls if any were detected
+          if (toolCallsArray.length > 0) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMessage.id
+                  ? { ...m, toolCalls: toolCallsArray }
+                  : m
+              )
+            );
+          }
+
+          await saveMessage(
+            "assistant",
+            contentToSave,
+            undefined,
+            undefined,
+            toolCallsArray
+          );
         }
 
         // Trigger credit balance update after successful response
@@ -1151,6 +1261,21 @@ export default function ChatPanel({
                 >
                   {message.role === "assistant" ? (
                     <>
+                      {/* Tool Executions */}
+                      {message.toolCalls && message.toolCalls.length > 0 && (
+                        <div className="mb-4 space-y-2">
+                          <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                            🛠️ Tool Executions
+                          </div>
+                          {message.toolCalls.map((toolCall) => (
+                            <ToolCallDisplay
+                              key={toolCall.id}
+                              toolCall={toolCall}
+                            />
+                          ))}
+                        </div>
+                      )}
+
                       {/* File Changes Card */}
                       {message.fileChanges &&
                         message.fileChanges.length > 0 && (

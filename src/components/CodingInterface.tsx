@@ -895,6 +895,7 @@ export default function CodingInterface({
                   onStreamingFiles={handleStreamingFiles}
                   onGeneratingStatusChange={setIsGeneratingFiles}
                   onFileClick={handleFileClick}
+                  onRefreshProject={refreshProject}
                 />
               </div>
             </div>
@@ -966,6 +967,7 @@ export default function CodingInterface({
                   onStreamingFiles={handleStreamingFiles}
                   onGeneratingStatusChange={setIsGeneratingFiles}
                   onFileClick={handleFileClick}
+                  onRefreshProject={refreshProject}
                 />
               </div>
             </div>
