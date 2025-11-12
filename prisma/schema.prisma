@@ -37,6 +37,15 @@ model User {
   // Custom Craft fields
   preferredChatPosition String               @default("left")
   preferredTheme        String               @default("system")
+  // Personalization settings
+  responseTone          String? // default, concise, detailed, encouraging, professional
+  customInstructions    String?              @db.Text
+  occupation            String?
+  techStack             String?              @db.Text
+  enableMemory          Boolean              @default(true)
+  referenceChatHistory  Boolean              @default(true)
+  enableWebSearch       Boolean              @default(false)
+  enableImageGeneration Boolean              @default(false)
   // Referral system
   referralCode          String?              @unique
   referredById          String?
@@ -71,6 +80,8 @@ model User {
   referredBy            User?                @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals             User[]               @relation("UserReferrals")
   referralCredits       ReferralCredit[]
+  // Memory relations
+  memories              UserMemory[]
 
   @@index([polarCustomerId])
   @@index([polarCustomerExtId])
@@ -730,4 +741,51 @@ model ReferralCredit {
   @@index([status])
   @@index([createdAt])
   @@map("referral_credits")
+}
+
+// ============================================================================
+// USER MEMORY SYSTEM
+// ============================================================================
+// AI-powered memory system that learns from user interactions
+
+model UserMemory {
+  id         String    @id @default(cuid())
+  userId     String
+  category   String // "preference", "skill", "project_context", "workflow", "style", "technical", "personal"
+  title      String // Short title for the memory
+  content    String    @db.Text // Detailed memory content
+  source     String // "conversation", "explicit", "inferred", "system"
+  projectId  String? // Optional: link to specific project
+  importance Int       @default(5) // 1-10: how important/relevant this memory is
+  confidence Float     @default(1.0) // 0-1: how confident we are about this memory
+  useCount   Int       @default(0) // How many times this memory has been referenced
+  lastUsedAt DateTime? // When was this memory last used
+  metadata   Json? // Additional context (tags, related memories, etc.)
+  isActive   Boolean   @default(true) // Can be deactivated without deletion
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, category])
+  @@index([userId, isActive])
+  @@index([userId, importance])
+  @@index([userId, lastUsedAt])
+  @@index([projectId])
+  @@map("user_memories")
+}
+
+model MemoryCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique // "preference", "skill", etc.
+  displayName String // User-friendly name
+  description String // What this category tracks
+  icon        String? // Optional icon identifier
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([sortOrder])
+  @@map("memory_categories")
 }

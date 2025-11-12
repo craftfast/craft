@@ -32,9 +32,22 @@ export async function POST(req: Request) {
             );
         }
 
-        // Get user from database
+        // Get user from database with personalization settings
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                responseTone: true,
+                customInstructions: true,
+                occupation: true,
+                techStack: true,
+                enableMemory: true,
+                referenceChatHistory: true,
+                enableWebSearch: true,
+                enableImageGeneration: true,
+            },
         });
 
         if (!user) {
@@ -77,8 +90,45 @@ export async function POST(req: Request) {
         // Log credit availability
         console.log(`💰 Credit Availability - Used: ${creditAvailability.monthlyCreditsUsed}/${creditAvailability.monthlyCreditsLimit || 'unlimited'}, Remaining: ${creditAvailability.creditsRemaining}`);
 
-        // Get environment-aware system prompt with projectId
-        const systemPrompt = getSystemPrompt(taskType || 'coding', projectFiles, projectId);
+        // Get relevant user memories for context (if enabled)
+        let userMemoryContext = '';
+        if (user.enableMemory) {
+            try {
+                const { getRelevantMemories, formatMemoriesForPrompt } = await import('@/lib/memory/service');
+                const memories = await getRelevantMemories({
+                    userId: user.id,
+                    projectId,
+                    limit: 10,
+                });
+                if (memories.length > 0) {
+                    userMemoryContext = formatMemoriesForPrompt(memories);
+                    console.log(`🧠 Including ${memories.length} user memories in context`);
+                }
+            } catch (error) {
+                console.warn('⚠️ Could not load user memories:', error);
+            }
+        }
+
+        // Prepare personalization settings
+        const personalization = {
+            responseTone: user.responseTone,
+            customInstructions: user.customInstructions,
+            occupation: user.occupation,
+            techStack: user.techStack,
+            enableMemory: user.enableMemory,
+            referenceChatHistory: user.referenceChatHistory,
+            enableWebSearch: user.enableWebSearch,
+            enableImageGeneration: user.enableImageGeneration,
+        };
+
+        // Get environment-aware system prompt with projectId, memory, and personalization
+        const systemPrompt = getSystemPrompt(
+            taskType || 'coding',
+            projectFiles,
+            projectId,
+            userMemoryContext,
+            personalization
+        );
 
         // Convert messages to AI SDK format
         const formattedMessages = messages.map((m: { role: string; content: MessageContent }) => {
@@ -125,6 +175,14 @@ export async function POST(req: Request) {
             console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
         }
 
+        // Get last user message for memory capture
+        const lastUserMessage = messages.filter((m: { role: string }) => m.role === 'user').pop();
+        const userMessageText = typeof lastUserMessage?.content === 'string'
+            ? lastUserMessage.content
+            : Array.isArray(lastUserMessage?.content)
+                ? lastUserMessage.content.find((c: { type: string }) => c.type === 'text')?.text || ''
+                : '';
+
         // Use the centralized AI agent for smart routing and streaming
         const result = await streamCodingResponse({
             messages: formattedMessages,
@@ -149,6 +207,26 @@ export async function POST(req: Request) {
                 } catch (trackingError) {
                     console.error('❌ Failed to track usage:', trackingError);
                     // Don't fail the request if tracking fails
+                }
+
+                // Capture memories from conversation (async, non-blocking) - only if enabled
+                if (userMessageText && user.enableMemory) {
+                    try {
+                        const { captureMemoriesFromConversation } = await import('@/lib/memory/service');
+                        captureMemoriesFromConversation({
+                            userId: user.id,
+                            userMessage: userMessageText,
+                            projectId,
+                        }).then((count) => {
+                            if (count > 0) {
+                                console.log(`🧠 Captured ${count} new memories from conversation`);
+                            }
+                        }).catch((err) => {
+                            console.warn('⚠️ Memory capture failed:', err);
+                        });
+                    } catch (importError) {
+                        console.warn('⚠️ Could not import memory service:', importError);
+                    }
                 }
             },
         });

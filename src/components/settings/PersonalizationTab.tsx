@@ -23,14 +23,69 @@ export default function PersonalizationTab() {
   const [enableImageGeneration, setEnableImageGeneration] = useState(false);
 
   const [hasChanges, setHasChanges] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load settings on mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const response = await fetch("/api/user/personalization");
+      if (!response.ok) throw new Error("Failed to load settings");
+
+      const data = await response.json();
+      setCustomInstructions(data.customInstructions || "");
+      setSelectedTone(data.responseTone || "default");
+      setOccupation(data.occupation || "");
+      setTechStack(data.techStack || "");
+      setEnableMemory(data.enableMemory ?? true);
+      setReferenceChatHistory(data.referenceChatHistory ?? true);
+      setEnableWebSearch(data.enableWebSearch ?? false);
+      setEnableImageGeneration(data.enableImageGeneration ?? false);
+    } catch (error) {
+      console.error("Error loading settings:", error);
+      toast.error("Failed to load personalization settings");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveSettings = async () => {
+    try {
+      const response = await fetch("/api/user/personalization", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          responseTone: selectedTone,
+          customInstructions,
+          occupation,
+          techStack,
+          enableMemory,
+          referenceChatHistory,
+          enableWebSearch,
+          enableImageGeneration,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save settings");
+
+      toast.success("Preferences saved");
+      setHasChanges(false);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast.error("Failed to save preferences");
+    }
+  };
 
   // Auto-save on changes
   useEffect(() => {
-    if (hasChanges) {
+    if (hasChanges && !isLoading) {
       const timer = setTimeout(() => {
-        // TODO: Implement API call to save preferences
-        toast.success("Preferences saved");
-        setHasChanges(false);
+        saveSettings();
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -44,6 +99,7 @@ export default function PersonalizationTab() {
     enableWebSearch,
     enableImageGeneration,
     hasChanges,
+    isLoading,
   ]);
 
   const toneOptions = [
@@ -153,7 +209,7 @@ export default function PersonalizationTab() {
                 setTechStack(e.target.value);
                 handleChange();
               }}
-              placeholder="e.g., React, TypeScript, Node.js, Tailwind CSS"
+              placeholder="e.g., Next.js, TypeScript, Tailwind CSS, shadcn/ui, Prisma, tRPC, Framer Motion, React Hook Form, Zod"
               className="min-h-[80px] rounded-xl"
             />
           </div>

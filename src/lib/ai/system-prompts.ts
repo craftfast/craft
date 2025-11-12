@@ -3,10 +3,17 @@
  * Just send the current project files and essential notes
  */
 
+import { formatPersonalizationForPrompt, UserPersonalization } from "@/lib/personalization/utils";
+
 /**
- * Generate coding system prompt with current project files
+ * Generate coding system prompt with current project files, user memory, and personalization
  */
-export function getCodingSystemPrompt(projectFiles?: Record<string, string>, projectId?: string): string {
+export function getCodingSystemPrompt(
+  projectFiles?: Record<string, string>,
+  projectId?: string,
+  userMemory?: string,
+  personalization?: UserPersonalization | null
+): string {
   let projectContext = "";
 
   if (projectFiles && Object.keys(projectFiles).length > 0) {
@@ -36,8 +43,11 @@ ${Object.entries(projectFiles)
   // Note: We're focusing on projects with templates already loaded
   const emptyProjectSetup = '';
 
-  return `You are a Next.js developer assistant. Build modern web apps with Next.js 15, React 19, TypeScript, and Tailwind CSS.
+  // Format personalization settings
+  const personalizationSection = formatPersonalizationForPrompt(personalization);
 
+  return `You are a Next.js developer assistant. Build modern web apps with Next.js 15, React 19, TypeScript, and Tailwind CSS.
+${personalizationSection}${userMemory ? userMemory : ''}
 ## Current Project Context
 ${projectId ? `- **Project ID**: \`${projectId}\` (IMPORTANT: Use this exact value for all tool calls)` : ''}
 ${isEmptyProject ? `- **⚠️ EMPTY PROJECT**: This project has NO files yet. You MUST initialize it from scratch.` : '- **✅ Template Loaded**: Project initialized with default Next.js 15 template'}
@@ -185,16 +195,18 @@ Keep answers clear, concise, and helpful. When discussing code, follow the same 
 export function getSystemPrompt(
   taskType: 'coding' | 'naming' | 'general' = 'coding',
   projectFiles?: Record<string, string>,
-  projectId?: string
+  projectId?: string,
+  userMemory?: string,
+  personalization?: UserPersonalization | null
 ): string {
   switch (taskType) {
     case 'coding':
-      return getCodingSystemPrompt(projectFiles, projectId);
+      return getCodingSystemPrompt(projectFiles, projectId, userMemory, personalization);
     case 'naming':
       return getNamingSystemPrompt();
     case 'general':
       return getGeneralSystemPrompt();
     default:
-      return getCodingSystemPrompt(projectFiles, projectId);
+      return getCodingSystemPrompt(projectFiles, projectId, userMemory, personalization);
   }
 }
