@@ -102,7 +102,8 @@ export function useSandboxHeartbeat(projectId: string, enabled = true) {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             console.log("🛑 Sandbox heartbeat stopped (component unmounted)");
         };
-    }, [projectId, enabled]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty deps - only run once on mount
 
     return {
         sendHeartbeat, // Expose for manual triggering if needed

@@ -10,6 +10,7 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
+  previewImage: string | null;
   createdAt: string;
   updatedAt: string;
   _count?: {
@@ -173,15 +174,25 @@ export default function RecentProjects() {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="group relative p-4 bg-card/50 rounded-xl border border-border/50 hover:border-border hover:bg-card transition-all cursor-pointer"
+              className="group relative bg-card/50 rounded-xl border border-border/50 hover:border-border hover:bg-card transition-all cursor-pointer overflow-hidden"
             >
               {/* Main Card Content - Clickable Link */}
               <Link href={`/chat/${project.id}`} className="block">
-                {/* Header with Icon and Time */}
-                <div className="flex items-start justify-between mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center">
+                {/* Thumbnail or Icon Header */}
+                {project.previewImage ? (
+                  <div className="relative w-full h-32 bg-muted overflow-hidden">
+                    <img
+                      src={project.previewImage}
+                      alt={project.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                  </div>
+                ) : (
+                  <div className="relative w-full h-32 bg-muted/50 flex items-center justify-center">
                     <svg
-                      className="w-4 h-4 text-muted-foreground"
+                      className="w-12 h-12 text-muted-foreground/30"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -189,32 +200,39 @@ export default function RecentProjects() {
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={2}
+                        strokeWidth={1.5}
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {getRelativeTime(project.updatedAt)}
-                  </span>
-                </div>
+                )}
 
-                {/* Title */}
-                <h3 className="text-sm font-medium text-foreground mb-1 line-clamp-1 break-words">
-                  {project.name}
-                </h3>
+                {/* Card Content */}
+                <div className="p-4">
+                  {/* Header with Time */}
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-xs text-muted-foreground">
+                      {getRelativeTime(project.updatedAt)}
+                    </span>
+                  </div>
 
-                {/* Metadata Footer */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {project._count && (
-                    <>
-                      {/* File Count */}
-                      <span>{project._count.fileRecords} files</span>
-                      <span>•</span>
-                      {/* Chat Count */}
-                      <span>{project._count.chatMessages} chats</span>
-                    </>
-                  )}
+                  {/* Title */}
+                  <h3 className="text-sm font-medium text-foreground mb-2 line-clamp-1 break-words">
+                    {project.name}
+                  </h3>
+
+                  {/* Metadata Footer */}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {project._count && (
+                      <>
+                        {/* File Count */}
+                        <span>{project._count.fileRecords} files</span>
+                        <span>•</span>
+                        {/* Chat Count */}
+                        <span>{project._count.chatMessages} chats</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </Link>
 

@@ -62,7 +62,13 @@ export async function GET(req: NextRequest) {
             where: whereClause,
             orderBy,
             take: limit ? parseInt(limit) : undefined,
-            include: {
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                previewImage: true,
+                createdAt: true,
+                updatedAt: true,
                 _count: {
                     select: {
                         fileRecords: true,

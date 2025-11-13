@@ -191,6 +191,7 @@ model Project {
   // E2B Sandbox fields (Phase 3)
   sandboxId        String? // E2B sandbox ID for pause/resume
   sandboxPausedAt  DateTime? // Timestamp when sandbox was paused
+  previewImage     String? // Screenshot/preview image URL for project thumbnail
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   chatMessages     ChatMessage[]

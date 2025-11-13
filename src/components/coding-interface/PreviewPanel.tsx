@@ -8,6 +8,10 @@ import {
   forwardRef,
   useImperativeHandle,
 } from "react";
+import {
+  captureIframeScreenshot,
+  uploadScreenshot,
+} from "@/lib/utils/screenshot";
 
 interface PreviewPanelProps {
   projectId: string;
@@ -107,6 +111,38 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
       null
     );
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+    const hasScreenshotCaptured = useRef(false);
+
+    // Capture screenshot when preview loads successfully
+    const captureScreenshot = useCallback(async () => {
+      if (!iframeRef.current || hasScreenshotCaptured.current) {
+        return;
+      }
+
+      try {
+        console.log("📸 Attempting to capture project screenshot...");
+
+        // Wait a bit for the page to fully render
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        const screenshot = await captureIframeScreenshot(iframeRef.current);
+
+        console.log("📸 Screenshot captured, uploading...");
+
+        const result = await uploadScreenshot(projectId, screenshot);
+
+        if (result.success) {
+          console.log("✅ Screenshot uploaded:", result.thumbnailUrl);
+          hasScreenshotCaptured.current = true;
+        } else {
+          console.error("❌ Failed to upload screenshot:", result.error);
+        }
+      } catch (error) {
+        console.error("❌ Screenshot capture failed:", error);
+        // Don't block on screenshot failures
+      }
+    }, [projectId]);
 
     // Utility function to format relative time
     const getRelativeTime = (dateString: string): string => {
@@ -1060,12 +1096,15 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
               >
                 <div className="relative h-full border-l border-r border-border">
                   <iframe
+                    ref={iframeRef}
                     src={iframeUrl}
                     className="w-full h-full border-none"
                     title="Preview"
                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
                     onLoad={() => {
                       console.log("✅ Iframe loaded successfully!");
+                      // Capture screenshot on first successful load
+                      captureScreenshot();
                     }}
                     onError={(e) => {
                       console.error("❌ Iframe error:", e);
