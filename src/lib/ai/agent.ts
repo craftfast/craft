@@ -264,25 +264,8 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         onFinish
     } = options;
 
-    // 🔒 Lock sandbox to prevent auto-pause during AI code generation
-    if (projectId) {
-        try {
-            const { lockSandbox } = await import('@/lib/e2b/sandbox-manager');
-            const { prisma } = await import('@/lib/db');
-
-            // Get sandbox ID from project
-            const project = await prisma.project.findUnique({
-                where: { id: projectId },
-                select: { sandboxId: true },
-            });
-
-            if (project?.sandboxId) {
-                lockSandbox(project.sandboxId);
-            }
-        } catch (error) {
-            console.warn('⚠️ Failed to lock sandbox:', error);
-        }
-    }
+    // Note: E2B auto-pause handles sandbox lifecycle automatically
+    // No manual locking needed - sandbox stays alive during active usage
 
     // ⚡ Phase 2: Initialize agent loop if enabled
     let agentLoop: AgentLoopCoordinator | undefined;
@@ -466,25 +449,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
             }
         },
         onFinish: async ({ usage, toolCalls, toolResults }) => {
-            // 🔓 Unlock sandbox to allow auto-pause after AI code generation completes
-            if (projectId) {
-                try {
-                    const { unlockSandbox } = await import('@/lib/e2b/sandbox-manager');
-                    const { prisma } = await import('@/lib/db');
-
-                    // Get sandbox ID from project
-                    const project = await prisma.project.findUnique({
-                        where: { id: projectId },
-                        select: { sandboxId: true },
-                    });
-
-                    if (project?.sandboxId) {
-                        unlockSandbox(project.sandboxId);
-                    }
-                } catch (error) {
-                    console.warn('⚠️ Failed to unlock sandbox:', error);
-                }
-            }
+            // Note: E2B auto-pause handles sandbox lifecycle automatically
 
             // Clean up tool context
             clearToolContext();

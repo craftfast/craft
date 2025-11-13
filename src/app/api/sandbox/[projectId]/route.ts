@@ -1,22 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
-import { getOrCreateProjectSandbox, pauseSandbox, getSandboxRegistry, keepSandboxAlive } from "@/lib/e2b/sandbox-manager";
-
-// Phase 3: Use the sandbox manager's registry
-// The manager handles pause/resume automatically
-export const activeSandboxes = getSandboxRegistry();
-
-// Legacy export for backward compatibility with tools.ts
-export type SandboxData = {
-    sandbox: unknown; // Type from e2b-sandbox-manager
-    lastAccessed: Date;
-    devServerPid?: number;
-};
-
-// Phase 3: Cleanup is now handled by sandbox-manager.ts
-// The manager automatically pauses sandboxes after 5 min and kills after 30 min
-// No manual cleanup needed here - it's centralized in the manager
+import { getOrCreateProjectSandbox } from "@/lib/e2b/sandbox-manager";
 
 /**
  * POST /api/sandbox/[projectId]
@@ -55,25 +40,19 @@ export async function POST(
 
         const sandboxOpts = {
             metadata: { projectId, userId: session.user.id },
-            timeoutMs: 15 * 60 * 1000, // 15 minutes for better UX
         };
 
         // Use sandbox manager - will resume paused sandbox if exists, or create new one
         const sandboxInfo = await getOrCreateProjectSandbox(projectId, sandboxOpts);
         const sandbox = sandboxInfo.sandbox;
 
-        console.log(`✅ Sandbox ready: ${sandbox.sandboxId} (${sandboxInfo.isPaused ? 'resumed from paused state' : 'newly created'})`);
-
-        // Keep sandbox alive for 15 minutes to ensure it doesn't timeout during operations
-        await keepSandboxAlive(sandbox.sandboxId, 15 * 60 * 1000);
-
-        // Update last accessed time
-        sandboxInfo.lastAccessed = new Date();
+        console.log(`✅ Sandbox ready: ${sandbox.sandboxId}`);
 
         // ⚡ OPTIMIZATION: Sandbox is source of truth!
-        // Files are already in the sandbox (from E2B template or previous AI edits)
+        // Files are already in the sandbox (from E2B template or AI edits via writeFileToSandbox)
         // We do NOT inject files from database - that would overwrite sandbox state
-        // AI uses generateFiles to write to sandbox, then syncFilesToDB to persist
+        // AI writes directly to sandbox → Next.js HMR detects changes → Auto-reloads preview
+        // Preview iframe stays connected, no restarts needed!
         console.log("⚡ Sandbox has all files already (source of truth) - skipping injection");
 
         // Ensure /home/user/project directory exists
@@ -89,23 +68,96 @@ export async function POST(
         console.log("🔍 Checking if dev server is running on port 3000...");
 
         let isServerRunning = false;
+        let needsRestart = false;
+        let hasExistingProcess = false;
+
+        // First, check if there's a Next.js process (from resumed sandbox)
+        try {
+            const processCheck = await sandbox.commands.run(
+                "ps aux | grep -E 'next dev|next-server' | grep -v grep | wc -l",
+                { timeoutMs: 2000 }
+            );
+            const processCount = parseInt(processCheck.stdout?.trim() || '0');
+            hasExistingProcess = processCount > 0;
+            
+            if (hasExistingProcess) {
+                console.log(`📦 Found ${processCount} existing Next.js process(es) - likely from resumed sandbox`);
+            }
+        } catch (error) {
+            console.log("⚠️ Could not check for existing processes");
+        }
+
+        // Try internal port check
         try {
             const portCheck = await sandbox.commands.run(
                 "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo 'failed'",
-                { timeoutMs: 2000 }
+                { timeoutMs: 3000 }
             );
             const httpCode = portCheck.stdout?.trim() || '';
             isServerRunning = httpCode !== 'failed' && /^[2-5]\d\d$/.test(httpCode);
 
             if (isServerRunning) {
-                console.log(`✅ Dev server is already running on port 3000 (HTTP ${httpCode})`);
+                console.log(`✅ Dev server is responding internally on port 3000 (HTTP ${httpCode})`);
+                
+                // Server is responding internally, but is it accessible externally?
+                // Try to trigger port forwarding by making an external request
+                if (hasExistingProcess) {
+                    console.log("🔄 Existing process found - attempting to reconnect port forwarding...");
+                    
+                    // Get the URL and try to access it to trigger port forwarding
+                    const previewUrl = `https://${sandbox.getHost(3000)}`;
+                    try {
+                        const externalCheck = await fetch(previewUrl, {
+                            method: 'HEAD',
+                            signal: AbortSignal.timeout(5000)
+                        });
+                        if (externalCheck.ok || externalCheck.status === 404) {
+                            console.log(`✅ Port forwarding active - reusing existing process (no restart needed!)`);
+                            // Exit early - no need to restart!
+                            isServerRunning = true;
+                        } else {
+                            console.log(`⚠️ Port forwarding not working (HTTP ${externalCheck.status}), will restart`);
+                            needsRestart = true;
+                        }
+                    } catch (externalError) {
+                        console.log(`⚠️ External access failed, port forwarding may need reset - will restart process`);
+                        needsRestart = true;
+                    }
+                }
+            } else if (hasExistingProcess) {
+                // Process exists but not responding - it's a zombie
+                console.log("⚠️ Process exists but not responding - will kill and restart");
+                needsRestart = true;
             }
         } catch (error) {
-            console.log("⚠️ Port check failed, will start dev server");
+            console.log("⚠️ Port check failed");
+            if (hasExistingProcess) {
+                needsRestart = true;
+            }
         }
 
-        // Start dev server if not running
-        if (!isServerRunning) {
+        // Kill zombies if needed
+        if (needsRestart) {
+            console.log("🔧 Killing stale processes...");
+            try {
+                const pidsResult = await sandbox.commands.run(
+                    "ps aux | grep -E 'next dev|next-server' | grep -v grep | awk '{print $2}'",
+                    { timeoutMs: 2000 }
+                );
+                const pids = pidsResult.stdout?.trim();
+                if (pids) {
+                    console.log(`🔧 Killing PIDs: ${pids.split('\n').join(', ')}`);
+                    await sandbox.commands.run(`kill -9 ${pids.split('\n').join(' ')}`, { timeoutMs: 2000 });
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Wait for cleanup
+                    console.log("✅ Stale processes killed");
+                }
+            } catch (killError) {
+                console.log("⚠️ Could not kill processes, will try to start anyway");
+            }
+        }
+
+        // Start dev server if not running or needs restart
+        if (!isServerRunning || needsRestart) {
             console.log("🚀 Starting Next.js dev server...");
 
             try {
@@ -169,11 +221,41 @@ export async function POST(
             }
         }
 
+        // Get the preview URL
+        const previewUrl = `https://${sandbox.getHost(3000)}`;
+        console.log(`🔗 Preview URL: ${previewUrl}`);
+
+        // Verify external URL is accessible (for resumed sandboxes, port forwarding may take a moment)
+        console.log("🔍 Verifying external URL accessibility...");
+        let isExternallyAccessible = false;
+        const maxRetries = 3;
+
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                const response = await fetch(previewUrl, {
+                    method: 'HEAD',
+                    signal: AbortSignal.timeout(3000)
+                });
+                if (response.ok || response.status === 404) { // 404 is fine, means server is responding
+                    isExternallyAccessible = true;
+                    console.log(`✅ External URL is accessible (HTTP ${response.status})`);
+                    break;
+                }
+            } catch (error) {
+                if (i < maxRetries - 1) {
+                    console.log(`⏳ External URL not ready yet (attempt ${i + 1}/${maxRetries}), retrying in 1s...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                } else {
+                    console.warn(`⚠️ External URL verification failed after ${maxRetries} attempts, but returning URL anyway`);
+                }
+            }
+        }
+
         // Return sandbox info
         return NextResponse.json({
             sandboxId: sandbox.sandboxId,
-            url: `https://${sandbox.getHost(3000)}`,
-            status: sandboxInfo.isPaused ? "resumed" : "created",
+            url: previewUrl,
+            status: "ready",
             message: "Sandbox is ready with files from source of truth (E2B sandbox)",
         });
 
@@ -215,85 +297,36 @@ export async function GET(
             return NextResponse.json({ error: "Project not found" }, { status: 404 });
         }
 
-        // Check if sandbox exists in registry
-        const sandboxRegistry = getSandboxRegistry();
-        let sandboxInfo;
-
-        for (const [sandboxId, info] of sandboxRegistry.entries()) {
-            if (info.projectId === projectId) {
-                sandboxInfo = info;
-                break;
-            }
-        }
-
-        if (!sandboxInfo) {
+        // Check if sandbox exists in database
+        if (!project.sandboxId) {
             return NextResponse.json(
                 { status: "inactive", url: null },
                 { status: 200 }
             );
         }
 
-        // Update last accessed time
-        sandboxInfo.lastAccessed = new Date();
+        // Try to connect to the sandbox to check its status
+        try {
+            const { Sandbox } = await import("e2b");
+            const sandbox = await Sandbox.connect(project.sandboxId);
 
-        return NextResponse.json({
-            sandboxId: sandboxInfo.sandboxId,
-            url: `https://${sandboxInfo.sandbox.getHost(3000)}`,
-            status: sandboxInfo.isPaused ? "paused" : "running",
-        });
+            return NextResponse.json({
+                sandboxId: project.sandboxId,
+                url: `https://${sandbox.getHost(3000)}`,
+                status: "running",
+            });
+        } catch (error) {
+            // Sandbox might be paused or terminated
+            return NextResponse.json({
+                sandboxId: project.sandboxId,
+                status: "paused",
+                url: null,
+            });
+        }
     } catch (error) {
         console.error("Error getting sandbox:", error);
         return NextResponse.json(
             { error: "Failed to get sandbox" },
-            { status: 500 }
-        );
-    }
-}
-
-/**
- * DELETE /api/sandbox/[projectId]
- * Pause sandbox (don't kill it - we want to reuse it later)
- */
-export async function DELETE(
-    request: NextRequest,
-    { params }: { params: Promise<{ projectId: string }> }
-) {
-    try {
-        const session = await getSession();
-
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const { projectId } = await params;
-
-        // Check if sandbox exists in the registry
-        const projectSandboxMap = getSandboxRegistry();
-        const sandboxRegistry = getSandboxRegistry();
-
-        // Find sandbox by project ID
-        let sandboxIdToDelete: string | undefined;
-        for (const [sandboxId, sandboxInfo] of sandboxRegistry.entries()) {
-            if (sandboxInfo.projectId === projectId) {
-                sandboxIdToDelete = sandboxId;
-                break;
-            }
-        }
-
-        if (sandboxIdToDelete) {
-            // Pause the sandbox instead of killing it (paused = FREE)
-            console.log(`⏸️  Pausing sandbox for project: ${projectId}`);
-            await pauseSandbox(sandboxIdToDelete);
-            console.log(`✅ Sandbox paused (can be resumed later): ${sandboxIdToDelete}`);
-        } else {
-            console.log(`ℹ️  No active sandbox found for project: ${projectId}`);
-        }
-
-        return NextResponse.json({ status: "paused" });
-    } catch (error) {
-        console.error("Error pausing sandbox:", error);
-        return NextResponse.json(
-            { error: "Failed to pause sandbox" },
             { status: 500 }
         );
     }
@@ -308,37 +341,50 @@ export async function PATCH(
     { params }: { params: Promise<{ projectId: string }> }
 ) {
     try {
-        const { projectId } = await params;
-
-        // Check if sandbox exists in registry
-        const sandboxRegistry = getSandboxRegistry();
-        let sandboxInfo;
-
-        for (const [sandboxId, info] of sandboxRegistry.entries()) {
-            if (info.projectId === projectId) {
-                sandboxInfo = info;
-                break;
-            }
+        const session = await getSession();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        if (!sandboxInfo) {
+        const { projectId } = await params;
+
+        // Get project to find sandbox ID
+        const project = await prisma.project.findFirst({
+            where: {
+                id: projectId,
+                userId: session.user.id,
+            },
+            select: {
+                sandboxId: true,
+            },
+        });
+
+        if (!project?.sandboxId) {
             return NextResponse.json({
                 healthy: false,
                 status: "inactive",
-                message: "Sandbox not running"
+                message: "No sandbox found"
             });
         }
 
-        // Update last accessed time
-        sandboxInfo.lastAccessed = new Date();
-        const idleTime = Date.now() - sandboxInfo.lastAccessed.getTime();
+        // Try to connect to check if sandbox is running
+        try {
+            const { Sandbox } = await import("e2b");
+            await Sandbox.connect(project.sandboxId);
 
-        return NextResponse.json({
-            healthy: true,
-            status: sandboxInfo.isPaused ? "paused" : "running",
-            sandboxId: sandboxInfo.sandboxId,
-            idleTime: Math.round(idleTime / 1000),
-        });
+            return NextResponse.json({
+                healthy: true,
+                status: "running",
+                sandboxId: project.sandboxId,
+            });
+        } catch (error) {
+            return NextResponse.json({
+                healthy: false,
+                status: "paused",
+                sandboxId: project.sandboxId,
+                message: "Sandbox is paused"
+            });
+        }
     } catch (error) {
         console.error("Health check error:", error);
         return NextResponse.json(

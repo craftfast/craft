@@ -143,26 +143,45 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
       },
     }));
 
-    // 🧹 CLEANUP ON UNMOUNT: Delete sandbox when component unmounts (user leaves/closes page)
-    // This ensures fresh sandbox on every mount and prevents stale sandboxes
-    useEffect(() => {
-      // Cleanup function runs when component unmounts
-      return () => {
-        const deleteSandbox = async () => {
-          try {
-            console.log("🧹 Component unmounting - deleting sandbox...");
-            await fetch(`/api/sandbox/${projectId}`, {
-              method: "DELETE",
-            });
-            console.log("✅ Sandbox deleted on unmount");
-          } catch (error) {
-            console.error("Error deleting sandbox on unmount:", error);
-          }
-        };
+    // 🔄 NOTE: We do NOT delete/kill sandboxes on unmount
+    // Sandboxes contain the source of truth for all code files.
+    // E2B manages sandbox lifecycle automatically.
+    // Database files are backup only for when sandboxes are unavailable.
 
-        deleteSandbox();
+    // 🔄 INITIALIZATION: On mount, check if project has files and auto-start preview
+    // This handles page reloads where sandbox may have been paused
+    const hasInitialized = useRef(false);
+
+    useEffect(() => {
+      const initializePreview = async () => {
+        // Only run once on mount
+        if (hasInitialized.current) return;
+
+        // Wait a bit for props to load from parent
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Check if project has files (version > 0 means AI has generated code)
+        if (
+          version > 0 &&
+          Object.keys(projectFiles).length > 0 &&
+          sandboxStatus === "inactive"
+        ) {
+          console.log(
+            `🔄 Initializing preview on mount (version: ${version}, ${
+              Object.keys(projectFiles).length
+            } files)`
+          );
+          hasInitialized.current = true;
+          startSandbox();
+        } else {
+          console.log(
+            `⏭️ Skipping auto-start on mount - no files yet or sandbox active`
+          );
+        }
       };
-    }, [projectId]);
+
+      initializePreview();
+    }, [projectId]); // Only run when projectId changes (component mount)
 
     // Handle AI generation completion - auto-start OR auto-update preview
     // Use ref to track last processed version to avoid duplicate operations
@@ -313,49 +332,8 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
           );
         }
 
-        // The server is already running thanks to the API!
-        // OPTIMIZATION: Give server time to compile if needed
-        setLoadingMessage("Verifying server is ready...");
-
-        // Wait a bit for compilation
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        // Try to access the URL to verify it's ready
-        let retries = 0;
-        const maxRetries = 12; // Increased from 8 to 12 attempts
-        let isReady = false;
-
-        setLoadingMessage("Connecting to preview...");
-
-        while (retries < maxRetries && !isReady) {
-          try {
-            console.log(
-              `🔍 Attempt ${retries + 1}/${maxRetries}: Testing ${data.url}`
-            );
-            const testFetch = await fetch(data.url, {
-              mode: "no-cors",
-              cache: "no-cache",
-              signal: AbortSignal.timeout(3000), // 3 second timeout per request
-            });
-            console.log("✅ Server responded!");
-            isReady = true;
-          } catch (err) {
-            console.warn(`⚠️  Attempt ${retries + 1} failed:`, err);
-            retries++;
-            // Adaptive retry: start with shorter waits, increase if needed
-            const waitTime = retries < 6 ? 1000 : 1500;
-            await new Promise((resolve) => setTimeout(resolve, waitTime));
-            setLoadingMessage(
-              `Waiting for server... (${retries}/${maxRetries})`
-            );
-          }
-        }
-
-        if (!isReady) {
-          console.error("❌ Server did not respond after retries");
-          throw new Error("Server not responding");
-        }
-
+        // ✅ SIMPLIFIED: Just set the URL and show iframe immediately
+        // Next.js will handle its own loading states in the browser
         console.log("🎉 Setting preview URL:", data.url);
         setPreviewUrl(data.url);
         setIframeUrl(data.url);
@@ -434,17 +412,10 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
             );
           }
 
-          // Wait a moment for files to be written and HMR to pick up changes
-          await new Promise((resolve) => setTimeout(resolve, 800));
-
-          // Force iframe reload to ensure changes are visible
-          console.log(`🔄 Forcing iframe reload to show updated code...`);
-          const currentUrl = iframeUrl;
-          setIframeUrl("");
-          setTimeout(() => {
-            setIframeUrl(currentUrl);
-            setIsRefreshing(false);
-          }, 100);
+          // ✅ NO RELOAD: Let Next.js HMR handle the updates automatically
+          // The iframe stays connected, Next.js dev server detects file changes and hot-reloads
+          console.log(`✅ Files updated - Next.js HMR will auto-refresh`);
+          setIsRefreshing(false);
         } else {
           const errorText = await response.text();
           console.error(`❌ Failed to update files:`, errorText);
@@ -1012,6 +983,14 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
                     <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                     <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce [animation-delay:0.4s]" />
                   </div>
+                )}
+                {!isGeneratingFiles && version > 0 && (
+                  <button
+                    onClick={startSandbox}
+                    className="mt-4 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-full hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+                  >
+                    Start Preview
+                  </button>
                 )}
               </div>
             )}

@@ -13,7 +13,6 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { activeSandboxes } from "@/app/api/sandbox/[projectId]/route";
 import { getToolContext } from "@/lib/ai/tool-context";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import {
@@ -23,7 +22,6 @@ import {
     writeFileToSandbox,
     readFileFromSandbox,
     executeSandboxCommand,
-    getSandboxRegistry,
 } from "@/lib/e2b/sandbox-manager";
 
 // ============================================================================
@@ -768,10 +766,7 @@ export const createProjectSandbox = tool({
             return {
                 success: true,
                 sandboxId: sandboxInfo.sandboxId,
-                isPaused: sandboxInfo.isPaused,
-                message: sandboxInfo.isPaused
-                    ? `Resumed paused sandbox ${sandboxInfo.sandboxId}`
-                    : `Created new sandbox ${sandboxInfo.sandboxId}`,
+                message: `Sandbox ready: ${sandboxInfo.sandboxId}`,
             };
         } catch (error) {
             console.error('❌ Failed to create/resume sandbox:', error);
@@ -1013,13 +1008,27 @@ Example workflow:
 
         try {
             // Get or create sandbox for this project (it has Next.js pre-installed!)
-            const { getOrCreateProjectSandbox, executeSandboxCommand, readFileFromSandbox, keepSandboxAlive } = await import('../e2b/sandbox-manager');
+            const { getOrCreateProjectSandbox, executeSandboxCommand, readFileFromSandbox, writeFileToSandbox } = await import('../e2b/sandbox-manager');
             const sandboxInfo = await getOrCreateProjectSandbox(projectId, {
                 metadata: { projectId },
             });
 
-            // Keep sandbox alive for 10 minutes during initialization
-            await keepSandboxAlive(sandboxInfo.sandboxId, 600000);
+            // 🔧 FIX: Ensure Tailwind CSS v4 is properly configured
+            console.log(`🔧 Ensuring Tailwind CSS v4 configuration...`);
+
+            // Create proper postcss.config.mjs for Tailwind v4
+            const postcssConfig = `const config = {
+  plugins: ["@tailwindcss/postcss"],
+};
+
+export default config;
+`;
+            await writeFileToSandbox(sandboxInfo.sandbox, 'postcss.config.mjs', postcssConfig);
+
+            // Ensure Tailwind v4 packages are installed
+            const installCmd = `cd /home/user/project && pnpm add -D @tailwindcss/postcss@latest tailwindcss@latest postcss@latest autoprefixer@latest`;
+            await executeSandboxCommand(sandboxInfo.sandbox, installCmd, 60000);
+            console.log(`✅ Tailwind CSS v4 configuration applied`);
 
             console.log(`📦 Reading Next.js 15 template from sandbox ${sandboxInfo.sandboxId}...`);
 
