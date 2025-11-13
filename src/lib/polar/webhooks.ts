@@ -1,32 +1,12 @@
 /**
  * Polar Webhooks Utilities
  * 
- * Utilities for handling and verifying Polar webhook events.
+ * Utilities for logging and managing Polar webhook events.
+ * Signature verification is handled by the standardwebhooks library in the API route.
  */
 
-import { createHmac } from "crypto";
 import { prisma } from "@/lib/db";
 import { WebhookEventStatus } from "@prisma/client";
-
-/**
- * Verify webhook signature from Polar
- */
-export function verifyWebhookSignature(
-    payload: string,
-    signature: string,
-    secret: string
-): boolean {
-    try {
-        const hmac = createHmac("sha256", secret);
-        hmac.update(payload);
-        const expectedSignature = hmac.digest("hex");
-
-        return signature === expectedSignature;
-    } catch (error) {
-        console.error("Error verifying webhook signature:", error);
-        return false;
-    }
-}
 
 /**
  * Log webhook event to database

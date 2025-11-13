@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { generateProjectName } from "@/lib/ai/agent";
-import { getNextJsTemplate } from "@/lib/templates/nextjs";
 
 // GET /api/projects - Fetch all projects for the authenticated user
 export async function GET(req: NextRequest) {
@@ -159,32 +158,29 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Create project with Next.js template
-        // Template includes:
-        // 1. package.json with Next.js 15, React 19, TypeScript, Tailwind CSS v4
-        // 2. All config files (tsconfig.json, next.config.ts, postcss.config.mjs)
-        // 3. Basic app structure (layout.tsx, page.tsx, globals.css)
-        // 4. Public assets (Next.js logo, icons)
-        // AI will customize this template based on user's description
-        console.log("📦 Creating project with Next.js template...");
+        // Create project with EMPTY state
+        // AI will initialize with Next.js template when user sends first message
+        // This approach:
+        // 1. Saves database space (no unused template files)
+        // 2. Gives AI full control over project structure
+        // 3. Enables flexible framework choices (Next.js, Vite, Remix, etc.)
+        console.log("📦 Creating empty project (AI will initialize on first message)...");
 
-        const templateFiles = getNextJsTemplate();
-
-        // Create the project with template files
+        // Create the project with empty codeFiles
         const project = await prisma.project.create({
             data: {
                 name: projectName,
                 description: description?.trim() || null,
                 userId: user.id,
-                codeFiles: templateFiles, // Start with Next.js template
+                codeFiles: {}, // Start empty - AI initializes with create-next-app
                 version: 0,
-                generationStatus: "template", // Status: template (ready for AI to customize)
+                generationStatus: "empty", // Status: empty (needs AI initialization)
             },
         });
 
         console.log(`🎉 Project created with ID: ${project.id}`);
-        console.log(`📦 Template files added: ${Object.keys(templateFiles).length} files`);
-        console.log(`🤖 Ready for AI to customize based on description...`);
+        console.log(`📦 Starting state: EMPTY (0 files)`);
+        console.log(`🤖 AI will initialize Next.js project on first message...`);
 
         return NextResponse.json({ project }, { status: 201 });
     } catch (error) {

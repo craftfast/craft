@@ -1,28 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
-import { Sandbox } from "e2b"; // Using base e2b package for custom Next.js template
-import { getTemplateAlias } from "@/lib/e2b/template";
+import { getOrCreateProjectSandbox, pauseSandbox, getSandboxRegistry } from "@/lib/e2b/sandbox-manager";
 
-// Store active sandboxes in global state (in production, use Redis)
-declare global {
-    var activeSandboxes: Map<string, {
-        sandbox: Sandbox;
-        lastAccessed: Date;
-        devServerPid?: number;
-    }>;
-}
+// Phase 3: Use the sandbox manager's registry
+// The manager handles pause/resume automatically
+export const activeSandboxes = getSandboxRegistry();
 
-if (!global.activeSandboxes) {
-    global.activeSandboxes = new Map();
-}
-
-// Export for use by AI tools
-export const activeSandboxes = global.activeSandboxes;
-
-// Export the type for use in tools.ts
+// Legacy export for backward compatibility with tools.ts
 export type SandboxData = {
-    sandbox: Sandbox;
+    sandbox: unknown; // Type from e2b-sandbox-manager
     lastAccessed: Date;
     devServerPid?: number;
 };
@@ -107,33 +94,9 @@ async function installDependencies(
     }
 }
 
-// 💰 COST OPTIMIZATION: Aggressively cleanup inactive sandboxes
-// E2B charges $0.000028/second for 2 vCPUs = $0.10/hour = $2.40/day
-// With 4 vCPUs (for better UX): $0.20/hour = $4.80/day
-// Goal: Close sandboxes within 5 minutes of inactivity for better balance
-const SANDBOX_TIMEOUT = 5 * 60 * 1000; // 5 minutes (balance between UX and cost)
-
-setInterval(() => {
-    const now = new Date();
-    let cleanedCount = 0;
-
-    for (const [projectId, { sandbox, lastAccessed }] of activeSandboxes) {
-        const idleTime = now.getTime() - lastAccessed.getTime();
-
-        if (idleTime > SANDBOX_TIMEOUT) {
-            sandbox.kill().catch((error) => {
-                console.warn(`⚠️  Error closing sandbox ${projectId}:`, error.message);
-            });
-            activeSandboxes.delete(projectId);
-            cleanedCount++;
-            console.log(`💰 Cost-saving: Closed idle sandbox ${projectId} (idle: ${Math.round(idleTime / 1000)}s)`);
-        }
-    }
-
-    if (cleanedCount > 0) {
-        console.log(`💰 Cleanup: ${cleanedCount} sandbox(es) closed, ${activeSandboxes.size} active (saved ~$${(cleanedCount * 0.10).toFixed(2)}/hr)`);
-    }
-}, 60 * 1000); // Check every 1 minute (increased frequency for faster cleanup)
+// Phase 3: Cleanup is now handled by sandbox-manager.ts
+// The manager automatically pauses sandboxes after 5 min and kills after 30 min
+// No manual cleanup needed here - it's centralized in the manager
 
 /**
  * POST /api/sandbox/[projectId]

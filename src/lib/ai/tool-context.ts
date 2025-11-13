@@ -12,6 +12,7 @@ interface ToolExecutionContext {
     projectId?: string;
     userId?: string;
     sessionId?: string;
+    sandboxId?: string; // Phase 3: E2B sandbox ID for the project
 }
 
 // Global registry of active tool execution contexts

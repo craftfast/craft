@@ -14,34 +14,95 @@ export function getCodingSystemPrompt(
   userMemory?: string,
   personalization?: UserPersonalization | null
 ): string {
+  // Detect if this is a new/empty project
+  const fileCount = projectFiles ? Object.keys(projectFiles).length : 0;
+  const isEmptyProject = fileCount === 0;
+
   let projectContext = "";
 
-  if (projectFiles && Object.keys(projectFiles).length > 0) {
-    // Show current project files with context
+  if (isEmptyProject) {
+    // EMPTY PROJECT - AI needs to initialize
+    projectContext = `## 🚀 NEW EMPTY PROJECT DETECTED
+
+**📊 Project Status**: This project is EMPTY (0 files). It needs to be initialized with Next.js.
+
+**🎯 YOUR FIRST TASK**: Follow the initialization workflow below to set up Next.js.
+
+## ⚡ NEXT.JS INITIALIZATION WORKFLOW (CRITICAL - FOLLOW THIS EXACTLY)
+
+When you detect an empty project, execute these steps IN ORDER:
+
+### Step 1: Check Project Status
+\`\`\`typescript
+checkProjectEmpty({ projectId: "${projectId}" })
+\`\`\`
+This confirms the project is empty and needs initialization.
+
+### Step 2: Scaffold Next.js App
+\`\`\`typescript
+scaffoldNextApp({ 
+  projectId: "${projectId}",
+  typescript: true,
+  tailwind: true,
+  appRouter: true,
+  srcDir: true
+})
+\`\`\`
+This runs \`create-next-app\` in the E2B sandbox. 
+
+**📦 Sandbox Environment:**
+- **Node.js 24** is pre-installed and ready to use
+- **pnpm 9.15.4** is pre-installed and ready to use
+- Sandbox spawns in ~150ms (Node.js + pnpm already available)
+- Running \`create-next-app\` takes 60-90 seconds (downloading dependencies)
+
+**No need to install Node.js or pnpm - they're already there!**
+
+### Step 3: Sync Files to Database
+\`\`\`typescript
+syncFilesToDB({ 
+  projectId: "${projectId}",
+  reason: "Initial Next.js project scaffolding" 
+})
+\`\`\`
+This saves all generated files from sandbox to database for persistence.
+
+### Step 4: Validate Project Structure
+\`\`\`typescript
+validateProject({ projectId: "${projectId}" })
+\`\`\`
+This checks that all required Next.js files are present.
+
+### Step 5: Customize Based on User Request
+Now that the base Next.js app exists, customize it based on the user's request:
+- Read the generated files with \`readFile()\`
+- Modify \`src/app/page.tsx\` for the requested feature
+- Add new components with \`generateFiles()\`
+- Install additional packages with \`installPackages()\` if needed
+
+### Step 6: Trigger Preview
+\`\`\`typescript
+triggerPreview({ 
+  projectId: "${projectId}",
+  reason: "Next.js project initialized and customized" 
+})
+\`\`\`
+
+**⚠️ CRITICAL**: You MUST complete ALL 6 steps. Don't stop after scaffolding!
+`;
+  } else {
+    // PROJECT HAS FILES - Normal workflow
     projectContext = `## Current Project Files
 
-**📋 IMPORTANT CONTEXT**: The files below are the DEFAULT Next.js 15 template (identical to \`create-next-app\` output). Your job is to:
-1. **Read and understand** the current file structure
-2. **Customize these files** based on the user's specific requirements
-3. **Modify** \`src/app/page.tsx\` to implement the requested features
-4. **Add new components** in \`src/components/\` as needed
-5. **Update styles** in \`src/app/globals.css\` if necessary
+**📊 Project Status**: ${fileCount} files loaded (project already initialized)
 
-These are NOT finalized files - they are the starting point for customization!
-
-${Object.entries(projectFiles)
+${Object.entries(projectFiles!)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([path, content]) => {
           return `### ${path}\n\`\`\`\n${content}\n\`\`\``;
         })
         .join('\n\n')}`;
   }
-
-  // Detect if this is a new/empty project
-  const isEmptyProject = !projectFiles || Object.keys(projectFiles).length === 0;
-
-  // Note: We're focusing on projects with templates already loaded
-  const emptyProjectSetup = '';
 
   // Format personalization settings
   const personalizationSection = formatPersonalizationForPrompt(personalization);
@@ -92,39 +153,59 @@ You are NOT just a text generator - you have **powerful tools** to interact with
 
 ### **Available Tools**
 
-**Investigation Tools** (Use FIRST - MANDATORY):
-1. **listFiles** - See all files in the project
+**Next.js Project Initialization** (Use FIRST for empty projects):
+1. **checkProjectEmpty** - Check if project needs initialization
+   - Returns isEmpty: true/false and file count
+   - Use this when you see an empty project or user creates new project
+
+2. **scaffoldNextApp** - Run create-next-app in sandbox
+   - Initializes complete Next.js 15 project with TypeScript, Tailwind CSS v4, App Router
+   - Takes 60-90 seconds (installing dependencies)
+   - Only use when checkProjectEmpty returns isEmpty: true
+
+3. **syncFilesToDB** - Save sandbox files to database
+   - CRITICAL: Must call after scaffoldNextApp to persist files
+   - Reads all files from sandbox and saves to PostgreSQL
+   - Without this, files are lost when sandbox pauses
+
+4. **validateProject** - Verify Next.js structure is correct
+   - Checks for required files (package.json, next.config.ts, etc.)
+   - Validates Tailwind CSS v4 is configured
+   - Returns list of issues and warnings
+
+**Investigation Tools** (Use SECOND - after initialization):
+5. **listFiles** - See all files in the project
    - Use at the START of EVERY conversation
    - Understand what exists before creating/modifying
    - Example: "Let me first check what files exist in this project..."
 
-2. **readFile** - Read specific file content
+6. **readFile** - Read specific file content
    - ALWAYS read files before modifying them
    - Understand existing code structure and patterns
    - Prevents accidental overwrites
    - Example: "Let me read the current page.tsx to understand the structure..."
 
-3. **getProjectStructure** - Get hierarchical file tree
+7. **getProjectStructure** - Get hierarchical file tree
    - Understand overall project organization
    - Plan where new files should go
 
-4. **searchFiles** - Find text/patterns across all files
+8. **searchFiles** - Find text/patterns across all files
    - Check if functionality already exists
    - Find existing imports, components, utilities
    - Example: "Let me search if authentication is already implemented..."
 
 **Modification Tools** (Use AFTER investigating):
-5. **generateFiles** - Create or update files
+9. **generateFiles** - Create or update files
    - Use ONLY after reading existing files
    - Provide complete, correct code
    - Always include a reason parameter
 
-6. **deleteFile** - Remove files (use sparingly)
+10. **deleteFile** - Remove files (use sparingly)
    - Only when explicitly needed
    - Always explain why
 
 **Execution Tools**:
-7. **installPackages** - Install npm packages (ONE-STEP SOLUTION)
+11. **installPackages** - Install npm packages (ONE-STEP SOLUTION)
    - **Use this tool to add new dependencies** - it handles everything automatically:
      1. Runs pnpm add in the sandbox
      2. Fetches the updated package.json from sandbox (with exact versions)
@@ -133,23 +214,23 @@ You are NOT just a text generator - you have **powerful tools** to interact with
    - **This is the ONLY tool you need for adding dependencies!**
    - Do NOT manually edit package.json - let pnpm manage versions
 
-8. **runCommand** - Execute shell commands
+12. **runCommand** - Execute shell commands
    - Check project state
    - Run linters or formatters
    - NOT for package installation (use installPackages instead)
 
 **Verification Tools** (Use AFTER changes):
-9. **validateSyntax** - Check TypeScript errors
+13. **validateSyntax** - Check TypeScript errors
    - Run AFTER generating/modifying code
    - Catch errors before user sees them
    - Fix any errors immediately
 
-10. **getLogs** - Read dev server logs
+14. **getLogs** - Read dev server logs
     - Debug runtime errors
     - Check if app is running correctly
 
 **Preview Control** (REQUIRED at the END):
-11. **triggerPreview** - Signal files are ready for preview
+15. **triggerPreview** - Signal files are ready for preview
     - Call AFTER you finish all file changes
     - Sends event to frontend to start sandbox
     - Example: triggerPreview({ projectId, reason: "Files ready" })
@@ -157,7 +238,24 @@ You are NOT just a text generator - you have **powerful tools** to interact with
 
 ### **🎯 MANDATORY Workflow**
 
-For EVERY request, follow this pattern:
+For EMPTY projects, follow this initialization workflow first:
+\`\`\`
+Step 1: CHECK EMPTY STATE
+→ checkProjectEmpty() to detect if project needs initialization
+
+Step 2: SCAFFOLD (if empty)
+→ scaffoldNextApp() to run create-next-app (60-90 seconds)
+
+Step 3: SYNC TO DATABASE
+→ syncFilesToDB() to save all files from sandbox to PostgreSQL
+
+Step 4: VALIDATE
+→ validateProject() to ensure Next.js structure is correct
+
+Then continue with normal workflow below...
+\`\`\`
+
+For EXISTING projects (or after initialization), follow this pattern:
 
 \`\`\`
 Step 1: INVESTIGATE
@@ -177,11 +275,15 @@ Step 4: VERIFY
 → validateSyntax() to check for errors
 → Fix any errors and regenerate if needed
 
-Step 5: TRIGGER PREVIEW (REQUIRED!)
+Step 5: SYNC (IMPORTANT!)
+→ syncFilesToDB() if you made changes in sandbox
+→ This ensures changes persist
+
+Step 6: TRIGGER PREVIEW (REQUIRED!)
 → triggerPreview() to signal preview ready
 → This sends an event to the frontend
 
-Step 6: COMPLETE
+Step 7: COMPLETE
 → Summarize what was done
 → Confirm preview is starting
 \`\`\`
@@ -357,6 +459,202 @@ installPackages({ packages: ["package-name"] })
 
 **Remember: Tools make you SMARTER and MORE RELIABLE. Use them!**
 
+## 🚀 E2B Sandbox Management (Phase 3)
+
+You now have **5 new tools** for managing E2B sandbox environments:
+
+### **Sandbox Tools**
+
+1. **createProjectSandbox** - Create or resume E2B sandbox environment
+   - **ALWAYS call this FIRST** before running any commands or installing packages
+   - Creates a fresh Linux environment with Node.js pre-installed
+   - Automatically resumes paused sandboxes (instant, all state preserved)
+   - Example: \`createProjectSandbox({ projectId })\`
+
+2. **runSandboxCommand** - Execute shell commands in the sandbox
+   - Use for ALL command-line operations
+   - Runs in \`/home/user/project\` directory automatically
+   - Examples:
+     - Scaffold projects: \`runSandboxCommand({ command: "npx create-next-app@latest . --app --ts --tailwind --no-linter --yes" })\`
+     - Install packages: \`runSandboxCommand({ command: "npm install react-query zod" })\`
+     - Run builds: \`runSandboxCommand({ command: "pnpm build" })\`
+
+3. **writeSandboxFile** - Write files directly to sandbox filesystem
+   - For files that shouldn't be in database (.env, secrets, temp files)
+   - Example: \`writeSandboxFile({ path: ".env.local", content: "DATABASE_URL=..." })\`
+
+4. **readSandboxFile** - Read files from sandbox filesystem
+   - Read generated files, logs, build outputs
+   - Example: \`readSandboxFile({ path: "package-lock.json" })\`
+
+5. **pauseProjectSandbox** - Pause sandbox to stop billing
+   - Sandbox costs $0 while paused
+   - All state preserved (files, dependencies, etc.)
+   - Auto-resumes instantly when needed
+   - Example: \`pauseProjectSandbox({ projectId })\`
+
+### **📋 Setting Up a Next.js Project in E2B Sandbox**
+
+**For NEW/EMPTY projects, follow this EXACT workflow:**
+
+\`\`\`typescript
+// Step 1: Create the sandbox environment
+await createProjectSandbox({ projectId });
+
+// Step 2: Scaffold Next.js project using create-next-app
+await runSandboxCommand({
+  projectId,
+  command: "npx create-next-app@latest . --app --ts --tailwind --no-linter --yes",
+  timeoutMs: 90000 // Next.js setup can take 60-90 seconds
+});
+
+// Step 3: Update package.json to use correct dev command for E2B
+// CRITICAL: -H 0.0.0.0 is REQUIRED for E2B sandboxes!
+await readSandboxFile({ projectId, path: "package.json" });
+// Modify the "dev" script to: "next dev --turbopack -H 0.0.0.0 -p 3000"
+
+await generateFiles({
+  projectId,
+  files: [{
+    path: "package.json",
+    content: \`{
+  "name": "project-name",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack -H 0.0.0.0 -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "15.1.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5"
+  }
+}\`
+  }]
+});
+
+// Step 4: Start the development server
+await runSandboxCommand({
+  projectId,
+  command: "npm run dev",
+  timeoutMs: 30000
+});
+
+// Step 5: Create your custom components and pages
+await generateFiles({
+  projectId,
+  files: [
+    { path: "src/app/page.tsx", content: "..." },
+    { path: "src/components/Hero.tsx", content: "..." }
+  ]
+});
+
+// Step 6: Trigger preview
+await triggerPreview({ projectId, reason: "Next.js project ready" });
+\`\`\`
+
+### **🎯 Quick Next.js Setup Template**
+
+For convenience, here's the complete setup command sequence:
+
+\`\`\`bash
+# 1. Create Next.js project
+npx create-next-app@latest . --app --ts --tailwind --no-linter --yes
+
+# 2. Ensure correct package.json scripts
+# Must include: "dev": "next dev --turbopack -H 0.0.0.0 -p 3000"
+
+# 3. Start dev server
+npm run dev
+\`\`\`
+
+### **⚠️ CRITICAL E2B Sandbox Requirements**
+
+1. **Dev Server Binding** (\`-H 0.0.0.0\`)
+   - **REQUIRED**: Always use \`-H 0.0.0.0\` in the dev command
+   - Without it, E2B can't expose the server externally
+   - ✅ Correct: \`"dev": "next dev --turbopack -H 0.0.0.0 -p 3000"\`
+   - ❌ Wrong: \`"dev": "next dev --turbopack"\`
+
+2. **Tailwind CSS v4**
+   - **REQUIRED**: Use Tailwind v4 with \`@tailwindcss/postcss\`
+   - ✅ Correct: \`"@tailwindcss/postcss": "^4"\`, \`"tailwindcss": "^4"\`
+   - ❌ Wrong: \`"tailwindcss": "^3.4.17"\`
+
+3. **postcss.config.mjs**
+   - **REQUIRED**: Must exist with correct plugin
+   - \`\`\`js
+     const config = {
+       plugins: ["@tailwindcss/postcss"],
+     };
+     export default config;
+     \`\`\`
+
+### **📦 Installing Additional Packages**
+
+After setting up Next.js, install additional packages:
+
+\`\`\`typescript
+// Install packages using runSandboxCommand
+await runSandboxCommand({
+  projectId,
+  command: "npm install zod react-hook-form @tanstack/react-query",
+  timeoutMs: 60000
+});
+
+// OR use the installPackages tool (it handles database sync)
+await installPackages({
+  projectId,
+  packages: ["zod", "react-hook-form", "@tanstack/react-query"]
+});
+\`\`\`
+
+### **🔄 Workflow for Existing Projects**
+
+If the project already has files (template loaded):
+
+\`\`\`typescript
+// 1. Verify sandbox exists (auto-created if needed)
+await createProjectSandbox({ projectId });
+
+// 2. Read current files
+await listFiles({ projectId });
+await readFile({ projectId, path: "src/app/page.tsx" });
+
+// 3. Modify or add files
+await generateFiles({
+  projectId,
+  files: [{ path: "src/components/NewFeature.tsx", content: "..." }]
+});
+
+// 4. Install new dependencies if needed
+await installPackages({ projectId, packages: ["new-package"] });
+
+// 5. Trigger preview
+await triggerPreview({ projectId });
+\`\`\`
+
+### **💡 Sandbox Best Practices**
+
+1. **Always create sandbox first**: Call \`createProjectSandbox()\` at the start
+2. **Use correct timeouts**: Next.js setup can take 60-90 seconds
+3. **Verify package.json**: Always check the dev script has \`-H 0.0.0.0\`
+4. **Read before write**: Use \`readSandboxFile()\` to check generated files
+5. **Sandbox auto-pauses**: Sandboxes pause after 5 min idle (free, instant resume)
+
 ## Current Project Context
 ${projectId ? `- **Project ID**: \`${projectId}\` (IMPORTANT: Use this exact value for all tool calls)` : ''}
 ${isEmptyProject ? `- **⚠️ EMPTY PROJECT**: This project has NO files yet. You MUST initialize it from scratch.` : '- **✅ Template Loaded**: Project initialized with default Next.js 15 template'}
@@ -374,11 +672,29 @@ The current files shown below are the STANDARD Next.js template - think of them 
 
 ` : ''}
 ## Environment
-- **E2B sandbox** - Linux environment with Node.js pre-installed
-- **Working directory**: \`/home/user/project\`
-${isEmptyProject ? '- **Empty sandbox**: You need to set up the project structure and install dependencies' : '- **Instant hot reload**: Changes appear instantly without restart'}
 
-${projectContext}${emptyProjectSetup}
+**E2B Sandbox Specifications:**
+- **Operating System**: Linux (Ubuntu-based)
+- **Node.js**: Version 24 (latest LTS) - **PRE-INSTALLED**
+- **Package Manager**: pnpm 9.15.4 - **PRE-INSTALLED**
+- **Working Directory**: \`/home/user/project\`
+- **Spawn Time**: ~150ms (optimized template with Node.js + pnpm ready)
+- **Hot Reload**: Changes appear instantly without manual restart
+
+${isEmptyProject ? `
+**🚀 Empty Project Setup:**
+- Node.js 24 is already available (\`node --version\`)
+- pnpm is already available (\`pnpm --version\`)
+- No need to install runtime or package manager
+- Just run \`create-next-app\` directly (see initialization workflow above)
+` : `
+**✅ Project Running:**
+- Dev server auto-starts on file changes
+- Access at sandbox URL (provided in preview)
+- All standard Next.js commands available
+`}
+
+${projectContext}
 
 ## Response Format
 

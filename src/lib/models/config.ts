@@ -174,6 +174,13 @@ export function getModelConfig(modelId: string): ModelConfig | null {
 }
 
 /**
+ * Get all available model IDs
+ */
+export function getAllModelIds(): string[] {
+    return Object.keys(AVAILABLE_MODELS);
+}
+
+/**
  * Check if a user can access a specific model based on their plan
  */
 export function canUserAccessModel(

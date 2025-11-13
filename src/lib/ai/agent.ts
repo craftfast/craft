@@ -37,6 +37,7 @@ import { tools } from "@/lib/ai/tools";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createAgentLoop, type AgentLoopCoordinator } from "@/lib/ai/agent-loop-coordinator";
 import { setToolContext, clearToolContext } from "@/lib/ai/tool-context";
+import { prisma } from "@/lib/db";
 
 // Create AI provider clients
 // Provider selection is handled dynamically based on model configuration
@@ -344,12 +345,27 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     // Track tool execution timing for SSE events
     const toolStartTimes = new Map<string, number>();
 
-    // Set tool context so tools can access SSE writer and project info
+    // Get sandbox ID if project has one (Phase 3)
+    let sandboxId: string | undefined;
+    if (projectId) {
+        try {
+            const project = await prisma.project.findUnique({
+                where: { id: projectId },
+                select: { sandboxId: true },
+            });
+            sandboxId = project?.sandboxId || undefined;
+        } catch (error) {
+            console.warn('⚠️ Could not fetch sandbox ID:', error);
+        }
+    }
+
+    // Set tool context so tools can access SSE writer, project info, and sandbox
     setToolContext({
         sseWriter,
         projectId,
         userId,
         sessionId,
+        sandboxId, // Phase 3: Sandbox ID for tools that need it
     });
 
     // Stream the response with TOOLS ENABLED and usage tracking

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { notifyCreditUpdate } from "@/lib/credit-events";
 import { toast } from "sonner";
 import ToolCallDisplay from "./ToolCallDisplay";
+import { OrchestratorProgress } from "./OrchestratorProgress";
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -88,6 +89,20 @@ interface Message {
   };
   fileChanges?: FileChange[]; // Track file changes in assistant responses
   toolCalls?: ToolCall[]; // Track tool executions in assistant responses
+  orchestratorProgress?: {
+    tasks: Array<{
+      id: string;
+      phase: string;
+      description: string;
+      status: "pending" | "in-progress" | "completed" | "failed";
+    }>;
+    totalTasks: number;
+    completedTasks: number;
+    failedTasks: number;
+    percentComplete: number;
+    currentTaskId?: string;
+    isActive: boolean;
+  };
 }
 
 interface ChatPanelProps {
@@ -942,6 +957,161 @@ export default function ChatPanel({
                   break;
                 }
 
+                case "orchestrator-session": {
+                  // Orchestrator session started/updated
+                  const { sessionId, status } = data;
+                  console.log(
+                    `🎯 Orchestrator session ${sessionId}: ${status}`
+                  );
+
+                  // Initialize orchestrator progress in message
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMessage.id
+                        ? {
+                            ...m,
+                            orchestratorProgress: {
+                              tasks: [],
+                              totalTasks: 0,
+                              completedTasks: 0,
+                              failedTasks: 0,
+                              percentComplete: 0,
+                              isActive: status === "active",
+                            },
+                          }
+                        : m
+                    )
+                  );
+
+                  toast.info("Multi-Agent Orchestration Started", {
+                    description: "Planning and delegating tasks...",
+                  });
+                  break;
+                }
+
+                case "orchestrator-task-created": {
+                  // New task created
+                  const { task } = data;
+                  console.log(
+                    `📋 Task created: ${task.phase} - ${task.description}`
+                  );
+
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMessage.id && m.orchestratorProgress
+                        ? {
+                            ...m,
+                            orchestratorProgress: {
+                              ...m.orchestratorProgress,
+                              tasks: [...m.orchestratorProgress.tasks, task],
+                              totalTasks: m.orchestratorProgress.totalTasks + 1,
+                            },
+                          }
+                        : m
+                    )
+                  );
+                  break;
+                }
+
+                case "orchestrator-delegation": {
+                  // Task delegated to coding agent
+                  const { taskId } = data;
+                  console.log(`🤖 Task delegated: ${taskId}`);
+
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMessage.id && m.orchestratorProgress
+                        ? {
+                            ...m,
+                            orchestratorProgress: {
+                              ...m.orchestratorProgress,
+                              currentTaskId: taskId,
+                              tasks: m.orchestratorProgress.tasks.map((t) =>
+                                t.id === taskId
+                                  ? { ...t, status: "in-progress" as const }
+                                  : t
+                              ),
+                            },
+                          }
+                        : m
+                    )
+                  );
+                  break;
+                }
+
+                case "orchestrator-task-completed": {
+                  // Task completed or failed
+                  const { taskId, success } = data;
+                  console.log(
+                    `${success ? "✅" : "❌"} Task ${taskId}: ${
+                      success ? "completed" : "failed"
+                    }`
+                  );
+
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMessage.id && m.orchestratorProgress
+                        ? {
+                            ...m,
+                            orchestratorProgress: {
+                              ...m.orchestratorProgress,
+                              tasks: m.orchestratorProgress.tasks.map((t) =>
+                                t.id === taskId
+                                  ? {
+                                      ...t,
+                                      status: success
+                                        ? ("completed" as const)
+                                        : ("failed" as const),
+                                    }
+                                  : t
+                              ),
+                              completedTasks: success
+                                ? m.orchestratorProgress.completedTasks + 1
+                                : m.orchestratorProgress.completedTasks,
+                              failedTasks: !success
+                                ? m.orchestratorProgress.failedTasks + 1
+                                : m.orchestratorProgress.failedTasks,
+                            },
+                          }
+                        : m
+                    )
+                  );
+                  break;
+                }
+
+                case "orchestrator-progress": {
+                  // Overall progress update
+                  const {
+                    totalTasks,
+                    completedTasks,
+                    failedTasks,
+                    percentComplete,
+                  } = data;
+                  console.log(
+                    `📊 Progress: ${completedTasks}/${totalTasks} (${percentComplete}%)`
+                  );
+
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMessage.id && m.orchestratorProgress
+                        ? {
+                            ...m,
+                            orchestratorProgress: {
+                              ...m.orchestratorProgress,
+                              totalTasks,
+                              completedTasks,
+                              failedTasks,
+                              percentComplete,
+                              isActive:
+                                completedTasks + failedTasks < totalTasks,
+                            },
+                          }
+                        : m
+                    )
+                  );
+                  break;
+                }
+
                 case "done":
                   // Stream complete
                   console.log("🏁 Stream complete", data.metadata);
@@ -1261,6 +1431,29 @@ export default function ChatPanel({
                 >
                   {message.role === "assistant" ? (
                     <>
+                      {/* Orchestrator Progress */}
+                      {message.orchestratorProgress && (
+                        <div className="mb-4">
+                          <OrchestratorProgress
+                            tasks={message.orchestratorProgress.tasks}
+                            totalTasks={message.orchestratorProgress.totalTasks}
+                            completedTasks={
+                              message.orchestratorProgress.completedTasks
+                            }
+                            failedTasks={
+                              message.orchestratorProgress.failedTasks
+                            }
+                            percentComplete={
+                              message.orchestratorProgress.percentComplete
+                            }
+                            currentTaskId={
+                              message.orchestratorProgress.currentTaskId
+                            }
+                            isActive={message.orchestratorProgress.isActive}
+                          />
+                        </div>
+                      )}
+
                       {/* Tool Executions */}
                       {message.toolCalls && message.toolCalls.length > 0 && (
                         <div className="mb-4 space-y-2">
