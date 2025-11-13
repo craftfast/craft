@@ -2,23 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { uploadFile, deleteFile } from "@/lib/r2-storage";
+import puppeteer from "puppeteer";
 
 /**
  * POST /api/sandbox/[projectId]/screenshot
  * 
  * Captures a screenshot of the project preview and stores it as the project thumbnail.
- * The screenshot is sent as base64 data from the client (captured via html2canvas or similar).
+ * Uses Puppeteer for server-side screenshot capture of E2B sandboxes.
  * 
  * Important: Only ONE screenshot per project is stored. When a new screenshot is uploaded,
  * the old one is automatically deleted from R2 storage to save space.
  * 
  * Flow:
- * 1. Client loads preview iframe
- * 2. Client captures screenshot using html2canvas
- * 3. Client sends base64 image to this endpoint
+ * 1. Client requests screenshot capture
+ * 2. Server uses Puppeteer to load the E2B preview URL
+ * 3. Server captures screenshot
  * 4. Server deletes old screenshot (if exists)
  * 5. Server uploads new screenshot to Cloudflare R2 storage
- * 6. Server updates project.thumbnailUrl
+ * 6. Server updates project.previewImage
  */
 export async function POST(
     request: NextRequest,
@@ -40,7 +41,9 @@ export async function POST(
             select: {
                 userId: true,
                 name: true,
+                version: true,
                 previewImage: true, // Get old URL to delete the old screenshot
+                previewImageCapturedAtVersion: true,
             },
         });
 
@@ -52,13 +55,36 @@ export async function POST(
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
+        // Parse request body
+        const body = await request.json();
+        const { screenshot, url, version } = body; // screenshot = base64 OR url = sandbox URL, version = project version
+
+        // Backend validation: Reject if this version was already captured
+        if (
+            version !== undefined &&
+            project.previewImageCapturedAtVersion !== null &&
+            project.previewImageCapturedAtVersion === version
+        ) {
+            console.log(
+                `⏭️ Screenshot already captured for version ${version}, skipping duplicate upload`
+            );
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Screenshot already captured for this version",
+                    alreadyCaptured: true,
+                },
+                { status: 409 } // Conflict
+            );
+        }
+
         // Delete old screenshot if it exists
         if (project.previewImage) {
             try {
                 // Extract R2 key from URL
                 // Format: https://pub-xxx.r2.dev/images/projectId/screenshot-timestamp.png
-                const url = new URL(project.previewImage);
-                const r2Key = url.pathname.substring(1); // Remove leading /
+                const oldUrl = new URL(project.previewImage);
+                const r2Key = oldUrl.pathname.substring(1); // Remove leading /
 
                 console.log(`🗑️ Deleting old screenshot: ${r2Key}`);
                 await deleteFile(r2Key);
@@ -69,39 +95,81 @@ export async function POST(
             }
         }
 
-        // Parse request body
-        const body = await request.json();
-        const { screenshot } = body; // Expected to be base64 string: "data:image/png;base64,..."
+        let buffer: Buffer;
+        let imageType = 'png';
 
-        if (!screenshot || typeof screenshot !== 'string') {
+        // Server-side capture using Puppeteer if URL is provided
+        if (url && typeof url === 'string') {
+            console.log(`📸 Server-side screenshot capture for ${url}`);
+
+            try {
+                const browser = await puppeteer.launch({
+                    headless: true,
+                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                });
+
+                const page = await browser.newPage();
+                await page.setViewport({ width: 1920, height: 1080 });
+
+                // Navigate to the URL with a timeout
+                await page.goto(url, {
+                    waitUntil: 'networkidle2',
+                    timeout: 15000,
+                });
+
+                // Wait a bit for any dynamic content to load
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Capture screenshot
+                const screenshotBuffer = await page.screenshot({
+                    type: 'png',
+                    fullPage: false, // Just capture viewport
+                });
+
+                await browser.close();
+
+                buffer = Buffer.from(screenshotBuffer);
+                imageType = 'png';
+
+                console.log(`✅ Server-side screenshot captured (${(buffer.length / 1024).toFixed(2)} KB)`);
+            } catch (error) {
+                console.error('❌ Puppeteer screenshot failed:', error);
+                return NextResponse.json(
+                    { error: "Failed to capture screenshot from URL" },
+                    { status: 500 }
+                );
+            }
+        }
+        // Client-side capture (legacy - base64 from client)
+        else if (screenshot && typeof screenshot === 'string') {
+            // Validate base64 format
+            if (!screenshot.startsWith('data:image/')) {
+                return NextResponse.json(
+                    { error: "Invalid screenshot format. Expected base64 data URL" },
+                    { status: 400 }
+                );
+            }
+
+            // Extract the base64 content (remove data:image/png;base64, prefix)
+            const matches = screenshot.match(/^data:image\/(\w+);base64,(.+)$/);
+            if (!matches) {
+                return NextResponse.json(
+                    { error: "Invalid base64 format" },
+                    { status: 400 }
+                );
+            }
+
+            imageType = matches[1]; // png, jpeg, etc.
+            const base64Data = matches[2];
+
+            // Convert base64 to buffer
+            buffer = Buffer.from(base64Data, 'base64');
+        } else {
             return NextResponse.json(
-                { error: "Screenshot data is required" },
+                { error: "Either 'screenshot' (base64) or 'url' must be provided" },
                 { status: 400 }
             );
         }
-
-        // Validate base64 format
-        if (!screenshot.startsWith('data:image/')) {
-            return NextResponse.json(
-                { error: "Invalid screenshot format. Expected base64 data URL" },
-                { status: 400 }
-            );
-        }
-
-        // Extract the base64 content (remove data:image/png;base64, prefix)
-        const matches = screenshot.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (!matches) {
-            return NextResponse.json(
-                { error: "Invalid base64 format" },
-                { status: 400 }
-            );
-        }
-
-        const imageType = matches[1]; // png, jpeg, etc.
-        const base64Data = matches[2];
-
-        // Convert base64 to buffer
-        const buffer = Buffer.from(base64Data, 'base64');
 
         // Check size (max 5MB)
         if (buffer.length > 5 * 1024 * 1024) {
@@ -124,16 +192,19 @@ export async function POST(
             projectId: projectId,
         });
 
-        // Update project with new preview image URL
+        // Update project with new preview image URL and capture version
         const updatedProject = await prisma.project.update({
             where: { id: projectId },
             data: {
                 previewImage: uploadResult.r2Url,
+                previewImageCapturedAtVersion: version ?? 0, // Store the version when screenshot was captured
             },
             select: {
                 id: true,
                 name: true,
                 previewImage: true,
+                version: true,
+                previewImageCapturedAtVersion: true,
             },
         });
 

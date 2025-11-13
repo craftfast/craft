@@ -19,9 +19,15 @@ interface PreviewPanelProps {
   isGeneratingFiles?: boolean; // New prop to indicate AI is generating files
   generationStatus?: string; // "template" | "generating" | "ready"
   version?: number; // Project version (0 = template, 1+ = has AI updates)
+  previewImage?: string | null; // Existing preview image URL
+  previewImageCapturedAtVersion?: number | null; // Version when preview image was last captured
   packages?: string[]; // Packages to install when creating/refreshing sandbox
   onPackagesInstalled?: () => void; // Callback when packages are installed
   onRefreshProject?: () => Promise<void>; // Callback to refresh project after version restore
+  onScreenshotCaptured?: (data: {
+    previewImage: string;
+    previewImageCapturedAtVersion: number;
+  }) => void; // Callback after screenshot upload
   deviceMode?: "desktop" | "mobile"; // Device mode from parent
   previewUrl?: string; // URL from parent
   onUrlChange?: (url: string) => void; // Callback when URL changes
@@ -53,9 +59,12 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
       isGeneratingFiles = false,
       generationStatus = "template",
       version = 0,
+      previewImage: existingPreviewImage,
+      previewImageCapturedAtVersion,
       packages = [],
       onPackagesInstalled,
       onRefreshProject,
+      onScreenshotCaptured,
       deviceMode: parentDeviceMode,
       previewUrl: parentPreviewUrl,
       onUrlChange,
@@ -112,37 +121,81 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
     );
     const dropdownRef = useRef<HTMLDivElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
-    const hasScreenshotCaptured = useRef(false);
 
     // Capture screenshot when preview loads successfully
+    // Only capture if: 1) No existing preview image, OR 2) Project version changed from last captured version
     const captureScreenshot = useCallback(async () => {
-      if (!iframeRef.current || hasScreenshotCaptured.current) {
+      if (!iframeRef.current || !previewUrl) {
+        console.log("⏭️ Skipping screenshot - no iframe or preview URL");
+        return;
+      }
+
+      const hasNoImage = !existingPreviewImage;
+
+      // Compare current version with the version stored in database when image was captured
+      // If capturedAtVersion is null, it means we have an image but never recorded the version - should recapture
+      const versionChanged =
+        version !== undefined &&
+        (previewImageCapturedAtVersion === null ||
+          version !== previewImageCapturedAtVersion);
+
+      const shouldCapture = hasNoImage || versionChanged;
+
+      if (!shouldCapture) {
+        console.log(
+          `⏭️ Skipping screenshot - hasImage: ${!hasNoImage}, currentVersion: ${version}, capturedAtVersion: ${previewImageCapturedAtVersion}`
+        );
         return;
       }
 
       try {
-        console.log("📸 Attempting to capture project screenshot...");
+        console.log(
+          `📸 Capturing screenshot (reason: ${
+            hasNoImage
+              ? "no image"
+              : `version changed (${previewImageCapturedAtVersion} → ${version})`
+          })...`
+        );
 
         // Wait a bit for the page to fully render
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
-        const screenshot = await captureIframeScreenshot(iframeRef.current);
-
-        console.log("📸 Screenshot captured, uploading...");
-
-        const result = await uploadScreenshot(projectId, screenshot);
+        // Use server-side Puppeteer capture with the sandbox URL and current version
+        const result = await uploadScreenshot(
+          projectId,
+          undefined,
+          previewUrl,
+          version
+        );
 
         if (result.success) {
-          console.log("✅ Screenshot uploaded:", result.thumbnailUrl);
-          hasScreenshotCaptured.current = true;
+          console.log("✅ Screenshot uploaded:", result.previewImage);
+
+          // Notify parent component to update project state with new preview data
+          if (onScreenshotCaptured && result.previewImage) {
+            onScreenshotCaptured({
+              previewImage: result.previewImage,
+              previewImageCapturedAtVersion: version ?? 0,
+            });
+          }
         } else {
           console.error("❌ Failed to upload screenshot:", result.error);
         }
       } catch (error) {
-        console.error("❌ Screenshot capture failed:", error);
-        // Don't block on screenshot failures
+        // Screenshot capture failed
+        console.warn(
+          "⚠️ Screenshot capture failed:",
+          error instanceof Error ? error.message : error
+        );
       }
-    }, [projectId]);
+    }, [
+      projectId,
+      previewUrl,
+      existingPreviewImage,
+      version,
+      previewImageCapturedAtVersion,
+      onScreenshotCaptured,
+    ]);
 
     // Utility function to format relative time
     const getRelativeTime = (dateString: string): string => {

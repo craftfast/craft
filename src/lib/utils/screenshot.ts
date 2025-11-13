@@ -99,22 +99,36 @@ export async function captureCurrentPage(): Promise<string> {
  * Upload screenshot to the server
  * 
  * @param projectId - Project ID
- * @param screenshotDataUrl - Base64 data URL of the screenshot
- * @returns Promise<{success: boolean, thumbnailUrl?: string}>
+ * @param screenshotDataUrl - Base64 data URL of the screenshot (optional - for legacy client-side capture)
+ * @param sandboxUrl - E2B sandbox URL (optional - for server-side Puppeteer capture)
+ * @param version - Project version when screenshot is being captured
+ * @returns Promise<{success: boolean, previewImage?: string}>
  */
 export async function uploadScreenshot(
     projectId: string,
-    screenshotDataUrl: string
-): Promise<{ success: boolean; thumbnailUrl?: string; error?: string }> {
+    screenshotDataUrl?: string,
+    sandboxUrl?: string,
+    version?: number
+): Promise<{ success: boolean; previewImage?: string; error?: string }> {
     try {
+        const body: { screenshot?: string; url?: string; version?: number } = {};
+
+        if (screenshotDataUrl) {
+            body.screenshot = screenshotDataUrl;
+        }
+        if (sandboxUrl) {
+            body.url = sandboxUrl;
+        }
+        if (version !== undefined) {
+            body.version = version;
+        }
+
         const response = await fetch(`/api/sandbox/${projectId}/screenshot`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-                screenshot: screenshotDataUrl,
-            }),
+            body: JSON.stringify(body),
         });
 
         const data = await response.json();
@@ -128,7 +142,7 @@ export async function uploadScreenshot(
 
         return {
             success: true,
-            thumbnailUrl: data.thumbnailUrl,
+            previewImage: data.previewImage,
         };
     } catch (error) {
         return {

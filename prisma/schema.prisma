@@ -177,30 +177,31 @@ model PendingAccountLink {
 }
 
 model Project {
-  id               String           @id @default(cuid())
-  name             String
-  description      String?
-  type             String           @default("document")
-  status           String           @default("active")
-  visibility       String           @default("private")
-  userId           String
-  version          Int              @default(0)
-  generationStatus String           @default("template")
-  lastCodeUpdateAt DateTime?
-  codeFiles        Json             @default("{}")
+  id                            String           @id @default(cuid())
+  name                          String
+  description                   String?
+  type                          String           @default("document")
+  status                        String           @default("active")
+  visibility                    String           @default("private")
+  userId                        String
+  version                       Int              @default(0)
+  generationStatus              String           @default("template")
+  lastCodeUpdateAt              DateTime?
+  codeFiles                     Json             @default("{}")
   // E2B Sandbox fields (Phase 3)
-  sandboxId        String? // E2B sandbox ID for pause/resume
-  sandboxPausedAt  DateTime? // Timestamp when sandbox was paused
-  previewImage     String? // Screenshot/preview image URL for project thumbnail
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  chatMessages     ChatMessage[]
-  fileRecords      File[]           @relation("ProjectFiles")
-  versions         ProjectVersion[]
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sandboxId                     String? // E2B sandbox ID for pause/resume
+  sandboxPausedAt               DateTime? // Timestamp when sandbox was paused
+  previewImage                  String? // Screenshot/preview image URL for project thumbnail
+  previewImageCapturedAtVersion Int? // Project version when preview image was captured
+  createdAt                     DateTime         @default(now())
+  updatedAt                     DateTime         @updatedAt
+  chatMessages                  ChatMessage[]
+  fileRecords                   File[]           @relation("ProjectFiles")
+  versions                      ProjectVersion[]
+  user                          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Agent orchestration relations
-  agentSessions    AgentSession[]
-  tasks            Task[]
+  agentSessions                 AgentSession[]
+  tasks                         Task[]
 
   @@index([sandboxId])
   @@map("projects")
