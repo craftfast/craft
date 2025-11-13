@@ -32,6 +32,7 @@ export interface SandboxInfo {
     createdAt: Date;
     lastAccessed: Date;
     isPaused: boolean;
+    isLocked?: boolean; // Prevent auto-pause during active operations
 }
 
 export interface SandboxCreateOptions {
@@ -99,7 +100,8 @@ export function getProjectSandboxMap() {
 export async function createSandbox(
     options: SandboxCreateOptions = {}
 ): Promise<SandboxInfo> {
-    const { metadata = {}, timeoutMs = 60000, envVars = {} } = options;
+    // Default to 10 minutes for sandboxes (long enough for project initialization)
+    const { metadata = {}, timeoutMs = 600000, envVars = {} } = options;
 
     // Get E2B template ID from environment
     // Falls back to default sandbox if not configured
@@ -344,6 +346,63 @@ export async function killSandbox(sandboxId: string): Promise<boolean> {
     }
 }
 
+/**
+ * Keep a sandbox alive by extending its timeout
+ * 
+ * Call this during long operations to prevent timeout.
+ * 
+ * @param sandboxId - Sandbox ID
+ * @param timeoutMs - Additional timeout in milliseconds (default: 10 minutes)
+ */
+export async function keepSandboxAlive(sandboxId: string, timeoutMs: number = 600000): Promise<void> {
+    const sandboxInfo = sandboxRegistry.get(sandboxId);
+    if (!sandboxInfo) {
+        console.warn(`⚠️ Cannot keep alive: Sandbox ${sandboxId} not found`);
+        return;
+    }
+
+    try {
+        await sandboxInfo.sandbox.setTimeout(timeoutMs);
+        sandboxInfo.lastAccessed = new Date();
+        console.log(`⏰ Extended sandbox ${sandboxId} timeout by ${timeoutMs / 1000}s`);
+    } catch (error) {
+        console.warn(`⚠️ Failed to extend timeout for ${sandboxId}:`, error);
+    }
+}
+
+/**
+ * Lock a sandbox to prevent auto-pause during active operations
+ * 
+ * Use this during AI code generation, long builds, etc.
+ * MUST call unlockSandbox when done!
+ * 
+ * @param sandboxId - Sandbox ID
+ */
+export function lockSandbox(sandboxId: string): void {
+    const sandboxInfo = sandboxRegistry.get(sandboxId);
+    if (sandboxInfo) {
+        sandboxInfo.isLocked = true;
+        sandboxInfo.lastAccessed = new Date();
+        console.log(`🔒 Locked sandbox ${sandboxId} (auto-pause disabled)`);
+    }
+}
+
+/**
+ * Unlock a sandbox to allow auto-pause
+ * 
+ * Call this after AI code generation or long operations complete.
+ * 
+ * @param sandboxId - Sandbox ID
+ */
+export function unlockSandbox(sandboxId: string): void {
+    const sandboxInfo = sandboxRegistry.get(sandboxId);
+    if (sandboxInfo) {
+        sandboxInfo.isLocked = false;
+        sandboxInfo.lastAccessed = new Date();
+        console.log(`🔓 Unlocked sandbox ${sandboxId} (auto-pause enabled)`);
+    }
+}
+
 // ============================================================================
 // FILE OPERATIONS
 // ============================================================================
@@ -513,6 +572,11 @@ export function startSandboxCleanup() {
         let killedCount = 0;
 
         for (const [sandboxId, info] of sandboxRegistry.entries()) {
+            // Skip locked sandboxes (active AI operations)
+            if (info.isLocked) {
+                continue;
+            }
+
             const idleTime = now.getTime() - info.lastAccessed.getTime();
 
             // Pause inactive sandboxes

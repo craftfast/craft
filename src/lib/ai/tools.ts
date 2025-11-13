@@ -129,7 +129,7 @@ export const readFile = tool({
 });
 
 export const generateFiles = tool({
-    description: 'Create or update multiple files at once. Files are automatically synced to the E2B sandbox with hot reload. ALWAYS read existing files first to avoid overwriting important code. Provide complete file content, not partial updates. NOTE: For adding npm packages, use the installPackages tool instead of manually editing package.json.',
+    description: 'Create or update files in the E2B sandbox (source of truth). Files are written directly to sandbox with hot reload. After all changes are complete, use syncFilesToDB to persist to database. ALWAYS read existing files first to avoid overwriting important code. Provide complete file content, not partial updates. NOTE: For adding npm packages, use the installPackages tool instead of manually editing package.json.',
     inputSchema: z.object({
         projectId: z.string().describe('The project ID'),
         files: z.array(z.object({
@@ -139,25 +139,33 @@ export const generateFiles = tool({
         reason: z.string().optional().describe('Optional: explain why these files are being generated'),
     }),
     execute: async ({ projectId, files, reason }) => {
-        console.log(`📝 Generating ${files.length} file(s)${reason ? `: ${reason}` : ''}`);
+        console.log(`📝 Generating ${files.length} file(s) in sandbox${reason ? `: ${reason}` : ''}`);
 
         // Get tool context for SSE streaming
         const context = getToolContext();
         const sseWriter = context?.sseWriter;
 
+        // Get sandbox ID from project
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            select: { codeFiles: true },
+            select: { sandboxId: true, codeFiles: true },
         });
 
         if (!project) {
             return { success: false, error: 'Project not found' };
         }
 
+        if (!project.sandboxId) {
+            return {
+                success: false,
+                error: 'No active sandbox. Create sandbox first or use initializeNextApp.'
+            };
+        }
+
         const currentFiles = (project.codeFiles as Record<string, string>) || {};
         const changes: Array<{ path: string; action: 'created' | 'updated'; lines: number }> = [];
 
-        // Update files in database AND stream to frontend
+        // Write files directly to sandbox (source of truth!)
         for (const { path, content } of files) {
             const isNew = !currentFiles[path];
             const lines = content.split('\n').length;
@@ -183,9 +191,11 @@ export const generateFiles = tool({
                 }
             }
 
-            currentFiles[path] = content;
+            // Write to sandbox (source of truth!)
+            await writeFileToSandbox(project.sandboxId, path, content);
+
             changes.push({ path, action: isNew ? 'created' : 'updated', lines });
-            console.log(`  ${isNew ? '➕' : '✏️'} ${path} (${lines} lines)`);
+            console.log(`  ${isNew ? '➕' : '✏️'} ${path} (${lines} lines) → sandbox`);
 
             // ⚡ SSE: Emit file-stream-complete event
             if (sseWriter) {
@@ -197,35 +207,12 @@ export const generateFiles = tool({
             }
         }
 
-        // Save to database
-        await prisma.project.update({
-            where: { id: projectId },
-            data: {
-                codeFiles: currentFiles,
-                updatedAt: new Date(),
-                lastCodeUpdateAt: new Date()
-            },
-        });
-
-        // Sync to E2B sandbox if active
-        const sandboxData = activeSandboxes?.get(projectId);
-        if (sandboxData?.sandbox) {
-            console.log(`🔄 Syncing ${files.length} file(s) to E2B sandbox...`);
-            const syncResults = await Promise.allSettled(files.map(async ({ path, content }) => {
-                await sandboxData.sandbox.files.write(`/home/user/project/${path}`, content);
-                return path;
-            }));
-
-            const synced = syncResults.filter(r => r.status === 'fulfilled').length;
-            console.log(`✅ Synced ${synced}/${files.length} files to sandbox`);
-        }
-
         return {
             success: true,
             filesCreated: changes.filter(c => c.action === 'created').length,
             filesUpdated: changes.filter(c => c.action === 'updated').length,
             changes,
-            message: `Successfully ${changes.filter(c => c.action === 'created').length > 0 ? 'created' : 'updated'} ${files.length} file(s)`,
+            message: `Successfully wrote ${files.length} file(s) to sandbox. Use syncFilesToDB when done to persist changes.`,
         };
     },
 });
@@ -970,12 +957,12 @@ export const runSandboxCommand = tool({
 // ============================================================================
 
 export const checkProjectEmpty = tool({
-    description: 'Check if project is empty and needs initialization with create-next-app. Use this FIRST when user creates a new project or asks to build something.',
+    description: 'Check if the project has any files. Returns isEmpty=true if project has no files, along with file count and generation status.',
     inputSchema: z.object({
         projectId: z.string().describe('The project ID'),
     }),
     execute: async ({ projectId }) => {
-        console.log(`🔍 Checking if project ${projectId} is empty...`);
+        console.log(`🔍 Checking project ${projectId} file count...`);
 
         const project = await prisma.project.findUnique({
             where: { id: projectId },
@@ -999,89 +986,151 @@ export const checkProjectEmpty = tool({
             status: project.generationStatus,
             needsInitialization: isEmpty,
             message: isEmpty
-                ? `Project is empty (${fileCount} files). Needs Next.js initialization.`
-                : `Project has ${fileCount} files. Already initialized.`,
+                ? `Project is empty (${fileCount} files). You can initialize with Next.js or create files directly.`
+                : `Project has ${fileCount} files.`,
         };
     },
 });
 
-export const scaffoldNextApp = tool({
-    description: 'Initialize a new Next.js 15 app using create-next-app in the E2B sandbox. Only use when checkProjectEmpty returns isEmpty: true. This scaffolds the entire project structure with TypeScript, Tailwind CSS v4, and App Router.',
+export const initializeNextApp = tool({
+    description: `Initialize project by syncing Next.js 15 template files from E2B sandbox to database.
+
+This reads all files from the E2B sandbox (which has Next.js pre-installed) and saves them to the database. The template includes Next.js 15, TypeScript, Tailwind CSS v4, and App Router.
+
+After initialization, you can explore with listFiles() and readFile(), then customize files with generateFiles() to build what the user requested.
+
+Example workflow:
+→ initializeNextApp() - Syncs Next.js template to database
+→ listFiles() - See structure (src/app/, package.json, etc.)
+→ readFile('src/app/page.tsx') - Understand layout
+→ generateFiles() - Customize for user's needs
+→ Result: Working Next.js app instantly`,
     inputSchema: z.object({
         projectId: z.string().describe('The project ID'),
-        appName: z.string().optional().describe('Optional app name (defaults to project name)'),
-        typescript: z.boolean().optional().default(true).describe('Use TypeScript (default: true)'),
-        tailwind: z.boolean().optional().default(true).describe('Use Tailwind CSS (default: true)'),
-        appRouter: z.boolean().optional().default(true).describe('Use App Router (default: true)'),
-        srcDir: z.boolean().optional().default(true).describe('Use src/ directory (default: true)'),
     }),
-    execute: async ({ projectId, appName, typescript = true, tailwind = true, appRouter = true, srcDir = true }) => {
-        console.log(`🚀 Scaffolding Next.js app for project ${projectId}...`);
-
-        // Get SSE writer for progress updates
-        const context = getToolContext();
-        const sseWriter = context?.sseWriter;
+    execute: async ({ projectId }) => {
+        console.log(`🚀 Initializing Next.js app from E2B sandbox for project ${projectId}...`);
 
         try {
-            // Ensure sandbox exists
-            const sandbox = await getOrCreateProjectSandbox(projectId);
-            console.log(`✅ Sandbox ready: ${sandbox.sandboxId}`);
+            // Get or create sandbox for this project (it has Next.js pre-installed!)
+            const { getOrCreateProjectSandbox, executeSandboxCommand, readFileFromSandbox, keepSandboxAlive } = await import('../e2b/sandbox-manager');
+            const sandboxInfo = await getOrCreateProjectSandbox(projectId, {
+                metadata: { projectId },
+            });
 
-            // Clean the project directory
-            await executeSandboxCommand(
-                sandbox.sandboxId,
-                'rm -rf /home/user/project/* /home/user/project/.*',
-                10000
-            );
+            // Keep sandbox alive for 10 minutes during initialization
+            await keepSandboxAlive(sandboxInfo.sandboxId, 600000);
 
-            // Build create-next-app command
-            const flags = [
-                '--yes',
-                typescript ? '--ts' : '--js',
-                tailwind ? '--tailwind' : '--no-tailwind',
-                appRouter ? '--app' : '',
-                srcDir ? '--src-dir' : '',
-                '--use-pnpm',
-                '--turbopack',
-                '--no-linter',
-                '--import-alias "@/*"',
-            ].filter(Boolean).join(' ');
+            console.log(`📦 Reading Next.js 15 template from sandbox ${sandboxInfo.sandboxId}...`);
 
-            const command = `npx create-next-app@latest . ${flags}`;
-
-            console.log(`📦 Running: ${command}`);
-
-            const result = await executeSandboxCommand(sandbox.sandboxId, command, 120000);
+            // List all files in the sandbox using find command (excluding .gitignore patterns)
+            // Exclude: node_modules, build outputs, caches, lock files, .git, OS files
+            const findCmd = `cd /home/user/project && find . -type f \
+                -not -path "./node_modules/*" \
+                -not -path "./.next/*" \
+                -not -path "./dist/*" \
+                -not -path "./build/*" \
+                -not -path "./out/*" \
+                -not -path "./.git/*" \
+                -not -path "./.turbo/*" \
+                -not -path "./.cache/*" \
+                -not -path "./coverage/*" \
+                -not -path "./.vercel/*" \
+                -not -path "./.vscode/*" \
+                -not -path "./.idea/*" \
+                -not -name "pnpm-lock.yaml" \
+                -not -name "package-lock.json" \
+                -not -name "yarn.lock" \
+                -not -name ".DS_Store" \
+                -not -name "*.log" \
+                -not -name "*.tmp" \
+                -not -name "*.temp"`;
+            const result = await executeSandboxCommand(sandboxInfo.sandboxId, findCmd, 30000);
 
             if (result.exitCode !== 0) {
-                console.error('❌ create-next-app failed:', result.stderr);
-                return {
-                    success: false,
-                    error: result.stderr || result.stdout,
-                    exitCode: result.exitCode,
-                };
+                throw new Error(`Failed to list sandbox files: ${result.stderr}`);
             }
 
-            console.log('✅ create-next-app completed successfully');
+            const filePaths = result.stdout
+                .split('\n')
+                .filter(Boolean)
+                .map(p => p.replace(/^\.\//, '')); // Remove leading ./
 
-            // List generated files
-            const lsResult = await executeSandboxCommand(
-                sandbox.sandboxId,
-                'find . -type f -not -path "./node_modules/*" -not -path "./.next/*" | head -50',
-                10000
+            console.log(`📝 Found ${filePaths.length} files in sandbox (gitignore patterns excluded)`);
+
+            // Binary file extensions that should be skipped (contain null bytes)
+            const binaryExtensions = ['.ico', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.woff', '.woff2', '.ttf', '.eot', '.otf', '.mp4', '.webm', '.mp3', '.wav', '.pdf', '.zip', '.tar', '.gz'];
+
+            // Read all files from sandbox (skip binary files)
+            const templateFiles: Record<string, string> = {};
+            let skippedBinary = 0;
+
+            for (const relativePath of filePaths) {
+                // Skip binary files (they contain null bytes that break PostgreSQL)
+                const isBinary = binaryExtensions.some(ext => relativePath.toLowerCase().endsWith(ext));
+                if (isBinary) {
+                    console.log(`⏭️ Skipping binary file: ${relativePath}`);
+                    skippedBinary++;
+                    continue;
+                }
+
+                try {
+                    const content = await readFileFromSandbox(sandboxInfo.sandboxId, relativePath);
+
+                    // Double-check for null bytes (safety check)
+                    if (content.includes('\u0000')) {
+                        console.warn(`⚠️ Skipping file with null bytes: ${relativePath}`);
+                        skippedBinary++;
+                        continue;
+                    }
+
+                    templateFiles[relativePath] = content;
+                } catch (error) {
+                    console.warn(`⚠️ Could not read file ${relativePath}:`, error);
+                }
+            }
+
+            console.log(`✅ Read ${Object.keys(templateFiles).length} files from sandbox (skipped ${skippedBinary} binary files)`);
+
+            // Save template files to database
+            await prisma.project.update({
+                where: { id: projectId },
+                data: {
+                    codeFiles: templateFiles,
+                    generationStatus: 'initialized',
+                    sandboxId: sandboxInfo.sandboxId,
+                    updatedAt: new Date(),
+                    lastCodeUpdateAt: new Date(),
+                },
+            });
+
+            console.log(`✅ Next.js 15 initialized with ${Object.keys(templateFiles).length} files from sandbox`);
+            console.log('⚠️ AI MUST now customize these files based on user requirements!');
+
+            const keyFiles = Object.keys(templateFiles).filter(f =>
+                f.includes('page.tsx') ||
+                f.includes('layout.tsx') ||
+                f.includes('package.json') ||
+                f.includes('tsconfig.json') ||
+                f.includes('globals.css')
             );
-
-            const generatedFiles = lsResult.stdout.split('\n').filter(Boolean);
-            console.log(`📄 Generated ${generatedFiles.length}+ files`);
 
             return {
                 success: true,
-                message: `Successfully scaffolded Next.js app with ${generatedFiles.length}+ files`,
-                filesGenerated: generatedFiles.length,
-                sampleFiles: generatedFiles.slice(0, 15),
+                message: `Next.js 15 initialized with ${Object.keys(templateFiles).length} files from E2B sandbox. You MUST now customize them for user's app.`,
+                filesCreated: Object.keys(templateFiles).length,
+                keyFiles: keyFiles.slice(0, 15),
+                sandboxId: sandboxInfo.sandboxId,
+                nextSteps: [
+                    '1. Use listFiles() to see all generated files',
+                    '2. Use readFile() to examine src/app/page.tsx, src/app/layout.tsx',
+                    '3. Use generateFiles() to customize files for user\'s specific request',
+                    '4. Create new components in src/components/ as needed',
+                    '5. Build the user\'s app with the customized template',
+                ],
             };
         } catch (error) {
-            console.error('❌ Error scaffolding Next.js app:', error);
+            console.error('❌ Error initializing Next.js project:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',
@@ -1103,8 +1152,28 @@ export const syncFilesToDB = tool({
             // Get sandbox
             const sandbox = await getOrCreateProjectSandbox(projectId);
 
-            // Read all project files from sandbox (excluding node_modules, .next, etc.)
-            const findCmd = 'find . -type f -not -path "./node_modules/*" -not -path "./.next/*" -not -path "./.git/*" -not -path "./pnpm-lock.yaml" -not -path "./.turbo/*"';
+            // Read all project files from sandbox (excluding .gitignore patterns)
+            // Exclude: node_modules, build outputs, caches, lock files, .git, OS files
+            const findCmd = `find . -type f \
+                -not -path "./node_modules/*" \
+                -not -path "./.next/*" \
+                -not -path "./dist/*" \
+                -not -path "./build/*" \
+                -not -path "./out/*" \
+                -not -path "./.git/*" \
+                -not -path "./.turbo/*" \
+                -not -path "./.cache/*" \
+                -not -path "./coverage/*" \
+                -not -path "./.vercel/*" \
+                -not -path "./.vscode/*" \
+                -not -path "./.idea/*" \
+                -not -name "pnpm-lock.yaml" \
+                -not -name "package-lock.json" \
+                -not -name "yarn.lock" \
+                -not -name ".DS_Store" \
+                -not -name "*.log" \
+                -not -name "*.tmp" \
+                -not -name "*.temp"`;
 
             const lsResult = await executeSandboxCommand(sandbox.sandboxId, findCmd, 30000);
 
@@ -1131,7 +1200,7 @@ export const syncFilesToDB = tool({
                 const batch = filePaths.slice(i, i + 10);
                 const results = await Promise.allSettled(
                     batch.map(async (filePath) => {
-                        const content = await readFileFromSandbox(sandbox.sandboxId, `/home/user/project/${filePath}`);
+                        const content = await readFileFromSandbox(sandbox.sandboxId, filePath);
                         return { filePath, content };
                     })
                 );
@@ -1294,7 +1363,7 @@ export const tools = {
 
     // Next.js project initialization (Phase 3.1)
     checkProjectEmpty,
-    scaffoldNextApp,
+    initializeNextApp,
     syncFilesToDB,
     validateProject,
 

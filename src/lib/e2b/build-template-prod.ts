@@ -15,8 +15,8 @@ config();
 
 async function buildProdTemplate() {
     console.log("🏗️  Building Craft E2B template for production...");
-    console.log(`📦 Template: craft-dev-env`);
-    console.log(`📝 Description: Craft development environment with Node.js 24 and pnpm\n`);
+    console.log(`📦 Template: craft-next`);
+    console.log(`📝 Description: Craft Next.js 15 + shadcn/ui base project (pre-built)\n`);
 
     // Check for E2B API key
     const apiKey = process.env.E2B_API_KEY;
@@ -32,7 +32,7 @@ async function buildProdTemplate() {
     try {
         // Build the template using E2B's static method
         await Template.build(craftTemplate, {
-            alias: "craft-dev-env",
+            alias: "craft-next",
             cpuCount: 2,
             memoryMB: 1024,
             apiKey, // Pass API key explicitly
@@ -40,10 +40,10 @@ async function buildProdTemplate() {
         });
 
         console.log("\n✅ Template built successfully!");
-        console.log(`🆔 Template alias: craft-dev-env`);
+        console.log(`🆔 Template alias: craft-next`);
         console.log(`\n📋 Next steps:`);
         console.log(`1. Update E2B_TEMPLATE_ID in production environment:`);
-        console.log(`   E2B_TEMPLATE_ID="craft-dev-env"`);
+        console.log(`   E2B_TEMPLATE_ID="craft-next"`);
         console.log(`\n2. Deploy the updated environment variable`);
         console.log(`\n3. Verify in production:`);
         console.log(`   - Create a new project`);

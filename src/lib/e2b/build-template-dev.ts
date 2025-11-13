@@ -15,8 +15,8 @@ config();
 
 async function buildDevTemplate() {
     console.log("🏗️  Building Craft E2B template for development...");
-    console.log(`📦 Template: craft-dev-env-dev`);
-    console.log(`📝 Description: Craft development environment with Node.js 24 and pnpm\n`);
+    console.log(`📦 Template: craft-next-dev`);
+    console.log(`📝 Description: Craft Next.js 15 + shadcn/ui base project (pre-built)\n`);
 
     // Check for E2B API key
     const apiKey = process.env.E2B_API_KEY;
@@ -30,12 +30,12 @@ async function buildDevTemplate() {
     }
 
     try {
-        console.log("⏳ Building template (this may take 2-3 minutes)...\n");
+        console.log("⏳ Building template (this may take 5-10 minutes - installing Next.js + shadcn/ui)...\n");
 
         // Build the template using E2B's static method
-        // Note: This is a long-running operation (2-3 minutes)
+        // Note: This is a long-running operation (5-10 minutes)
         await Template.build(craftTemplate, {
-            alias: "craft-dev-env-dev",
+            alias: "craft-next-dev",
             cpuCount: 2,
             memoryMB: 1024,
             apiKey, // Pass API key explicitly
@@ -43,10 +43,10 @@ async function buildDevTemplate() {
         });
 
         console.log("\n✅ Template built successfully!");
-        console.log(`🆔 Template alias: craft-dev-env-dev`);
+        console.log(`🆔 Template alias: craft-next-dev`);
         console.log(`\n📋 Next steps:`);
         console.log(`1. Update E2B_TEMPLATE_ID in .env or .env.local:`);
-        console.log(`   E2B_TEMPLATE_ID="craft-dev-env-dev"`);
+        console.log(`   E2B_TEMPLATE_ID="craft-next-dev"`);
         console.log(`\n2. Restart your dev server to use the new template`);
         console.log(`\n3. Test creating a new project`);
     } catch (error) {
@@ -59,9 +59,9 @@ async function buildDevTemplate() {
                 console.error("The build may have succeeded on E2B's servers.");
                 console.error("\nTo verify:");
                 console.error("1. Check E2B dashboard: https://e2b.dev/dashboard");
-                console.error("2. Look for template: craft-dev-env-dev");
+                console.error("2. Look for template: craft-next-dev");
                 console.error("3. If it exists, add to .env:");
-                console.error("   E2B_TEMPLATE_ID=\"craft-dev-env-dev\"");
+                console.error("   E2B_TEMPLATE_ID=\"craft-next-dev\"");
                 console.error("\nIf template doesn't exist, try running this command again.");
             } else {
                 console.error(error.message);
