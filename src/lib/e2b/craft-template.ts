@@ -466,6 +466,10 @@ export function buildCraftTemplate() {
 
             // pnpm settings
             PNPM_HOME: "/home/user/.local/share/pnpm",
+
+            // Next.js dev server settings - ENFORCE PORT 3000 ONLY
+            PORT: "3000",           // Next.js reads this for port
+            HOSTNAME: "0.0.0.0",    // Next.js reads this for host binding
         });
 
     // Template is now ready!

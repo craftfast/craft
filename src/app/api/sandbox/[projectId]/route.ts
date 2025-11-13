@@ -79,9 +79,9 @@ export async function POST(
             );
             const processCount = parseInt(processCheck.stdout?.trim() || '0');
             hasExistingProcess = processCount > 0;
-            
+
             if (hasExistingProcess) {
-                console.log(`📦 Found ${processCount} existing Next.js process(es) - likely from resumed sandbox`);
+                console.log(`📦 Found ${processCount} existing Next.js process(es) - checking if responsive...`);
             }
         } catch (error) {
             console.log("⚠️ Could not check for existing processes");
@@ -98,31 +98,24 @@ export async function POST(
 
             if (isServerRunning) {
                 console.log(`✅ Dev server is responding internally on port 3000 (HTTP ${httpCode})`);
-                
+
                 // Server is responding internally, but is it accessible externally?
-                // Try to trigger port forwarding by making an external request
-                if (hasExistingProcess) {
-                    console.log("🔄 Existing process found - attempting to reconnect port forwarding...");
-                    
-                    // Get the URL and try to access it to trigger port forwarding
-                    const previewUrl = `https://${sandbox.getHost(3000)}`;
-                    try {
-                        const externalCheck = await fetch(previewUrl, {
-                            method: 'HEAD',
-                            signal: AbortSignal.timeout(5000)
-                        });
-                        if (externalCheck.ok || externalCheck.status === 404) {
-                            console.log(`✅ Port forwarding active - reusing existing process (no restart needed!)`);
-                            // Exit early - no need to restart!
-                            isServerRunning = true;
-                        } else {
-                            console.log(`⚠️ Port forwarding not working (HTTP ${externalCheck.status}), will restart`);
-                            needsRestart = true;
-                        }
-                    } catch (externalError) {
-                        console.log(`⚠️ External access failed, port forwarding may need reset - will restart process`);
+                const previewUrl = `https://${sandbox.getHost(3000)}`;
+                try {
+                    const externalCheck = await fetch(previewUrl, {
+                        method: 'HEAD',
+                        signal: AbortSignal.timeout(5000)
+                    });
+                    if (externalCheck.ok || externalCheck.status === 404) {
+                        console.log(`✅ External URL accessible (HTTP ${externalCheck.status}) - reusing existing process!`);
+                        isServerRunning = true;
+                    } else {
+                        console.log(`⚠️ External URL not accessible (HTTP ${externalCheck.status}) - will restart`);
                         needsRestart = true;
                     }
+                } catch (externalError) {
+                    console.log(`⚠️ External URL check failed - will restart process`);
+                    needsRestart = true;
                 }
             } else if (hasExistingProcess) {
                 // Process exists but not responding - it's a zombie
@@ -137,18 +130,19 @@ export async function POST(
         }
 
         // Kill zombies if needed
-        if (needsRestart) {
+        if (needsRestart && hasExistingProcess) {
             console.log("🔧 Killing stale processes...");
             try {
                 const pidsResult = await sandbox.commands.run(
-                    "ps aux | grep -E 'next dev|next-server' | grep -v grep | awk '{print $2}'",
+                    "ps aux | grep -E 'next dev|next-server|node' | grep -v grep | awk '{print $2}'",
                     { timeoutMs: 2000 }
                 );
                 const pids = pidsResult.stdout?.trim();
                 if (pids) {
-                    console.log(`🔧 Killing PIDs: ${pids.split('\n').join(', ')}`);
-                    await sandbox.commands.run(`kill -9 ${pids.split('\n').join(' ')}`, { timeoutMs: 2000 });
-                    await new Promise(resolve => setTimeout(resolve, 500)); // Wait for cleanup
+                    const pidList = pids.split('\n').filter(p => p.trim());
+                    console.log(`🔧 Killing PIDs: ${pidList.join(', ')}`);
+                    await sandbox.commands.run(`kill -9 ${pidList.join(' ')}`, { timeoutMs: 2000 });
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for cleanup
                     console.log("✅ Stale processes killed");
                 }
             } catch (killError) {
@@ -162,8 +156,6 @@ export async function POST(
 
             try {
                 // Start the dev server in the background with full PATH to pnpm
-                // pnpm is installed at /home/user/.local/share/pnpm in the E2B template
-                // Use next dev directly with proper flags for external access
                 const devProcess = await sandbox.commands.run(
                     "cd /home/user/project && /home/user/.local/share/pnpm/pnpm exec next dev -H 0.0.0.0 -p 3000",
                     {

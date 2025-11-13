@@ -952,7 +952,7 @@ export const runSandboxCommand = tool({
 // ============================================================================
 
 export const checkProjectEmpty = tool({
-    description: 'Check if the project has any files. Returns isEmpty=true if project has no files, along with file count and generation status.',
+    description: 'Check if the project has any files. Returns isEmpty=true if project has no files, along with file count and generation status. Checks BOTH database AND sandbox for files.',
     inputSchema: z.object({
         projectId: z.string().describe('The project ID'),
     }),
@@ -961,28 +961,48 @@ export const checkProjectEmpty = tool({
 
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            select: { codeFiles: true, generationStatus: true },
+            select: { codeFiles: true, generationStatus: true, sandboxId: true },
         });
 
         if (!project) {
             return { success: false, error: 'Project not found' };
         }
 
+        // Check database files
         const files = (project.codeFiles as Record<string, string>) || {};
-        const fileCount = Object.keys(files).length;
-        const isEmpty = fileCount === 0 || project.generationStatus === 'empty';
+        const dbFileCount = Object.keys(files).length;
 
-        console.log(`📊 Project status: ${fileCount} files, status: ${project.generationStatus}`);
+        // If we have a sandbox, check for files there too
+        let sandboxFileCount = 0;
+        if (project.sandboxId) {
+            try {
+                const { executeSandboxCommand } = await import('../e2b/sandbox-manager');
+                const findCmd = `find . -type f -not -path "./node_modules/*" -not -path "./.next/*" -not -path "./.git/*" | wc -l`;
+                const result = await executeSandboxCommand(project.sandboxId, findCmd, 10000);
+                if (result.exitCode === 0) {
+                    sandboxFileCount = parseInt(result.stdout.trim(), 10) || 0;
+                }
+            } catch (error) {
+                console.warn(`⚠️ Could not check sandbox files:`, error);
+            }
+        }
+
+        const totalFiles = Math.max(dbFileCount, sandboxFileCount);
+        const isEmpty = totalFiles === 0 || project.generationStatus === 'empty';
+
+        console.log(`📊 Project status: ${dbFileCount} files in DB, ${sandboxFileCount} files in sandbox, status: ${project.generationStatus}`);
 
         return {
             success: true,
             isEmpty,
-            fileCount,
+            fileCount: totalFiles,
+            dbFileCount,
+            sandboxFileCount,
             status: project.generationStatus,
             needsInitialization: isEmpty,
             message: isEmpty
-                ? `Project is empty (${fileCount} files). You can initialize with Next.js or create files directly.`
-                : `Project has ${fileCount} files.`,
+                ? `Project is empty (${dbFileCount} DB files, ${sandboxFileCount} sandbox files). You can initialize with Next.js or create files directly.`
+                : `Project has ${totalFiles} files (${dbFileCount} in DB, ${sandboxFileCount} in sandbox).`,
         };
     },
 });
@@ -1013,22 +1033,35 @@ Example workflow:
                 metadata: { projectId },
             });
 
-            // 🔧 FIX: Ensure Tailwind CSS v4 is properly configured
-            console.log(`🔧 Ensuring Tailwind CSS v4 configuration...`);
+            // � CHECK: Is this the Craft template with Next.js pre-installed?
+            console.log(`🔍 Checking if template is pre-initialized...`);
+            let isTemplateReady = false;
+            try {
+                await readFileFromSandbox(sandboxInfo.sandboxId, '.craft-ready');
+                isTemplateReady = true;
+                console.log(`✅ Template is pre-initialized - skipping installation`);
+            } catch (error) {
+                console.log(`⚠️ Template not pre-initialized - will install manually`);
+            }
 
-            // Create proper postcss.config.mjs for Tailwind v4
-            const postcssConfig = `const config = {
+            // If template is NOT pre-installed, install Next.js manually
+            if (!isTemplateReady) {
+                console.log(`📦 Installing Next.js manually...`);
+
+                // Create proper postcss.config.mjs for Tailwind v4
+                const postcssConfig = `const config = {
   plugins: ["@tailwindcss/postcss"],
 };
 
 export default config;
 `;
-            await writeFileToSandbox(sandboxInfo.sandbox, 'postcss.config.mjs', postcssConfig);
+                await writeFileToSandbox(sandboxInfo.sandbox, 'postcss.config.mjs', postcssConfig);
 
-            // Ensure Tailwind v4 packages are installed
-            const installCmd = `cd /home/user/project && pnpm add -D @tailwindcss/postcss@latest tailwindcss@latest postcss@latest autoprefixer@latest`;
-            await executeSandboxCommand(sandboxInfo.sandbox, installCmd, 60000);
-            console.log(`✅ Tailwind CSS v4 configuration applied`);
+                // Install Next.js and Tailwind v4
+                const installCmd = `cd /home/user/project && pnpm add next react react-dom typescript tailwindcss postcss autoprefixer @tailwindcss/postcss`;
+                await executeSandboxCommand(sandboxInfo.sandbox, installCmd, 120000); // 2 minutes
+                console.log(`✅ Next.js installed manually`);
+            }
 
             console.log(`📦 Reading Next.js 15 template from sandbox ${sandboxInfo.sandboxId}...`);
 
@@ -1204,20 +1237,43 @@ export const syncFilesToDB = tool({
             // Read all file contents in parallel (batch of 10 at a time)
             const filesData: Record<string, string> = {};
             let readCount = 0;
+            let skippedBinary = 0;
+
+            // Binary file extensions that should be skipped (contain null bytes)
+            const binaryExtensions = ['.ico', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.woff', '.woff2', '.ttf', '.eot', '.otf', '.mp4', '.webm', '.mp3', '.wav', '.pdf', '.zip', '.tar', '.gz'];
 
             for (let i = 0; i < filePaths.length; i += 10) {
                 const batch = filePaths.slice(i, i + 10);
                 const results = await Promise.allSettled(
                     batch.map(async (filePath) => {
+                        // Skip binary files
+                        const isBinary = binaryExtensions.some(ext => filePath.toLowerCase().endsWith(ext));
+                        if (isBinary) {
+                            console.log(`⏭️ Skipping binary file: ${filePath}`);
+                            return { filePath, content: null, skipped: true };
+                        }
+
                         const content = await readFileFromSandbox(sandbox.sandboxId, filePath);
-                        return { filePath, content };
+
+                        // Remove null bytes that break PostgreSQL
+                        const sanitized = content.replace(/\u0000/g, '');
+
+                        // If content became empty or significantly changed, skip it (likely binary)
+                        if (!sanitized || sanitized.length < content.length * 0.5) {
+                            console.warn(`⚠️ Skipping file with null bytes: ${filePath}`);
+                            return { filePath, content: null, skipped: true };
+                        }
+
+                        return { filePath, content: sanitized, skipped: false };
                     })
                 );
 
                 results.forEach((result) => {
-                    if (result.status === 'fulfilled') {
+                    if (result.status === 'fulfilled' && !result.value.skipped && result.value.content) {
                         filesData[result.value.filePath] = result.value.content;
                         readCount++;
+                    } else if (result.status === 'fulfilled' && result.value.skipped) {
+                        skippedBinary++;
                     }
                 });
             }
@@ -1234,14 +1290,14 @@ export const syncFilesToDB = tool({
                 },
             });
 
-            console.log(`✅ Synced ${readCount} files to database`);
+            console.log(`✅ Synced ${readCount} files to database (skipped ${skippedBinary} binary files)`);
 
             return {
                 success: true,
                 filesSynced: readCount,
                 totalFiles: filePaths.length,
-                skipped: filePaths.length - readCount,
-                message: `Successfully synced ${readCount} files to database`,
+                skipped: skippedBinary,
+                message: `Successfully synced ${readCount} files to database (skipped ${skippedBinary} binary files)`,
             };
         } catch (error) {
             console.error('❌ Error syncing to database:', error);

@@ -320,12 +320,12 @@ You now have **5 new tools** for managing E2B sandbox environments:
    - Example: \`createProjectSandbox({ projectId })\`
 
 2. **runSandboxCommand** - Execute shell commands in the sandbox
-   - Use for ALL command-line operations
+   - Use for installing additional packages, running builds, etc.
    - Runs in \`/home/user/project\` directory automatically
    - Examples:
-     - Scaffold projects: \`runSandboxCommand({ command: "npx create-next-app@latest . --app --ts --tailwind --no-linter --yes" })\`
-     - Install packages: \`runSandboxCommand({ command: "npm install react-query zod" })\`
+     - Install packages: \`runSandboxCommand({ command: "pnpm add react-query zod" })\`
      - Run builds: \`runSandboxCommand({ command: "pnpm build" })\`
+     - Database migrations: \`runSandboxCommand({ command: "pnpm prisma migrate dev" })\`
 
 3. **writeSandboxFile** - Write files directly to sandbox filesystem
    - For files that shouldn't be in database (.env, secrets, temp files)
@@ -341,93 +341,58 @@ You now have **5 new tools** for managing E2B sandbox environments:
    - Auto-resumes instantly when needed
    - Example: \`pauseProjectSandbox({ projectId })\`
 
-### **📋 Setting Up a Next.js Project in E2B Sandbox**
+### **📋 Setting Up a Next.js Project - UPDATED WORKFLOW**
 
-**For NEW/EMPTY projects, follow this EXACT workflow:**
+**🎯 IMPORTANT**: The E2B sandbox template already has a complete Next.js 15 project pre-installed!
+
+**For NEW/EMPTY projects, use this simple workflow:**
 
 \`\`\`typescript
-// Step 1: Create the sandbox environment
-await createProjectSandbox({ projectId });
+// Step 1: Initialize from pre-built template (INSTANT - no installation needed!)
+await initializeNextApp({ projectId });
+// This syncs the pre-installed Next.js 15 template from sandbox to database
+// Includes: TypeScript, Tailwind v4, App Router, shadcn/ui, all deps installed
 
-// Step 2: Scaffold Next.js project using create-next-app
-await runSandboxCommand({
-  projectId,
-  command: "npx create-next-app@latest . --app --ts --tailwind --no-linter --yes",
-  timeoutMs: 90000 // Next.js setup can take 60-90 seconds
-});
+// Step 2: Explore the project structure
+await listFiles({ projectId });
 
-// Step 3: Update package.json to use correct dev command for E2B
-// CRITICAL: -H 0.0.0.0 is REQUIRED for E2B sandboxes!
-await readSandboxFile({ projectId, path: "package.json" });
-// Modify the "dev" script to: "next dev --turbopack -H 0.0.0.0 -p 3000"
+// Step 2: Explore the project structure
+await listFiles({ projectId });
+// You'll see: src/app/, package.json, components.json, lib/, etc.
 
-await generateFiles({
-  projectId,
-  files: [{
-    path: "package.json",
-    content: \`{
-  "name": "project-name",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack -H 0.0.0.0 -p 3000",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "next": "15.1.3",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.0.0",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5"
-  }
-}\`
-  }]
-});
+// Step 3: Read key files to understand the structure
+await readFile({ projectId, path: "src/app/page.tsx" });
+await readFile({ projectId, path: "src/app/layout.tsx" });
 
-// Step 4: Start the development server
-await runSandboxCommand({
-  projectId,
-  command: "npm run dev",
-  timeoutMs: 30000
-});
-
-// Step 5: Create your custom components and pages
+// Step 4: Customize files based on user's request
 await generateFiles({
   projectId,
   files: [
-    { path: "src/app/page.tsx", content: "..." },
-    { path: "src/components/Hero.tsx", content: "..." }
+    { path: "src/app/page.tsx", content: "..." }, // Customize home page
+    { path: "src/components/Hero.tsx", content: "..." } // Add new components
   ]
 });
 
-// Step 6: Trigger preview
-await triggerPreview({ projectId, reason: "Next.js project ready" });
+// Step 5: Trigger preview when ready
+await triggerPreview({ projectId, reason: "App customized and ready" });
 \`\`\`
 
-### **🎯 Quick Next.js Setup Template**
+### **🎯 Quick Reference: Template Includes**
 
-For convenience, here's the complete setup command sequence:
+The pre-installed template includes:
+- ✅ Next.js 15 + React 19 + TypeScript
+- ✅ Tailwind CSS v4 (@tailwindcss/postcss)
+- ✅ shadcn/ui (10+ components: button, card, input, form, etc.)
+- ✅ App Router with src/ directory
+- ✅ All dependencies installed (pnpm)
+- ✅ Ready to customize immediately - NO installation needed!
 
-\`\`\`bash
-# 1. Create Next.js project
-npx create-next-app@latest . --app --ts --tailwind --no-linter --yes
+### **⚠️ DO NOT run create-next-app or npm init**
 
-# 2. Ensure correct package.json scripts
-# Must include: "dev": "next dev --turbopack -H 0.0.0.0 -p 3000"
-
-# 3. Start dev server
-npm run dev
-\`\`\`
+The template is already initialized. Just use:
+1. initializeNextApp() - Copy template files to database
+2. listFiles() and readFile() - Explore structure
+3. generateFiles() - Customize for user's needs
 
 ### **⚠️ CRITICAL E2B Sandbox Requirements**
 
