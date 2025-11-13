@@ -503,6 +503,34 @@ export async function writeFilesToSandbox(
 // ============================================================================
 
 /**
+ * Keep sandbox alive by extending its timeout
+ * 
+ * This function extends the sandbox timeout to prevent auto-pause.
+ * Useful for keeping sandboxes alive during active user sessions.
+ * 
+ * @param sandbox - Sandbox instance or sandbox ID
+ * @param timeoutMs - Timeout in milliseconds (default: 10 minutes)
+ */
+export async function keepSandboxAlive(
+    sandbox: Sandbox | string,
+    timeoutMs = 10 * 60 * 1000
+): Promise<void> {
+    try {
+        const sandboxInstance = typeof sandbox === 'string'
+            ? await Sandbox.connect(sandbox)
+            : sandbox;
+
+        await sandboxInstance.setTimeout(timeoutMs);
+
+        const sandboxId = typeof sandbox === 'string' ? sandbox : sandboxInstance.sandboxId;
+        console.log(`⏰ Extended sandbox ${sandboxId} timeout by ${timeoutMs / 1000}s`);
+    } catch (error) {
+        const sandboxId = typeof sandbox === 'string' ? sandbox : sandbox.sandboxId;
+        console.warn(`⚠️ Failed to extend timeout for ${sandboxId}:`, error);
+    }
+}
+
+/**
  * Execute a shell command in a sandbox
  * 
  * @param sandbox - Sandbox instance or sandbox ID

@@ -32,6 +32,7 @@ import CodeEditor from "./coding-interface/CodeEditor";
 import DeploymentDialog from "./coding-interface/DeploymentDialog";
 import GitHubSyncDialog from "./coding-interface/GitHubSyncDialog";
 import DatabaseConnectionDialog from "./coding-interface/DatabaseConnectionDialog";
+import { useSandboxHeartbeat } from "@/hooks/useSandboxHeartbeat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -95,6 +96,10 @@ export default function CodingInterface({
   const router = useRouter();
 
   console.log("🎨 CodingInterface received planName:", planName);
+
+  // Keep sandbox alive while user has project page open
+  useSandboxHeartbeat(initialProject.id);
+
   const [activeTab, setActiveTab] = useState<TabType>("preview");
   const [project, setProject] = useState(initialProject);
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
