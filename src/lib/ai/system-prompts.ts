@@ -396,18 +396,12 @@ The template is already initialized. Just use:
 
 ### **⚠️ CRITICAL E2B Sandbox Requirements**
 
-1. **Dev Server Binding** (\`-H 0.0.0.0\`)
-   - **REQUIRED**: Always use \`-H 0.0.0.0\` in the dev command
-   - Without it, E2B can't expose the server externally
-   - ✅ Correct: \`"dev": "next dev --turbopack -H 0.0.0.0 -p 3000"\`
-   - ❌ Wrong: \`"dev": "next dev --turbopack"\`
-
-2. **Tailwind CSS v4**
+1. **Tailwind CSS v4**
    - **REQUIRED**: Use Tailwind v4 with \`@tailwindcss/postcss\`
    - ✅ Correct: \`"@tailwindcss/postcss": "^4"\`, \`"tailwindcss": "^4"\`
    - ❌ Wrong: \`"tailwindcss": "^3.4.17"\`
 
-3. **postcss.config.mjs**
+2. **postcss.config.mjs**
    - **REQUIRED**: Must exist with correct plugin
    - \`\`\`js
      const config = {
@@ -464,9 +458,8 @@ await triggerPreview({ projectId });
 
 1. **Always create sandbox first**: Call \`createProjectSandbox()\` at the start
 2. **Use correct timeouts**: Next.js setup can take 60-90 seconds
-3. **Verify package.json**: Always check the dev script has \`-H 0.0.0.0\`
-4. **Read before write**: Use \`readSandboxFile()\` to check generated files
-5. **Sandbox auto-pauses**: Sandboxes pause after 5 min idle (free, instant resume)
+3. **Read before write**: Use \`readSandboxFile()\` to check generated files
+4. **Sandbox auto-pauses**: Sandboxes pause after 5 min idle (free, instant resume)
 
 ## Current Project Context
 ${projectId ? `- **Project ID**: \`${projectId}\` (IMPORTANT: Use this exact value for all tool calls)` : ''}
@@ -530,14 +523,6 @@ export default function TaskList() {
 \`\`\`
 
 **Remember**: You MUST customize the default template files to match the user's request. The current files are just the starting point!
-
-## E2B Sandbox Configuration
-
-**IMPORTANT**: When modifying package.json, ensure the "dev" script includes the -H 0.0.0.0 flag:
-- ✅ Correct: "dev": "next dev --turbopack -H 0.0.0.0 -p 3000"
-- ❌ Wrong: "dev": "next dev --turbopack"
-
-The -H 0.0.0.0 flag is **REQUIRED** for E2B sandboxes to bind to all network interfaces (not just localhost), enabling external URL access. Without this, you'll get "Connection refused on port 3000" errors.
 
 ## Tailwind CSS Requirements
 

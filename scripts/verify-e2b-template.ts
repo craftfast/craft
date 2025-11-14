@@ -1,39 +1,59 @@
 /**
- * Verify E2B Template Configuration
+ * Verify E2B Sandbox Functionality
  * 
- * This script checks if the E2B template has the correct package.json configuration
- * with the -H 0.0.0.0 flag for port binding.
+ * This script:
+ * 1. Creates a sandbox from the craft-nextjs-dev template
+ * 2. Gets the sandbox URL
+ * 3. Automatically kills the sandbox after 1 minute
  */
 
-import { nextjsTemplate } from "../src/lib/e2b/template";
+import { config } from "dotenv";
+import { Sandbox } from "e2b";
 
-console.log("🔍 Verifying E2B Template Configuration...\n");
+// Load environment variables
+config();
 
-// Extract the template definition as a string to check the package.json content
-const templateString = nextjsTemplate.toString();
+const KILL_TIMEOUT_MS = 60000; // 1 minute
 
-console.log("📦 Checking package.json dev script...\n");
+async function verifySandbox() {
+    let sandbox: Sandbox | null = null;
 
-// Check if the template includes the correct dev command
-const hasCorrectDevCommand = templateString.includes('"dev": "next dev --turbopack -H 0.0.0.0 -p 3000"');
-const hasOldDevCommand = templateString.includes('"dev": "next dev --turbopack"') && !hasCorrectDevCommand;
+    try {
+        const templateId = process.env.E2B_TEMPLATE_ID || "craft-next-dev";
+        console.log(`🔍 Creating E2B sandbox from ${templateId} template...\n`);
 
-if (hasCorrectDevCommand) {
-    console.log("✅ CORRECT: Template has -H 0.0.0.0 flag in dev script");
-    console.log('   "dev": "next dev --turbopack -H 0.0.0.0 -p 3000"\n');
-} else if (hasOldDevCommand) {
-    console.log("❌ ERROR: Template is missing -H 0.0.0.0 flag!");
-    console.log('   Current: "dev": "next dev --turbopack"');
-    console.log('   Expected: "dev": "next dev --turbopack -H 0.0.0.0 -p 3000"\n');
-    console.log("⚠️  Please rebuild the template with: pnpm run e2b:build:dev\n");
-    process.exit(1);
-} else {
-    console.log("⚠️  WARNING: Could not verify dev script configuration");
-    console.log("   Manual verification recommended\n");
+        sandbox = await Sandbox.create(templateId, {
+            timeoutMs: 120000, // 2 minutes to create
+        });
+
+        console.log(`✅ Sandbox created: ${sandbox.sandboxId}\n`);
+
+        // Get the sandbox URL
+        const url = `https://${sandbox.getHost(3000)}`;
+        console.log(`\n🌐 Sandbox URL: ${url}\n`);
+        console.log(`📝 Sandbox ID: ${sandbox.sandboxId}\n`);
+
+        // Set up auto-kill after 1 minute
+        console.log(`⏱️  Sandbox will be killed in 1 minute...\n`);
+
+        setTimeout(async () => {
+            console.log("\n⏰ 1 minute elapsed, killing sandbox...\n");
+            if (sandbox) {
+                await sandbox.kill();
+                console.log("✅ Sandbox killed successfully\n");
+                process.exit(0);
+            }
+        }, KILL_TIMEOUT_MS);
+
+    } catch (error) {
+        console.error("\n❌ Error:", error);
+        if (sandbox) {
+            console.log("\n🧹 Cleaning up sandbox...");
+            await sandbox.kill();
+        }
+        process.exit(1);
+    }
 }
 
-console.log("✨ Verification complete!");
-console.log("\n📝 Next steps:");
-console.log("   1. Rebuild template: pnpm run e2b:build:dev");
-console.log("   2. Delete existing sandboxes to use the new template");
-console.log("   3. Create new sandboxes - they will use the fixed template\n");
+console.log("🔍 Verifying E2B Sandbox Functionality...\n");
+verifySandbox();

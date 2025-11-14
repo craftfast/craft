@@ -41,7 +41,7 @@
  * - All dependencies pre-installed
  */
 
-import { Template } from "e2b";
+import { Template, waitForURL } from "e2b";
 
 /**
  * Build the Craft E2B template with a complete Next.js + shadcn/ui base project
@@ -53,22 +53,17 @@ export function buildCraftTemplate() {
 
         // Install essential packages
         .aptInstall([
-            "curl",           // For downloading pnpm installer
+            "curl",           // For downloading files and health checks
             "ca-certificates", // For HTTPS connections
             "git",            // Required for shadcn/ui CLI
         ])
 
-        // Install pnpm 9.15.4 (latest stable)
-        .runCmd(
-            "curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=9.15.4 sh -"
-        )
+        // Install pnpm globally using E2B's npmInstall method
+        .npmInstall("pnpm@latest", { g: true })
 
         // Create a complete Next.js + shadcn/ui base project
         // This will be available at /home/user/project (no copying needed!)
         .runCmd([
-            // Set up pnpm in PATH for this session
-            "export PATH=/home/user/.local/share/pnpm:$PATH",
-
             // Create temp project directory (npm doesn't allow names starting with .)
             "mkdir -p /home/user/base-template",
             "cd /home/user/base-template",
@@ -452,9 +447,6 @@ export function buildCraftTemplate() {
 
         // Configure environment variables
         .setEnvs({
-            // Add pnpm to PATH
-            PATH: "/home/user/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-
             // Node.js environment
             NODE_ENV: "development",
 
@@ -464,13 +456,18 @@ export function buildCraftTemplate() {
             // Turbopack settings (faster builds)
             TURBOPACK_ENABLED: "1",
 
-            // pnpm settings
-            PNPM_HOME: "/home/user/.local/share/pnpm",
-
-            // Next.js dev server settings - ENFORCE PORT 3000 ONLY
+            // Next.js dev server settings
             PORT: "3000",           // Next.js reads this for port
-            HOSTNAME: "0.0.0.0",    // Next.js reads this for host binding
-        });
+        })
+
+        // 🎯 START & READY COMMANDS: Run Next.js and wait for it to be ready
+        // This ensures the Next.js app is running and accessible when sandbox spawns
+        // - Start command: Runs pnpm dev with Turbopack for fast HMR
+        // - Ready command: Uses E2B's waitForURL helper to verify app is accessible
+        .setStartCmd(
+            "pnpm dev",
+            waitForURL("http://localhost:3000")
+        );
 
     // Template is now ready!
     // This is a COMPLETE production SaaS starter - idea to launch in minutes!

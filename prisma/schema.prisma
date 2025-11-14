@@ -191,6 +191,7 @@ model Project {
   // E2B Sandbox fields (Phase 3)
   sandboxId                     String? // E2B sandbox ID for pause/resume
   sandboxPausedAt               DateTime? // Timestamp when sandbox was paused
+  lastBackupAt                  DateTime? // Timestamp of last R2 backup
   previewImage                  String? // Screenshot/preview image URL for project thumbnail
   previewImageCapturedAtVersion Int? // Project version when preview image was captured
   createdAt                     DateTime         @default(now())

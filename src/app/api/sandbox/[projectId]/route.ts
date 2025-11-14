@@ -113,9 +113,9 @@ export async function POST(
         console.log("🚀 Starting Next.js dev server...");
 
         try {
-            // Start the dev server in the background with full PATH to pnpm
+            // Start the dev server in the background
             const devProcess = await sandbox.commands.run(
-                "cd /home/user/project && /home/user/.local/share/pnpm/pnpm exec next dev -H 0.0.0.0 -p 3000",
+                "pnpm dev",
                 {
                     background: true,
                     envs: {
@@ -123,11 +123,10 @@ export async function POST(
                         PORT: "3000",
                         HOSTNAME: "0.0.0.0",
                         NEXT_TELEMETRY_DISABLED: "1",
-                        PATH: "/home/user/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                     },
                 }
             );
-            console.log(`✅ Dev server started with 'next dev -H 0.0.0.0 -p 3000' (PID: ${devProcess.pid || 'unknown'})`);
+            console.log(`✅ Dev server started with 'pnpm dev' (PID: ${devProcess.pid || 'unknown'})`);
 
             // Wait for the server to become ready (up to 30 seconds)
             console.log("⏳ Waiting for Next.js to compile and start...");

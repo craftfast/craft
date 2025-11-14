@@ -234,14 +234,26 @@ export async function getOrCreateProjectSandbox(
                 lastError = error instanceof Error ? error : new Error(String(error));
                 console.warn(`⚠️ [Project ${projectId}] Attempt ${attempt}/${maxRetries} failed:`, lastError.message);
 
-                // If it's a NotFoundError, sandbox was deleted by E2B - don't retry
+                // If it's a NotFoundError, sandbox was deleted/expired by E2B
+                // Restore from R2 backup and create new sandbox
                 if (lastError.message.includes('NotFoundError') || lastError.message.includes('not found')) {
                     console.error(`❌ [Project ${projectId}] Sandbox ${project.sandboxId} was deleted/expired by E2B`);
-                    throw new Error(
-                        `Sandbox for this project is no longer available. ` +
-                        `This can happen if the sandbox was deleted by E2B (>30 days old). ` +
-                        `Please contact support to restore your project.`
-                    );
+                    console.log(`🔄 [Project ${projectId}] Attempting to restore from R2 backup...`);
+
+                    try {
+                        // Import R2 backup service dynamically to avoid circular dependencies
+                        const { restoreProjectFromExpiredSandbox } = await import('./r2-sandbox-restore');
+                        const newSandboxInfo = await restoreProjectFromExpiredSandbox(projectId, project.sandboxId);
+                        console.log(`✅ [Project ${projectId}] Successfully restored from R2 to new sandbox: ${newSandboxInfo.sandboxId}`);
+                        return newSandboxInfo;
+                    } catch (restoreError) {
+                        console.error(`❌ [Project ${projectId}] Failed to restore from R2:`, restoreError);
+                        throw new Error(
+                            `Sandbox expired and restoration failed. ` +
+                            `Original sandbox: ${project.sandboxId}. ` +
+                            `Please contact support if this persists.`
+                        );
+                    }
                 }
 
                 // For other errors, continue retrying
@@ -435,9 +447,28 @@ export async function writeFileToSandbox(
 ): Promise<boolean> {
     try {
         const sandboxInstance = typeof sandbox === 'string' ? await Sandbox.connect(sandbox) : sandbox;
+        const sandboxId = typeof sandbox === 'string' ? sandbox : sandbox.sandboxId;
         const fullPath = `/home/user/project/${path}`;
         await sandboxInstance.files.write(fullPath, content);
         console.log(`✅ Wrote file to sandbox: ${path}`);
+
+        // 🔄 Auto-backup to R2 if sandbox is linked to a project
+        try {
+            // Get projectId from sandbox metadata or database lookup
+            const project = await prisma.project.findFirst({
+                where: { sandboxId },
+                select: { id: true },
+            });
+
+            if (project) {
+                const { backupProjectFile } = await import('./r2-project-backup');
+                await backupProjectFile(project.id, path, content);
+            }
+        } catch (backupError) {
+            // Don't fail the write operation if backup fails
+            console.warn(`⚠️ Failed to backup file to R2 (write still succeeded):`, backupError);
+        }
+
         return true;
     } catch (error) {
         console.error(`❌ Failed to write file ${path}:`, error);
@@ -481,6 +512,7 @@ export async function writeFilesToSandbox(
 ): Promise<boolean> {
     try {
         const sandboxInstance = typeof sandbox === 'string' ? await Sandbox.connect(sandbox) : sandbox;
+        const sandboxId = typeof sandbox === 'string' ? sandbox : sandbox.sandboxId;
 
         await Promise.all(
             files.map(({ path, content }) => {
@@ -491,6 +523,28 @@ export async function writeFilesToSandbox(
         );
 
         console.log(`✅ Wrote ${files.length} files to sandbox`);
+
+        // 🔄 Auto-backup to R2 if sandbox is linked to a project
+        try {
+            const project = await prisma.project.findFirst({
+                where: { sandboxId },
+                select: { id: true },
+            });
+
+            if (project) {
+                const { backupProjectFiles } = await import('./r2-project-backup');
+                const filesToBackup = files
+                    .filter(f => f.content)
+                    .map(f => ({ path: f.path, content: f.content! }));
+
+                if (filesToBackup.length > 0) {
+                    await backupProjectFiles(project.id, filesToBackup);
+                }
+            }
+        } catch (backupError) {
+            console.warn(`⚠️ Failed to backup files to R2 (writes still succeeded):`, backupError);
+        }
+
         return true;
     } catch (error) {
         console.error("❌ Failed to write files:", error);
