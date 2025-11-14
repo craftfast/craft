@@ -29,14 +29,15 @@ import { createXai } from "@ai-sdk/xai";
 import { generateText, streamText, stepCountIs } from "ai";
 import {
     getModelConfig,
-    selectModelForUseCase,
-    getDefaultFastModel,
+    getOrchestratorModel,
+    getCodingModel,
 } from "@/lib/models/config";
 import { getUserPlan } from "@/lib/subscription";
 import { tools } from "@/lib/ai/tools";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createAgentLoop, type AgentLoopCoordinator } from "@/lib/ai/agent-loop-coordinator";
 import { setToolContext, clearToolContext } from "@/lib/ai/tool-context";
+import { prisma } from "@/lib/db";
 
 // Create AI provider clients
 // Provider selection is handled dynamically based on model configuration
@@ -92,7 +93,7 @@ interface CodingStreamOptions {
 }
 
 /**
- * Detect requirements from message content using Grok 4 Fast
+ * Detect requirements from message content using Grok 4 Fast (Orchestrator)
  * Uses AI to intelligently analyze if web search or other capabilities are needed
  */
 async function detectRequirements(messages: unknown[], systemPrompt: string): Promise<{
@@ -119,7 +120,7 @@ async function detectRequirements(messages: unknown[], systemPrompt: string): Pr
         }
     }
 
-    // Use Grok 4 Fast to intelligently detect if web search is needed
+    // Use Grok 4 Fast (Orchestrator) to intelligently detect if web search is needed
     try {
         const lastMessage = messagesArray[messagesArray.length - 1];
         const userPrompt = lastMessage && typeof lastMessage === 'object' && 'content' in lastMessage
@@ -149,7 +150,8 @@ NOT requiring web search:
 - General programming questions
 - URLs in context (just references, not search requests)`;
 
-        const { provider, modelPath } = getModelProvider("x-ai/grok-4-fast");
+        const orchestratorModelId = getOrchestratorModel();
+        const { provider, modelPath } = getModelProvider(orchestratorModelId);
         const modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
 
         const result = await generateText({
@@ -191,14 +193,14 @@ function getModelProvider(modelId: string): {
     const modelConfig = getModelConfig(modelId);
 
     if (!modelConfig) {
-        console.warn(`⚠️ Unknown model: ${modelId}, falling back to default fast model`);
+        console.warn(`⚠️ Unknown model: ${modelId}, falling back to fast coding model`);
 
-        // Ultimate fallback - use the default fast model from config
-        const fallbackModelId = getDefaultFastModel();
+        // Ultimate fallback - use the fast coding model
+        const fallbackModelId = getCodingModel("fast");
         const fallbackConfig = getModelConfig(fallbackModelId);
 
         if (!fallbackConfig) {
-            throw new Error("Configuration error: Default fast model not found in config");
+            throw new Error("Configuration error: Fast coding model not found in config");
         }
 
         // Recursively call with the fallback model
@@ -262,6 +264,9 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         onFinish
     } = options;
 
+    // Note: E2B auto-pause handles sandbox lifecycle automatically
+    // No manual locking needed - sandbox stays alive during active usage
+
     // ⚡ Phase 2: Initialize agent loop if enabled
     let agentLoop: AgentLoopCoordinator | undefined;
     // TEMPORARILY DISABLED: Agent loop causing empty message issues with Claude
@@ -301,28 +306,8 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     // Detect requirements from messages
     const { hasImages, hasWebSearchRequest, needsFunctionCalling } = await detectRequirements(messages, systemPrompt);
 
-    // Build required inputs based on detected content
-    const requiredInputs: Array<"text" | "image"> = ["text"];
-    if (hasImages) {
-        requiredInputs.push("image");
-        console.log("🖼️ Detected image input - selecting multimodal model");
-    }
-
-    // Select the most efficient model that meets all requirements
-    // PHASE 1: ALWAYS require function calling for coding tasks
-    const codingModel = selectModelForUseCase({
-        useCase: "coding",
-        tier, // Use specified tier (defaults to fast)
-        userPlan,
-        requiredInputs,
-        requiredOutputs: ["code", "text"],
-        requiresWebSearch: hasWebSearchRequest || undefined,
-        requiresFunctionCalling: true, // ⚡ PHASE 1: FORCE tool-capable models
-    });
-
-    if (!codingModel) {
-        throw new Error(`No coding model available for plan: ${userPlan} with specified requirements`);
-    }
+    // Get the coding model based on user-selected tier
+    const codingModel = getCodingModel(tier);
 
     const { provider, modelPath, displayName, providerType } = getModelProvider(codingModel);
 
@@ -363,12 +348,27 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     // Track tool execution timing for SSE events
     const toolStartTimes = new Map<string, number>();
 
-    // Set tool context so tools can access SSE writer and project info
+    // Get sandbox ID if project has one (Phase 3)
+    let sandboxId: string | undefined;
+    if (projectId) {
+        try {
+            const project = await prisma.project.findUnique({
+                where: { id: projectId },
+                select: { sandboxId: true },
+            });
+            sandboxId = project?.sandboxId || undefined;
+        } catch (error) {
+            console.warn('⚠️ Could not fetch sandbox ID:', error);
+        }
+    }
+
+    // Set tool context so tools can access SSE writer, project info, and sandbox
     setToolContext({
         sseWriter,
         projectId,
         userId,
         sessionId,
+        sandboxId, // Phase 3: Sandbox ID for tools that need it
     });
 
     // Stream the response with TOOLS ENABLED and usage tracking
@@ -449,6 +449,8 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
             }
         },
         onFinish: async ({ usage, toolCalls, toolResults }) => {
+            // Note: E2B auto-pause handles sandbox lifecycle automatically
+
             // Clean up tool context
             clearToolContext();
 
@@ -556,19 +558,8 @@ Project name (1-${maxWords} words only, no code):`;
         // Get user's plan to determine model access
         const userPlan = await getUserPlan(userId);
 
-        // Select the most efficient naming model
-        const namingModelId = selectModelForUseCase({
-            useCase: "naming",
-            tier: "fast",
-            userPlan,
-            requiredInputs: ["text"],
-            requiredOutputs: ["text"],
-        });
-
-        if (!namingModelId) {
-            console.warn(`⚠️ No naming model available for plan: ${userPlan}`);
-            throw new Error(`No naming model available for plan: ${userPlan}`);
-        }
+        // Use Grok 4 Fast (Orchestrator) for naming
+        const namingModelId = getOrchestratorModel();
 
         const { provider, modelPath, displayName, providerType } = getModelProvider(namingModelId);
         console.log(`🤖 AI Agent: Generating project name with ${displayName} (${namingModelId})`);

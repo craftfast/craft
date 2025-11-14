@@ -397,6 +397,78 @@ export class SSEStreamWriter {
         });
     }
 
+    // ========================================================================
+    // ORCHESTRATOR EVENTS (Phase 3)
+    // ========================================================================
+
+    writeOrchestratorSession(sessionId: string, status: string) {
+        this.write({
+            type: 'orchestrator-session',
+            sessionId,
+            status,
+            timestamp: Date.now(),
+        } as unknown as SSEEvent);
+    }
+
+    writeOrchestratorStep(stepType: string, toolCalls: number) {
+        this.write({
+            type: 'orchestrator-step',
+            stepType,
+            toolCalls,
+            timestamp: Date.now(),
+        } as unknown as SSEEvent);
+    }
+
+    writeOrchestratorPlanning(status: string) {
+        this.write({
+            type: 'orchestrator-planning',
+            status,
+            timestamp: Date.now(),
+        } as unknown as SSEEvent);
+    }
+
+    writeOrchestratorDelegation(taskId: string) {
+        this.write({
+            type: 'orchestrator-delegation',
+            taskId,
+            timestamp: Date.now(),
+        } as unknown as SSEEvent);
+    }
+
+    writeOrchestratorTaskCreated(taskId: string, description: string) {
+        this.write({
+            type: 'orchestrator-task-created',
+            taskId,
+            description,
+            timestamp: Date.now(),
+        } as unknown as SSEEvent);
+    }
+
+    writeOrchestratorTaskCompleted(taskId: string, success: boolean) {
+        this.write({
+            type: 'orchestrator-task-completed',
+            taskId,
+            success,
+            timestamp: Date.now(),
+        } as unknown as SSEEvent);
+    }
+
+    writeOrchestratorProgress(
+        totalTasks: number,
+        completedTasks: number,
+        failedTasks: number,
+        percentComplete: number
+    ) {
+        this.write({
+            type: 'orchestrator-progress',
+            totalTasks,
+            completedTasks,
+            failedTasks,
+            percentComplete,
+            timestamp: Date.now(),
+        } as unknown as SSEEvent);
+    }
+
     close() {
         if (this.controller) {
             this.controller.close();

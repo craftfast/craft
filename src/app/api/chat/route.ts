@@ -3,8 +3,8 @@ import { streamCodingResponse } from "@/lib/ai/agent";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { checkUserCreditAvailability, processAIUsage } from "@/lib/ai-usage";
-import { getDefaultSelectedModel } from "@/lib/models/config";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
+import { createOrchestrator } from "@/lib/ai/orchestrator/orchestrator-agent";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { messages, taskType, projectFiles, projectId, tier, enableAgentLoop = true } = await req.json();
+        const { messages, taskType, projectFiles, projectId, tier, enableAgentLoop = true, useOrchestrator = false } = await req.json();
 
         // Validate projectId
         if (!projectId) {
@@ -93,6 +93,82 @@ export async function POST(req: Request) {
 
         // Log credit availability
         console.log(`💰 Credit Availability - Used: ${creditAvailability.monthlyCreditsUsed}/${creditAvailability.monthlyCreditsLimit || 'unlimited'}, Remaining: ${creditAvailability.creditsRemaining}`);
+
+        // ============================================================================
+        // PHASE 3: ORCHESTRATOR MODE (Multi-Agent System)
+        // ============================================================================
+        // If orchestrator mode is enabled, route through orchestrator agent first
+        if (useOrchestrator) {
+            console.log('🎯 Using Orchestrator Mode (Phase 3)');
+
+            const sseWriter = new SSEStreamWriter();
+
+            const orchestratorStream = new ReadableStream({
+                async start(controller) {
+                    sseWriter.setController(controller);
+
+                    try {
+                        // Create orchestrator
+                        const orchestrator = await createOrchestrator({
+                            userId: user.id,
+                            projectId,
+                            sseWriter,
+                        });
+
+                        // Get last user message
+                        const lastMessage = messages[messages.length - 1];
+                        const userMessage = typeof lastMessage?.content === 'string'
+                            ? lastMessage.content
+                            : Array.isArray(lastMessage?.content)
+                                ? lastMessage.content.find((c: { type: string }) => c.type === 'text')?.text || ''
+                                : '';
+
+                        // Process message through orchestrator
+                        const textStream = await orchestrator.processMessage(userMessage);
+
+                        // Stream orchestrator's response
+                        for await (const chunk of textStream) {
+                            sseWriter.writeTextDelta(chunk);
+                        }
+
+                        // Get progress and emit final event
+                        const progress = await orchestrator.getProgress();
+                        if (progress) {
+                            sseWriter.writeOrchestratorProgress(
+                                progress.totalTasks,
+                                progress.completedTasks,
+                                progress.failedTasks,
+                                progress.percentComplete
+                            );
+                        }
+
+                        // Save state
+                        await orchestrator.saveState();
+
+                        // Emit done
+                        sseWriter.writeDone();
+
+                    } catch (error) {
+                        console.error('❌ Orchestrator error:', error);
+                        controller.error(error);
+                    } finally {
+                        controller.close();
+                    }
+                },
+            });
+
+            return new Response(orchestratorStream, {
+                headers: {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                },
+            });
+        }
+
+        // ============================================================================
+        // STANDARD MODE (Direct Coding Agent - Phase 1 & 2)
+        // ============================================================================
 
         // Get relevant user memories for context (if enabled)
         let userMemoryContext = '';

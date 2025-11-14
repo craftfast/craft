@@ -1,13 +1,15 @@
 /**
  * Polar Webhook Endpoint
  * 
- * Main webhook handler that receives and routes Polar webhook events.
- * Handles signature verification, event routing, and error handling.
+ * Implements Polar webhook handling following the official Standard Webhooks specification.
+ * Uses the standardwebhooks library for signature verification as recommended by Polar.
+ * 
+ * @see https://polar.sh/docs/integrate/webhooks/delivery
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Webhook } from "standardwebhooks";
 import {
-    verifyWebhookSignature,
     logWebhookEvent,
     updateWebhookEventStatus,
 } from "@/lib/polar/webhooks";
@@ -48,19 +50,10 @@ import {
 
 export async function POST(req: NextRequest) {
     try {
-        // Get raw body and signature
+        // Get raw body for signature verification
         const body = await req.text();
-        const signature = req.headers.get("polar-signature");
 
-        if (!signature) {
-            console.error("Missing polar-signature header");
-            return NextResponse.json(
-                { error: "Missing signature" },
-                { status: 401 }
-            );
-        }
-
-        // Verify webhook signature
+        // Verify webhook secret is configured
         const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
         if (!webhookSecret) {
             console.error("POLAR_WEBHOOK_SECRET not configured");
@@ -70,12 +63,29 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const isValid = verifyWebhookSignature(body, signature, webhookSecret);
-        if (!isValid) {
-            console.error("Invalid webhook signature");
+        // Validate webhook signature using Standard Webhooks library
+        // As per Polar docs: https://polar.sh/docs/integrate/webhooks/delivery
+        // 
+        // Important: The Standard Webhooks spec requires the secret to be base64 encoded.
+        // Polar webhook secrets need to be base64 encoded before passing to the Webhook class.
+        try {
+            // Base64 encode the secret as required by Standard Webhooks specification
+            const base64Secret = Buffer.from(webhookSecret, 'utf-8').toString('base64');
+
+            const wh = new Webhook(base64Secret);
+            const headers = {
+                "webhook-id": req.headers.get("webhook-id") || "",
+                "webhook-signature": req.headers.get("webhook-signature") || "",
+                "webhook-timestamp": req.headers.get("webhook-timestamp") || "",
+            };
+
+            wh.verify(body, headers);
+            console.log("✅ Webhook signature verified successfully");
+        } catch (error) {
+            console.error("❌ Invalid webhook signature:", error);
             return NextResponse.json(
                 { error: "Invalid signature" },
-                { status: 401 }
+                { status: 403 }
             );
         }
 
@@ -84,9 +94,7 @@ export async function POST(req: NextRequest) {
         const eventType = event.type;
         const eventId = event.id || `${eventType}-${Date.now()}`;
 
-        console.log(`Received Polar webhook: ${eventType} (${eventId})`);
-
-        // Log webhook event to database
+        console.log(`Received Polar webhook: ${eventType} (${eventId})`);        // Log webhook event to database
         await logWebhookEvent(eventType, eventId, event);
 
         // Update status to processing

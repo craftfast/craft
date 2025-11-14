@@ -1,0 +1,126 @@
+export const initializeNextApp = tool({
+    description: `Initialize empty project with Next.js 15 + shadcn/ui from pre-built template.
+
+?? CRITICAL WORKFLOW - YOU MUST FOLLOW THIS:
+1. ONLY call this if checkProjectEmpty returns isEmpty=true
+2. After calling this, DON'T STOP - immediately continue to step 3
+3. Customize the initialized files to build what user asked for:
+   - Use listFiles() to see the generated structure
+   - Use readFile() to examine key files like app/page.tsx
+   - Use generateFiles() to customize files for the user's app
+   - Add shadcn components with installPackages (e.g., "shadcn add button")
+
+? WRONG: Initialize ? Tell user "template ready" ? Stop
+? RIGHT: Initialize ? Read files ? Modify for user's app ? Add components ? Deliver working app
+
+Example: "create a todo app"
+? initializeNextApp (verifies pre-built Next.js + shadcn base is ready)
+? listFiles() (see structure: app/, components/, lib/utils.ts, etc.)
+? readFile('app/page.tsx') (understand structure)
+? generateFiles() to update page.tsx with todo UI
+? installPackages("shadcn add checkbox") (add shadcn components)
+? generateFiles() to add components/TodoItem.tsx using shadcn
+? User gets working todo app with beautiful UI`,
+    inputSchema: z.object({
+        projectId: z.string().describe('The project ID'),
+    }),
+    execute: async ({ projectId }) => {
+        console.log(`?? Initializing Next.js app in sandbox for project ${projectId}...`);
+
+        try {
+            // Get or create sandbox
+            const sandbox = await getOrCreateProjectSandbox(projectId);
+            console.log(`? Sandbox ready: ${sandbox.sandboxId}`);
+
+            // Verify the base project is ready (should already be in /home/user/project)
+            console.log('?? Verifying base project...');
+            const verifyResult = await executeSandboxCommand(
+                sandbox.sandboxId,
+                'test -f /home/user/project/.craft-ready && echo "OK" || echo "MISSING"',
+                5000
+            );
+
+            if (!verifyResult.stdout.includes('OK')) {
+                return {
+                    success: false,
+                    error: 'Base project not found. Template may need rebuilding.',
+                    details: 'Expected /home/user/project/.craft-ready to exist',
+                };
+            }
+
+            console.log('? Base project verified - ready to use!');
+
+            // Sync files from sandbox to database
+            console.log('? Syncing generated files to database...');
+            const lsResult = await executeSandboxCommand(
+                sandbox.sandboxId,
+                'find . -type f -not -path "./node_modules/*" -not -path "./.next/*" -not -path "./.git/*"',
+                10000
+            );
+
+            const filePaths = lsResult.stdout.split('\n').filter(Boolean);
+            console.log(`?? Found ${filePaths.length} files to sync`);
+
+            // Read all files from sandbox and save to database
+            const codeFiles: Record<string, string> = {};
+            for (const filePath of filePaths) {
+                const cleanPath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
+                try {
+                    const content = await readFileFromSandbox(sandbox.sandboxId, cleanPath);
+                    codeFiles[cleanPath] = content;
+                } catch (error) {
+                    console.warn(`?? Could not read file: ${cleanPath}`);
+                }
+            }
+
+            console.log(`? Read ${Object.keys(codeFiles).length} files from sandbox`);
+
+            // Save to database
+            const { prisma } = await import('../db');
+            await prisma.project.update({
+                where: { id: projectId },
+                data: {
+                    codeFiles,
+                    status: 'ready',
+                    generationStatus: 'initialized',
+                    updatedAt: new Date(),
+                    lastCodeUpdateAt: new Date(),
+                },
+            });
+
+            console.log(`? Next.js + shadcn/ui initialized with ${Object.keys(codeFiles).length} files`);
+            console.log('?? AI MUST now customize these files based on user requirements!');
+
+            const keyFiles = Object.keys(codeFiles).filter(f =>
+                f.includes('page.tsx') ||
+                f.includes('layout.tsx') ||
+                f.includes('package.json') ||
+                f.includes('components.json') ||
+                f.includes('lib/utils')
+            );
+
+            return {
+                success: true,
+                message: `Next.js + shadcn/ui initialized with ${Object.keys(codeFiles).length} files. You MUST now customize them for user's app.`,
+                filesCreated: Object.keys(codeFiles).length,
+                keyFiles: keyFiles.slice(0, 15),
+                shadcnReady: true,
+                nextSteps: [
+                    '1. Use listFiles() to see all generated files',
+                    '2. Use readFile() to examine app/page.tsx, components.json, lib/utils.ts',
+                    '3. Use generateFiles() to customize files for user\'s specific request',
+                    '4. Use installPackages("shadcn add <component>") to add UI components',
+                    '5. Build the user\'s app with beautiful shadcn/ui components',
+                ],
+            };
+        } catch (error) {
+            console.error('? Error initializing Next.js project:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+            };
+        }
+    },
+});
+
+

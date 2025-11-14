@@ -1,0 +1,132 @@
+// Replace lines 1008-1132 in tools.ts with this updated version:
+
+export const initializeNextApp = tool({
+    description: `Initialize project with Craft v2.0 - Complete production SaaS template.
+
+🚀 PRE-INSTALLED STACK:
+- Next.js 15 + React 19 + TypeScript + Tailwind v4
+- shadcn/ui (10+ components) + Sonner toasts  
+- Prisma ORM + PostgreSQL (User model)
+- Better Auth (email/password)
+- Resend (emails), R2 (storage), OpenRouter (AI)
+- Upstash Redis, Polar (payments), PostHog (analytics)
+
+📂 PRE-CONFIGURED SERVICES (src/lib/):
+- auth/ → useSession, signIn, signOut
+- db.ts → prisma client
+- email/resend.ts → sendEmail()
+- storage/r2.ts → uploadFile()  
+- ai/openrouter.ts → AI SDK
+- cache/redis.ts → redis.set/get
+- payments/polar.ts → Polar API
+- analytics/posthog.ts → posthog.capture()
+
+⚠️ CUSTOMIZE FOR USER'S APP:
+1. Call ONLY if checkProjectEmpty=true
+2. IMMEDIATELY customize:
+   - readFile('prisma/schema.prisma') - Add models
+   - generateFiles() - Build features
+   - installPackages("shadcn add ...") - Add components
+   - Wire up services (auth, DB, payments)
+
+Example: "Build blog with subscriptions"
+→ initializeNextApp()
+→ Add Post, Subscription models to schema
+→ Build blog UI with shadcn
+→ Wire up Prisma + Polar + PostHog
+→ Deliver working SaaS!`,
+    inputSchema: z.object({
+        projectId: z.string().describe('The project ID'),
+    }),
+    execute: async ({ projectId }) => {
+        console.log(`🚀 Initializing Craft v2.0 template for ${projectId}...`);
+
+        try {
+            const sandbox = await getOrCreateProjectSandbox(projectId);
+            console.log(`✅ Sandbox: ${sandbox.sandboxId}`);
+
+            // Verify template
+            const verifyResult = await executeSandboxCommand(
+                sandbox.sandboxId,
+                'test -f /home/user/project/.craft-ready && cat /home/user/project/.craft-ready',
+                5000
+            );
+
+            if (!verifyResult.stdout.includes('✅')) {
+                return {
+                    success: false,
+                    error: 'Craft v2.0 template not found. Run: pnpm e2b:build:dev',
+                };
+            }
+
+            console.log('✅', verifyResult.stdout.trim());
+
+            // Sync files
+            const lsResult = await executeSandboxCommand(
+                sandbox.sandboxId,
+                'find . -type f -not -path "./node_modules/*" -not -path "./.next/*" -not -path "./.git/*" -not -path "./pnpm-lock.yaml"',
+                10000
+            );
+
+            const filePaths = lsResult.stdout.split('\n').filter(Boolean);
+            const codeFiles: Record<string, string> = {};
+            
+            for (const filePath of filePaths) {
+                const cleanPath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
+                try {
+                    const content = await readFileFromSandbox(sandbox.sandboxId, cleanPath);
+                    codeFiles[cleanPath] = content;
+                } catch (error) {
+                    console.warn(`⚠️  ${cleanPath}`);
+                }
+            }
+
+            const { prisma } = await import('../db');
+            await prisma.project.update({
+                where: { id: projectId },
+                data: {
+                    codeFiles,
+                    status: 'ready',
+                    generationStatus: 'initialized',
+                    updatedAt: new Date(),
+                    lastCodeUpdateAt: new Date(),
+                },
+            });
+
+            const services = ['auth', 'db', 'email', 'storage', 'ai', 'cache', 'payments', 'analytics']
+                .filter(svc => Object.keys(codeFiles).some(f => f.includes(`src/lib/${svc}`)));
+
+            console.log(`✅ ${Object.keys(codeFiles).length} files, ${services.length}/8 services ready`);
+
+            return {
+                success: true,
+                message: `🎉 Craft v2.0 initialized! ${services.length}/8 services ready. Customize for user's app now.`,
+                filesCreated: Object.keys(codeFiles).length,
+                servicesReady: services,
+                keyFiles: [
+                    'prisma/schema.prisma',
+                    'app/page.tsx',
+                    '.env.example',
+                    'README.md',
+                    ...Object.keys(codeFiles).filter(f => f.startsWith('src/lib/')).slice(0, 15),
+                ],
+                nextSteps: [
+                    '1. readFile("prisma/schema.prisma") - Design data models',
+                    '2. readFile("app/page.tsx") - Understand structure',
+                    '3. generateFiles() - Add Prisma models',
+                    '4. generateFiles() - Build UI pages',
+                    '5. generateFiles() - Create API routes',
+                    '6. installPackages("shadcn add ...") - Add components',
+                    '7. Wire up auth + DB + email + payments',
+                    '8. runCommand("pnpm dev") - Test',
+                ],
+            };
+        } catch (error) {
+            console.error('❌', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+            };
+        }
+    },
+});

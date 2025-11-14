@@ -32,6 +32,7 @@ import CodeEditor from "./coding-interface/CodeEditor";
 import DeploymentDialog from "./coding-interface/DeploymentDialog";
 import GitHubSyncDialog from "./coding-interface/GitHubSyncDialog";
 import DatabaseConnectionDialog from "./coding-interface/DatabaseConnectionDialog";
+import { useSandboxHeartbeat } from "@/hooks/useSandboxHeartbeat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -70,6 +71,8 @@ interface Project {
   visibility?: "public" | "secret" | "private";
   version?: number; // v0 = template, v1+ = AI updates
   generationStatus?: string; // "template" | "generating" | "ready"
+  previewImage?: string | null; // Screenshot/preview image URL
+  previewImageCapturedAtVersion?: number | null; // Version when preview image was captured
   lastCodeUpdateAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -95,6 +98,10 @@ export default function CodingInterface({
   const router = useRouter();
 
   console.log("🎨 CodingInterface received planName:", planName);
+
+  // Keep sandbox alive while user has project page open
+  useSandboxHeartbeat(initialProject.id);
+
   const [activeTab, setActiveTab] = useState<TabType>("preview");
   const [project, setProject] = useState(initialProject);
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
@@ -915,11 +922,24 @@ export default function CodingInterface({
                     isGeneratingFiles={isGeneratingFiles}
                     generationStatus={project.generationStatus}
                     version={project.version}
+                    previewImage={project.previewImage}
+                    previewImageCapturedAtVersion={
+                      project.previewImageCapturedAtVersion
+                    }
                     packages={pendingPackages}
                     onPackagesInstalled={() => setPendingPackages([])}
                     deviceMode={deviceMode}
                     previewUrl={previewUrl}
                     onUrlChange={setPreviewUrl}
+                    onScreenshotCaptured={(data) => {
+                      // Update local project state with new preview image data
+                      setProject((prev) => ({
+                        ...prev,
+                        previewImage: data.previewImage,
+                        previewImageCapturedAtVersion:
+                          data.previewImageCapturedAtVersion,
+                      }));
+                    }}
                     onRefreshProject={async () => {
                       // Reload project files after restore
                       const response = await fetch(

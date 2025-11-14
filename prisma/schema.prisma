@@ -82,6 +82,8 @@ model User {
   referralCredits       ReferralCredit[]
   // Memory relations
   memories              UserMemory[]
+  // Agent orchestration relations
+  agentSessions         AgentSession[]
 
   @@index([polarCustomerId])
   @@index([polarCustomerExtId])
@@ -175,24 +177,34 @@ model PendingAccountLink {
 }
 
 model Project {
-  id               String           @id @default(cuid())
-  name             String
-  description      String?
-  type             String           @default("document")
-  status           String           @default("active")
-  visibility       String           @default("private")
-  userId           String
-  version          Int              @default(0)
-  generationStatus String           @default("template")
-  lastCodeUpdateAt DateTime?
-  codeFiles        Json             @default("{}")
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  chatMessages     ChatMessage[]
-  fileRecords      File[]           @relation("ProjectFiles")
-  versions         ProjectVersion[]
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                            String           @id @default(cuid())
+  name                          String
+  description                   String?
+  type                          String           @default("document")
+  status                        String           @default("active")
+  visibility                    String           @default("private")
+  userId                        String
+  version                       Int              @default(0)
+  generationStatus              String           @default("template")
+  lastCodeUpdateAt              DateTime?
+  codeFiles                     Json             @default("{}")
+  // E2B Sandbox fields (Phase 3)
+  sandboxId                     String? // E2B sandbox ID for pause/resume
+  sandboxPausedAt               DateTime? // Timestamp when sandbox was paused
+  lastBackupAt                  DateTime? // Timestamp of last R2 backup
+  previewImage                  String? // Screenshot/preview image URL for project thumbnail
+  previewImageCapturedAtVersion Int? // Project version when preview image was captured
+  createdAt                     DateTime         @default(now())
+  updatedAt                     DateTime         @updatedAt
+  chatMessages                  ChatMessage[]
+  fileRecords                   File[]           @relation("ProjectFiles")
+  versions                      ProjectVersion[]
+  user                          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Agent orchestration relations
+  agentSessions                 AgentSession[]
+  tasks                         Task[]
 
+  @@index([sandboxId])
   @@map("projects")
 }
 
@@ -789,4 +801,71 @@ model MemoryCategory {
   @@index([name])
   @@index([sortOrder])
   @@map("memory_categories")
+}
+
+// ============================================================================
+// MULTI-AGENT ORCHESTRATION SYSTEM (PHASE 3)
+// ============================================================================
+// Orchestrator agent manages project lifecycle and delegates to coding agent
+
+model AgentSession {
+  id           String   @id @default(cuid())
+  userId       String
+  projectId    String?
+  // Session state (stores OrchestratorState)
+  sessionData  Json
+  // Conversation tracking
+  messageCount Int      @default(0)
+  lastMessage  String?  @db.Text
+  // Status
+  status       String   @default("active") // active, paused, completed, expired
+  // Timestamps
+  createdAt    DateTime @default(now())
+  lastActive   DateTime @updatedAt
+  expiresAt    DateTime
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([userId, status])
+  @@map("agent_sessions")
+}
+
+model Task {
+  id           String       @id @default(cuid())
+  sessionId    String
+  projectId    String?
+  // Task details (HIGH-LEVEL ONLY - setup, initialize, implement, build, preview)
+  phase        String // setup, initialize, implement, build, preview
+  description  String       @db.Text
+  status       String       @default("pending") // pending, in-progress, completed, failed
+  // Execution
+  assignedTo   String       @default("coding-agent") // orchestrator, coding-agent
+  tier         String       @default("fast") // fast, expert
+  // Dependencies
+  dependsOn    String[] // Array of task IDs
+  // Results
+  result       Json? // TaskResult
+  errorMessage String?      @db.Text
+  // Metadata
+  attempts     Int          @default(0)
+  maxAttempts  Int          @default(3)
+  // Timestamps
+  createdAt    DateTime     @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  // Relations
+  session      AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([projectId])
+  @@index([status])
+  @@index([sessionId, status])
+  @@map("tasks")
 }

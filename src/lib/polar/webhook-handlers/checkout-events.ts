@@ -16,18 +16,24 @@ export async function handleCheckoutCreated(data: CheckoutEvent) {
     try {
         const checkout = data;
 
-        // Find user by customer ID
+        // Find user by customer ID or external ID
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
                     { polarCustomerId: checkout.customer_id },
                     { polarCustomerExtId: checkout.customer?.external_id },
+                    ...(checkout.customer?.external_id
+                        ? [{ id: checkout.customer.external_id }]
+                        : []
+                    ),
                 ],
             },
         });
 
         if (!user) {
-            console.log(`User not found for checkout ${checkout.id}`);
+            // This is normal for new users who haven't signed up yet
+            // The checkout is being created before they complete signup
+            console.log(`Checkout ${checkout.id} created (user will be linked on signup)`);
             return { success: true };
         }
 
@@ -55,18 +61,23 @@ export async function handleCheckoutUpdated(data: CheckoutEvent) {
     try {
         const checkout = data;
 
-        // Find user by customer ID
+        // Find user by customer ID or external ID
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
                     { polarCustomerId: checkout.customer_id },
                     { polarCustomerExtId: checkout.customer?.external_id },
+                    ...(checkout.customer?.external_id
+                        ? [{ id: checkout.customer.external_id }]
+                        : []
+                    ),
                 ],
             },
         });
 
         if (!user) {
-            console.log(`User not found for checkout ${checkout.id}`);
+            // This is normal during checkout flow before user signup is complete
+            console.log(`Checkout ${checkout.id} updated (user will be linked on signup)`);
             return { success: true };
         }
 
@@ -74,7 +85,8 @@ export async function handleCheckoutUpdated(data: CheckoutEvent) {
             console.log(`Checkout ${checkout.id} succeeded for user ${user.id}`);
 
             // Success is handled by subscription.created and order.created events
-            // We just log it here for tracking
+            // The checkout embed will automatically close on the frontend when it receives
+            // the success webhook event from Polar
 
         } else if (checkout.status === "failed") {
             console.log(`Checkout ${checkout.id} failed for user ${user.id}`);

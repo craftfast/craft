@@ -104,7 +104,8 @@ export async function POST(request: Request) {
             productPriceId: priceId,
             customerEmail: user.email || undefined,
             embedOrigin: baseUrl,
-            successUrl: `${baseUrl}/chat?payment=success`,
+            // Don't set successUrl for embedded checkouts - it causes "Waiting confirmation"
+            // successUrl: `${baseUrl}/chat?payment=success`,
             metadata: {
                 userId: user.id,
                 purchaseType: "subscription",
