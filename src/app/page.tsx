@@ -1,133 +1,129 @@
-import WaitlistForm from "@/components/WaitlistForm";
-import WaitlistCounter from "@/components/WaitlistCounter";
-import { ASSETS, LINKS, APP } from "@/lib/constants";
+import { getSession } from "@/lib/get-session";
+import { Suspense } from "react";
+import Logo from "@/components/Logo";
+import HomeHeader from "@/components/HomeHeader";
+import DashboardHeader from "@/components/DashboardHeader";
+import CraftInput from "@/components/CraftInput";
+import PendingProjectHandler from "@/components/PendingProjectHandler";
+import PaymentSuccessHandler from "@/components/PaymentSuccessHandler";
+import PlanRedirectHandler from "@/components/PlanRedirectHandler";
+import SettingsRedirectHandler from "@/components/SettingsRedirectHandler";
+import ModalRedirectHandler from "@/components/ModalRedirectHandler";
+import { getUserSubscription } from "@/lib/subscription";
 
-export default function Home() {
-  return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden flex flex-col">
-      {/* Hexagons background pattern */}
-      <div className="absolute inset-0 opacity-40">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url("${ASSETS.BACKGROUNDS.HEXAGONS_PATTERN}")`,
-          }}
-        />
+export default async function Home() {
+  const session = await getSession();
+
+  // Authenticated users see chat content
+  if (session) {
+    // Get user's subscription details
+    const subscription = await getUserSubscription(session.user.id);
+
+    return (
+      <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
+        {/* Payment Success Handler - Updates credits when returning from checkout */}
+        <PaymentSuccessHandler />
+
+        {/* Plan Redirect Handler - Shows subscription modal when redirected from pricing with plan parameter */}
+        <Suspense fallback={null}>
+          <PlanRedirectHandler
+            currentPlan={subscription?.plan?.name || "HOBBY"}
+          />
+        </Suspense>
+
+        {/* Settings Redirect Handler - Shows settings modal with billing tab when redirected from pricing for tier changes */}
+        <Suspense fallback={null}>
+          <SettingsRedirectHandler
+            currentPlan={subscription?.plan?.name || "HOBBY"}
+          />
+        </Suspense>
+
+        {/* Modal Redirect Handler - Shows projects/feedback modals based on URL parameters */}
+        <Suspense fallback={null}>
+          <ModalRedirectHandler />
+        </Suspense>
+
+        {/* Pending Project Handler - Check for pending project on client side */}
+        <PendingProjectHandler />
+
+        {/* Header - Fixed */}
+        <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">
+          <div className="px-3 sm:px-4 py-2">
+            <DashboardHeader
+              planName={subscription?.plan?.name}
+              userId={session.user.id}
+              userSubscription={subscription}
+              showLogoText={true}
+            />
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 flex items-center justify-center px-4 sm:px-6 md:px-8 pb-8">
+          <div className="w-full max-w-3xl mx-auto space-y-8">
+            {/* Centered Greeting */}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-center text-foreground">
+              What can I help you craft?
+            </h1>
+
+            {/* Chat Input */}
+            <CraftInput />
+          </div>
+        </main>
       </div>
+    );
+  }
 
-      {/* Header */}
-      <header className="relative z-10 flex-shrink-0">
-        <div className="max-w-full mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="text-2xl sm:text-3xl font-bold text-white italic">
-                {APP.NAME}
-                <span className="text-xs sm:text-sm text-white font-bold italic">
-                  {APP.DOMAIN}
-                </span>
-              </span>
-            </div>
-            <div className="flex items-center">
-              <a
-                href={LINKS.GITHUB_REPO}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white text-black px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-neutral-100 transition-colors flex items-center space-x-1 sm:space-x-2"
-              >
-                <svg
-                  className="w-3 h-3 sm:w-4 sm:h-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Star on GitHub</span>
-              </a>
-            </div>
+  // Unauthenticated users see home page content
+  return (
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col">
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-background" />
+
+      {/* Header - Fixed */}
+      <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">
+        <div className="px-3 sm:px-4 py-2">
+          <div className="relative flex items-center justify-between">
+            <Logo variant="extended" className="!h-5" href="/" />
+            <HomeHeader />
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="relative z-10 flex items-center justify-center flex-1 min-h-0 py-8 sm:py-12">
-        <div className="text-center max-w-4xl mx-auto px-4 sm:px-6">
-          {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6">
-            <span className="font-bold">The Open Source</span>
-            <br />
-            <span className="relative -tracking-wider rotate-[-1deg] sm:rotate-[-2deg] inline-block mt-2 sm:mt-0">
-              <span className="text-white font-bold relative inline-block px-3 py-2 sm:px-3 sm:py-2 mt-1 border-2 border-orange-400/60 rounded-xl backdrop-blur-sm">
-                Vibe Coding Tool
-                {/* Decorative corner elements */}
-                <div className="absolute -top-1 -left-1 w-2 h-2 sm:w-3 sm:h-3 border-t-2 border-l-2 border-orange-300/80 rounded-tl-lg"></div>
-                <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 border-t-2 border-r-2 border-orange-300/80 rounded-tr-lg"></div>
-                <div className="absolute -bottom-1 -left-1 w-2 h-2 sm:w-3 sm:h-3 border-b-2 border-l-2 border-orange-300/80 rounded-bl-lg"></div>
-                <div className="absolute -bottom-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 border-b-2 border-r-2 border-orange-300/80 rounded-br-lg"></div>
-                {/* Subtle inner glow */}
-                <div className="absolute inset-0 border border-orange-400/15 rounded-xl"></div>
-              </span>
-              <div className="absolute -inset-2 sm:-inset-3 bg-gradient-to-r from-white/5 via-neutral-200/10 to-neutral-300/5 blur-xl rounded-lg -z-10"></div>
-            </span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="text-base sm:text-lg md:text-xl text-neutral-400 my-6 sm:my-8 max-w-2xl mx-auto leading-relaxed px-2">
-            <span>
-              Craft beautiful apps and websites by simply describing your vision
-              to AI.{" "}
-            </span>
-            <span>No code required. Right in your browser.</span>
-          </p>
-
-          {/* Waitlist Form */}
-          <div className="mb-6 sm:mb-4">
-            <WaitlistForm />
+      {/* Main Content with padding to account for fixed header */}
+      <main className="relative flex items-center justify-center flex-1 min-h-0 py-8 sm:py-12 md:py-16 pt-20 sm:pt-24">
+        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8">
+          {/* Centered Greeting */}
+          <div className="text-center mb-8">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-foreground mb-2">
+              What can I help you craft?
+            </h1>
           </div>
 
-          {/* Live Count */}
-          <div className="mb-6 sm:mb-8">
-            <WaitlistCounter />
-          </div>
+          {/* ChatGPT-style Input */}
+          <CraftInput />
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 pt-2 pb-8 sm:pb-12 flex-shrink-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-neutral-500 text-xs sm:text-sm flex flex-row justify-center items-center">
-            <span>
-              Follow
-              <a
-                href={LINKS.TWITTER_SUDHEER}
-                className="text-neutral-600 hover:text-white transition-colors mx-1"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                @sudheerdotai
-              </a>
-              on
-            </span>
+      {/* Terms and Privacy Notice - Fixed at bottom */}
+      <footer className="relative z-10 w-full py-4 flex-shrink-0">
+        <div className="w-full text-center px-4">
+          <p className="text-xs text-muted-foreground">
+            By messaging Craft, you agree to our{" "}
             <a
-              href={LINKS.TWITTER_CRAFT}
-              className="text-neutral-600 hover:text-white transition-colors mb-1 mx-1"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/terms"
+              className="text-foreground hover:text-foreground/80 underline underline-offset-2 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <svg
-                className="w-4 h-4"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
+              Terms of Service
+            </a>{" "}
+            and acknowledge that you have read our{" "}
+            <a
+              href="/privacy"
+              className="text-foreground hover:text-foreground/80 underline underline-offset-2 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              Privacy Policy
             </a>
-            <span>for updates</span>
+            .
           </p>
         </div>
       </footer>

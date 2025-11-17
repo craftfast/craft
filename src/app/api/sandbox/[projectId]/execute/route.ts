@@ -1,0 +1,79 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/get-session";
+import { prisma } from "@/lib/db";
+import { Sandbox } from "e2b"; // Using base e2b package for custom Next.js template
+
+// Import the active sandboxes map (would be better in a shared module)
+// For now, we'll access it through a global
+declare global {
+    var activeSandboxes: Map<string, { sandbox: Sandbox; lastAccessed: Date; devServerPid?: number }>;
+}
+
+if (!global.activeSandboxes) {
+    global.activeSandboxes = new Map();
+}
+
+export async function POST(
+    request: NextRequest,
+    { params }: { params: Promise<{ projectId: string }> }
+) {
+    try {
+        const session = await getSession();
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { projectId } = await params;
+
+        // Verify project ownership
+        const project = await prisma.project.findFirst({
+            where: {
+                id: projectId,
+                userId: session.user.id,
+            },
+        });
+
+        if (!project) {
+            return NextResponse.json({ error: "Project not found" }, { status: 404 });
+        }
+
+        const { command } = await request.json();
+
+        if (!command) {
+            return NextResponse.json(
+                { error: "Command is required" },
+                { status: 400 }
+            );
+        }
+
+        const sandboxData = global.activeSandboxes.get(projectId);
+
+        if (!sandboxData) {
+            return NextResponse.json(
+                { error: "Sandbox not found. Please start the sandbox first." },
+                { status: 404 }
+            );
+        }
+
+        // Update last accessed time
+        sandboxData.lastAccessed = new Date();
+
+        // Execute command in sandbox terminal using E2B v2 API
+        // For Next.js sandbox, we run shell commands
+        const result = await sandboxData.sandbox.commands.run(command);
+
+        return NextResponse.json({
+            success: true,
+            output: result.stdout || "",
+            error: result.stderr || null,
+            exitCode: result.exitCode,
+        });
+    } catch (error) {
+        console.error("Error executing command:", error);
+        return NextResponse.json(
+            { error: "Failed to execute command" },
+            { status: 500 }
+        );
+    }
+}

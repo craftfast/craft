@@ -48,3 +48,9 @@ prisma/*.db
 prisma/*.db-journal
 
 /src/generated/prisma
+
+# documentation (internal notes)
+/docs
+
+# e2b
+.e2b

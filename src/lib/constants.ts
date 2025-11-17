@@ -22,14 +22,14 @@ export const ASSETS = {
 
 // External links
 export const LINKS = {
-    GITHUB_REPO: "https://github.com/craftdottech/craft",
-    TWITTER_CRAFT: "https://x.com/craftdottech",
+    GITHUB_REPO: "https://github.com/craftfast/craft",
+    TWITTER_CRAFT: "https://x.com/craftdotfast",
     TWITTER_SUDHEER: "https://x.com/sudheerdotai",
 } as const;
 
 // App metadata
 export const APP = {
     NAME: "craft",
-    DOMAIN: ".tech",
-    FULL_NAME: "craft.tech",
+    DOMAIN: ".fast",
+    FULL_NAME: "craft.fast",
 } as const;

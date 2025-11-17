@@ -1,20 +1,871 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
-model WaitlistEntry {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ============================================================================
+// ENUMS
+// ============================================================================
 
-  @@map("waitlist_entries")
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+  UNPAID
+  EXPIRED
+}
+
+enum WebhookEventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id                    String               @id @default(cuid())
+  name                  String?
+  email                 String               @unique
+  emailVerified         Boolean              @default(false)
+  image                 String?
+  // Custom Craft fields
+  preferredChatPosition String               @default("left")
+  preferredTheme        String               @default("system")
+  // Personalization settings
+  responseTone          String? // default, concise, detailed, encouraging, professional
+  customInstructions    String?              @db.Text
+  occupation            String?
+  techStack             String?              @db.Text
+  enableMemory          Boolean              @default(true)
+  referenceChatHistory  Boolean              @default(true)
+  enableWebSearch       Boolean              @default(false)
+  enableImageGeneration Boolean              @default(false)
+  // Referral system
+  referralCode          String?              @unique
+  referredById          String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  // Better Auth admin plugin fields
+  role                  String               @default("user")
+  banned                Boolean?
+  banReason             String?
+  banExpires            DateTime?
+  // Better Auth 2FA plugin field
+  twoFactorEnabled      Boolean              @default(false)
+  // Better Auth last login method plugin field
+  lastLoginMethod       String?
+  // Craft-specific soft delete fields
+  deletionScheduledAt   DateTime?
+  deletedAt             DateTime?
+  // Polar Integration fields
+  polarCustomerId       String?              @unique
+  polarCustomerExtId    String?              @unique
+  // Relations
+  accounts              Account[]
+  files                 File[]
+  passwordHistory       PasswordHistory[]
+  paymentTransactions   PaymentTransaction[]
+  pendingAccountLinks   PendingAccountLink[] @relation("PendingAccountLinks")
+  projects              Project[]
+  sessions              Session[]
+  subscription          UserSubscription?
+  twofactors            TwoFactor[]
+  // Referral relations
+  referredBy            User?                @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals             User[]               @relation("UserReferrals")
+  referralCredits       ReferralCredit[]
+  // Memory relations
+  memories              UserMemory[]
+  // Agent orchestration relations
+  agentSessions         AgentSession[]
+
+  @@index([polarCustomerId])
+  @@index([polarCustomerExtId])
+  @@map("users")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  scope                 String?
+  accessToken           String?
+  accessTokenExpiresAt  DateTime?
+  createdAt             DateTime  @default(now())
+  idToken               String?
+  password              String?
+  refreshToken          String?
+  refreshTokenExpiresAt DateTime?
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, providerId])
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  userId         String
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+  ipAddress      String?
+  token          String   @unique
+  updatedAt      DateTime @updatedAt
+  userAgent      String?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
+
+  @@map("sessions")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+  @@map("verifications")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model PasswordHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  password  String // Hashed password
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("password_history")
+}
+
+model PendingAccountLink {
+  id                String   @id @default(cuid())
+  userId            String
+  email             String
+  provider          String
+  providerAccountId String
+  token             String   @unique
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+  user              User     @relation("PendingAccountLinks", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
+  @@index([token])
+  @@map("pending_account_links")
+}
+
+model Project {
+  id                            String           @id @default(cuid())
+  name                          String
+  description                   String?
+  type                          String           @default("document")
+  status                        String           @default("active")
+  visibility                    String           @default("private")
+  userId                        String
+  version                       Int              @default(0)
+  generationStatus              String           @default("template")
+  lastCodeUpdateAt              DateTime?
+  codeFiles                     Json             @default("{}")
+  // E2B Sandbox fields (Phase 3)
+  sandboxId                     String? // E2B sandbox ID for pause/resume
+  sandboxPausedAt               DateTime? // Timestamp when sandbox was paused
+  lastBackupAt                  DateTime? // Timestamp of last R2 backup
+  previewImage                  String? // Screenshot/preview image URL for project thumbnail
+  previewImageCapturedAtVersion Int? // Project version when preview image was captured
+  createdAt                     DateTime         @default(now())
+  updatedAt                     DateTime         @updatedAt
+  chatMessages                  ChatMessage[]
+  fileRecords                   File[]           @relation("ProjectFiles")
+  versions                      ProjectVersion[]
+  user                          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Agent orchestration relations
+  agentSessions                 AgentSession[]
+  tasks                         Task[]
+
+  @@index([sandboxId])
+  @@map("projects")
+}
+
+model File {
+  id            String       @id @default(cuid())
+  userId        String
+  projectId     String?
+  chatMessageId String?
+  path          String?
+  r2Key         String       @unique
+  r2Url         String
+  fileName      String
+  mimeType      String?
+  size          Int
+  purpose       String       @default("upload")
+  version       Int          @default(1)
+  isDeleted     Boolean      @default(false)
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  chatMessage   ChatMessage? @relation(fields: [chatMessageId], references: [id])
+  project       Project?     @relation("ProjectFiles", fields: [projectId], references: [id])
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([chatMessageId])
+  @@index([r2Key])
+  @@index([purpose])
+  @@index([projectId, path])
+  @@index([chatMessageId, createdAt])
+  @@map("files")
+}
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  projectId   String
+  role        String
+  content     String
+  fileChanges Json?
+  toolCalls   Json? // Store tool execution data: [{id, name, args, status, result, error, startedAt, completedAt}]
+  createdAt   DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  files       File[]
+
+  @@index([projectId])
+  @@index([projectId, createdAt])
+  @@map("chat_messages")
+}
+
+model ProjectVersion {
+  id            String   @id @default(cuid())
+  projectId     String
+  version       Int
+  name          String?
+  codeFiles     Json
+  chatMessageId String?
+  isBookmarked  Boolean  @default(false)
+  isPublished   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+  @@index([projectId, createdAt])
+  @@index([projectId, isBookmarked])
+  @@index([projectId, isPublished])
+  @@map("project_versions")
+}
+
+model Plan {
+  id              String             @id @default(cuid())
+  name            String             @unique
+  displayName     String
+  description     String?
+  priceMonthlyUsd Float
+  features        Json
+  maxProjects     Int?
+  monthlyCredits  Int
+  isActive        Boolean            @default(true)
+  sortOrder       Int                @default(0)
+  // Polar Integration fields
+  polarProductId  String?            @unique
+  polarPriceId    String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  subscriptions   UserSubscription[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([polarProductId])
+  @@map("plans")
+}
+
+model UserSubscription {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  planId              String
+  status              SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart  DateTime           @default(now())
+  currentPeriodEnd    DateTime
+  cancelAtPeriodEnd   Boolean            @default(false)
+  cancelledAt         DateTime?
+  polarCheckoutId     String?
+  polarPaymentId      String?
+  // Polar Integration fields
+  polarSubscriptionId String?            @unique
+  polarCustomerId     String?
+  monthlyCreditsUsed  Decimal            @default(0) @db.Decimal(10, 2)
+  periodCreditsReset  DateTime           @default(now())
+  gracePeriodEndsAt   DateTime?
+  paymentFailedAt     DateTime?
+  // Scheduled plan changes (for downgrades)
+  pendingPlanId       String?
+  planChangeAt        DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  invoices            Invoice[]
+  usageRecords        UsageRecord[]
+  plan                Plan               @relation(fields: [planId], references: [id])
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@index([gracePeriodEndsAt])
+  @@index([polarSubscriptionId])
+  @@index([polarCustomerId])
+  @@map("user_subscriptions")
+}
+
+model AICreditUsage {
+  id              String   @id @default(cuid())
+  userId          String
+  projectId       String
+  model           String
+  inputTokens     Int
+  outputTokens    Int
+  totalTokens     Int
+  costUsd         Float
+  creditsUsed     Decimal  @default(0) @db.Decimal(10, 4)
+  modelMultiplier Float    @default(1.0)
+  endpoint        String?
+  callType        String   @default("agent")
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([model, createdAt])
+  @@index([callType, createdAt])
+  @@index([createdAt])
+  @@map("ai_credit_usage")
+}
+
+model UsageRecord {
+  id                  String           @id @default(cuid())
+  userId              String
+  subscriptionId      String
+  billingPeriodStart  DateTime
+  billingPeriodEnd    DateTime
+  // Credit usage breakdown
+  aiCreditsUsed       Decimal          @default(0) @db.Decimal(10, 2)
+  sandboxCreditsUsed  Decimal          @default(0) @db.Decimal(10, 2)
+  databaseCreditsUsed Decimal          @default(0) @db.Decimal(10, 2)
+  storageCreditsUsed  Decimal          @default(0) @db.Decimal(10, 2)
+  deployCreditsUsed   Decimal          @default(0) @db.Decimal(10, 2)
+  totalCreditsUsed    Decimal          @default(0) @db.Decimal(10, 2)
+  // Cost tracking (USD)
+  aiCostUsd           Float            @default(0)
+  sandboxCostUsd      Float            @default(0)
+  databaseCostUsd     Float            @default(0)
+  storageCostUsd      Float            @default(0)
+  deployCostUsd       Float            @default(0)
+  totalCostUsd        Float            @default(0)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  subscription        UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, billingPeriodStart])
+  @@index([userId, billingPeriodStart])
+  @@index([billingPeriodEnd])
+  @@map("usage_records")
+}
+
+model Invoice {
+  id                 String           @id @default(cuid())
+  userId             String
+  subscriptionId     String
+  invoiceNumber      String           @unique
+  status             String           @default("draft")
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  subscriptionFeeUsd Float            @default(0)
+  aiUsageCostUsd     Float            @default(0)
+  subtotalUsd        Float            @default(0)
+  taxUsd             Float            @default(0)
+  totalUsd           Float            @default(0)
+  currency           String           @default("USD")
+  polarCheckoutId    String?
+  polarPaymentId     String?
+  paidAt             DateTime?
+  dueDate            DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  subscription       UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([billingPeriodStart])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model PaymentTransaction {
+  id              String   @id @default(cuid())
+  userId          String
+  invoiceId       String?
+  amount          Float
+  currency        String   @default("USD")
+  status          String
+  paymentMethod   String   @default("polar")
+  polarCheckoutId String?
+  polarPaymentId  String?
+  polarSignature  String?
+  failureReason   String?
+  metadata        Json?
+  // Tax compliance fields
+  taxAmount       Float?
+  taxRate         Float?
+  taxCountryCode  String?
+  // Audit fields
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([invoiceId])
+  @@index([status])
+  @@index([polarCheckoutId])
+  @@index([polarPaymentId])
+  @@index([createdAt])
+  @@map("payment_transactions")
+}
+
+model WebhookEvent {
+  id          String             @id @default(cuid())
+  eventId     String             @unique // Polar event ID
+  eventType   String // "order.paid", "subscription.canceled", etc.
+  payload     Json
+  status      WebhookEventStatus @default(PENDING)
+  processedAt DateTime?
+  error       String?
+  retryCount  Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_events")
+}
+
+model VercelIntegration {
+  id             String       @id @default(cuid())
+  userId         String       @unique
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  vercelUserId   String?
+  vercelTeamId   String?
+  email          String?
+  username       String?
+  scopes         String[]
+  isActive       Boolean      @default(true)
+  lastSyncAt     DateTime?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deployments    Deployment[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("vercel_integrations")
+}
+
+model GitHubIntegration {
+  id             String             @id @default(cuid())
+  userId         String             @unique
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  githubUserId   Int
+  login          String
+  email          String?
+  name           String?
+  avatarUrl      String?
+  scopes         String[]
+  isActive       Boolean            @default(true)
+  lastSyncAt     DateTime?
+  metadata       Json?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  repositories   GitHubRepository[]
+
+  @@index([userId])
+  @@index([githubUserId])
+  @@index([isActive])
+  @@map("github_integrations")
+}
+
+model GitHubRepository {
+  id                  String            @id @default(cuid())
+  githubIntegrationId String
+  projectId           String?
+  githubRepoId        Int               @unique
+  name                String
+  fullName            String
+  owner               String
+  isPrivate           Boolean           @default(true)
+  defaultBranch       String            @default("main")
+  htmlUrl             String
+  cloneUrl            String
+  sshUrl              String?
+  description         String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deployments         Deployment[]
+  githubIntegration   GitHubIntegration @relation(fields: [githubIntegrationId], references: [id], onDelete: Cascade)
+
+  @@index([githubIntegrationId])
+  @@index([projectId])
+  @@index([githubRepoId])
+  @@map("github_repositories")
+}
+
+model Deployment {
+  id                  String             @id @default(cuid())
+  projectId           String
+  userId              String
+  vercelIntegrationId String?
+  githubRepositoryId  String?
+  platform            String
+  status              String             @default("pending")
+  vercelDeploymentId  String?
+  vercelProjectId     String?
+  vercelUrl           String?
+  vercelAliases       String[]
+  githubCommitSha     String?
+  githubBranch        String?
+  buildLog            String?
+  errorMessage        String?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  duration            Int?
+  metadata            Json?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  githubRepository    GitHubRepository?  @relation(fields: [githubRepositoryId], references: [id])
+  vercelIntegration   VercelIntegration? @relation(fields: [vercelIntegrationId], references: [id])
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([vercelIntegrationId])
+  @@index([githubRepositoryId])
+  @@index([platform])
+  @@index([status])
+  @@index([createdAt])
+  @@map("deployments")
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String?
+  name      String?
+  message   String
+  sentiment String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("feedback")
+}
+
+model SecurityEvent {
+  id          String   @id @default(cuid())
+  userId      String?
+  eventType   String
+  severity    String   @default("info")
+  ipAddress   String?
+  userAgent   String?
+  email       String?
+  provider    String?
+  success     Boolean  @default(true)
+  errorReason String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([severity, createdAt])
+  @@index([ipAddress, createdAt])
+  @@index([email, createdAt])
+  @@index([success, createdAt])
+  @@index([createdAt])
+  @@map("security_events")
+}
+
+model TwoFactor {
+  id          String @id @default(cuid())
+  userId      String @unique
+  secret      String
+  backupCodes String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor")
+}
+
+// Better Auth Rate Limit table (for database storage)
+
+model RateLimit {
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@index([key])
+  @@map("rate_limit")
+}
+
+// Sandbox usage tracking for E2B
+model SandboxUsage {
+  id          String    @id @default(cuid())
+  userId      String
+  projectId   String
+  sandboxId   String
+  startTime   DateTime
+  endTime     DateTime?
+  durationMin Int       @default(0) // Minutes of usage
+  creditsUsed Decimal   @default(0) @db.Decimal(10, 4)
+  costUsd     Float     @default(0)
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([sandboxId])
+  @@map("sandbox_usage")
+}
+
+// Storage usage tracking (R2 + Database)
+model StorageUsage {
+  id            String   @id @default(cuid())
+  userId        String
+  projectId     String?
+  storageType   String // "r2", "database"
+  sizeGB        Decimal  @db.Decimal(10, 6)
+  operations    Int      @default(0) // Read/write operations
+  creditsUsed   Decimal  @default(0) @db.Decimal(10, 4)
+  costUsd       Float    @default(0)
+  billingPeriod DateTime // When this usage was measured
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, billingPeriod])
+  @@index([projectId, billingPeriod])
+  @@index([storageType, billingPeriod])
+  @@map("storage_usage")
+}
+
+// Deployment usage tracking
+model DeploymentUsage {
+  id               String   @id @default(cuid())
+  userId           String
+  projectId        String
+  deploymentId     String?
+  platform         String   @default("vercel") // "vercel", "custom"
+  creditsUsed      Decimal  @default(0) @db.Decimal(10, 4)
+  costUsd          Float    @default(0)
+  buildDurationMin Int      @default(0)
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([platform])
+  @@map("deployment_usage")
+}
+
+// ============================================================================
+// POLAR INTEGRATION MODELS
+// ============================================================================
+
+// Polar webhook event tracking
+model PolarWebhookEvent {
+  id           String             @id @default(cuid())
+  eventType    String // e.g., "subscription.created", "order.paid"
+  eventId      String             @unique // Polar's event ID for idempotency
+  payload      Json // Full webhook payload
+  status       WebhookEventStatus @default(PENDING)
+  processedAt  DateTime?
+  errorMessage String?
+  retryCount   Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("polar_webhook_events")
+}
+
+// Polar usage event tracking
+model PolarUsageEvent {
+  id                 String   @id @default(cuid())
+  userId             String
+  externalCustomerId String // Our user.id stored in Polar
+  eventName          String // e.g., "ai_credits_used"
+  metadata           Json // Event metadata (model, tokens, credits, etc.)
+  polarEventId       String?  @unique // Event ID returned by Polar
+  sentAt             DateTime @default(now())
+
+  @@index([userId])
+  @@index([externalCustomerId])
+  @@index([sentAt])
+  @@map("polar_usage_events")
+}
+
+// Referral system
+model ReferralCredit {
+  id              String   @id @default(cuid())
+  userId          String // User who earned the credit
+  referredUserId  String // User who signed up with referral code
+  creditsAwarded  Int      @default(1) // Monthly credits earned
+  awardedForMonth DateTime // Which month this credit is for (YYYY-MM-01)
+  status          String   @default("active") // "active", "revoked" (if referred user deleted account)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, referredUserId, awardedForMonth])
+  @@index([userId, awardedForMonth])
+  @@index([referredUserId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("referral_credits")
+}
+
+// ============================================================================
+// USER MEMORY SYSTEM
+// ============================================================================
+// AI-powered memory system that learns from user interactions
+
+model UserMemory {
+  id         String    @id @default(cuid())
+  userId     String
+  category   String // "preference", "skill", "project_context", "workflow", "style", "technical", "personal"
+  title      String // Short title for the memory
+  content    String    @db.Text // Detailed memory content
+  source     String // "conversation", "explicit", "inferred", "system"
+  projectId  String? // Optional: link to specific project
+  importance Int       @default(5) // 1-10: how important/relevant this memory is
+  confidence Float     @default(1.0) // 0-1: how confident we are about this memory
+  useCount   Int       @default(0) // How many times this memory has been referenced
+  lastUsedAt DateTime? // When was this memory last used
+  metadata   Json? // Additional context (tags, related memories, etc.)
+  isActive   Boolean   @default(true) // Can be deactivated without deletion
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, category])
+  @@index([userId, isActive])
+  @@index([userId, importance])
+  @@index([userId, lastUsedAt])
+  @@index([projectId])
+  @@map("user_memories")
+}
+
+model MemoryCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique // "preference", "skill", etc.
+  displayName String // User-friendly name
+  description String // What this category tracks
+  icon        String? // Optional icon identifier
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([sortOrder])
+  @@map("memory_categories")
+}
+
+// ============================================================================
+// MULTI-AGENT ORCHESTRATION SYSTEM (PHASE 3)
+// ============================================================================
+// Orchestrator agent manages project lifecycle and delegates to coding agent
+
+model AgentSession {
+  id           String   @id @default(cuid())
+  userId       String
+  projectId    String?
+  // Session state (stores OrchestratorState)
+  sessionData  Json
+  // Conversation tracking
+  messageCount Int      @default(0)
+  lastMessage  String?  @db.Text
+  // Status
+  status       String   @default("active") // active, paused, completed, expired
+  // Timestamps
+  createdAt    DateTime @default(now())
+  lastActive   DateTime @updatedAt
+  expiresAt    DateTime
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([userId, status])
+  @@map("agent_sessions")
+}
+
+model Task {
+  id           String       @id @default(cuid())
+  sessionId    String
+  projectId    String?
+  // Task details (HIGH-LEVEL ONLY - setup, initialize, implement, build, preview)
+  phase        String // setup, initialize, implement, build, preview
+  description  String       @db.Text
+  status       String       @default("pending") // pending, in-progress, completed, failed
+  // Execution
+  assignedTo   String       @default("coding-agent") // orchestrator, coding-agent
+  tier         String       @default("fast") // fast, expert
+  // Dependencies
+  dependsOn    String[] // Array of task IDs
+  // Results
+  result       Json? // TaskResult
+  errorMessage String?      @db.Text
+  // Metadata
+  attempts     Int          @default(0)
+  maxAttempts  Int          @default(3)
+  // Timestamps
+  createdAt    DateTime     @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  // Relations
+  session      AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([projectId])
+  @@index([status])
+  @@index([sessionId, status])
+  @@map("tasks")
 }

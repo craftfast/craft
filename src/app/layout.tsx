@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { SessionProvider } from "@/components/SessionProvider";
+import { CreditBalanceProvider } from "@/contexts/CreditBalanceContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ChatPositionProvider } from "@/contexts/ChatPositionContext";
+import { Toaster } from "@/components/ui/sonner";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,17 +21,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Craft - Build Apps by Chatting with AI",
+  title: "Craft Apps Faster by just Chatting with AI",
   description:
-    "Join the waitlist for Craft, the revolutionary open-source vibecoding tool that lets you build apps and websites through natural conversation with AI.",
+    "Craft is a revolutionary open-source vibecoding tool that lets you build apps and websites through natural conversation with AI.",
   keywords:
-    "AI development, vibecoding, app building, chatbot development, open source, beta access",
+    "AI development, vibecoding, app building, chatbot development, open source",
   authors: [{ name: "Craft Team" }],
   creator: "Craft",
   openGraph: {
     title: "Craft - Build Apps by Chatting with AI",
     description:
-      "Join the waitlist for the future of app development. Build apps and websites through natural conversation with AI.",
+      "Build apps and websites through natural conversation with AI.",
     type: "website",
     locale: "en_US",
   },
@@ -33,7 +39,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Craft - Build Apps by Chatting with AI",
     description:
-      "Join the waitlist for the future of app development. Build apps and websites through natural conversation with AI.",
+      "Build apps and websites through natural conversation with AI.",
   },
   robots: {
     index: true,
@@ -47,11 +53,64 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      style={{ backgroundColor: "#0a0a0a", colorScheme: "dark" }}
+    >
+      <head>
+        {/* Initialize theme IMMEDIATELY before any rendering to prevent flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const storedTheme = localStorage.getItem('theme');
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  const html = document.documentElement;
+                  
+                  // Determine effective theme
+                  let isDark;
+                  if (storedTheme === 'dark') {
+                    isDark = true;
+                  } else if (storedTheme === 'light') {
+                    isDark = false;
+                  } else {
+                    // For 'system' or no preference, use system default
+                    isDark = prefersDark;
+                  }
+                  
+                  // Apply theme immediately
+                  if (isDark) {
+                    html.classList.add('dark');
+                    html.style.colorScheme = 'dark';
+                  } else {
+                    html.classList.remove('dark');
+                    html.style.colorScheme = 'light';
+                  }
+                } catch (e) {
+                  // Fallback to system preference on error
+                  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.style.colorScheme = 'dark';
+                  }
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <SessionProvider>
+          <ThemeProvider>
+            <ChatPositionProvider>
+              <CreditBalanceProvider>{children}</CreditBalanceProvider>
+            </ChatPositionProvider>
+          </ThemeProvider>
+        </SessionProvider>
+        <Toaster />
         <SpeedInsights />
         <Analytics />
       </body>
