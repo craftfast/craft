@@ -181,17 +181,17 @@ model PendingAccountLink {
 }
 
 model Project {
-  id                            String                @id @default(cuid())
+  id                            String                 @id @default(cuid())
   name                          String
   description                   String?
-  type                          String                @default("document")
-  status                        String                @default("active")
-  visibility                    String                @default("private")
+  type                          String                 @default("document")
+  status                        String                 @default("active")
+  visibility                    String                 @default("private")
   userId                        String
-  version                       Int                   @default(0)
-  generationStatus              String                @default("template")
+  version                       Int                    @default(0)
+  generationStatus              String                 @default("template")
   lastCodeUpdateAt              DateTime?
-  codeFiles                     Json                  @default("{}")
+  codeFiles                     Json                   @default("{}")
   // E2B Sandbox fields (Phase 3)
   sandboxId                     String? // E2B sandbox ID for pause/resume
   sandboxPausedAt               DateTime? // Timestamp when sandbox was paused
@@ -199,25 +199,26 @@ model Project {
   previewImage                  String? // Screenshot/preview image URL for project thumbnail
   previewImageCapturedAtVersion Int? // Project version when preview image was captured
   // Environment Variables & Custom Views
-  environmentVariables          Json                  @default("{}") // Encrypted env vars
-  customViews                   Json                  @default("[]") // Array of custom view configs
+  environmentVariables          Json                   @default("{}") // Encrypted env vars
+  customViews                   Json                   @default("[]") // Array of custom view configs
   // Git & Deployment settings
-  gitSettings                   Json                  @default("{}") // Git provider connections
-  deploymentSettings            Json                  @default("{}") // Deployment configurations
-  createdAt                     DateTime              @default(now())
-  updatedAt                     DateTime              @updatedAt
+  gitSettings                   Json                   @default("{}") // Git provider connections
+  deploymentSettings            Json                   @default("{}") // Deployment configurations
+  createdAt                     DateTime               @default(now())
+  updatedAt                     DateTime               @updatedAt
   chatMessages                  ChatMessage[]
-  fileRecords                   File[]                @relation("ProjectFiles")
+  fileRecords                   File[]                 @relation("ProjectFiles")
   versions                      ProjectVersion[]
-  user                          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Agent orchestration relations
   agentSessions                 AgentSession[]
   tasks                         Task[]
   // Project settings relations
   collaborators                 ProjectCollaborator[]
-  gitConnection                 ProjectGitConnection?
+  gitConnections                ProjectGitConnection[]
   deployments                   ProjectDeployment[]
   knowledgeFiles                KnowledgeFile[]
+  webhooks                      ProjectWebhook[]
 
   @@index([sandboxId])
   @@map("projects")
@@ -362,6 +363,45 @@ model KnowledgeFile {
   @@index([projectId])
   @@index([r2Key])
   @@map("knowledge_files")
+}
+
+model ProjectWebhook {
+  id              String            @id @default(cuid())
+  projectId       String
+  url             String
+  secret          String // For signing webhook payloads
+  events          Json // Array of event types to listen for
+  isActive        Boolean           @default(true)
+  description     String?
+  lastTriggeredAt DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deliveries      WebhookDelivery[]
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([isActive])
+  @@map("project_webhooks")
+}
+
+model WebhookDelivery {
+  id            String         @id @default(cuid())
+  webhookId     String
+  eventType     String
+  payload       Json
+  responseCode  Int?
+  responseBody  String?
+  status        String         @default("pending") // pending, success, failed
+  attemptCount  Int            @default(0)
+  lastAttemptAt DateTime?
+  createdAt     DateTime       @default(now())
+  webhook       ProjectWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
 }
 
 model Plan {
