@@ -58,7 +58,6 @@ interface ProjectSettingsModalProps {
 
 type SettingsTab =
   | "general"
-  | "integrations"
   | "collaborators"
   | "deployments"
   | "versions"
@@ -66,11 +65,7 @@ type SettingsTab =
   | "environment"
   | "views";
 
-interface IntegrationConfig {
-  enabled: boolean;
-  apiKey?: string;
-  config?: Record<string, string>;
-}
+// IntegrationConfig moved to IntegrationsModal.tsx
 
 interface Collaborator {
   id: string;
@@ -104,19 +99,7 @@ export default function ProjectSettingsModal({
   );
   const [visibility, setVisibility] = useState(initialProjectVisibility);
 
-  // Integrations
-  const [integrations, setIntegrations] = useState<
-    Record<string, IntegrationConfig>
-  >({
-    supabase: { enabled: false },
-    supabaseStorage: { enabled: false },
-    polar: { enabled: false },
-    openpanel: { enabled: false },
-    resend: { enabled: false },
-    tawkto: { enabled: false },
-    openrouter: { enabled: false },
-    upstash: { enabled: false },
-  });
+  // Note: Integrations have been moved to a separate IntegrationsModal
 
   // Deployments
   const [vercelConnected, setVercelConnected] = useState(false);
@@ -184,7 +167,6 @@ export default function ProjectSettingsModal({
       const response = await fetch(`/api/projects/${projectId}/settings`);
       if (response.ok) {
         const data = await response.json();
-        if (data.integrations) setIntegrations(data.integrations);
         if (data.collaborators) setCollaborators(data.collaborators);
         if (data.versions) setVersions(data.versions);
         if (data.knowledgeFiles) setKnowledgeFiles(data.knowledgeFiles);
@@ -285,33 +267,7 @@ export default function ProjectSettingsModal({
     }
   };
 
-  const handleSaveIntegration = async (
-    integration: string,
-    config: IntegrationConfig
-  ) => {
-    setIsSaving(true);
-    try {
-      const response = await fetch(
-        `/api/projects/${projectId}/integrations/${integration}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(config),
-        }
-      );
-
-      if (response.ok) {
-        toast.success(`${integration} integration updated`);
-        setIntegrations((prev) => ({ ...prev, [integration]: config }));
-      } else {
-        toast.error("Failed to update integration");
-      }
-    } catch (error) {
-      toast.error("Failed to update integration");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // Note: Integration handling moved to separate IntegrationsModal
 
   const handleAddCollaborator = async () => {
     if (!newCollaboratorEmail) return;
@@ -494,7 +450,6 @@ export default function ProjectSettingsModal({
 
   const tabs = [
     { id: "general", label: "General", icon: Settings },
-    { id: "integrations", label: "Integrations", icon: Blocks },
     { id: "environment", label: "Environment", icon: Lock },
     { id: "views", label: "Views", icon: Eye },
     { id: "collaborators", label: "Collaborators", icon: Users },
@@ -711,195 +666,7 @@ export default function ProjectSettingsModal({
               </div>
             )}
 
-            {/* Integrations Tab */}
-            {activeTab === "integrations" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-semibold mb-2">Integrations</h2>
-                  <p className="text-muted-foreground text-sm mb-6">
-                    Connect external services to enhance your project
-                  </p>
-
-                  <div className="space-y-4">
-                    {/* Supabase Database */}
-                    <IntegrationCard
-                      title="Supabase Database"
-                      description="PostgreSQL database for your application"
-                      icon={Database}
-                      enabled={integrations.supabase.enabled}
-                      onToggle={(enabled) => {
-                        const config = { ...integrations.supabase, enabled };
-                        handleSaveIntegration("supabase", config);
-                      }}
-                      fields={[
-                        {
-                          label: "Project URL",
-                          placeholder: "https://xxxxx.supabase.co",
-                          type: "text",
-                        },
-                        {
-                          label: "Anon Key",
-                          placeholder:
-                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                          type: "password",
-                        },
-                      ]}
-                    />
-
-                    {/* Supabase Storage */}
-                    <IntegrationCard
-                      title="Supabase Storage"
-                      description="File storage for images, documents, and more"
-                      icon={HardDrive}
-                      enabled={integrations.supabaseStorage.enabled}
-                      onToggle={(enabled) => {
-                        const config = {
-                          ...integrations.supabaseStorage,
-                          enabled,
-                        };
-                        handleSaveIntegration("supabaseStorage", config);
-                      }}
-                      fields={[
-                        {
-                          label: "Bucket Name",
-                          placeholder: "my-bucket",
-                          type: "text",
-                        },
-                      ]}
-                    />
-
-                    {/* Polar Payments */}
-                    <IntegrationCard
-                      title="Polar"
-                      description="Accept payments and manage subscriptions"
-                      icon={CreditCard}
-                      enabled={integrations.polar.enabled}
-                      onToggle={(enabled) => {
-                        const config = { ...integrations.polar, enabled };
-                        handleSaveIntegration("polar", config);
-                      }}
-                      fields={[
-                        {
-                          label: "Access Token",
-                          placeholder: "polar_at_...",
-                          type: "password",
-                        },
-                      ]}
-                    />
-
-                    {/* OpenPanel Analytics */}
-                    <IntegrationCard
-                      title="OpenPanel"
-                      description="Privacy-friendly analytics for your app"
-                      icon={BarChart3}
-                      enabled={integrations.openpanel.enabled}
-                      onToggle={(enabled) => {
-                        const config = { ...integrations.openpanel, enabled };
-                        handleSaveIntegration("openpanel", config);
-                      }}
-                      fields={[
-                        {
-                          label: "Client ID",
-                          placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                          type: "text",
-                        },
-                        {
-                          label: "Client Secret",
-                          placeholder: "secret_xxxxx",
-                          type: "password",
-                        },
-                      ]}
-                    />
-
-                    {/* Resend Email */}
-                    <IntegrationCard
-                      title="Resend"
-                      description="Send transactional emails"
-                      icon={Mail}
-                      enabled={integrations.resend.enabled}
-                      onToggle={(enabled) => {
-                        const config = { ...integrations.resend, enabled };
-                        handleSaveIntegration("resend", config);
-                      }}
-                      fields={[
-                        {
-                          label: "API Key",
-                          placeholder: "re_xxxxxxxxxxxx",
-                          type: "password",
-                        },
-                      ]}
-                    />
-
-                    {/* Tawk.to Support */}
-                    <IntegrationCard
-                      title="Tawk.to"
-                      description="Live chat support for your users"
-                      icon={MessageCircle}
-                      enabled={integrations.tawkto.enabled}
-                      onToggle={(enabled) => {
-                        const config = { ...integrations.tawkto, enabled };
-                        handleSaveIntegration("tawkto", config);
-                      }}
-                      fields={[
-                        {
-                          label: "Property ID",
-                          placeholder: "xxxxxxxxxxxxxxxx",
-                          type: "text",
-                        },
-                        {
-                          label: "Widget ID",
-                          placeholder: "default",
-                          type: "text",
-                        },
-                      ]}
-                    />
-
-                    {/* OpenRouter AI */}
-                    <IntegrationCard
-                      title="OpenRouter"
-                      description="Access multiple AI models"
-                      icon={Sparkles}
-                      enabled={integrations.openrouter.enabled}
-                      onToggle={(enabled) => {
-                        const config = { ...integrations.openrouter, enabled };
-                        handleSaveIntegration("openrouter", config);
-                      }}
-                      fields={[
-                        {
-                          label: "API Key",
-                          placeholder: "sk-or-v1-xxxx",
-                          type: "password",
-                        },
-                      ]}
-                    />
-
-                    {/* Upstash Redis */}
-                    <IntegrationCard
-                      title="Upstash Redis"
-                      description="Serverless Redis for caching and rate limiting"
-                      icon={Database}
-                      enabled={integrations.upstash.enabled}
-                      onToggle={(enabled) => {
-                        const config = { ...integrations.upstash, enabled };
-                        handleSaveIntegration("upstash", config);
-                      }}
-                      fields={[
-                        {
-                          label: "REST URL",
-                          placeholder: "https://xxxxx.upstash.io",
-                          type: "text",
-                        },
-                        {
-                          label: "REST Token",
-                          placeholder: "AXXXxxxx",
-                          type: "password",
-                        },
-                      ]}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Note: Integrations tab moved to separate IntegrationsModal */}
 
             {/* Collaborators Tab */}
             {activeTab === "collaborators" && (
@@ -1481,97 +1248,4 @@ export default function ProjectSettingsModal({
 }
 
 // Integration Card Component
-interface IntegrationCardProps {
-  title: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  enabled: boolean;
-  onToggle: (enabled: boolean) => void;
-  fields?: Array<{
-    label: string;
-    placeholder: string;
-    type: "text" | "password";
-  }>;
-}
-
-function IntegrationCard({
-  title,
-  description,
-  icon: Icon,
-  enabled,
-  onToggle,
-  fields = [],
-}: IntegrationCardProps) {
-  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
-  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
-
-  return (
-    <div className="p-6 rounded-xl border">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-muted">
-            <Icon className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-semibold">{title}</h3>
-            <p className="text-sm text-muted-foreground">{description}</p>
-          </div>
-        </div>
-        <Switch checked={enabled} onCheckedChange={onToggle} />
-      </div>
-
-      {enabled && fields.length > 0 && (
-        <div className="space-y-3 mt-4 pt-4 border-t">
-          {fields.map((field, index) => (
-            <div key={index} className="space-y-1.5">
-              <Label className="text-sm">{field.label}</Label>
-              <div className="relative">
-                <Input
-                  type={
-                    field.type === "password" && !showPassword[field.label]
-                      ? "password"
-                      : "text"
-                  }
-                  placeholder={field.placeholder}
-                  value={fieldValues[field.label] || ""}
-                  onChange={(e) =>
-                    setFieldValues((prev) => ({
-                      ...prev,
-                      [field.label]: e.target.value,
-                    }))
-                  }
-                  className="rounded-lg pr-10"
-                />
-                {field.type === "password" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowPassword((prev) => ({
-                        ...prev,
-                        [field.label]: !prev[field.label],
-                      }))
-                    }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword[field.label] ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full rounded-lg mt-2"
-          >
-            Save Configuration
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
+// IntegrationCard component moved to IntegrationsModal.tsx

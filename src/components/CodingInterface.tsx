@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
 import ProjectSettingsModal from "@/components/ProjectSettingsModal";
+import IntegrationsModal from "@/components/IntegrationsModal";
 
 type TabType = "preview" | "code" | string;
 
@@ -125,6 +126,7 @@ export default function CodingInterface({
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
+  const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [isVisibilitySubmenuOpen, setIsVisibilitySubmenuOpen] = useState(false);
   const [projectVisibility, setProjectVisibility] = useState<
@@ -753,6 +755,29 @@ export default function CodingInterface({
                 <DropdownMenuItem
                   className="rounded-lg"
                   onClick={() => {
+                    setIsIntegrationsOpen(true);
+                    setIsProjectMenuOpen(false);
+                  }}
+                >
+                  <svg
+                    className="w-4 h-4 mr-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"
+                    />
+                  </svg>
+                  <span>Integrations</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
                     setIsProjectSettingsOpen(true);
                     setIsProjectMenuOpen(false);
                   }}
@@ -1302,6 +1327,13 @@ export default function CodingInterface({
           projectName={project.name}
           projectDescription={project.description}
           projectVisibility={projectVisibility}
+        />
+
+        {/* Integrations Modal */}
+        <IntegrationsModal
+          isOpen={isIntegrationsOpen}
+          onClose={() => setIsIntegrationsOpen(false)}
+          projectId={project.id}
         />
       </div>
     </TooltipProvider>
