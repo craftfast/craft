@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   useSession,
@@ -1208,10 +1208,36 @@ export default function SettingsModal({
   };
 
   // Helper function to open embedded checkout
+  // CRITICAL: Debouncing to prevent concurrent requests (Polar locker pattern equivalent)
+  const lastRequestTimeRef = useRef<number>(0);
+  const DEBOUNCE_MS = 3000; // 3 seconds between tier change requests
+
   const handleOpenEmbeddedCheckout = async (monthlyCredits: number) => {
+    // CRITICAL: Prevent concurrent requests
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTimeRef.current;
+
+    if (timeSinceLastRequest < DEBOUNCE_MS && lastRequestTimeRef.current > 0) {
+      toast.error(
+        `Please wait ${Math.ceil(
+          (DEBOUNCE_MS - timeSinceLastRequest) / 1000
+        )} more seconds before making another tier change.`,
+        { duration: 3000 }
+      );
+      return;
+    }
+
+    lastRequestTimeRef.current = now;
     setIsPurchasing(true);
+
     try {
-      const response = await fetch("/api/billing/create-checkout-session", {
+      // Check if user is already on Pro plan (tier change)
+      const isProUser = subscriptionData?.plan?.name?.startsWith("PRO");
+      const endpoint = isProUser
+        ? "/api/billing/change-pro-tier"
+        : "/api/billing/create-checkout-session";
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1222,18 +1248,86 @@ export default function SettingsModal({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create checkout session");
+        // CRITICAL: Handle specific error types from backend
+        if (data.error === "MissingPaymentMethod") {
+          toast.error(
+            data.message || "Please add a payment method to upgrade.",
+            {
+              duration: 8000,
+              action: {
+                label: "Add Payment Method",
+                onClick: () => {
+                  // TODO: Open payment method modal or redirect to Polar customer portal
+                  window.open("https://polar.sh/dashboard", "_blank");
+                },
+              },
+            }
+          );
+          return;
+        }
+
+        if (data.error === "AlreadyCanceledSubscription") {
+          toast.error(
+            data.message ||
+              "Your subscription has been cancelled. Please start a new subscription.",
+            { duration: 8000 }
+          );
+          return;
+        }
+
+        if (data.error === "TrialingSubscription") {
+          toast.error(
+            data.message ||
+              "Tier changes are not available during trial period.",
+            { duration: 8000 }
+          );
+          return;
+        }
+
+        // Check for scheduled change conflict
+        if (data.scheduledChange) {
+          toast.error(
+            data.error || "You already have a tier change scheduled.",
+            { duration: 8000 }
+          );
+          return;
+        }
+
+        throw new Error(data.error || "Failed to process request");
       }
 
-      // Open embedded checkout
-      setCheckoutUrl(data.checkoutUrl);
-      setShowEmbeddedCheckout(true);
+      // Handle tier change response
+      if (data.success) {
+        if (data.immediate) {
+          // Upgrade - invoiced immediately
+          toast.success(
+            data.message ||
+              `Tier upgrade completed! Your new plan is now active.`
+          );
+        } else if (data.scheduled) {
+          // Downgrade - scheduled for end of billing period
+          toast.success(
+            data.message ||
+              `Downgrade scheduled. Changes will take effect at the end of your billing period.`,
+            { duration: 8000 }
+          );
+        }
+        await fetchBillingData();
+        setIsPurchasing(false);
+        return;
+      }
+
+      // Open embedded checkout (for new Pro subscriptions)
+      if (data.checkoutUrl) {
+        setCheckoutUrl(data.checkoutUrl);
+        setShowEmbeddedCheckout(true);
+      }
     } catch (error) {
-      console.error("Error creating checkout session:", error);
+      console.error("Error processing checkout:", error);
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to initiate checkout. Please try again."
+          : "Failed to process request. Please try again."
       );
     } finally {
       setIsPurchasing(false);

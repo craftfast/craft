@@ -298,16 +298,15 @@ export default function PricingPage() {
           const data = await response.json();
           // Map plan names to lowercase for consistency
           const planName = data.plan?.name?.toLowerCase();
-          setUserPlan(
-            planName === "pro"
-              ? "pro"
-              : planName === "enterprise"
-              ? "enterprise"
-              : "hobby"
-          );
+
+          // Check if plan name starts with "pro" (handles PRO, PRO_100, PRO_200, etc.)
+          const isPro = planName?.startsWith("pro");
+          const isEnterprise = planName?.startsWith("enterprise");
+
+          setUserPlan(isPro ? "pro" : isEnterprise ? "enterprise" : "hobby");
 
           // Store current monthly credits if user is on Pro
-          if (planName === "pro" && data.plan?.monthlyCredits) {
+          if (isPro && data.plan?.monthlyCredits) {
             setCurrentMonthlyCredits(data.plan.monthlyCredits);
 
             // Find matching tier and set as selected

@@ -135,14 +135,42 @@ export async function handleSubscriptionUpdated(data: SubscriptionEvent) {
         else if (subscription.status === "unpaid") status = SubscriptionStatus.UNPAID;
         else if (subscription.status === "trialing") status = SubscriptionStatus.TRIALING;
 
+        // Check if the product has changed (Pro tier change)
+        const currentSubscription = await prisma.userSubscription.findFirst({
+            where: { polarSubscriptionId: subscription.id },
+            include: { plan: true },
+        });
+
+        // Find the new plan based on product ID
+        const newPlan = await prisma.plan.findFirst({
+            where: { polarProductId: subscription.product_id },
+        });
+
+        if (!newPlan) {
+            console.error(`Plan not found for product ${subscription.product_id}`);
+            return { success: false, error: "Plan not found" };
+        }
+
+        // Build update data
+        const updateData: any = {
+            status,
+            currentPeriodStart: new Date(subscription.current_period_start),
+            currentPeriodEnd: new Date(subscription.current_period_end),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        };
+
+        // If plan has changed (tier change within Pro), update planId
+        if (currentSubscription && currentSubscription.planId !== newPlan.id) {
+            console.log(`Subscription plan changed from ${currentSubscription.plan.name} (${currentSubscription.plan.monthlyCredits} credits) to ${newPlan.name} (${newPlan.monthlyCredits} credits)`);
+            updateData.planId = newPlan.id;
+            // Clear any pending plan changes
+            updateData.pendingPlanId = null;
+            updateData.planChangeAt = null;
+        }
+
         await prisma.userSubscription.updateMany({
             where: { polarSubscriptionId: subscription.id },
-            data: {
-                status,
-                currentPeriodStart: new Date(subscription.current_period_start),
-                currentPeriodEnd: new Date(subscription.current_period_end),
-                cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
-            },
+            data: updateData,
         });
 
         console.log(`Subscription ${subscription.id} updated`);

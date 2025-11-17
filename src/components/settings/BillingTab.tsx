@@ -1,5 +1,19 @@
 "use client";
 
+/**
+ * BillingTab Component
+ *
+ * Manages user subscription and billing:
+ * - Displays current plan and credit balance
+ * - Hobby users: Upgrade to Pro (choose tier)
+ * - Pro users: Change between Pro tiers (upgrade/downgrade)
+ * - Pro users: Downgrade to Hobby
+ * - Enterprise users: Contact sales
+ *
+ * Pro tier changes use /api/billing/change-pro-tier endpoint
+ * Downgrades to Hobby use /api/billing/change-plan endpoint
+ */
+
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -184,7 +198,7 @@ export function BillingTab({
               )}
 
               {/* Pro Plan Management */}
-              {subscriptionData?.plan.name === "PRO" && (
+              {subscriptionData?.plan.name?.startsWith("PRO") && (
                 <div className="space-y-4 pt-6 border-t border-border">
                   <div className="flex items-center gap-3 pb-3">
                     <div className="h-px flex-1 bg-border"></div>
@@ -195,7 +209,7 @@ export function BillingTab({
                   </div>
 
                   {/* Pro Plan Tier Switcher */}
-                  <div className="space-y-3 bg-muted/30 p-5 rounded-2xl border border-border">
+                  <div className="space-y-2 bg-muted/30 p-5 rounded-2xl border border-border">
                     <Label
                       htmlFor="pro-tier-change"
                       className="text-sm font-medium"
@@ -245,8 +259,28 @@ export function BillingTab({
                       }
                       onClick={async () => {
                         const selectedTier = PRO_TIERS[selectedProTierIndex];
-                        await handleOpenEmbeddedCheckout(
-                          selectedTier.monthlyCredits
+                        const isUpgrade =
+                          selectedTier.monthlyCredits >
+                          (subscriptionData?.plan.monthlyCredits || 0);
+
+                        // Show confirmation for tier changes
+                        toast(
+                          `${isUpgrade ? "Upgrade" : "Downgrade"} to ${
+                            selectedTier.displayPrice
+                          }?`,
+                          {
+                            description: isUpgrade
+                              ? "You'll be charged the prorated amount immediately and gain access to the new tier right away."
+                              : "Your current tier will remain active until the end of your billing period, then you'll be moved to the new tier.",
+                            action: {
+                              label: "Continue",
+                              onClick: async () => {
+                                await handleOpenEmbeddedCheckout(
+                                  selectedTier.monthlyCredits
+                                );
+                              },
+                            },
+                          }
                         );
                       }}
                     >
@@ -258,8 +292,11 @@ export function BillingTab({
                       ) : PRO_TIERS[selectedProTierIndex].monthlyCredits ===
                         subscriptionData?.plan.monthlyCredits ? (
                         "Current Tier"
+                      ) : PRO_TIERS[selectedProTierIndex].monthlyCredits >
+                        (subscriptionData?.plan.monthlyCredits || 0) ? (
+                        `Upgrade to ${PRO_TIERS[selectedProTierIndex].displayPrice}`
                       ) : (
-                        `Change to ${PRO_TIERS[selectedProTierIndex].displayPrice}`
+                        `Downgrade to ${PRO_TIERS[selectedProTierIndex].displayPrice}`
                       )}
                     </Button>
                   </div>
@@ -312,7 +349,7 @@ export function BillingTab({
               )}
 
               {/* Enterprise Plan */}
-              {subscriptionData?.plan.name === "ENTERPRISE" && (
+              {subscriptionData?.plan.name?.startsWith("ENTERPRISE") && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 pb-3">
                     <div className="h-px flex-1 bg-border"></div>
@@ -330,8 +367,8 @@ export function BillingTab({
               )}
 
               {/* Manage Subscription Button */}
-              {(subscriptionData?.plan.name === "PRO" ||
-                subscriptionData?.plan.name === "ENTERPRISE") && (
+              {(subscriptionData?.plan.name?.startsWith("PRO") ||
+                subscriptionData?.plan.name?.startsWith("ENTERPRISE")) && (
                 <div className="mt-6 pt-6 border-t border-border">
                   <p className="text-xs text-muted-foreground mb-3">
                     Manage your subscription: Cancel, update payment method, or

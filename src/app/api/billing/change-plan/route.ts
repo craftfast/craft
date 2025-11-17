@@ -123,11 +123,14 @@ export async function POST(request: Request) {
                 );
             }
 
+            // Schedule the plan change using pendingPlanId
             await prisma.userSubscription.update({
                 where: { id: user.subscription.id },
                 data: {
                     cancelAtPeriodEnd: true,
                     cancelledAt: new Date(),
+                    pendingPlanId: targetPlanDetails.id,
+                    planChangeAt: user.subscription.currentPeriodEnd,
                 },
             });
 

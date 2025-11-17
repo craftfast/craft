@@ -57,12 +57,18 @@ export async function POST(request: Request) {
 
         // Check if user is already on Pro plan with the same tier
         const currentPlan = user.subscription?.plan;
-        if (currentPlan?.name === "PRO" && currentPlan?.monthlyCredits === monthlyCredits) {
+        const isCurrentTier = currentPlan?.name === "PRO" && currentPlan?.monthlyCredits === monthlyCredits;
+
+        if (isCurrentTier) {
             return NextResponse.json(
                 { error: `You are already on the Pro ${monthlyCredits} credits/month plan` },
                 { status: 400 }
             );
         }
+
+        // Determine if this is a tier change (upgrade/downgrade)
+        const isTierChange = currentPlan?.name === "PRO" && currentPlan?.monthlyCredits !== monthlyCredits;
+        const isUpgrade = isTierChange && monthlyCredits > (currentPlan?.monthlyCredits || 0);
 
         // Get the Polar product ID from environment variable
         const polarEnvKey = selectedTier.polarEnvKey;
@@ -104,14 +110,19 @@ export async function POST(request: Request) {
             productPriceId: priceId,
             customerEmail: user.email || undefined,
             embedOrigin: baseUrl,
-            // Don't set successUrl for embedded checkouts - it causes "Waiting confirmation"
-            // successUrl: `${baseUrl}/chat?payment=success`,
+            successUrl: `${baseUrl}/?settings=billing&payment=success`,
+            allowDiscountCodes: true, // Allow Polar to handle subscription updates
             metadata: {
                 userId: user.id,
                 purchaseType: "subscription",
                 planName: "PRO",
                 monthlyCredits: monthlyCredits.toString(),
                 billingPeriod: "MONTHLY",
+                ...(isTierChange && {
+                    tierChange: isUpgrade ? "upgrade" : "downgrade",
+                    previousCredits: currentPlan?.monthlyCredits?.toString() || "0",
+                    existingSubscriptionId: user.subscription?.polarSubscriptionId || "",
+                }),
             },
         } as never); // Type assertion for SDK compatibility
 

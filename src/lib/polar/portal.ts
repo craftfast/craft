@@ -58,16 +58,15 @@ export async function createPortalSession(params: PortalSessionParams) {
             throw new Error("User does not have a Polar customer account");
         }
 
-        // Create portal session
+        // Create portal session using correct Polar API endpoint
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const defaultReturnUrl = `${baseUrl}/billing`;
+        const defaultReturnUrl = `${baseUrl}/?settings=billing`;
 
-        const response = await fetch(`${POLAR_API_BASE}/customer-portal/sessions`, {
+        const response = await fetch(`${POLAR_API_BASE}/customer-sessions`, {
             method: "POST",
             headers: POLAR_HEADERS,
             body: JSON.stringify({
                 customer_id: user.polarCustomerId,
-                return_url: returnUrl || defaultReturnUrl,
             }),
         });
 
@@ -77,13 +76,13 @@ export async function createPortalSession(params: PortalSessionParams) {
             throw new Error(`Failed to create portal session: ${error}`);
         }
 
-        const session: PolarPortalSession = await response.json();
+        const session = await response.json();
 
-        console.log(`Created portal session for user ${userId}`);
+        console.log(`Created portal session for user ${userId}:`, session);
 
         return {
             success: true,
-            portalUrl: session.url,
+            portalUrl: session.customer_portal_url || session.url,
             expiresAt: session.expires_at,
         };
     } catch (error) {
