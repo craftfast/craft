@@ -37,6 +37,7 @@ import {
   Sparkles,
   Cloud,
   Github,
+  Gitlab,
   Plus,
   X,
   Eye,
@@ -45,6 +46,10 @@ import {
   FileText,
   Image as ImageIcon,
   Code2,
+  Server,
+  Zap,
+  Rocket,
+  Box,
 } from "lucide-react";
 
 interface ProjectSettingsModalProps {
@@ -59,11 +64,13 @@ interface ProjectSettingsModalProps {
 type SettingsTab =
   | "general"
   | "collaborators"
+  | "git"
   | "deployments"
   | "versions"
   | "knowledge"
   | "environment"
-  | "views";
+  | "views"
+  | "usage-billing";
 
 // IntegrationConfig moved to IntegrationsModal.tsx
 
@@ -101,9 +108,19 @@ export default function ProjectSettingsModal({
 
   // Note: Integrations have been moved to a separate IntegrationsModal
 
+  // Git & Version Control
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [gitlabConnected, setGitlabConnected] = useState(false);
+  const [bitbucketConnected, setBitbucketConnected] = useState(false);
+
   // Deployments
   const [vercelConnected, setVercelConnected] = useState(false);
-  const [githubConnected, setGithubConnected] = useState(false);
+  const [netlifyConnected, setNetlifyConnected] = useState(false);
+  const [railwayConnected, setRailwayConnected] = useState(false);
+  const [renderConnected, setRenderConnected] = useState(false);
+  const [awsConnected, setAwsConnected] = useState(false);
+  const [digitalOceanConnected, setDigitalOceanConnected] = useState(false);
+  const [herokuConnected, setHerokuConnected] = useState(false);
 
   // Collaborators
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
@@ -136,6 +153,23 @@ export default function ProjectSettingsModal({
     }>
   >([]);
 
+  // Usage Tracking
+  const [usageData, setUsageData] = useState({
+    apiCalls: { current: 0, limit: 10000, percentage: 0 },
+    aiTokens: { current: 0, limit: 1000000, percentage: 0 },
+    storage: { current: 0, limit: 5000, percentage: 0 },
+    bandwidth: { current: 0, limit: 100000, percentage: 0 },
+    builds: { current: 0, limit: 100, percentage: 0 },
+  });
+
+  // Billing Integration
+  const [billingIntegrations, setBillingIntegrations] = useState({
+    stripe: { enabled: false, publicKey: "", secretKey: "" },
+    paypal: { enabled: false, clientId: "", clientSecret: "" },
+    paddle: { enabled: false, vendorId: "", apiKey: "" },
+    lemonsqueezy: { enabled: false, storeId: "", apiKey: "" },
+  });
+
   // Close modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -164,18 +198,78 @@ export default function ProjectSettingsModal({
 
   const loadProjectSettings = async () => {
     try {
-      const response = await fetch(`/api/projects/${projectId}/settings`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.collaborators) setCollaborators(data.collaborators);
-        if (data.versions) setVersions(data.versions);
-        if (data.knowledgeFiles) setKnowledgeFiles(data.knowledgeFiles);
-        if (data.environmentVariables)
-          setEnvironmentVariables(data.environmentVariables);
+      // Load all data in parallel
+      const [
+        settingsRes,
+        collaboratorsRes,
+        versionsRes,
+        knowledgeRes,
+        envVarsRes,
+        usageRes,
+      ] = await Promise.all([
+        fetch(`/api/projects/${projectId}/settings`),
+        fetch(`/api/projects/${projectId}/collaborators`),
+        fetch(`/api/projects/${projectId}/versions`),
+        fetch(`/api/projects/${projectId}/knowledge`),
+        fetch(`/api/projects/${projectId}/environment`),
+        fetch(`/api/projects/${projectId}/usage`),
+      ]);
+
+      if (settingsRes.ok) {
+        const data = await settingsRes.json();
         if (data.customViews) setCustomViews(data.customViews);
+        if (data.git) {
+          setGithubConnected(data.git.github || false);
+          setGitlabConnected(data.git.gitlab || false);
+          setBitbucketConnected(data.git.bitbucket || false);
+        }
         if (data.deployments) {
           setVercelConnected(data.deployments.vercel || false);
-          setGithubConnected(data.deployments.github || false);
+          setNetlifyConnected(data.deployments.netlify || false);
+          setRailwayConnected(data.deployments.railway || false);
+          setRenderConnected(data.deployments.render || false);
+          setAwsConnected(data.deployments.aws || false);
+          setDigitalOceanConnected(data.deployments.digitalOcean || false);
+          setHerokuConnected(data.deployments.heroku || false);
+        }
+      }
+
+      if (collaboratorsRes.ok) {
+        const data = await collaboratorsRes.json();
+        if (Array.isArray(data)) setCollaborators(data);
+      }
+
+      if (versionsRes.ok) {
+        const data = await versionsRes.json();
+        if (data.versions) {
+          setVersions(
+            data.versions.map((v: any) => ({
+              id: v.id,
+              name: v.name || `Version ${v.version}`,
+              createdAt: v.createdAt,
+              isCurrent: v.version === data.currentVersion,
+            }))
+          );
+        }
+      }
+
+      if (knowledgeRes.ok) {
+        const data = await knowledgeRes.json();
+        if (data.files) setKnowledgeFiles(data.files);
+      }
+
+      if (envVarsRes.ok) {
+        const data = await envVarsRes.json();
+        if (data.environmentVariables)
+          setEnvironmentVariables(data.environmentVariables);
+      }
+
+      if (usageRes.ok) {
+        const data = await usageRes.json();
+        if (data.usage) setUsageData(data.usage);
+        if (data.costs) {
+          // Update billing integrations with real cost data
+          // This would need to be properly structured based on your needs
         }
       }
     } catch (error) {
@@ -453,9 +547,11 @@ export default function ProjectSettingsModal({
     { id: "environment", label: "Environment", icon: Lock },
     { id: "views", label: "Views", icon: Eye },
     { id: "collaborators", label: "Collaborators", icon: Users },
+    { id: "git", label: "Git & Version Control", icon: GitBranch },
     { id: "deployments", label: "Deployments", icon: Cloud },
     { id: "versions", label: "Versions", icon: Clock },
     { id: "knowledge", label: "Knowledge", icon: FolderOpen },
+    { id: "usage-billing", label: "Usage & Billing", icon: BarChart3 },
   ];
 
   const modalContent = (
@@ -801,7 +897,8 @@ export default function ProjectSettingsModal({
                           <div>
                             <h3 className="font-semibold">Vercel</h3>
                             <p className="text-sm text-muted-foreground">
-                              Deploy to Vercel with automatic builds
+                              Deploy to Vercel with automatic builds and preview
+                              deployments
                             </p>
                           </div>
                         </div>
@@ -838,6 +935,312 @@ export default function ProjectSettingsModal({
                       )}
                     </div>
 
+                    {/* Netlify */}
+                    <div className="p-6 rounded-xl border">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <Zap className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">Netlify</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Deploy with Netlify's global CDN and continuous
+                              deployment
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={netlifyConnected}
+                          onCheckedChange={setNetlifyConnected}
+                        />
+                      </div>
+
+                      {netlifyConnected && (
+                        <div className="space-y-3 mt-4 pt-4 border-t">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              Connected
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Site ID
+                            </span>
+                            <span>site-abc-123</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full rounded-lg"
+                          >
+                            View Site Dashboard
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Railway */}
+                    <div className="p-6 rounded-xl border">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <Rocket className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">Railway</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Deploy full-stack apps with Railway's instant
+                              deployments
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={railwayConnected}
+                          onCheckedChange={setRailwayConnected}
+                        />
+                      </div>
+
+                      {railwayConnected && (
+                        <div className="space-y-3 mt-4 pt-4 border-t">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              Connected
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Environment
+                            </span>
+                            <span>production</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full rounded-lg"
+                          >
+                            Open Railway Dashboard
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Render */}
+                    <div className="p-6 rounded-xl border">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <Server className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">Render</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Deploy web services and static sites on Render's
+                              infrastructure
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={renderConnected}
+                          onCheckedChange={setRenderConnected}
+                        />
+                      </div>
+
+                      {renderConnected && (
+                        <div className="space-y-3 mt-4 pt-4 border-t">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              Connected
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Service Type
+                            </span>
+                            <span>Web Service</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full rounded-lg"
+                          >
+                            Manage Service
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* AWS */}
+                    <div className="p-6 rounded-xl border">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <Box className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">AWS Amplify</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Deploy to AWS Amplify with CI/CD and hosting
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={awsConnected}
+                          onCheckedChange={setAwsConnected}
+                        />
+                      </div>
+
+                      {awsConnected && (
+                        <div className="space-y-3 mt-4 pt-4 border-t">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              Connected
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Region
+                            </span>
+                            <span>us-east-1</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full rounded-lg"
+                          >
+                            View AWS Console
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* DigitalOcean */}
+                    <div className="p-6 rounded-xl border">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <Cloud className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">
+                              DigitalOcean App Platform
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              Deploy apps on DigitalOcean's App Platform with
+                              auto-scaling
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={digitalOceanConnected}
+                          onCheckedChange={setDigitalOceanConnected}
+                        />
+                      </div>
+
+                      {digitalOceanConnected && (
+                        <div className="space-y-3 mt-4 pt-4 border-t">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              Connected
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              App ID
+                            </span>
+                            <span>app-do-xyz</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full rounded-lg"
+                          >
+                            Open App Console
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Heroku */}
+                    <div className="p-6 rounded-xl border">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <Server className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">Heroku</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Deploy to Heroku with Git-based deployments and
+                              add-ons
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={herokuConnected}
+                          onCheckedChange={setHerokuConnected}
+                        />
+                      </div>
+
+                      {herokuConnected && (
+                        <div className="space-y-3 mt-4 pt-4 border-t">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              Connected
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              App Name
+                            </span>
+                            <span>my-heroku-app</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full rounded-lg"
+                          >
+                            Manage Heroku App
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Git & Version Control Tab */}
+            {activeTab === "git" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-semibold mb-2">
+                    Git & Version Control
+                  </h2>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    Connect your project to Git repositories for version control
+                    and collaboration
+                  </p>
+
+                  <div className="space-y-4">
                     {/* GitHub */}
                     <div className="p-6 rounded-xl border">
                       <div className="flex items-start justify-between mb-4">
@@ -848,7 +1251,8 @@ export default function ProjectSettingsModal({
                           <div>
                             <h3 className="font-semibold">GitHub</h3>
                             <p className="text-sm text-muted-foreground">
-                              Sync code with GitHub repository
+                              Sync code with GitHub repository for version
+                              control and CI/CD
                             </p>
                           </div>
                         </div>
@@ -862,6 +1266,14 @@ export default function ProjectSettingsModal({
                         <div className="space-y-3 mt-4 pt-4 border-t">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              Connected
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
                               Repository
                             </span>
                             <span>username/repo-name</span>
@@ -872,14 +1284,151 @@ export default function ProjectSettingsModal({
                             </span>
                             <span>main</span>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full rounded-lg"
-                          >
-                            <GitBranch className="w-4 h-4 mr-2" />
-                            View Repository
-                          </Button>
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg"
+                            >
+                              <GitBranch className="w-4 h-4 mr-2" />
+                              View Repo
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg"
+                            >
+                              Configure
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* GitLab */}
+                    <div className="p-6 rounded-xl border">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <Gitlab className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">GitLab</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Integrate with GitLab for DevOps and version
+                              control
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={gitlabConnected}
+                          onCheckedChange={setGitlabConnected}
+                        />
+                      </div>
+
+                      {gitlabConnected && (
+                        <div className="space-y-3 mt-4 pt-4 border-t">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              Connected
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Project
+                            </span>
+                            <span>group/project-name</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Branch
+                            </span>
+                            <span>main</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg"
+                            >
+                              <GitBranch className="w-4 h-4 mr-2" />
+                              View Project
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg"
+                            >
+                              Configure
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bitbucket */}
+                    <div className="p-6 rounded-xl border">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <GitBranch className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">Bitbucket</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Connect to Bitbucket for Git repositories and
+                              pipelines
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={bitbucketConnected}
+                          onCheckedChange={setBitbucketConnected}
+                        />
+                      </div>
+
+                      {bitbucketConnected && (
+                        <div className="space-y-3 mt-4 pt-4 border-t">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              Connected
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Repository
+                            </span>
+                            <span>workspace/repo-name</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Branch
+                            </span>
+                            <span>main</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg"
+                            >
+                              <GitBranch className="w-4 h-4 mr-2" />
+                              View Repo
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg"
+                            >
+                              Configure
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1117,6 +1666,641 @@ export default function ProjectSettingsModal({
               </div>
             )}
 
+            {/* Usage & Billing Tab */}
+            {activeTab === "usage-billing" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-semibold mb-2">
+                    Usage & Billing
+                  </h2>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    Track usage metrics and costs for enabled services and
+                    integrations
+                  </p>
+
+                  {/* Usage Overview Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {/* API Calls */}
+                    <div className="p-5 rounded-xl border bg-gradient-to-br from-background to-muted/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                          <h3 className="font-semibold">API Calls</h3>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          This month
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold">
+                            {usageData.apiCalls.current.toLocaleString()}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            / {usageData.apiCalls.limit.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2">
+                          <div
+                            className="bg-neutral-600 dark:bg-neutral-400 h-2 rounded-full transition-all"
+                            style={{
+                              width: `${usageData.apiCalls.percentage}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {usageData.apiCalls.percentage}% used
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* AI Tokens */}
+                    <div className="p-5 rounded-xl border bg-gradient-to-br from-background to-muted/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                          <h3 className="font-semibold">AI Tokens</h3>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          This month
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold">
+                            {(usageData.aiTokens.current / 1000).toFixed(1)}K
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            / {(usageData.aiTokens.limit / 1000).toFixed(0)}K
+                          </span>
+                        </div>
+                        <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2">
+                          <div
+                            className="bg-neutral-600 dark:bg-neutral-400 h-2 rounded-full transition-all"
+                            style={{
+                              width: `${usageData.aiTokens.percentage}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {usageData.aiTokens.percentage}% used
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Storage */}
+                    <div className="p-5 rounded-xl border bg-gradient-to-br from-background to-muted/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <HardDrive className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                          <h3 className="font-semibold">Storage</h3>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          Current
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold">
+                            {(usageData.storage.current / 1000).toFixed(2)}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            GB / {(usageData.storage.limit / 1000).toFixed(0)}{" "}
+                            GB
+                          </span>
+                        </div>
+                        <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2">
+                          <div
+                            className="bg-neutral-600 dark:bg-neutral-400 h-2 rounded-full transition-all"
+                            style={{
+                              width: `${usageData.storage.percentage}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {usageData.storage.percentage}% used
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bandwidth */}
+                    <div className="p-5 rounded-xl border bg-gradient-to-br from-background to-muted/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                          <h3 className="font-semibold">Bandwidth</h3>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          This month
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold">
+                            {(usageData.bandwidth.current / 1000).toFixed(1)}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            GB / {(usageData.bandwidth.limit / 1000).toFixed(0)}{" "}
+                            GB
+                          </span>
+                        </div>
+                        <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2">
+                          <div
+                            className="bg-neutral-600 dark:bg-neutral-400 h-2 rounded-full transition-all"
+                            style={{
+                              width: `${usageData.bandwidth.percentage}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {usageData.bandwidth.percentage}% used
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Usage Details */}
+                  <div className="p-5 rounded-xl border">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" />
+                      Usage Breakdown
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between py-3 border-b last:border-0">
+                        <div className="flex items-center gap-3">
+                          <Rocket className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">Builds & Deployments</p>
+                            <p className="text-xs text-muted-foreground">
+                              Total builds this month
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">
+                            {usageData.builds.current} /{" "}
+                            {usageData.builds.limit}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {usageData.builds.percentage}% used
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between py-3 border-b last:border-0">
+                        <div className="flex items-center gap-3">
+                          <Server className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">Function Invocations</p>
+                            <p className="text-xs text-muted-foreground">
+                              Serverless function calls
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">0 / ∞</p>
+                          <p className="text-xs text-muted-foreground">
+                            Unlimited
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between py-3">
+                        <div className="flex items-center gap-3">
+                          <Database className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">Database Queries</p>
+                            <p className="text-xs text-muted-foreground">
+                              Total DB operations
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">0 / ∞</p>
+                          <p className="text-xs text-muted-foreground">
+                            Unlimited
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Service Costs Section */}
+                <div className="mb-6">
+                  <h3 className="font-semibold text-lg mb-4">Service Costs</h3>
+
+                  {/* Current Billing Period */}
+                  <div className="p-6 rounded-xl border bg-gradient-to-br from-background to-muted/30 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          Current Billing Period
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Nov 1 - Nov 30, 2025
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-3xl font-bold">$24.67</p>
+                        <p className="text-xs text-muted-foreground">
+                          Total charges
+                        </p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-2">
+                      <div
+                        className="bg-neutral-600 dark:bg-neutral-400 h-2 rounded-full transition-all"
+                        style={{ width: "45%" }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      45% through billing period
+                    </p>
+                  </div>
+
+                  {/* Service Costs Breakdown */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                      <Database className="w-5 h-5" />
+                      Active Services & Costs
+                    </h3>
+
+                    {/* Neon Database */}
+                    <div className="p-5 rounded-xl border bg-gradient-to-br from-background to-muted/20">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-neutral-600 to-neutral-800 flex items-center justify-center">
+                            <Database className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold flex items-center gap-2">
+                              Neon Database
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                                Active
+                              </span>
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              PostgreSQL serverless database
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold">$12.50</p>
+                          <p className="text-xs text-muted-foreground">
+                            This month
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Storage</span>
+                          <span className="font-medium">2.4 GB / 10 GB</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Compute hours
+                          </span>
+                          <span className="font-medium">145 hrs</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Data transfer
+                          </span>
+                          <span className="font-medium">3.2 GB</span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-4 rounded-full"
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Manage Neon Integration
+                      </Button>
+                    </div>
+
+                    {/* Vercel Hosting */}
+                    <div className="p-5 rounded-xl border bg-gradient-to-br from-background to-muted/20">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-neutral-700 to-neutral-900 flex items-center justify-center">
+                            <Cloud className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold flex items-center gap-2">
+                              Vercel Hosting
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                                Active
+                              </span>
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              Deployment and edge functions
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold">$8.00</p>
+                          <p className="text-xs text-muted-foreground">
+                            This month
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Deployments
+                          </span>
+                          <span className="font-medium">47 builds</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Bandwidth
+                          </span>
+                          <span className="font-medium">12.8 GB</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Function invocations
+                          </span>
+                          <span className="font-medium">1.2M calls</span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-4 rounded-full"
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Manage Vercel Integration
+                      </Button>
+                    </div>
+
+                    {/* Anthropic AI */}
+                    <div className="p-5 rounded-xl border bg-gradient-to-br from-background to-muted/20">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-neutral-500 to-neutral-700 flex items-center justify-center">
+                            <Sparkles className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold flex items-center gap-2">
+                              Anthropic (Claude)
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                                Active
+                              </span>
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              AI model API usage
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold">$3.45</p>
+                          <p className="text-xs text-muted-foreground">
+                            This month
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Input tokens
+                          </span>
+                          <span className="font-medium">245K tokens</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Output tokens
+                          </span>
+                          <span className="font-medium">89K tokens</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            API calls
+                          </span>
+                          <span className="font-medium">1,247 requests</span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-4 rounded-full"
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Manage AI Integration
+                      </Button>
+                    </div>
+
+                    {/* Uploadthing Storage */}
+                    <div className="p-5 rounded-xl border bg-gradient-to-br from-background to-muted/20">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-neutral-600 to-neutral-800 flex items-center justify-center">
+                            <HardDrive className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold flex items-center gap-2">
+                              UploadThing
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                                Active
+                              </span>
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              File storage and CDN
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold">$0.72</p>
+                          <p className="text-xs text-muted-foreground">
+                            This month
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Storage used
+                          </span>
+                          <span className="font-medium">1.2 GB</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Files uploaded
+                          </span>
+                          <span className="font-medium">324 files</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Bandwidth
+                          </span>
+                          <span className="font-medium">4.1 GB</span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-4 rounded-full"
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Manage Storage Integration
+                      </Button>
+                    </div>
+
+                    {/* Inactive/Available Services */}
+                    <div className="p-5 rounded-xl border border-dashed">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Available Integrations
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <Server className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium text-sm">Supabase</p>
+                              <p className="text-xs text-muted-foreground">
+                                Auth & Database
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-full"
+                          >
+                            Enable
+                          </Button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium text-sm">Resend</p>
+                              <p className="text-xs text-muted-foreground">
+                                Email service
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-full"
+                          >
+                            Enable
+                          </Button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <Zap className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium text-sm">Stripe</p>
+                              <p className="text-xs text-muted-foreground">
+                                Payment processing
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-full"
+                          >
+                            Enable
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cost Summary & Actions */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div className="p-5 rounded-xl border bg-muted/30">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5" />
+                        Cost Breakdown
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Database (Neon)
+                          </span>
+                          <span className="font-medium">$12.50</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Hosting (Vercel)
+                          </span>
+                          <span className="font-medium">$8.00</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            AI (Anthropic)
+                          </span>
+                          <span className="font-medium">$3.45</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Storage (UploadThing)
+                          </span>
+                          <span className="font-medium">$0.72</span>
+                        </div>
+                        <div className="flex justify-between text-sm pt-2 border-t font-semibold">
+                          <span>Total</span>
+                          <span>$24.67</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-5 rounded-xl border bg-muted/30">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <Clock className="w-5 h-5" />
+                        Billing Settings
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Cost alerts</span>
+                          <Switch defaultChecked />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Auto-pay</span>
+                          <Switch defaultChecked />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Monthly reports</span>
+                          <Switch defaultChecked />
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-4 rounded-full"
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Payment Methods
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Export & History */}
+                  <div className="flex gap-3 mt-6">
+                    <Button variant="outline" className="rounded-full flex-1">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Invoice
+                    </Button>
+                    <Button variant="outline" className="rounded-full flex-1">
+                      <FileText className="w-4 h-4 mr-2" />
+                      View History
+                    </Button>
+                    <Button variant="outline" className="rounded-full flex-1">
+                      <Mail className="w-4 h-4 mr-2" />
+                      Email Report
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Custom Views Tab */}
             {activeTab === "views" && (
               <div className="space-y-6">
@@ -1169,6 +2353,7 @@ export default function ProjectSettingsModal({
                           },
                           { id: "logs", label: "Logs", icon: FileText },
                           { id: "auth", label: "Auth", icon: Lock },
+                          { id: "git", label: "Git", icon: GitBranch },
                           {
                             id: "dashboard",
                             label: "Dashboard",
@@ -1211,6 +2396,8 @@ export default function ProjectSettingsModal({
                                       "Real-time application logs"}
                                     {viewType.id === "auth" &&
                                       "User authentication management"}
+                                    {viewType.id === "git" &&
+                                      "Git history, branches, and commits"}
                                     {viewType.id === "dashboard" &&
                                       "Analytics and metrics"}
                                     {viewType.id === "chat" &&

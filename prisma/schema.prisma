@@ -29,61 +29,65 @@ enum WebhookEventStatus {
 }
 
 model User {
-  id                    String               @id @default(cuid())
+  id                    String                @id @default(cuid())
   name                  String?
-  email                 String               @unique
-  emailVerified         Boolean              @default(false)
+  email                 String                @unique
+  emailVerified         Boolean               @default(false)
   image                 String?
   // Custom Craft fields
-  preferredChatPosition String               @default("left")
-  preferredTheme        String               @default("system")
+  preferredChatPosition String                @default("left")
+  preferredTheme        String                @default("system")
   // Personalization settings
   responseTone          String? // default, concise, detailed, encouraging, professional
-  customInstructions    String?              @db.Text
+  customInstructions    String?               @db.Text
   occupation            String?
-  techStack             String?              @db.Text
-  enableMemory          Boolean              @default(true)
-  referenceChatHistory  Boolean              @default(true)
-  enableWebSearch       Boolean              @default(false)
-  enableImageGeneration Boolean              @default(false)
+  techStack             String?               @db.Text
+  enableMemory          Boolean               @default(true)
+  referenceChatHistory  Boolean               @default(true)
+  enableWebSearch       Boolean               @default(false)
+  enableImageGeneration Boolean               @default(false)
   // Referral system
-  referralCode          String?              @unique
+  referralCode          String?               @unique
   referredById          String?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
   // Better Auth admin plugin fields
-  role                  String               @default("user")
+  role                  String                @default("user")
   banned                Boolean?
   banReason             String?
   banExpires            DateTime?
   // Better Auth 2FA plugin field
-  twoFactorEnabled      Boolean              @default(false)
+  twoFactorEnabled      Boolean               @default(false)
   // Better Auth last login method plugin field
   lastLoginMethod       String?
   // Craft-specific soft delete fields
   deletionScheduledAt   DateTime?
   deletedAt             DateTime?
   // Polar Integration fields
-  polarCustomerId       String?              @unique
-  polarCustomerExtId    String?              @unique
+  polarCustomerId       String?               @unique
+  polarCustomerExtId    String?               @unique
   // Relations
   accounts              Account[]
   files                 File[]
   passwordHistory       PasswordHistory[]
   paymentTransactions   PaymentTransaction[]
-  pendingAccountLinks   PendingAccountLink[] @relation("PendingAccountLinks")
+  pendingAccountLinks   PendingAccountLink[]  @relation("PendingAccountLinks")
   projects              Project[]
   sessions              Session[]
   subscription          UserSubscription?
   twofactors            TwoFactor[]
   // Referral relations
-  referredBy            User?                @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referrals             User[]               @relation("UserReferrals")
+  referredBy            User?                 @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals             User[]                @relation("UserReferrals")
   referralCredits       ReferralCredit[]
   // Memory relations
   memories              UserMemory[]
   // Agent orchestration relations
   agentSessions         AgentSession[]
+  // Project settings relations
+  projectCollaborations ProjectCollaborator[] @relation("ProjectCollaborations")
+  invitedCollaborators  ProjectCollaborator[] @relation("InvitedCollaborators")
+  uploadedKnowledge     KnowledgeFile[]       @relation("UploadedKnowledge")
 
   @@index([polarCustomerId])
   @@index([polarCustomerExtId])
@@ -177,17 +181,17 @@ model PendingAccountLink {
 }
 
 model Project {
-  id                            String           @id @default(cuid())
+  id                            String                @id @default(cuid())
   name                          String
   description                   String?
-  type                          String           @default("document")
-  status                        String           @default("active")
-  visibility                    String           @default("private")
+  type                          String                @default("document")
+  status                        String                @default("active")
+  visibility                    String                @default("private")
   userId                        String
-  version                       Int              @default(0)
-  generationStatus              String           @default("template")
+  version                       Int                   @default(0)
+  generationStatus              String                @default("template")
   lastCodeUpdateAt              DateTime?
-  codeFiles                     Json             @default("{}")
+  codeFiles                     Json                  @default("{}")
   // E2B Sandbox fields (Phase 3)
   sandboxId                     String? // E2B sandbox ID for pause/resume
   sandboxPausedAt               DateTime? // Timestamp when sandbox was paused
@@ -195,17 +199,25 @@ model Project {
   previewImage                  String? // Screenshot/preview image URL for project thumbnail
   previewImageCapturedAtVersion Int? // Project version when preview image was captured
   // Environment Variables & Custom Views
-  environmentVariables          Json             @default("{}") // Encrypted env vars
-  customViews                   Json             @default("[]") // Array of custom view configs
-  createdAt                     DateTime         @default(now())
-  updatedAt                     DateTime         @updatedAt
+  environmentVariables          Json                  @default("{}") // Encrypted env vars
+  customViews                   Json                  @default("[]") // Array of custom view configs
+  // Git & Deployment settings
+  gitSettings                   Json                  @default("{}") // Git provider connections
+  deploymentSettings            Json                  @default("{}") // Deployment configurations
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
   chatMessages                  ChatMessage[]
-  fileRecords                   File[]           @relation("ProjectFiles")
+  fileRecords                   File[]                @relation("ProjectFiles")
   versions                      ProjectVersion[]
-  user                          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Agent orchestration relations
   agentSessions                 AgentSession[]
   tasks                         Task[]
+  // Project settings relations
+  collaborators                 ProjectCollaborator[]
+  gitConnection                 ProjectGitConnection?
+  deployments                   ProjectDeployment[]
+  knowledgeFiles                KnowledgeFile[]
 
   @@index([sandboxId])
   @@map("projects")
@@ -275,6 +287,81 @@ model ProjectVersion {
   @@index([projectId, isBookmarked])
   @@index([projectId, isPublished])
   @@map("project_versions")
+}
+
+model ProjectCollaborator {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("viewer") // owner, editor, viewer
+  addedBy   String
+  addedAt   DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation("ProjectCollaborations", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User     @relation("InvitedCollaborators", fields: [addedBy], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_collaborators")
+}
+
+model ProjectGitConnection {
+  id           String    @id @default(cuid())
+  projectId    String    @unique
+  provider     String // github, gitlab, bitbucket
+  repository   String
+  branch       String    @default("main")
+  accessToken  String // Encrypted
+  refreshToken String? // Encrypted
+  username     String?
+  repoUrl      String?
+  connectedAt  DateTime  @default(now())
+  lastSyncAt   DateTime?
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([provider])
+  @@map("project_git_connections")
+}
+
+model ProjectDeployment {
+  id           String   @id @default(cuid())
+  projectId    String
+  provider     String // vercel, netlify, railway, render, aws, digitalocean, heroku
+  deploymentId String?
+  url          String?
+  status       String   @default("active") // active, failed, pending, inactive
+  environment  String   @default("production")
+  metadata     Json? // Store provider-specific data
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([provider])
+  @@index([status])
+  @@map("project_deployments")
+}
+
+model KnowledgeFile {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  r2Key       String   @unique
+  r2Url       String
+  mimeType    String
+  size        Int
+  description String?
+  uploadedBy  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader    User     @relation("UploadedKnowledge", fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([r2Key])
+  @@map("knowledge_files")
 }
 
 model Plan {
