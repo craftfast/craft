@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ProjectsSortOption } from "@/lib/url-params";
 
 type SortOption = ProjectsSortOption;
@@ -459,13 +460,21 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
 
           {/* Loading State */}
           {loading && (
-            <div className="flex justify-center items-center py-20">
-              <div className="flex flex-col items-center gap-4">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-foreground"></div>
-                <p className="text-sm text-muted-foreground">
-                  Loading projects...
-                </p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="group relative rounded-2xl border border-border bg-card overflow-hidden aspect-video"
+                >
+                  <Skeleton className="w-full h-full" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <Skeleton className="h-5 w-3/4" />
+                  </div>
+                  <div className="absolute top-3 right-3">
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
