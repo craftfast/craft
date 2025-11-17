@@ -194,6 +194,9 @@ model Project {
   lastBackupAt                  DateTime? // Timestamp of last R2 backup
   previewImage                  String? // Screenshot/preview image URL for project thumbnail
   previewImageCapturedAtVersion Int? // Project version when preview image was captured
+  // Environment Variables & Custom Views
+  environmentVariables          Json             @default("{}") // Encrypted env vars
+  customViews                   Json             @default("[]") // Array of custom view configs
   createdAt                     DateTime         @default(now())
   updatedAt                     DateTime         @updatedAt
   chatMessages                  ChatMessage[]

@@ -193,7 +193,7 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
     >
       {/* Top Header Bar */}
       <div
-        className="flex-shrink-0 h-16 flex items-center justify-between px-6 bg-background"
+        className="flex-shrink-0 h-16 flex items-center justify-between px-6 bg-background border-b"
         style={{ zIndex: 100000 }}
       >
         <h1 className="text-xl font-semibold text-foreground">Projects</h1>
@@ -224,7 +224,7 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
       >
         {/* Left Sidebar - Menu */}
         <div
-          className="w-64 flex-shrink-0 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full"
+          className="w-64 flex-shrink-0 overflow-y-auto bg-background border-r [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full"
           style={{ position: "relative", zIndex: 100001 }}
         >
           <div className="p-3 space-y-6">
@@ -392,7 +392,7 @@ export default function ProjectsModal({ isOpen, onClose }: ProjectsModalProps) {
         </div>
 
         {/* Right Panel - Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 m-2 border border-border rounded-2xl bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+        <div className="flex-1 overflow-y-auto px-6 py-5 bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
           {/* Projects Display */}
           {!loading && !error && projects.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

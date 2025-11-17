@@ -22,6 +22,12 @@ import {
   Maximize,
   Minimize,
   Github,
+  Database,
+  HardDrive,
+  FileText,
+  BarChart3,
+  MessageCircle,
+  Cloud,
 } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
@@ -61,8 +67,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
+import ProjectSettingsModal from "@/components/ProjectSettingsModal";
 
-type TabType = "preview" | "code";
+type TabType = "preview" | "code" | string;
 
 interface Project {
   id: string;
@@ -90,6 +97,15 @@ interface CodingInterfaceProps {
   user: User;
   planName: string;
 }
+
+interface CustomView {
+  id: string;
+  label: string;
+  type: string;
+  enabled: boolean;
+  order: number;
+}
+
 export default function CodingInterface({
   project: initialProject,
   user,
@@ -104,9 +120,11 @@ export default function CodingInterface({
 
   const [activeTab, setActiveTab] = useState<TabType>("preview");
   const [project, setProject] = useState(initialProject);
+  const [customViews, setCustomViews] = useState<CustomView[]>([]);
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
+  const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [isVisibilitySubmenuOpen, setIsVisibilitySubmenuOpen] = useState(false);
   const [projectVisibility, setProjectVisibility] = useState<
@@ -143,6 +161,26 @@ export default function CodingInterface({
   const [isSyncGitDialogOpen, setIsSyncGitDialogOpen] = useState(false);
   const [isDatabaseDialogOpen, setIsDatabaseDialogOpen] = useState(false);
   const chatWidth = 30; // Fixed at 30%
+
+  // Load custom views from project settings
+  useEffect(() => {
+    const loadCustomViews = async () => {
+      try {
+        const response = await fetch(
+          `/api/projects/${initialProject.id}/settings`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data.customViews) {
+            setCustomViews(data.customViews);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load custom views:", error);
+      }
+    };
+    loadCustomViews();
+  }, [initialProject.id]);
 
   // Auto-switch to code tab when AI starts generating files
   useEffect(() => {
@@ -448,6 +486,20 @@ export default function CodingInterface({
   // Ref to trigger PreviewPanel actions
   const previewPanelRef = useRef<PreviewPanelRef | null>(null);
 
+  // View icon mapping
+  const viewIconMap: Record<
+    string,
+    React.ComponentType<{ className?: string }>
+  > = {
+    database: Database,
+    storage: HardDrive,
+    logs: FileText,
+    auth: Lock,
+    dashboard: BarChart3,
+    chat: MessageCircle,
+    deployment: Cloud,
+  };
+
   const allViews = [
     {
       id: "preview" as const,
@@ -459,6 +511,14 @@ export default function CodingInterface({
       label: "Code",
       icon: Code2,
     },
+    ...customViews
+      .filter((view) => view.enabled)
+      .sort((a, b) => a.order - b.order)
+      .map((view) => ({
+        id: view.id as TabType,
+        label: view.label,
+        icon: viewIconMap[view.type] || Eye,
+      })),
   ];
 
   return (
@@ -686,6 +746,19 @@ export default function CodingInterface({
                     />
                   </svg>
                   <span>Deploy</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  className="rounded-lg"
+                  onClick={() => {
+                    setIsProjectSettingsOpen(true);
+                    setIsProjectMenuOpen(false);
+                  }}
+                >
+                  <Settings className="w-4 h-4 mr-3" />
+                  <span>Project Settings</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -966,6 +1039,33 @@ export default function CodingInterface({
                     onFileSelected={() => setSelectedFileFromChat(null)}
                   />
                 )}
+
+                {/* Custom Views */}
+                {activeTab !== "preview" &&
+                  activeTab !== "code" &&
+                  customViews.find((v) => v.id === activeTab && v.enabled) && (
+                    <div className="h-full flex items-center justify-center bg-background p-8">
+                      <div className="text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                          {(() => {
+                            const view = customViews.find(
+                              (v) => v.id === activeTab
+                            );
+                            const Icon = view ? viewIconMap[view.type] : Eye;
+                            return (
+                              <Icon className="w-8 h-8 text-muted-foreground" />
+                            );
+                          })()}
+                        </div>
+                        <h3 className="text-xl font-semibold mb-2">
+                          {customViews.find((v) => v.id === activeTab)?.label}
+                        </h3>
+                        <p className="text-muted-foreground">
+                          This view is coming soon
+                        </p>
+                      </div>
+                    </div>
+                  )}
               </main>
             </div>
           </div>
@@ -1192,6 +1292,16 @@ export default function CodingInterface({
           open={isDatabaseDialogOpen}
           onOpenChange={setIsDatabaseDialogOpen}
           projectId={project.id}
+        />
+
+        {/* Project Settings Modal */}
+        <ProjectSettingsModal
+          isOpen={isProjectSettingsOpen}
+          onClose={() => setIsProjectSettingsOpen(false)}
+          projectId={project.id}
+          projectName={project.name}
+          projectDescription={project.description}
+          projectVisibility={projectVisibility}
         />
       </div>
     </TooltipProvider>

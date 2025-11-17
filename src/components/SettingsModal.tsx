@@ -1565,7 +1565,7 @@ export default function SettingsModal({
     >
       {/* Top Header Bar */}
       <div
-        className="flex-shrink-0 h-16 flex items-center justify-between px-6 bg-background"
+        className="flex-shrink-0 h-16 flex items-center justify-between px-6 bg-background border-b"
         style={{ zIndex: 100000 }}
       >
         <h1 className="text-xl font-semibold text-foreground">Settings</h1>
@@ -1601,202 +1601,223 @@ export default function SettingsModal({
       >
         {/* Left Sidebar - Menu */}
         <div
-          className="w-64 flex-shrink-0 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full"
+          className="w-64 flex-shrink-0 overflow-y-auto bg-background border-r [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full"
           style={{ position: "relative", zIndex: 100001 }}
         >
           {/* Menu Items */}
           <nav
-            className="p-3 space-y-1"
+            className="p-4 space-y-1"
             style={{ position: "relative", zIndex: 100002 }}
           >
             {menuItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleTabChange(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors ${
                   activeTab === item.id
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50"
                 }`}
               >
-                {getMenuIcon(item.id)}
-                <span>{item.label}</span>
+                <div className="w-4 h-4 flex items-center justify-center">
+                  {getMenuIcon(item.id)}
+                </div>
+                <span className="text-sm font-medium">{item.label}</span>
               </button>
             ))}
           </nav>
         </div>
 
         {/* Right Panel - Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 m-2 border border-border rounded-2xl bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
-          <div className="max-w-3xl mx-auto">
+        <div className="flex-1 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+          <div className="max-w-3xl mx-auto p-8">
             {/* General Tab */}
             {activeTab === "general" && (
-              <GeneralTab
-                theme={theme}
-                setTheme={setTheme}
-                chatPosition={chatPosition}
-                setChatPosition={setChatPosition}
-                suggestionsEnabled={suggestionsEnabled}
-                setSuggestionsEnabled={setSuggestionsEnabled}
-                soundNotifications={soundNotifications}
-                setSoundNotifications={setSoundNotifications}
-              />
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-6">General</h2>
+                <GeneralTab
+                  theme={theme}
+                  setTheme={setTheme}
+                  chatPosition={chatPosition}
+                  setChatPosition={setChatPosition}
+                  suggestionsEnabled={suggestionsEnabled}
+                  setSuggestionsEnabled={setSuggestionsEnabled}
+                  soundNotifications={soundNotifications}
+                  setSoundNotifications={setSoundNotifications}
+                />
+              </div>
             )}
-
             {/* Personalization Tab */}
-            {activeTab === "personalization" && <PersonalizationTab />}
-
+            {activeTab === "personalization" && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-6">Personalization</h2>
+                <PersonalizationTab />
+              </div>
+            )}{" "}
             {/* Billing Tab */}
             {activeTab === "billing" && (
-              <BillingTab
-                isLoadingBilling={isLoadingBilling}
-                isAutoTriggeringCheckout={isAutoTriggeringCheckout}
-                subscriptionData={subscriptionData}
-                creditBalanceData={creditBalanceData}
-                subscriptionHistory={subscriptionHistory}
-                selectedProTierIndex={selectedProTierIndex}
-                setSelectedProTierIndex={setSelectedProTierIndex}
-                isPurchasing={isPurchasing}
-                updateUrlParams={updateUrlParams}
-                handleOpenEmbeddedCheckout={handleOpenEmbeddedCheckout}
-                fetchBillingData={fetchBillingData}
-              />
-            )}
-
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-6">Billing</h2>
+                <BillingTab
+                  isLoadingBilling={isLoadingBilling}
+                  isAutoTriggeringCheckout={isAutoTriggeringCheckout}
+                  subscriptionData={subscriptionData}
+                  creditBalanceData={creditBalanceData}
+                  subscriptionHistory={subscriptionHistory}
+                  selectedProTierIndex={selectedProTierIndex}
+                  setSelectedProTierIndex={setSelectedProTierIndex}
+                  isPurchasing={isPurchasing}
+                  updateUrlParams={updateUrlParams}
+                  handleOpenEmbeddedCheckout={handleOpenEmbeddedCheckout}
+                  fetchBillingData={fetchBillingData}
+                />
+              </div>
+            )}{" "}
             {/* Usage Tab */}
             {activeTab === "usage" && (
-              <UsageTab
-                creditUsageData={creditUsageData}
-                isLoadingUsage={isLoadingUsage}
-                selectedProject={selectedProject}
-                setSelectedProject={setSelectedProject}
-                selectedEndpoint={selectedEndpoint}
-                setSelectedEndpoint={setSelectedEndpoint}
-                startDate={startDate}
-                setStartDate={setStartDate}
-                endDate={endDate}
-                setEndDate={setEndDate}
-                currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
-                updateUrlParams={updateUrlParams}
-                resetFilters={resetFilters}
-              />
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-6">Usage</h2>
+                <UsageTab
+                  creditUsageData={creditUsageData}
+                  isLoadingUsage={isLoadingUsage}
+                  selectedProject={selectedProject}
+                  setSelectedProject={setSelectedProject}
+                  selectedEndpoint={selectedEndpoint}
+                  setSelectedEndpoint={setSelectedEndpoint}
+                  startDate={startDate}
+                  setStartDate={setStartDate}
+                  endDate={endDate}
+                  setEndDate={setEndDate}
+                  currentPage={currentPage}
+                  setCurrentPage={setCurrentPage}
+                  updateUrlParams={updateUrlParams}
+                  resetFilters={resetFilters}
+                />
+              </div>
             )}
-
             {/* Account Tab */}
             {activeTab === "account" && (
-              <AccountTab
-                session={
-                  session
-                    ? {
-                        user: {
-                          ...session.user,
-                          image: session.user.image ?? undefined,
-                        },
-                      }
-                    : null
-                }
-                profileImage={profileImage ?? ""}
-                userName={userName}
-                setUserName={setUserName}
-                userEmail={userEmail}
-                isLoadingProfile={isLoadingProfile}
-                isSavingProfile={isSavingProfile}
-                isUploadingImage={isUploadingImage}
-                handleImageUpload={handleImageUpload}
-                handleRemoveImage={handleRemoveImage}
-                handleSaveProfile={handleSaveProfile}
-                showEmailChangeForm={showEmailChangeForm}
-                setShowEmailChangeForm={setShowEmailChangeForm}
-                newEmail={newEmail}
-                setNewEmail={setNewEmail}
-                isEmailOTPSent={isEmailOTPSent}
-                setIsEmailOTPSent={setIsEmailOTPSent}
-                emailChangeOTP={emailChangeOTP}
-                setEmailChangeOTP={setEmailChangeOTP}
-                isSendingEmailOTP={isSendingEmailOTP}
-                isChangingEmail={isChangingEmail}
-                emailResendCooldown={emailResendCooldown}
-                handleSendEmailChangeOTP={handleSendEmailChangeOTP}
-                handleVerifyEmailChange={handleVerifyEmailChange}
-                linkedAccounts={
-                  linkedAccounts
-                    ? {
-                        google: linkedAccounts.google
-                          ? {
-                              connected: linkedAccounts.google.connected,
-                              email: linkedAccounts.google.email ?? undefined,
-                            }
-                          : undefined,
-                        github: linkedAccounts.github
-                          ? {
-                              connected: linkedAccounts.github.connected,
-                              email: linkedAccounts.github.email ?? undefined,
-                            }
-                          : undefined,
-                        credentials: linkedAccounts.credentials
-                          ? {
-                              connected: linkedAccounts.credentials.connected,
-                              email:
-                                linkedAccounts.credentials.email ?? undefined,
-                            }
-                          : undefined,
-                      }
-                    : null
-                }
-                isLoadingLinkedAccounts={isLoadingLinkedAccounts}
-                isLinkingProvider={isLinkingProvider}
-                handleLinkProvider={
-                  handleLinkProvider as (provider: string) => void
-                }
-                handleUnlinkProvider={
-                  handleUnlinkProvider as (provider: string) => void
-                }
-                setShowPasswordSetupModal={setShowPasswordSetupModal}
-                showPasswordChangeForm={showPasswordChangeForm}
-                setShowPasswordChangeForm={setShowPasswordChangeForm}
-                currentPassword={currentPassword}
-                setCurrentPassword={setCurrentPassword}
-                newPasswordForChange={newPasswordForChange}
-                setNewPasswordForChange={setNewPasswordForChange}
-                confirmNewPassword={confirmNewPassword}
-                setConfirmNewPassword={setConfirmNewPassword}
-                showCurrentPassword={showCurrentPassword}
-                setShowCurrentPassword={setShowCurrentPassword}
-                showNewPassword={showNewPassword}
-                setShowNewPassword={setShowNewPassword}
-                showConfirmPassword={showConfirmPassword}
-                setShowConfirmPassword={setShowConfirmPassword}
-                isChangingPassword={isChangingPassword}
-                handleChangePassword={handleChangePassword}
-                deletionStatus={
-                  deletionStatus
-                    ? {
-                        isScheduledForDeletion:
-                          deletionStatus.isScheduledForDeletion,
-                        daysRemaining:
-                          deletionStatus.daysRemaining ?? undefined,
-                        deletionScheduledAt:
-                          deletionStatus.deletionScheduledAt ?? undefined,
-                      }
-                    : null
-                }
-                isLoadingDeletionStatus={isLoadingDeletionStatus}
-                handleRestoreAccount={handleRestoreAccount}
-                setShowDeleteModal={setShowDeleteModal}
-              />
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-6">Account</h2>
+                <AccountTab
+                  session={
+                    session
+                      ? {
+                          user: {
+                            ...session.user,
+                            image: session.user.image ?? undefined,
+                          },
+                        }
+                      : null
+                  }
+                  profileImage={profileImage ?? ""}
+                  userName={userName}
+                  setUserName={setUserName}
+                  userEmail={userEmail}
+                  isLoadingProfile={isLoadingProfile}
+                  isSavingProfile={isSavingProfile}
+                  isUploadingImage={isUploadingImage}
+                  handleImageUpload={handleImageUpload}
+                  handleRemoveImage={handleRemoveImage}
+                  handleSaveProfile={handleSaveProfile}
+                  showEmailChangeForm={showEmailChangeForm}
+                  setShowEmailChangeForm={setShowEmailChangeForm}
+                  newEmail={newEmail}
+                  setNewEmail={setNewEmail}
+                  isEmailOTPSent={isEmailOTPSent}
+                  setIsEmailOTPSent={setIsEmailOTPSent}
+                  emailChangeOTP={emailChangeOTP}
+                  setEmailChangeOTP={setEmailChangeOTP}
+                  isSendingEmailOTP={isSendingEmailOTP}
+                  isChangingEmail={isChangingEmail}
+                  emailResendCooldown={emailResendCooldown}
+                  handleSendEmailChangeOTP={handleSendEmailChangeOTP}
+                  handleVerifyEmailChange={handleVerifyEmailChange}
+                  linkedAccounts={
+                    linkedAccounts
+                      ? {
+                          google: linkedAccounts.google
+                            ? {
+                                connected: linkedAccounts.google.connected,
+                                email: linkedAccounts.google.email ?? undefined,
+                              }
+                            : undefined,
+                          github: linkedAccounts.github
+                            ? {
+                                connected: linkedAccounts.github.connected,
+                                email: linkedAccounts.github.email ?? undefined,
+                              }
+                            : undefined,
+                          credentials: linkedAccounts.credentials
+                            ? {
+                                connected: linkedAccounts.credentials.connected,
+                                email:
+                                  linkedAccounts.credentials.email ?? undefined,
+                              }
+                            : undefined,
+                        }
+                      : null
+                  }
+                  isLoadingLinkedAccounts={isLoadingLinkedAccounts}
+                  isLinkingProvider={isLinkingProvider}
+                  handleLinkProvider={
+                    handleLinkProvider as (provider: string) => void
+                  }
+                  handleUnlinkProvider={
+                    handleUnlinkProvider as (provider: string) => void
+                  }
+                  setShowPasswordSetupModal={setShowPasswordSetupModal}
+                  showPasswordChangeForm={showPasswordChangeForm}
+                  setShowPasswordChangeForm={setShowPasswordChangeForm}
+                  currentPassword={currentPassword}
+                  setCurrentPassword={setCurrentPassword}
+                  newPasswordForChange={newPasswordForChange}
+                  setNewPasswordForChange={setNewPasswordForChange}
+                  confirmNewPassword={confirmNewPassword}
+                  setConfirmNewPassword={setConfirmNewPassword}
+                  showCurrentPassword={showCurrentPassword}
+                  setShowCurrentPassword={setShowCurrentPassword}
+                  showNewPassword={showNewPassword}
+                  setShowNewPassword={setShowNewPassword}
+                  showConfirmPassword={showConfirmPassword}
+                  setShowConfirmPassword={setShowConfirmPassword}
+                  isChangingPassword={isChangingPassword}
+                  handleChangePassword={handleChangePassword}
+                  deletionStatus={
+                    deletionStatus
+                      ? {
+                          isScheduledForDeletion:
+                            deletionStatus.isScheduledForDeletion,
+                          daysRemaining:
+                            deletionStatus.daysRemaining ?? undefined,
+                          deletionScheduledAt:
+                            deletionStatus.deletionScheduledAt ?? undefined,
+                        }
+                      : null
+                  }
+                  isLoadingDeletionStatus={isLoadingDeletionStatus}
+                  handleRestoreAccount={handleRestoreAccount}
+                  setShowDeleteModal={setShowDeleteModal}
+                />
+              </div>
             )}
-
             {/* Integrations Tab */}
-            {activeTab === "integrations" && <IntegrationsTab />}
-
+            {activeTab === "integrations" && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-6">Integrations</h2>
+                <IntegrationsTab />
+              </div>
+            )}
             {/* Referrals Tab */}
             {activeTab === "referrals" && (
-              <ReferralsTab
-                referralData={referralData}
-                isLoadingReferralData={isLoadingReferralData}
-                fetchReferralData={fetchReferralData}
-              />
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-6">Referrals</h2>
+                <ReferralsTab
+                  referralData={referralData}
+                  isLoadingReferralData={isLoadingReferralData}
+                  fetchReferralData={fetchReferralData}
+                />
+              </div>
             )}
           </div>
         </div>
