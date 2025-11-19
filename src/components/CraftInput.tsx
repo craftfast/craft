@@ -83,18 +83,47 @@ export default function CraftInput() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
-    "general" | "billing" | "usage" | "account" | "integrations"
+    | "general"
+    | "billing"
+    | "usage"
+    | "account"
+    | "integrations"
+    | "model-preferences"
   >("general");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBillingError, setIsBillingError] = useState(false);
   const { balance } = useCreditBalance();
-  const [selectedTier, setSelectedTier] = useState<ModelTier>("fast"); // Default to "fast" mode
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [isLoadingModel, setIsLoadingModel] = useState(true);
   const { data: session } = useSession();
 
   // Check if tokens are low or exhausted
   const isLowTokens =
     balance && balance.totalAvailable > 0 && balance.totalAvailable <= 10;
   const isTokensExhausted = balance && balance.totalAvailable === 0;
+
+  // Load user's preferred model on mount
+  useEffect(() => {
+    const loadPreferredModel = async () => {
+      try {
+        const response = await fetch("/api/user/model-preferences");
+        if (response.ok) {
+          const data = await response.json();
+          setSelectedModel(
+            data.preferredCodingModel || "anthropic/claude-sonnet-4.5"
+          );
+        } else {
+          setSelectedModel("anthropic/claude-sonnet-4.5");
+        }
+      } catch (error) {
+        console.error("Failed to load model preferences:", error);
+        setSelectedModel("anthropic/claude-sonnet-4.5");
+      } finally {
+        setIsLoadingModel(false);
+      }
+    };
+    loadPreferredModel();
+  }, []);
 
   // Close preview modal on Escape key
   useEffect(() => {
@@ -332,14 +361,14 @@ export default function CraftInput() {
           }
         }
 
-        // Store the prompt, images, and selected tier in localStorage
+        // Store the prompt, images, and selected model in localStorage
         try {
           localStorage.setItem(
             "pendingProject",
             JSON.stringify({
               prompt: trimmedInput, // Use trimmed input
               images: selectedImages,
-              selectedTier: selectedTier, // Store tier ("fast" or "expert")
+              selectedModel: selectedModel, // Store selected model
               timestamp: Date.now(),
             })
           );
@@ -402,11 +431,13 @@ export default function CraftInput() {
             );
           }
 
-          // Store selected tier for the chat interface
-          sessionStorage.setItem(
-            `project-${data.project.id}-tier`,
-            selectedTier
-          );
+          // Store selected model for the chat interface
+          if (selectedModel) {
+            sessionStorage.setItem(
+              `project-${data.project.id}-model`,
+              selectedModel
+            );
+          }
         }
 
         // Redirect to the coding interface
@@ -682,10 +713,16 @@ export default function CraftInput() {
             </Button>
 
             {/* Model Selector */}
-            <ModelSelector
-              selectedTier={selectedTier}
-              onTierChange={setSelectedTier}
-            />
+            {!isLoadingModel && (
+              <ModelSelector
+                selectedModel={selectedModel || undefined}
+                onModelChange={setSelectedModel}
+                onOpenSettings={() => {
+                  setSettingsInitialTab("model-preferences");
+                  setShowSettingsModal(true);
+                }}
+              />
+            )}
           </div>
 
           <div className="flex items-center gap-2">

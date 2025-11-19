@@ -1,13 +1,18 @@
 /**
  * AI Model Configuration System
- * Fixed, simple model selection - one model per use case
+ * User-selectable models with preferences
  * 
- * ORCHESTRATOR (Application-level tasks):
- * - Grok 4 Fast: Project naming, memory/context, task delegation
+ * CODING MODELS (User-selectable):
+ * - Claude Haiku 4.5 (Fast, affordable)
+ * - Claude Sonnet 4.5 (Default, balanced)
+ * - GPT-5 Mini (Fast OpenAI)
+ * - GPT-5 (Premium OpenAI)
+ * - Gemini 2.5 Flash (Fast Google)
+ * - Gemini 3 Pro Preview (Premium Google)
+ * - Minimax M2 (Alternative)
  * 
- * CODING (Code generation tasks):
- * - Claude Haiku 4.5: Fast coding (standard features, UI components)
- * - Claude Sonnet 4.5: Expert coding (complex logic, architecture)
+ * SYSTEM MODELS (Fixed, non-changeable):
+ * - Grok 4 Fast: Project naming, memory/context
  * 
  * IMAGE GENERATION:
  * - Gemini 2.5 Flash: Fast image generation
@@ -19,8 +24,9 @@ export type ModelTier = "fast" | "expert";
  * App-specific use cases for different model capabilities
  */
 export type ModelUseCase =
-    | "orchestrator"        // Project naming, memory, task delegation (Grok 4 Fast)
-    | "coding"              // Code generation, editing, debugging (Claude)
+    | "orchestrator"        // Project naming (Grok 4 Fast - fixed)
+    | "memory"              // Memory management (Grok 4 Fast - fixed)
+    | "coding"              // Code generation, editing, debugging (User-selectable)
     | "image-generation";   // Creating images from text/prompts (Gemini)
 
 /**
@@ -62,14 +68,23 @@ export interface ModelConfig {
 
 /**
  * All available AI models in the system
- * Fixed model selection - one model per use case
  * 
- * ORCHESTRATOR: Grok 4 Fast - Project naming, memory, task delegation, context management
- * CODING FAST: Claude Haiku 4.5 - Fast coding for standard features and UI
- * CODING EXPERT: Claude Sonnet 4.5 - Expert coding for complex logic and architecture
- * IMAGE GENERATION: Gemini 2.5 Flash - Fast image generation
+ * SYSTEM MODELS (Fixed):
+ * - Grok 4 Fast: Project naming, memory (non-changeable)
+ * 
+ * CODING MODELS (User-selectable):
+ * - Claude Haiku 4.5, Claude Sonnet 4.5 (Default)
+ * - GPT-5 Mini, GPT-5
+ * - Gemini 2.5 Flash, Gemini 3 Pro Preview
+ * - Minimax M2
+ * 
+ * IMAGE GENERATION:
+ * - Gemini 2.5 Flash
  */
 export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
+    // ========================================================================
+    // SYSTEM MODELS (Fixed, non-changeable)
+    // ========================================================================
     "x-ai/grok-4-fast": {
         id: "x-ai/grok-4-fast",
         name: "x-ai/grok-4-fast",
@@ -77,7 +92,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         provider: "openrouter",
         tier: "fast",
         creditMultiplier: 0.05,
-        description: "Orchestrator: Naming, memory, task delegation (2M context)",
+        description: "System: Project naming and memory (2M context)",
         useCase: "orchestrator",
         capabilities: {
             supportedInputs: ["text"],
@@ -89,16 +104,22 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
             supportsFunctionCalling: true,
             supportsJsonMode: true,
         },
-        pricing: { input: 0.2, output: 0.5 },
+        pricing: { input: 0.20, output: 0.50 },
     },
+
+    // ========================================================================
+    // CODING MODELS (User-selectable)
+    // ========================================================================
+
+    // Anthropic Claude Models
     "anthropic/claude-haiku-4.5": {
         id: "anthropic/claude-haiku-4.5",
         name: "claude-haiku-4-5",
-        displayName: "Claude 4.5 Haiku",
-        provider: "anthropic",
+        displayName: "Claude Haiku 4.5",
+        provider: "openrouter",
         tier: "fast",
         creditMultiplier: 0.5,
-        description: "Fast coding with web search and tool use",
+        description: "Fast and affordable coding assistant",
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text", "image", "pdf", "document"],
@@ -110,16 +131,16 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
             supportsFunctionCalling: true,
             supportsJsonMode: true,
         },
-        pricing: { input: 1.0, output: 5.0 },
+        pricing: { input: 1.00, output: 5.00 },
     },
     "anthropic/claude-sonnet-4.5": {
         id: "anthropic/claude-sonnet-4.5",
         name: "claude-sonnet-4-5",
-        displayName: "Claude 4.5 Sonnet",
-        provider: "anthropic",
+        displayName: "Claude Sonnet 4.5",
+        provider: "openrouter",
         tier: "expert",
         creditMultiplier: 1.5,
-        description: "Expert coding with web search and tool use",
+        description: "Balanced performance and quality",
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text", "image", "pdf", "document"],
@@ -131,8 +152,123 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
             supportsFunctionCalling: true,
             supportsJsonMode: true,
         },
-        pricing: { input: 3.0, output: 15.0 },
+        pricing: { input: 3.00, output: 15.00 },
     },
+
+    // OpenAI GPT Models
+    "openai/gpt-5-mini": {
+        id: "openai/gpt-5-mini",
+        name: "gpt-5-mini",
+        displayName: "GPT-5 Mini",
+        provider: "openrouter",
+        tier: "fast",
+        creditMultiplier: 0.4,
+        description: "Fast OpenAI model for coding",
+        useCase: "coding",
+        capabilities: {
+            supportedInputs: ["text", "image"],
+            supportedOutputs: ["text", "code", "structured-data"],
+            maxContextLength: 128000,
+            supportsStreaming: true,
+            supportsSystemPrompts: true,
+            supportsWebSearch: false,
+            supportsFunctionCalling: true,
+            supportsJsonMode: true,
+        },
+        pricing: { input: 0.25, output: 2.00 },
+    },
+    "openai/gpt-5": {
+        id: "openai/gpt-5",
+        name: "gpt-5",
+        displayName: "GPT-5",
+        provider: "openrouter",
+        tier: "expert",
+        creditMultiplier: 2.0,
+        description: "Premium OpenAI model for complex tasks",
+        useCase: "coding",
+        capabilities: {
+            supportedInputs: ["text", "image"],
+            supportedOutputs: ["text", "code", "structured-data"],
+            maxContextLength: 128000,
+            supportsStreaming: true,
+            supportsSystemPrompts: true,
+            supportsWebSearch: false,
+            supportsFunctionCalling: true,
+            supportsJsonMode: true,
+        },
+        pricing: { input: 1.25, output: 10.00 },
+    },
+
+    // Google Gemini Models
+    "google/gemini-2.5-flash": {
+        id: "google/gemini-2.5-flash",
+        name: "gemini-2.5-flash",
+        displayName: "Gemini 2.5 Flash",
+        provider: "openrouter",
+        tier: "fast",
+        creditMultiplier: 0.3,
+        description: "Fast Google model with large context",
+        useCase: "coding",
+        capabilities: {
+            supportedInputs: ["text", "image", "video", "audio"],
+            supportedOutputs: ["text", "code", "structured-data"],
+            maxContextLength: 1000000,
+            supportsStreaming: true,
+            supportsSystemPrompts: true,
+            supportsWebSearch: true,
+            supportsFunctionCalling: true,
+            supportsJsonMode: true,
+        },
+        pricing: { input: 0.30, output: 2.50 },
+    },
+    "google/gemini-3-pro-preview": {
+        id: "google/gemini-3-pro-preview",
+        name: "gemini-3-pro-preview",
+        displayName: "Gemini 3 Pro (Preview)",
+        provider: "openrouter",
+        tier: "expert",
+        creditMultiplier: 1.8,
+        description: "Latest Google experimental model",
+        useCase: "coding",
+        capabilities: {
+            supportedInputs: ["text", "image", "video", "audio"],
+            supportedOutputs: ["text", "code", "structured-data"],
+            maxContextLength: 2000000,
+            supportsStreaming: true,
+            supportsSystemPrompts: true,
+            supportsWebSearch: true,
+            supportsFunctionCalling: true,
+            supportsJsonMode: true,
+        },
+        pricing: { input: 2.00, output: 12.00 },
+    },
+
+    // Minimax Model
+    "minimax/minimax-m2": {
+        id: "minimax/minimax-m2",
+        name: "minimax-m2",
+        displayName: "Minimax M2",
+        provider: "openrouter",
+        tier: "expert",
+        creditMultiplier: 1.2,
+        description: "Alternative high-performance model",
+        useCase: "coding",
+        capabilities: {
+            supportedInputs: ["text"],
+            supportedOutputs: ["text", "code", "structured-data"],
+            maxContextLength: 128000,
+            supportsStreaming: true,
+            supportsSystemPrompts: true,
+            supportsWebSearch: false,
+            supportsFunctionCalling: true,
+            supportsJsonMode: true,
+        },
+        pricing: { input: 0.255, output: 1.02 },
+    },
+
+    // ========================================================================
+    // IMAGE GENERATION
+    // ========================================================================
     "google/gemini-2.5-flash-image": {
         id: "google/gemini-2.5-flash-image",
         name: "gemini-2.5-flash",
@@ -177,62 +313,105 @@ export function getAllModelIds(): string[] {
 // Plan-based access restrictions removed - all models available to all users
 
 // ============================================================================
-// DEDICATED MODEL FUNCTIONS - One function per role
+// SYSTEM MODEL FUNCTIONS (Fixed, non-changeable)
 // ============================================================================
 
 /**
- * Get the orchestrator model for all application-level tasks
- * 
- * Use for:
- * - Project naming generation
- * - Memory and context management
- * - Task delegation and planning
- * - Conversation history
+ * Get the naming model for project name generation
+ * FIXED: Users cannot change this model
+ */
+export function getNamingModel(): string {
+    return "x-ai/grok-4-fast";
+}
+
+/**
+ * Get the memory model for context and memory management
+ * FIXED: Users cannot change this model
+ */
+export function getMemoryModel(): string {
+    return "x-ai/grok-4-fast";
+}
+
+/**
+ * Get the orchestrator model (legacy, same as naming/memory)
  */
 export function getOrchestratorModel(): string {
     return "x-ai/grok-4-fast";
 }
 
 /**
- * Get the fast coding model for standard development tasks
- * 
- * Use for:
- * - UI components
- * - Standard features
- * - Quick iterations
- */
-export function getFastCodingModel(): string {
-    return "anthropic/claude-haiku-4.5";
-}
-
-/**
- * Get the expert coding model for complex development tasks
- * 
- * Use for:
- * - Complex logic and architecture
- * - Advanced features
- * - Performance-critical code
- */
-export function getExpertCodingModel(): string {
-    return "anthropic/claude-sonnet-4.5";
-}
-
-/**
  * Get the image generation model
- * 
- * Use for:
- * - Text-to-image generation
- * - Visual asset creation
  */
 export function getImageGenerationModel(): string {
     return "google/gemini-2.5-flash-image";
 }
 
+// ============================================================================
+// CODING MODEL FUNCTIONS (User-selectable)
+// ============================================================================
+
 /**
- * Get coding model by tier (convenience function)
+ * Get all available coding models
  */
-export function getCodingModel(tier: ModelTier): string {
-    return tier === "fast" ? getFastCodingModel() : getExpertCodingModel();
+export function getAvailableCodingModels(): ModelConfig[] {
+    return Object.values(AVAILABLE_MODELS).filter(
+        (model) => model.useCase === "coding"
+    );
+}
+
+/**
+ * Get the default coding model (Claude Sonnet 4.5)
+ */
+export function getDefaultCodingModel(): string {
+    return "anthropic/claude-sonnet-4.5";
+}
+
+/**
+ * Get coding model by user preference
+ * Falls back to default if preference is invalid or model is disabled
+ */
+export function getCodingModel(
+    userPreference?: string | null,
+    enabledModels?: string[]
+): string {
+    // If no preference, return default
+    if (!userPreference) {
+        return getDefaultCodingModel();
+    }
+
+    // Check if model exists and is a coding model
+    const model = AVAILABLE_MODELS[userPreference];
+    if (!model || model.useCase !== "coding") {
+        return getDefaultCodingModel();
+    }
+
+    // Check if model is enabled (if enabledModels is provided)
+    if (enabledModels && !enabledModels.includes(userPreference)) {
+        return getDefaultCodingModel();
+    }
+
+    return userPreference;
+}
+
+/**
+ * Legacy function for backward compatibility
+ * Maps "fast"/"expert" tier to a default model
+ */
+export function getCodingModelByTier(tier: ModelTier): string {
+    return tier === "fast"
+        ? "anthropic/claude-haiku-4.5"
+        : "anthropic/claude-sonnet-4.5";
+}
+
+/**
+ * Legacy functions for backward compatibility
+ */
+export function getFastCodingModel(): string {
+    return "anthropic/claude-haiku-4.5";
+}
+
+export function getExpertCodingModel(): string {
+    return "anthropic/claude-sonnet-4.5";
 }
 
 

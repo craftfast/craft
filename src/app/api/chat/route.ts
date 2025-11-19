@@ -33,7 +33,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // Get user from database with personalization settings
+        // Get user from database with personalization settings and model preferences
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
             select: {
@@ -48,6 +48,8 @@ export async function POST(req: Request) {
                 referenceChatHistory: true,
                 enableWebSearch: true,
                 enableImageGeneration: true,
+                preferredCodingModel: true,
+                enabledCodingModels: true,
             },
         });
 
@@ -58,7 +60,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { messages, taskType, projectFiles, projectId, tier, enableAgentLoop = true, useOrchestrator = false } = await req.json();
+        const { messages, taskType, projectFiles, projectId, tier, selectedModel, enableAgentLoop = true, useOrchestrator = false } = await req.json();
 
         // Validate projectId
         if (!projectId) {
@@ -68,7 +70,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // Validate and sanitize tier (only allow "fast" or "expert")
+        // Use selectedModel if provided, otherwise fall back to tier-based selection
         const validTier: "fast" | "expert" = tier === "expert" ? "expert" : "fast";
 
         // Generate session ID for agent loop coordination
@@ -295,6 +297,8 @@ export async function POST(req: Request) {
                         conversationHistory: messages.slice(0, -1),
                         userId: user.id,
                         tier: validTier,
+                        preferredModel: selectedModel || user.preferredCodingModel, // Use request model or user's preferred model
+                        enabledModels: user.enabledCodingModels, // User's enabled models list
                         sseWriter, // ⚡ Pass SSE writer for real-time tool events
                         projectId, // ⚡ Phase 2: Project ID for agent loop
                         sessionId, // ⚡ Phase 2: Session ID for agent loop

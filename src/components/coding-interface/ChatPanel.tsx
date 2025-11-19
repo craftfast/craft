@@ -157,34 +157,54 @@ export default function ChatPanel({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
-    "general" | "billing" | "usage" | "account" | "integrations"
+    | "general"
+    | "billing"
+    | "usage"
+    | "account"
+    | "integrations"
+    | "model-preferences"
   >("general");
   const { balance } = useCreditBalance();
 
-  // Initialize selected tier from sessionStorage or use "fast" as default
-  const [selectedTier, setSelectedTier] = useState<ModelTier>(() => {
-    if (typeof window !== "undefined") {
-      const storedTier = sessionStorage.getItem(`project-${projectId}-tier`);
-      return (storedTier as ModelTier) || "fast";
-    }
-    return "fast";
-  });
+  // Initialize selected model from user preferences
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [isLoadingModel, setIsLoadingModel] = useState(true);
 
-  // No longer needed - we pass tier directly, not model ID
-
-  // Load tier preference from sessionStorage on mount
+  // Load user's preferred model on mount
   useEffect(() => {
-    const savedTier = sessionStorage.getItem(`project-${projectId}-tier`);
-    if (savedTier && ["fast", "expert"].includes(savedTier)) {
-      setSelectedTier(savedTier as ModelTier);
-    }
+    const loadPreferredModel = async () => {
+      try {
+        const response = await fetch("/api/user/model-preferences");
+        if (response.ok) {
+          const data = await response.json();
+          const sessionModel = sessionStorage.getItem(
+            `project-${projectId}-model`
+          );
+          // Use session model if available, otherwise use preferred model
+          setSelectedModel(
+            sessionModel ||
+              data.preferredCodingModel ||
+              "anthropic/claude-sonnet-4.5"
+          );
+        } else {
+          setSelectedModel("anthropic/claude-sonnet-4.5");
+        }
+      } catch (error) {
+        console.error("Failed to load model preferences:", error);
+        setSelectedModel("anthropic/claude-sonnet-4.5");
+      } finally {
+        setIsLoadingModel(false);
+      }
+    };
+    loadPreferredModel();
   }, [projectId]);
 
-  // Save tier preference to sessionStorage when it changes
+  // Save model selection to sessionStorage when it changes
   useEffect(() => {
-    // Store tier preference in sessionStorage only
-    sessionStorage.setItem(`project-${projectId}-tier`, selectedTier);
-  }, [selectedTier, projectId]);
+    if (selectedModel && !isLoadingModel) {
+      sessionStorage.setItem(`project-${projectId}-model`, selectedModel);
+    }
+  }, [selectedModel, projectId, isLoadingModel]);
 
   // Check if tokens are low or exhausted
   const isLowTokens =
@@ -696,7 +716,7 @@ export default function ChatPanel({
           taskType: "coding",
           projectFiles, // Send existing project files for context
           projectId, // Required for AI usage tracking
-          tier: selectedTier, // Pass tier directly ("fast" or "expert")
+          selectedModel: selectedModel, // Pass selected model ID
         }),
       });
 
@@ -1830,10 +1850,16 @@ export default function ChatPanel({
                 </Button>
 
                 {/* Model Selector */}
-                <ModelSelector
-                  selectedTier={selectedTier}
-                  onTierChange={setSelectedTier}
-                />
+                {!isLoadingModel && (
+                  <ModelSelector
+                    selectedModel={selectedModel || undefined}
+                    onModelChange={setSelectedModel}
+                    onOpenSettings={() => {
+                      setSettingsInitialTab("model-preferences");
+                      setShowSettingsModal(true);
+                    }}
+                  />
+                )}
               </div>
 
               <div className="flex items-center gap-2">

@@ -78,7 +78,9 @@ interface CodingStreamOptions {
     projectFiles?: Record<string, string>;
     conversationHistory?: Array<{ role: string; content: string }>;
     userId: string; // User ID to determine plan and model access
-    tier?: "fast" | "expert"; // Optional: specify tier (defaults to fast)
+    tier?: "fast" | "expert"; // Optional: specify tier (defaults to fast) - LEGACY
+    preferredModel?: string | null; // Optional: user's preferred coding model ID
+    enabledModels?: string[]; // Optional: list of models user has enabled
     sseWriter?: SSEStreamWriter; // Optional: SSE writer for real-time tool events
     projectId?: string; // Optional: project ID for agent loop state management
     sessionId?: string; // Optional: session ID for agent loop coordination
@@ -256,6 +258,8 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         conversationHistory = [],
         userId,
         tier = "fast",
+        preferredModel,
+        enabledModels,
         sseWriter,
         projectId,
         sessionId,
@@ -302,8 +306,8 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     // Detect requirements from messages
     const { hasImages, hasWebSearchRequest, needsFunctionCalling } = await detectRequirements(messages, systemPrompt);
 
-    // Get the coding model based on user-selected tier
-    const codingModel = getCodingModel(tier);
+    // Get the coding model - use user's preferred model if available, otherwise fall back to tier-based selection
+    const codingModel = getCodingModel(preferredModel, enabledModels);
 
     const { provider, modelPath, displayName, providerType } = getModelProvider(codingModel);
 

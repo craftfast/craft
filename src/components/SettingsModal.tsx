@@ -44,6 +44,7 @@ import {
   PasswordSetupModal,
   DeleteAccountModal,
 } from "@/components/settings";
+import ModelPreferencesTab from "@/components/settings/ModelPreferencesTab";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -55,6 +56,7 @@ interface SettingsModalProps {
     | "account"
     | "integrations"
     | "personalization"
+    | "model-preferences"
     | "referrals";
   initialOption?: SettingsOption; // Specific section within the tab
   initialProTierIndex?: number;
@@ -180,6 +182,7 @@ type SettingsTab =
   | "account"
   | "integrations"
   | "personalization"
+  | "model-preferences"
   | "referrals";
 
 export default function SettingsModal({
@@ -1333,6 +1336,7 @@ export default function SettingsModal({
   const menuItems = [
     { id: "general" as SettingsTab, label: "General" },
     { id: "personalization" as SettingsTab, label: "Personalization" },
+    { id: "model-preferences" as SettingsTab, label: "Models" },
     { id: "billing" as SettingsTab, label: "Billing" },
     { id: "usage" as SettingsTab, label: "Usage" },
     { id: "account" as SettingsTab, label: "Account" },
@@ -1442,6 +1446,22 @@ export default function SettingsModal({
               strokeLinejoin="round"
               strokeWidth={2}
               d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+            />
+          </svg>
+        );
+      case "model-preferences":
+        return (
+          <svg
+            className={iconClass}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
             />
           </svg>
         );
@@ -1567,6 +1587,13 @@ export default function SettingsModal({
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold mb-6">Personalization</h2>
                 <PersonalizationTab />
+              </div>
+            )}
+            {/* Model Preferences Tab */}
+            {activeTab === "model-preferences" && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-6">AI Models</h2>
+                <ModelPreferencesTab />
               </div>
             )}
             {/* Billing Tab */}
