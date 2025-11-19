@@ -576,7 +576,7 @@ export default function CraftInput() {
                 }}
                 className="text-foreground underline hover:no-underline font-medium"
               >
-                {balance?.planName === "PRO"
+                {balance?.planName?.startsWith("PRO")
                   ? "Upgrade your plan"
                   : "Upgrade to Pro"}
               </button>
@@ -596,7 +596,7 @@ export default function CraftInput() {
                 }}
                 className="text-foreground underline hover:no-underline font-medium"
               >
-                {balance?.planName === "PRO"
+                {balance?.planName?.startsWith("PRO")
                   ? "Upgrade your plan for more monthly credits"
                   : "Upgrade to Pro"}
               </button>

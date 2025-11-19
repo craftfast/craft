@@ -632,7 +632,7 @@ export default function SettingsModal({
         // Set current Pro tier index if user is on Pro plan
         // BUT only if tier wasn't already set from pricing page
         if (
-          subData.plan?.name === "PRO" &&
+          subData.plan?.name?.startsWith("PRO") &&
           subData.plan?.monthlyCredits &&
           !tierSetFromPricingPage
         ) {

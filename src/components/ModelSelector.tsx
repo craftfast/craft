@@ -64,8 +64,9 @@ export function ModelSelector({
   const selectedTierData = tiers.find((t) => t.id === selectedTier) || tiers[0];
   const SelectedIcon = selectedTierData.icon;
 
-  // Check if user can access premium tiers
-  const canAccessPremium = userPlan === "PRO" || userPlan === "ENTERPRISE";
+  // Check if user can access premium tiers (PRO_* or ENTERPRISE)
+  const canAccessPremium =
+    userPlan?.startsWith("PRO") || userPlan === "ENTERPRISE";
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -75,9 +76,7 @@ export function ModelSelector({
         aria-label="Select model tier"
         title="Select model tier"
       >
-        <SelectedIcon
-          className={`w-3 h-3 ${selectedTierData.color}`}
-        />
+        <SelectedIcon className={`w-3 h-3 ${selectedTierData.color}`} />
         <span className="font-medium">{selectedTierData.name}</span>
         <ChevronDown
           className={`w-3 h-3 text-muted-foreground transition-transform ${
