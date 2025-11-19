@@ -15,7 +15,14 @@ export async function handleOrderCreated(data: OrderEvent) {
 
     try {
         const order = data;
+        const metadata = order.metadata || {};
 
+        // Check if this is a balance top-up
+        if (metadata.purchaseType === "balance_topup") {
+            return await handleBalanceTopup(order);
+        }
+
+        // Legacy subscription order handling
         // Find user by customer ID
         const user = await prisma.user.findFirst({
             where: {
@@ -34,32 +41,80 @@ export async function handleOrderCreated(data: OrderEvent) {
             return { success: false, error: "User not found" };
         }
 
-        if (!user.subscription) {
-            console.error(`Subscription not found for user ${user.id}`);
-            return { success: false, error: "Subscription not found" };
-        }
-
-        // Create invoice record
-        await prisma.invoice.create({
-            data: {
-                userId: user.id,
-                subscriptionId: user.subscription.id,
-                invoiceNumber: order.id,
-                status: "pending",
-                billingPeriodStart: new Date(order.created_at),
-                billingPeriodEnd: new Date(order.created_at),
-                totalUsd: order.amount / 100, // Convert cents to dollars
-                currency: order.currency || "USD",
-                dueDate: new Date(order.created_at),
-                polarCheckoutId: order.checkout_id,
-                polarPaymentId: order.id,
-            },
-        });
-
-        console.log(`Order ${order.id} created for user ${user.id}`);
+        // Legacy subscription orders - balance top-ups are handled separately
+        console.log(`Legacy order ${order.id} for user ${user.id} - skipping (balance system active)`);
         return { success: true };
     } catch (error) {
         console.error("Error handling order.created:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+}
+
+/**
+ * Handle balance top-up order
+ */
+async function handleBalanceTopup(order: OrderEvent) {
+    console.log("Processing balance top-up order:", order.id);
+
+    try {
+        const metadata = order.metadata || {};
+        const userId = metadata.userId;
+        const requestedBalance = parseFloat(metadata.requestedBalance || "0");
+        const platformFee = parseFloat(metadata.platformFee || "0");
+        const totalCharged = parseFloat(metadata.totalCharged || "0");
+
+        if (!userId || requestedBalance <= 0) {
+            console.error("Invalid balance top-up order metadata:", metadata);
+            return { success: false, error: "Invalid order metadata" };
+        }
+
+        // Credit user's balance (NOT the total charged amount)
+        await prisma.$transaction(async (tx) => {
+            const user = await tx.user.findUnique({
+                where: { id: userId },
+                select: { accountBalance: true },
+            });
+
+            if (!user) {
+                throw new Error(`User ${userId} not found`);
+            }
+
+            const balanceBefore = Number(user.accountBalance || 0);
+            const balanceAfter = balanceBefore + requestedBalance;
+
+            // Update user balance
+            await tx.user.update({
+                where: { id: userId },
+                data: { accountBalance: balanceAfter },
+            });
+
+            // Create transaction record
+            await tx.balanceTransaction.create({
+                data: {
+                    userId,
+                    type: "TOPUP",
+                    amount: requestedBalance,
+                    balanceBefore,
+                    balanceAfter,
+                    description: `Balance top-up: Added $${requestedBalance.toFixed(2)} (paid $${totalCharged.toFixed(2)} including $${platformFee.toFixed(2)} platform fee)`,
+                    metadata: {
+                        orderId: order.id,
+                        checkoutId: order.checkout_id,
+                        platformFee,
+                        totalCharged,
+                        currency: order.currency,
+                    },
+                },
+            });
+        });
+
+        console.log(`Credited $${requestedBalance} to user ${userId} (order ${order.id})`);
+        return { success: true };
+    } catch (error) {
+        console.error("Error handling balance top-up:", error);
         return {
             success: false,
             error: error instanceof Error ? error.message : "Unknown error",
@@ -76,29 +131,9 @@ export async function handleOrderPaid(data: OrderEvent) {
     try {
         const order = data;
 
-        // Update invoice to paid
-        await prisma.invoice.updateMany({
-            where: {
-                invoiceNumber: order.id,
-            },
-            data: {
-                status: "paid",
-                paidAt: new Date(),
-            },
-        });
-
-        // Clear any payment failure flags
-        if (order.subscription_id) {
-            await prisma.userSubscription.updateMany({
-                where: { polarSubscriptionId: order.subscription_id },
-                data: {
-                    paymentFailedAt: null,
-                    gracePeriodEndsAt: null,
-                },
-            });
-        }
-
-        console.log(`Order ${order.id} marked as paid`);
+        // Balance top-ups are handled in handleBalanceTopup via order.created
+        // Legacy subscription payments are no longer used
+        console.log(`Order ${order.id} marked as paid - balance system active`);
         return { success: true };
     } catch (error) {
         console.error("Error handling order.paid:", error);
@@ -118,17 +153,8 @@ export async function handleOrderRefunded(data: OrderEvent) {
     try {
         const order = data;
 
-        // Update invoice to refunded
-        await prisma.invoice.updateMany({
-            where: {
-                invoiceNumber: order.id,
-            },
-            data: {
-                status: "refunded",
-            },
-        });
-
-        console.log(`Order ${order.id} refunded`);
+        // TODO: Handle balance top-up refunds if needed
+        console.log(`Order ${order.id} refunded - balance system active`);
         return { success: true };
     } catch (error) {
         console.error("Error handling order.refunded:", error);
@@ -143,26 +169,14 @@ export async function handleOrderRefunded(data: OrderEvent) {
  * Handle payment failure
  */
 export async function handlePaymentFailed(data: OrderEvent) {
-    console.log("Processing payment failure for subscription:", data.subscription_id);
+    console.log("Processing payment failure:", data.id);
 
     try {
-        const subscription = data;
+        // Balance-based system - payment failures don't affect account access
+        // Users simply cannot make new purchases until payment method is fixed
+        console.log(`Payment failed for order ${data.id} - no action needed in balance system`);
 
-        // Set grace period (7 days)
-        const gracePeriodEnd = new Date();
-        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7);
-
-        await prisma.userSubscription.updateMany({
-            where: { polarSubscriptionId: subscription.id },
-            data: {
-                paymentFailedAt: new Date(),
-                gracePeriodEndsAt: gracePeriodEnd,
-            },
-        });
-
-        console.log(`Payment failed for subscription ${subscription.id}, grace period set`);
-
-        // TODO: Send email notification to user
+        // TODO: Send email notification to user about failed payment
 
         return { success: true };
     } catch (error) {

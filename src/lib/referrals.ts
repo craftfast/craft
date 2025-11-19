@@ -103,54 +103,7 @@ export async function processReferralSignup(
     }
 }
 
-/**
- * Get total monthly credits for a user (plan credits + referral credits)
- */
-export async function getUserMonthlyCredits(userId: string): Promise<{
-    planCredits: number;
-    referralCredits: number;
-    totalCredits: number;
-}> {
-    try {
-        // Get user subscription and plan
-        const subscription = await prisma.userSubscription.findUnique({
-            where: { userId },
-            include: {
-                plan: {
-                    select: {
-                        monthlyCredits: true,
-                    },
-                },
-            },
-        });
 
-        const planCredits = subscription?.plan.monthlyCredits || 0;
-
-        // Get active referrals count (each = 1 credit per month)
-        const activeReferralsCount = await prisma.user.count({
-            where: {
-                referredById: userId,
-                deletedAt: null,
-            },
-        });
-
-        const referralCredits = activeReferralsCount;
-        const totalCredits = planCredits + referralCredits;
-
-        return {
-            planCredits,
-            referralCredits,
-            totalCredits,
-        };
-    } catch (error) {
-        console.error("Error getting user monthly credits:", error);
-        return {
-            planCredits: 0,
-            referralCredits: 0,
-            totalCredits: 0,
-        };
-    }
-}
 
 /**
  * Revoke referral credits when a referred user deletes their account

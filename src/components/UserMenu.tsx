@@ -37,32 +37,12 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   >("general");
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
-  const [userPlan, setUserPlan] = useState<
-    "HOBBY" | "PRO" | "ENTERPRISE" | null
-  >(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
     await signOut();
     router.push("/");
   };
-
-  // Fetch user's plan
-  useEffect(() => {
-    const fetchUserPlan = async () => {
-      try {
-        const response = await fetch("/api/user/subscription");
-        if (response.ok) {
-          const data = await response.json();
-          setUserPlan(data.plan);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user plan:", error);
-      }
-    };
-
-    fetchUserPlan();
-  }, []);
 
   // Format credits for display (e.g., 1,234,567 -> "1.23M" or 5,000 -> "5K")
   const formatCredits = (credits: number | null | undefined): string => {
@@ -365,55 +345,29 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
                 <span className="text-sm text-muted-foreground">...</span>
               )}
             </div>
-            {userPlan === "HOBBY" ? (
-              <button
-                onClick={() => {
-                  setIsUserMenuOpen(false);
-                  setSettingsInitialTab("billing");
-                  setIsSettingsModalOpen(true);
-                }}
-                className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            <button
+              onClick={() => {
+                setIsUserMenuOpen(false);
+                setSettingsInitialTab("credits");
+                setIsSettingsModalOpen(true);
+              }}
+              className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            >
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                Upgrade to Pro
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setIsUserMenuOpen(false);
-                  setSettingsInitialTab("billing");
-                  setIsSettingsModalOpen(true);
-                }}
-                className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
-              >
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                Buy More Credits
-              </button>
-            )}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+              Add Credits
+            </button>
           </div>
 
           {/* Theme & Chat Selectors */}

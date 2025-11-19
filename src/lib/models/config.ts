@@ -14,7 +14,6 @@
  */
 
 export type ModelTier = "fast" | "expert";
-export type PlanName = "HOBBY" | "PRO" | "ENTERPRISE";
 
 /**
  * App-specific use cases for different model capabilities
@@ -53,7 +52,6 @@ export interface ModelConfig {
     tier: ModelTier;
     creditMultiplier: number;
     description: string;
-    planSupport: PlanName[]; // Plans that can access this model (e.g., ["HOBBY", "PRO", "ENTERPRISE"])
     useCase: ModelUseCase; // Primary use case categorization for this model
     capabilities: ModelCapabilities; // What this model can do
     pricing?: {
@@ -80,7 +78,6 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.05,
         description: "Orchestrator: Naming, memory, task delegation (2M context)",
-        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "orchestrator",
         capabilities: {
             supportedInputs: ["text"],
@@ -102,7 +99,6 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.5,
         description: "Fast coding with web search and tool use",
-        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text", "image", "pdf", "document"],
@@ -124,7 +120,6 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "expert",
         creditMultiplier: 1.5,
         description: "Expert coding with web search and tool use",
-        planSupport: ["PRO", "ENTERPRISE"],
         useCase: "coding",
         capabilities: {
             supportedInputs: ["text", "image", "pdf", "document"],
@@ -146,7 +141,6 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
         tier: "fast",
         creditMultiplier: 0.2,
         description: "Fast image generation with Google Gemini",
-        planSupport: ["HOBBY", "PRO", "ENTERPRISE"],
         useCase: "image-generation",
         capabilities: {
             supportedInputs: ["text"],
@@ -180,17 +174,7 @@ export function getAllModelIds(): string[] {
     return Object.keys(AVAILABLE_MODELS);
 }
 
-/**
- * Check if a user can access a specific model based on their plan
- */
-export function canUserAccessModel(
-    modelId: string,
-    userPlan: PlanName
-): boolean {
-    const model = AVAILABLE_MODELS[modelId];
-    if (!model) return false;
-    return model.planSupport.includes(userPlan);
-}
+// Plan-based access restrictions removed - all models available to all users
 
 // ============================================================================
 // DEDICATED MODEL FUNCTIONS - One function per role

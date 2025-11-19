@@ -63,38 +63,16 @@ class SimpleCache<T> {
     }
 }
 
-// Export singleton instance
-export const creditCache = new SimpleCache<{
-    allowed: boolean;
-    reason?: string;
-    monthlyCreditsUsed: number;
-    monthlyCreditsLimit: number;
-    creditsRemaining: number;
-    planName: "HOBBY" | "PRO" | "ENTERPRISE";
-    periodEnd: Date;
-    referralCredits?: number;
-}>();
+// Export singleton instance for generic caching
+// Balance-based system - no more subscription credit caching needed
+export const genericCache = new SimpleCache<unknown>();
 
 // Clean up expired cache entries every 5 minutes
 if (typeof setInterval !== 'undefined') {
     setInterval(() => {
-        const deleted = creditCache.cleanup();
+        const deleted = genericCache.cleanup();
         if (deleted > 0) {
             console.log(`🧹 Cleaned up ${deleted} expired cache entries`);
         }
     }, 5 * 60 * 1000);
-}
-
-/**
- * Helper to generate cache key for user credits
- */
-export function getCreditCacheKey(userId: string): string {
-    return `credits:${userId}`;
-}
-
-/**
- * Helper to invalidate user's credit cache
- */
-export function invalidateCreditCache(userId: string): void {
-    creditCache.delete(getCreditCacheKey(userId));
 }

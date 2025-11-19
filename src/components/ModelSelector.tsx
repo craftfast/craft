@@ -9,14 +9,12 @@ export type ModelTier = "fast" | "expert";
 interface ModelSelectorProps {
   selectedTier: ModelTier;
   onTierChange: (tier: ModelTier) => void;
-  userPlan?: "HOBBY" | "PRO" | "ENTERPRISE";
   className?: string;
 }
 
 export function ModelSelector({
   selectedTier,
   onTierChange,
-  userPlan = "HOBBY",
   className = "",
 }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,9 +62,7 @@ export function ModelSelector({
   const selectedTierData = tiers.find((t) => t.id === selectedTier) || tiers[0];
   const SelectedIcon = selectedTierData.icon;
 
-  // Check if user can access premium tiers (PRO_* or ENTERPRISE)
-  const canAccessPremium =
-    userPlan?.startsWith("PRO") || userPlan === "ENTERPRISE";
+  // All users can access all tiers in balance-based system
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -91,49 +87,26 @@ export function ModelSelector({
             {tiers.map((tier) => {
               const TierIcon = tier.icon;
               const isSelected = selectedTier === tier.id;
-              const hasAccess = !tier.isPremium || canAccessPremium;
 
               return (
                 <button
                   key={tier.id}
                   onClick={() => {
-                    if (hasAccess) {
-                      onTierChange(tier.id);
-                      setIsOpen(false);
-                    }
+                    onTierChange(tier.id);
+                    setIsOpen(false);
                   }}
-                  disabled={!hasAccess}
-                  className={`w-full px-3 py-2.5 text-left transition-colors flex items-start gap-3 rounded-lg group ${
-                    hasAccess
-                      ? "hover:bg-surface-hover cursor-pointer"
-                      : "opacity-50 cursor-not-allowed"
-                  }`}
-                  title={
-                    !hasAccess
-                      ? "Upgrade to Pro to access Expert mode"
-                      : tier.description
-                  }
+                  className="w-full px-3 py-2.5 text-left transition-colors flex items-start gap-3 rounded-lg group hover:bg-surface-hover cursor-pointer"
+                  title={tier.description}
                 >
                   <TierIcon
                     className={`w-4 h-4 mt-0.5 flex-shrink-0 ${tier.color}`}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`text-sm font-medium ${
-                          hasAccess
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                        }`}
-                      >
+                      <span className="text-sm font-medium text-foreground">
                         {tier.name}
                       </span>
-                      {!hasAccess && (
-                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
-                          Pro
-                        </span>
-                      )}
-                      {isSelected && hasAccess && (
+                      {isSelected && (
                         <Check className="w-3.5 h-3.5 text-primary ml-auto" />
                       )}
                     </div>

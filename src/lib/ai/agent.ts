@@ -32,7 +32,6 @@ import {
     getOrchestratorModel,
     getCodingModel,
 } from "@/lib/models/config";
-import { getUserPlan } from "@/lib/subscription";
 import { tools } from "@/lib/ai/tools";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createAgentLoop, type AgentLoopCoordinator } from "@/lib/ai/agent-loop-coordinator";
@@ -300,9 +299,6 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         }
     }
 
-    // Get user's plan to determine model access
-    const userPlan = await getUserPlan(userId);
-
     // Detect requirements from messages
     const { hasImages, hasWebSearchRequest, needsFunctionCalling } = await detectRequirements(messages, systemPrompt);
 
@@ -555,9 +551,6 @@ Project name (1-${maxWords} words only, no code):`;
 
     // Generate project name using intelligent model selection
     try {
-        // Get user's plan to determine model access
-        const userPlan = await getUserPlan(userId);
-
         // Use Grok 4 Fast (Orchestrator) for naming
         const namingModelId = getOrchestratorModel();
 

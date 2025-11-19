@@ -84,7 +84,7 @@ export async function handleCheckoutUpdated(data: CheckoutEvent) {
         if (checkout.status === "succeeded") {
             console.log(`Checkout ${checkout.id} succeeded for user ${user.id}`);
 
-            // Success is handled by subscription.created and order.created events
+            // Success is handled by order.created event for balance top-ups
             // The checkout embed will automatically close on the frontend when it receives
             // the success webhook event from Polar
 

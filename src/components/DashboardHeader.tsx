@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "@/lib/auth-client";
 import UserMenu from "./UserMenu";
 import Logo from "./Logo";
@@ -10,31 +10,52 @@ import { useCreditBalance } from "@/hooks/useCreditBalance";
 import SettingsModal from "./SettingsModal";
 
 interface DashboardHeaderProps {
-  planName?: string;
   userId?: string;
-  userSubscription?: {
-    plan: {
-      name: string;
-      displayName: string;
-    };
-  } | null;
   showLogoText?: boolean;
 }
 
 export default function DashboardHeader({
-  planName,
   showLogoText = false,
 }: DashboardHeaderProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<
+    | "general"
+    | "billing"
+    | "usage"
+    | "account"
+    | "integrations"
+    | "personalization"
+    | "referrals"
+  >("general");
   const { balance } = useCreditBalance(); // Only for mobile menu detailed breakdown
 
-  const showPlanBadge =
-    planName === "HOBBY" ||
-    planName?.startsWith("PRO") ||
-    planName === "ENTERPRISE";
+  // Check URL parameters to auto-open settings modal with specific tab
+  useEffect(() => {
+    const settings = searchParams.get("settings");
+    const tab = searchParams.get("tab");
+
+    if (settings === "true") {
+      if (
+        tab &&
+        [
+          "general",
+          "billing",
+          "usage",
+          "account",
+          "integrations",
+          "personalization",
+          "referrals",
+        ].includes(tab)
+      ) {
+        setSettingsTab(tab as typeof settingsTab);
+      }
+      setIsSettingsOpen(true);
+    }
+  }, [searchParams]);
 
   // Format credits for display (only for mobile menu)
   const formatCredits = (credits: number): string => {
@@ -53,48 +74,17 @@ export default function DashboardHeader({
   // Determine if tokens are exhausted - for mobile menu
   const isTokensExhausted = balance && balance.totalAvailable === 0;
 
-  // Get plan display name and styling
-  const getPlanBadgeInfo = () => {
-    if (planName === "HOBBY") {
-      return {
-        displayName: "Hobby",
-        className:
-          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700",
-      };
-    } else if (planName?.startsWith("PRO")) {
-      return {
-        displayName: "Pro",
-        className:
-          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700",
-      };
-    } else if (planName === "ENTERPRISE") {
-      return {
-        displayName: "Enterprise",
-        className:
-          "px-2 py-1 leading-tight text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-full border border-neutral-200 dark:border-neutral-700",
-      };
-    }
-    return null;
-  };
-
-  const planBadgeInfo = getPlanBadgeInfo();
-
   return (
     <>
       {/* Desktop Header - 3 column grid */}
       <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4 lg:items-center w-full">
-        {/* Left column - Logo and Plan Badge */}
+        {/* Left column - Logo */}
         <div className="flex items-center gap-3">
           <Logo
             variant={showLogoText ? "extended" : "icon"}
             className="!h-5"
             href="/chat"
           />
-          {showPlanBadge && planBadgeInfo && (
-            <span className={planBadgeInfo.className}>
-              {planBadgeInfo.displayName}
-            </span>
-          )}
         </div>
         {/* Center column - Empty */}
         <div className="flex items-center justify-center">
@@ -120,22 +110,12 @@ export default function DashboardHeader({
             className="!h-5"
             href="/chat"
           />
-          {showPlanBadge && planBadgeInfo && (
-            <span className={planBadgeInfo.className}>
-              {planBadgeInfo.displayName}
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-2">
           <CreditCounter
             onClickAction={() => {
-              if (planName === "HOBBY") {
-                // Open settings modal with billing tab
-                setIsSettingsOpen(true);
-              } else {
-                // Open settings modal to billing tab
-                setIsSettingsOpen(true);
-              }
+              // Open settings modal to credits tab
+              setIsSettingsOpen(true);
             }}
           />
           {session?.user && <UserMenu user={session.user} />}
@@ -150,11 +130,6 @@ export default function DashboardHeader({
             className="!h-5"
             href="/chat"
           />
-          {showPlanBadge && planBadgeInfo && (
-            <span className={planBadgeInfo.className}>
-              {planBadgeInfo.displayName}
-            </span>
-          )}
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -367,30 +342,6 @@ export default function DashboardHeader({
                   </svg>
                   <span>Help & Support</span>
                 </button>
-                {planName === "HOBBY" && (
-                  <button
-                    onClick={() => {
-                      setIsSettingsOpen(true);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors text-left"
-                  >
-                    <svg
-                      className="w-4 h-4 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    <span>Upgrade to Pro</span>
-                  </button>
-                )}
                 <div className="border-t border-neutral-200 dark:border-neutral-800 my-2" />
                 <button
                   onClick={async () => {
@@ -411,8 +362,16 @@ export default function DashboardHeader({
       {/* Settings Modal (for billing/tier changes) */}
       <SettingsModal
         isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        initialTab="billing"
+        onClose={() => {
+          setIsSettingsOpen(false);
+          // Clear URL parameters when closing
+          const url = new URL(window.location.href);
+          url.searchParams.delete("settings");
+          url.searchParams.delete("tab");
+          url.searchParams.delete("payment");
+          window.history.replaceState({}, "", url.toString());
+        }}
+        initialTab={settingsTab}
       />
     </>
   );

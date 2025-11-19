@@ -16,15 +16,6 @@ import {
 
 // Import event handlers
 import {
-    handleSubscriptionCreated,
-    handleSubscriptionActive,
-    handleSubscriptionUpdated,
-    handleSubscriptionCanceled,
-    handleSubscriptionRevoked,
-    handleSubscriptionRenewed,
-} from "@/lib/polar/webhook-handlers/subscription-events";
-
-import {
     handleCustomerCreated,
     handleCustomerUpdated,
     handleCustomerDeleted,
@@ -105,26 +96,6 @@ export async function POST(req: NextRequest) {
 
         try {
             switch (eventType) {
-                // Subscription events
-                case "subscription.created":
-                    result = await handleSubscriptionCreated(event.data);
-                    break;
-                case "subscription.active":
-                    result = await handleSubscriptionActive(event.data);
-                    break;
-                case "subscription.updated":
-                    result = await handleSubscriptionUpdated(event.data);
-                    break;
-                case "subscription.canceled":
-                    result = await handleSubscriptionCanceled(event.data);
-                    break;
-                case "subscription.revoked":
-                    result = await handleSubscriptionRevoked(event.data);
-                    break;
-                case "subscription.renewed":
-                    result = await handleSubscriptionRenewed(event.data);
-                    break;
-
                 // Customer events
                 case "customer.created":
                     result = await handleCustomerCreated(event.data);

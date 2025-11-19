@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
-import { checkUserCreditAvailability } from "@/lib/ai-usage";
+import { prisma } from "@/lib/db";
 
 export async function GET() {
     try {
@@ -10,19 +10,26 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const availability = await checkUserCreditAvailability(session.user.id);
+        // Get user's current balance
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { accountBalance: true },
+        });
+
+        const balance = Number(user?.accountBalance || 0);
+        const allowed = balance >= 0.50; // Minimum threshold
 
         return NextResponse.json({
-            totalAvailable: availability.creditsRemaining,
-            subscriptionCreditsRemaining: availability.creditsRemaining,
-            subscriptionCreditLimit: availability.monthlyCreditsLimit,
-            subscriptionCreditsUsed: availability.monthlyCreditsUsed,
-            planName: availability.planName, // Added: user's subscription plan
-            periodEnd: availability.periodEnd, // Billing period end date
-            creditsRemaining: availability.creditsRemaining,
-            allowed: availability.allowed,
-            reason: availability.reason,
-            referralCredits: availability.referralCredits || 0, // Added: bonus credits from referrals
+            totalAvailable: balance,
+            subscriptionCreditsRemaining: balance,
+            subscriptionCreditLimit: balance,
+            subscriptionCreditsUsed: 0,
+            planName: "Pay-As-You-Go", // No more plans
+            periodEnd: new Date(), // No billing periods
+            creditsRemaining: balance,
+            allowed,
+            reason: allowed ? undefined : "Insufficient balance. Please top up.",
+            referralCredits: 0, // No more referral credits
         });
     } catch (error) {
         console.error("Error fetching credit balance:", error);

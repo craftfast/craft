@@ -66,6 +66,8 @@ model User {
   // Polar Integration fields
   polarCustomerId       String?               @unique
   polarCustomerExtId    String?               @unique
+  // Balance system (replaces subscription credits)
+  accountBalance        Decimal               @default(0) @db.Decimal(10, 2)
   // Relations
   accounts              Account[]
   files                 File[]
@@ -80,6 +82,8 @@ model User {
   referredBy            User?                 @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals             User[]                @relation("UserReferrals")
   referralCredits       ReferralCredit[]
+  // Balance transactions
+  balanceTransactions   BalanceTransaction[]
   // Memory relations
   memories              UserMemory[]
   // Agent orchestration relations
@@ -474,9 +478,7 @@ model AICreditUsage {
   inputTokens     Int
   outputTokens    Int
   totalTokens     Int
-  costUsd         Float
-  creditsUsed     Decimal  @default(0) @db.Decimal(10, 4)
-  modelMultiplier Float    @default(1.0)
+  providerCostUsd Float // Exact provider cost with no markup
   endpoint        String?
   callType        String   @default("agent")
   createdAt       DateTime @default(now())
@@ -580,6 +582,32 @@ model PaymentTransaction {
   @@index([polarPaymentId])
   @@index([createdAt])
   @@map("payment_transactions")
+}
+
+enum BalanceTransactionType {
+  TOPUP
+  AI_USAGE
+  SANDBOX_USAGE
+  STORAGE_USAGE
+  DATABASE_USAGE
+  DEPLOYMENT
+}
+
+model BalanceTransaction {
+  id            String                 @id @default(cuid())
+  userId        String
+  type          BalanceTransactionType
+  amount        Decimal                @db.Decimal(10, 2) // Positive for credits, negative for debits
+  balanceBefore Decimal                @db.Decimal(10, 2)
+  balanceAfter  Decimal                @db.Decimal(10, 2)
+  description   String
+  metadata      Json?
+  createdAt     DateTime               @default(now())
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@map("balance_transactions")
 }
 
 model WebhookEvent {
@@ -770,17 +798,16 @@ model RateLimit {
 
 // Sandbox usage tracking for E2B
 model SandboxUsage {
-  id          String    @id @default(cuid())
-  userId      String
-  projectId   String
-  sandboxId   String
-  startTime   DateTime
-  endTime     DateTime?
-  durationMin Int       @default(0) // Minutes of usage
-  creditsUsed Decimal   @default(0) @db.Decimal(10, 4)
-  costUsd     Float     @default(0)
-  metadata    Json?
-  createdAt   DateTime  @default(now())
+  id              String    @id @default(cuid())
+  userId          String
+  projectId       String
+  sandboxId       String
+  startTime       DateTime
+  endTime         DateTime?
+  durationMin     Int       @default(0) // Minutes of usage
+  providerCostUsd Float     @default(0) // Exact E2B cost
+  metadata        Json?
+  createdAt       DateTime  @default(now())
 
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
@@ -790,17 +817,16 @@ model SandboxUsage {
 
 // Storage usage tracking (R2 + Database)
 model StorageUsage {
-  id            String   @id @default(cuid())
-  userId        String
-  projectId     String?
-  storageType   String // "r2", "database"
-  sizeGB        Decimal  @db.Decimal(10, 6)
-  operations    Int      @default(0) // Read/write operations
-  creditsUsed   Decimal  @default(0) @db.Decimal(10, 4)
-  costUsd       Float    @default(0)
-  billingPeriod DateTime // When this usage was measured
-  metadata      Json?
-  createdAt     DateTime @default(now())
+  id              String   @id @default(cuid())
+  userId          String
+  projectId       String?
+  storageType     String // "r2", "database"
+  sizeGB          Decimal  @db.Decimal(10, 6)
+  operations      Int      @default(0) // Read/write operations
+  providerCostUsd Float    @default(0) // Exact R2/Neon cost
+  billingPeriod   DateTime // When this usage was measured
+  metadata        Json?
+  createdAt       DateTime @default(now())
 
   @@index([userId, billingPeriod])
   @@index([projectId, billingPeriod])
@@ -815,8 +841,7 @@ model DeploymentUsage {
   projectId        String
   deploymentId     String?
   platform         String   @default("vercel") // "vercel", "custom"
-  creditsUsed      Decimal  @default(0) @db.Decimal(10, 4)
-  costUsd          Float    @default(0)
+  providerCostUsd  Float    @default(0) // Exact deployment cost
   buildDurationMin Int      @default(0)
   metadata         Json?
   createdAt        DateTime @default(now())

@@ -160,9 +160,6 @@ export default function ChatPanel({
     "general" | "billing" | "usage" | "account" | "integrations"
   >("general");
   const { balance } = useCreditBalance();
-  const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
-    "HOBBY"
-  );
 
   // Initialize selected tier from sessionStorage or use "fast" as default
   const [selectedTier, setSelectedTier] = useState<ModelTier>(() => {
@@ -174,35 +171,6 @@ export default function ChatPanel({
   });
 
   // No longer needed - we pass tier directly, not model ID
-
-  // Fetch user's plan on mount
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchUserPlan = async () => {
-      try {
-        const response = await fetch("/api/user/plan");
-        if (!isMounted) return;
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.plan) {
-            setUserPlan(data.plan);
-          }
-        }
-      } catch (error) {
-        if (!isMounted) return;
-        console.error("Failed to fetch user plan:", error);
-        // Keep default "HOBBY" on error
-      }
-    };
-
-    fetchUserPlan();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Load tier preference from sessionStorage on mount
   useEffect(() => {
@@ -1869,7 +1837,6 @@ export default function ChatPanel({
                 <ModelSelector
                   selectedTier={selectedTier}
                   onTierChange={setSelectedTier}
-                  userPlan={userPlan}
                 />
               </div>
 

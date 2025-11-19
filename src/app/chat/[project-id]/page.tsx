@@ -40,25 +40,7 @@ export default async function ProjectCodingPage({ params }: PageProps) {
     redirect("/");
   }
 
-  // Fetch user's subscription to get their plan
-  const userSubscription = await prisma.userSubscription.findUnique({
-    where: {
-      userId: session.user.id,
-    },
-    include: {
-      plan: true,
-    },
-  });
-
-  // Get the plan name - default to HOBBY only if no subscription exists at all
-  const planName = userSubscription?.plan?.name ?? "HOBBY";
-
-  console.log("🔍 User subscription debug:", {
-    userId: session.user.id,
-    hasSubscription: !!userSubscription,
-    planName: planName,
-    fullSubscription: userSubscription,
-  });
+  // Balance-based system - no plan tiers needed
 
   return (
     <CodingInterface

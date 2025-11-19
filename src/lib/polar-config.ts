@@ -1,11 +1,6 @@
 /**
  * Polar Configuration
- * Maps subscription tiers to Polar PRODUCT IDs (not price IDs)
- * 
- * Why Product IDs instead of Price IDs?
- * - A product can have multiple prices (different currencies, regions, etc.)
- * - Product IDs are stable even when prices change
- * - Simpler configuration - one ID per product type
+ * OpenRouter-style pay-as-you-go with balance top-ups
  */
 
 export const POLAR_CONFIG = {
@@ -14,9 +9,9 @@ export const POLAR_CONFIG = {
     organizationId: process.env.POLAR_ORGANIZATION_ID || '',
     webhookSecret: process.env.POLAR_WEBHOOK_SECRET || '',
 
-    // Subscription product IDs
-    subscriptions: {
-        pro: process.env.POLAR_PRO_PRODUCT_ID || '',
+    // Balance top-up product (Pay What You Want)
+    products: {
+        balanceTopup: process.env.POLAR_BALANCE_TOPUP_PRODUCT_ID || '',
     },
 } as const;
 

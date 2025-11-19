@@ -1,14 +1,12 @@
 /**
  * Infrastructure Usage Tracking
  * Tracks non-AI resource usage: sandbox, database, storage, deployments
- * All usage consumes credits from monthly allocation
+ * All usage deducts exact provider costs from user balance (no markup)
  */
 
 import { prisma } from "@/lib/db";
-import { CREDIT_RATES, getDefaultMonthlyCredits } from "@/lib/pricing-constants";
+import { INFRASTRUCTURE_COSTS } from "@/lib/pricing-constants";
 import { Prisma } from "@prisma/client";
-import { invalidateCreditCache } from "@/lib/cache";
-import { validateCredits } from "@/lib/subscription-validation";
 
 // ============================================================================
 // SANDBOX USAGE TRACKING (E2B)
@@ -24,40 +22,74 @@ export async function trackSandboxUsage(params: {
     startTime: Date;
     endTime: Date;
     metadata?: Record<string, unknown>;
-}): Promise<{ id: string; creditsUsed: number; costUsd: number }> {
+}): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
     // Calculate duration in minutes
     const durationMs = params.endTime.getTime() - params.startTime.getTime();
     const durationMin = Math.ceil(durationMs / (1000 * 60));
 
-    // Calculate credits used
-    const creditsUsed = Number((durationMin * CREDIT_RATES.sandbox.perMinute).toFixed(4));
+    // Calculate exact provider cost (no markup)
+    const providerCostUsd = durationMin * INFRASTRUCTURE_COSTS.sandbox.perMinute;
 
-    // Rough cost estimation (sandbox cost ~$0.001/min)
-    const costUsd = durationMin * 0.001;
+    // Deduct from balance and create usage record in transaction
+    const result = await prisma.$transaction(async (tx) => {
+        // Create usage record
+        const record = await tx.sandboxUsage.create({
+            data: {
+                userId: params.userId,
+                projectId: params.projectId,
+                sandboxId: params.sandboxId,
+                startTime: params.startTime,
+                endTime: params.endTime,
+                durationMin,
+                providerCostUsd,
+                metadata: (params.metadata as Prisma.InputJsonValue) || Prisma.JsonNull,
+            },
+        });
 
-    // Create usage record
-    const record = await prisma.sandboxUsage.create({
-        data: {
-            userId: params.userId,
-            projectId: params.projectId,
-            sandboxId: params.sandboxId,
-            startTime: params.startTime,
-            endTime: params.endTime,
-            durationMin,
-            creditsUsed,
-            costUsd,
-            metadata: (params.metadata as Prisma.InputJsonValue) || Prisma.JsonNull,
-        },
+        // Deduct from user balance
+        const user = await tx.user.findUnique({
+            where: { id: params.userId },
+            select: { accountBalance: true },
+        });
+
+        if (!user) {
+            throw new Error(`User ${params.userId} not found`);
+        }
+
+        const balanceBefore = Number(user.accountBalance || 0);
+        const balanceAfter = balanceBefore - providerCostUsd;
+
+        await tx.user.update({
+            where: { id: params.userId },
+            data: { accountBalance: balanceAfter },
+        });
+
+        // Create balance transaction record
+        await tx.balanceTransaction.create({
+            data: {
+                userId: params.userId,
+                type: "SANDBOX_USAGE",
+                amount: -providerCostUsd,
+                balanceBefore,
+                balanceAfter,
+                description: `Sandbox usage: ${durationMin} minutes`,
+                metadata: {
+                    usageId: record.id,
+                    sandboxId: params.sandboxId,
+                    projectId: params.projectId,
+                    durationMin,
+                },
+            },
+        });
+
+        return {
+            id: record.id,
+            providerCostUsd,
+            balanceAfter,
+        };
     });
 
-    // Update subscription credits
-    await deductCreditsFromSubscription(params.userId, creditsUsed, "sandbox", costUsd);
-
-    return {
-        id: record.id,
-        creditsUsed,
-        costUsd,
-    };
+    return result;
 }
 
 /**
@@ -96,7 +128,7 @@ export async function startSandboxSession(params: {
 export async function endSandboxSession(params: {
     sessionId: string;
     endTime?: Date;
-}): Promise<{ creditsUsed: number; costUsd: number; durationMin: number }> {
+}): Promise<{ providerCostUsd: number; balanceAfter: number; durationMin: number }> {
     const endTime = params.endTime || new Date();
 
     // Get the session record
@@ -112,29 +144,65 @@ export async function endSandboxSession(params: {
     const durationMs = endTime.getTime() - session.startTime.getTime();
     const durationMin = Math.ceil(durationMs / (1000 * 60));
 
-    // Calculate credits used
-    const creditsUsed = Number((durationMin * CREDIT_RATES.sandbox.perMinute).toFixed(4));
-    const costUsd = durationMin * 0.001;
+    // Calculate exact provider cost (no markup)
+    const providerCostUsd = durationMin * INFRASTRUCTURE_COSTS.sandbox.perMinute;
 
-    // Update the record
-    await prisma.sandboxUsage.update({
-        where: { id: params.sessionId },
-        data: {
-            endTime,
+    // Update the record and deduct from balance in transaction
+    const result = await prisma.$transaction(async (tx) => {
+        // Update the usage record
+        await tx.sandboxUsage.update({
+            where: { id: params.sessionId },
+            data: {
+                endTime,
+                durationMin,
+                providerCostUsd,
+            },
+        });
+
+        // Deduct from user balance
+        const user = await tx.user.findUnique({
+            where: { id: session.userId },
+            select: { accountBalance: true },
+        });
+
+        if (!user) {
+            throw new Error(`User ${session.userId} not found`);
+        }
+
+        const balanceBefore = Number(user.accountBalance || 0);
+        const balanceAfter = balanceBefore - providerCostUsd;
+
+        await tx.user.update({
+            where: { id: session.userId },
+            data: { accountBalance: balanceAfter },
+        });
+
+        // Create balance transaction record
+        await tx.balanceTransaction.create({
+            data: {
+                userId: session.userId,
+                type: "SANDBOX_USAGE",
+                amount: -providerCostUsd,
+                balanceBefore,
+                balanceAfter,
+                description: `Sandbox session ended: ${durationMin} minutes`,
+                metadata: {
+                    usageId: params.sessionId,
+                    sandboxId: session.sandboxId,
+                    projectId: session.projectId,
+                    durationMin,
+                },
+            },
+        });
+
+        return {
+            providerCostUsd,
+            balanceAfter,
             durationMin,
-            creditsUsed,
-            costUsd,
-        },
+        };
     });
 
-    // Deduct credits from subscription
-    await deductCreditsFromSubscription(session.userId, creditsUsed, "sandbox", costUsd);
-
-    return {
-        creditsUsed,
-        costUsd,
-        durationMin,
-    };
+    return result;
 }
 
 // ============================================================================
@@ -152,53 +220,84 @@ export async function trackStorageUsage(params: {
     operations?: number;
     billingPeriod: Date;
     metadata?: Record<string, unknown>;
-}): Promise<{ id: string; creditsUsed: number; costUsd: number }> {
-    let creditsUsed = 0;
-    let costUsd = 0;
+}): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
+    // Calculate exact provider cost (no markup)
+    let providerCostUsd = 0;
 
     if (params.storageType === "r2") {
         // R2 storage: charge per GB/month + operations
-        creditsUsed += params.sizeGB * CREDIT_RATES.storage.perGBMonth;
+        providerCostUsd += params.sizeGB * INFRASTRUCTURE_COSTS.storage.perGBMonth;
         if (params.operations) {
-            creditsUsed += (params.operations / 1000) * CREDIT_RATES.storage.perThousandOps;
+            providerCostUsd += (params.operations / 1_000_000) * INFRASTRUCTURE_COSTS.storage.perMillionOps;
         }
-        costUsd = params.sizeGB * 0.015; // ~$0.015 per GB/month
     } else if (params.storageType === "database") {
         // Database storage
-        creditsUsed = params.sizeGB * CREDIT_RATES.database.storagePerGBMonth;
-        costUsd = params.sizeGB * 0.02; // ~$0.02 per GB/month
+        providerCostUsd = params.sizeGB * INFRASTRUCTURE_COSTS.database.storagePerGBMonth;
     }
 
-    creditsUsed = Number(creditsUsed.toFixed(4));
+    providerCostUsd = Math.round(providerCostUsd * 100000) / 100000; // Round to 5 decimals
 
-    // Create usage record
-    const record = await prisma.storageUsage.create({
-        data: {
-            userId: params.userId,
-            projectId: params.projectId || null,
-            storageType: params.storageType,
-            sizeGB: params.sizeGB,
-            operations: params.operations || 0,
-            creditsUsed,
-            costUsd,
-            billingPeriod: params.billingPeriod,
-            metadata: (params.metadata as Prisma.InputJsonValue) || Prisma.JsonNull,
-        },
+    // Deduct from balance and create usage record in transaction
+    const result = await prisma.$transaction(async (tx) => {
+        // Create usage record
+        const record = await tx.storageUsage.create({
+            data: {
+                userId: params.userId,
+                projectId: params.projectId || null,
+                storageType: params.storageType,
+                sizeGB: params.sizeGB,
+                operations: params.operations || 0,
+                providerCostUsd,
+                billingPeriod: params.billingPeriod,
+                metadata: (params.metadata as Prisma.InputJsonValue) || Prisma.JsonNull,
+            },
+        });
+
+        // Deduct from user balance
+        const user = await tx.user.findUnique({
+            where: { id: params.userId },
+            select: { accountBalance: true },
+        });
+
+        if (!user) {
+            throw new Error(`User ${params.userId} not found`);
+        }
+
+        const balanceBefore = Number(user.accountBalance || 0);
+        const balanceAfter = balanceBefore - providerCostUsd;
+
+        await tx.user.update({
+            where: { id: params.userId },
+            data: { accountBalance: balanceAfter },
+        });
+
+        // Create balance transaction record
+        await tx.balanceTransaction.create({
+            data: {
+                userId: params.userId,
+                type: "STORAGE_USAGE",
+                amount: -providerCostUsd,
+                balanceBefore,
+                balanceAfter,
+                description: `Storage usage: ${params.storageType} ${params.sizeGB} GB`,
+                metadata: {
+                    usageId: record.id,
+                    storageType: params.storageType,
+                    sizeGB: params.sizeGB,
+                    operations: params.operations || 0,
+                    projectId: params.projectId || null,
+                },
+            },
+        });
+
+        return {
+            id: record.id,
+            providerCostUsd,
+            balanceAfter,
+        };
     });
 
-    // Deduct credits from subscription
-    await deductCreditsFromSubscription(
-        params.userId,
-        creditsUsed,
-        params.storageType === "r2" ? "storage" : "database",
-        costUsd
-    );
-
-    return {
-        id: record.id,
-        creditsUsed,
-        costUsd,
-    };
+    return result;
 }
 
 // ============================================================================
@@ -215,138 +314,70 @@ export async function trackDeploymentUsage(params: {
     platform?: string;
     buildDurationMin?: number;
     metadata?: Record<string, unknown>;
-}): Promise<{ id: string; creditsUsed: number; costUsd: number }> {
-    // Fixed credit cost per deployment
-    const creditsUsed = CREDIT_RATES.deployment.perDeploy;
-    const costUsd = 0.01; // ~$0.01 per deployment
+}): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
+    // Fixed provider cost per deployment (no markup)
+    const providerCostUsd = INFRASTRUCTURE_COSTS.deployment.perDeploy;
 
-    // Create usage record
-    const record = await prisma.deploymentUsage.create({
-        data: {
-            userId: params.userId,
-            projectId: params.projectId,
-            deploymentId: params.deploymentId || null,
-            platform: params.platform || "vercel",
-            creditsUsed,
-            costUsd,
-            buildDurationMin: params.buildDurationMin || 0,
-            metadata: (params.metadata as Prisma.InputJsonValue) || Prisma.JsonNull,
-        },
-    });
-
-    // Deduct credits from subscription
-    await deductCreditsFromSubscription(params.userId, creditsUsed, "deployment", costUsd);
-
-    return {
-        id: record.id,
-        creditsUsed,
-        costUsd,
-    };
-}
-
-// ============================================================================
-// CREDIT DEDUCTION HELPER
-// ============================================================================
-
-/**
- * Deduct credits from user's monthly allocation and update usage records
- */
-async function deductCreditsFromSubscription(
-    userId: string,
-    creditsUsed: number,
-    usageType: "sandbox" | "database" | "storage" | "deployment",
-    costUsd: number
-): Promise<void> {
-    // Validate credits are non-negative
-    validateCredits(creditsUsed, `${usageType}CreditsUsed`);
-    validateCredits(costUsd, `${usageType}CostUsd`);
-
-    // Get user's subscription
-    const subscription = await prisma.userSubscription.findUnique({
-        where: { userId },
-    });
-
-    if (!subscription) {
-        throw new Error("No subscription found for user");
-    }
-
-    // Update monthly credits used
-    await prisma.userSubscription.update({
-        where: { userId },
-        data: {
-            monthlyCreditsUsed: {
-                increment: creditsUsed,
+    // Deduct from balance and create usage record in transaction
+    const result = await prisma.$transaction(async (tx) => {
+        // Create usage record
+        const record = await tx.deploymentUsage.create({
+            data: {
+                userId: params.userId,
+                projectId: params.projectId,
+                deploymentId: params.deploymentId || null,
+                platform: params.platform || "vercel",
+                providerCostUsd,
+                buildDurationMin: params.buildDurationMin || 0,
+                metadata: (params.metadata as Prisma.InputJsonValue) || Prisma.JsonNull,
             },
-        },
-    });
-
-    // Invalidate cache after updating credits
-    invalidateCreditCache(userId);
-
-    // Update or create usage record for current billing period
-    const existingUsageRecord = await prisma.usageRecord.findUnique({
-        where: {
-            subscriptionId_billingPeriodStart: {
-                subscriptionId: subscription.id,
-                billingPeriodStart: subscription.currentPeriodStart,
-            },
-        },
-    });
-
-    // Prepare the update data based on usage type
-    const updateData: Record<string, unknown> = {
-        totalCreditsUsed: { increment: creditsUsed },
-        totalCostUsd: { increment: costUsd },
-    };
-
-    if (usageType === "sandbox") {
-        updateData.sandboxCreditsUsed = { increment: creditsUsed };
-        updateData.sandboxCostUsd = { increment: costUsd };
-    } else if (usageType === "database") {
-        updateData.databaseCreditsUsed = { increment: creditsUsed };
-        updateData.databaseCostUsd = { increment: costUsd };
-    } else if (usageType === "storage") {
-        updateData.storageCreditsUsed = { increment: creditsUsed };
-        updateData.storageCostUsd = { increment: costUsd };
-    } else if (usageType === "deployment") {
-        updateData.deployCreditsUsed = { increment: creditsUsed };
-        updateData.deployCostUsd = { increment: costUsd };
-    }
-
-    if (existingUsageRecord) {
-        // Update existing record
-        await prisma.usageRecord.update({
-            where: { id: existingUsageRecord.id },
-            data: updateData,
         });
-    } else {
-        // Create new record for this billing period
-        const baseData = {
-            userId,
-            subscriptionId: subscription.id,
-            billingPeriodStart: subscription.currentPeriodStart,
-            billingPeriodEnd: subscription.currentPeriodEnd,
-            totalCreditsUsed: creditsUsed,
-            totalCostUsd: costUsd,
-        };
 
-        let createData;
-        if (usageType === "sandbox") {
-            createData = { ...baseData, sandboxCreditsUsed: creditsUsed, sandboxCostUsd: costUsd };
-        } else if (usageType === "database") {
-            createData = { ...baseData, databaseCreditsUsed: creditsUsed, databaseCostUsd: costUsd };
-        } else if (usageType === "storage") {
-            createData = { ...baseData, storageCreditsUsed: creditsUsed, storageCostUsd: costUsd };
-        } else if (usageType === "deployment") {
-            createData = { ...baseData, deployCreditsUsed: creditsUsed, deployCostUsd: costUsd };
-        } else {
-            createData = baseData;
+        // Deduct from user balance
+        const user = await tx.user.findUnique({
+            where: { id: params.userId },
+            select: { accountBalance: true },
+        });
+
+        if (!user) {
+            throw new Error(`User ${params.userId} not found`);
         }
 
-        await prisma.usageRecord.create({
-            data: createData,
+        const balanceBefore = Number(user.accountBalance || 0);
+        const balanceAfter = balanceBefore - providerCostUsd;
+
+        await tx.user.update({
+            where: { id: params.userId },
+            data: { accountBalance: balanceAfter },
         });
-    }
+
+        // Create balance transaction record
+        await tx.balanceTransaction.create({
+            data: {
+                userId: params.userId,
+                type: "DEPLOYMENT",
+                amount: -providerCostUsd,
+                balanceBefore,
+                balanceAfter,
+                description: `Deployment: ${params.platform || "vercel"}`,
+                metadata: {
+                    usageId: record.id,
+                    deploymentId: params.deploymentId || null,
+                    projectId: params.projectId,
+                    platform: params.platform || "vercel",
+                    buildDurationMin: params.buildDurationMin || 0,
+                },
+            },
+        });
+
+        return {
+            id: record.id,
+            providerCostUsd,
+            balanceAfter,
+        };
+    });
+
+    return result;
 }
 
 // ============================================================================
@@ -354,89 +385,88 @@ async function deductCreditsFromSubscription(
 // ============================================================================
 
 /**
- * Get comprehensive usage breakdown for current billing period
+ * Get usage breakdown for a time period
+ * @deprecated Subscription-based analytics will be replaced with balance-based analytics
  */
 export async function getCurrentPeriodUsageBreakdown(userId: string): Promise<{
-    period: {
-        start: Date;
-        end: Date;
-        daysRemaining: number;
-    };
-    credits: {
-        limit: number;
-        used: number;
-        remaining: number;
-        percentUsed: number;
-    };
-    breakdown: {
-        ai: { used: number; cost: number };
-        sandbox: { used: number; cost: number };
-        database: { used: number; cost: number };
-        storage: { used: number; cost: number };
-        deployment: { used: number; cost: number };
+    balance: number;
+    usage: {
+        ai: { cost: number; count: number };
+        sandbox: { cost: number; count: number };
+        storage: { cost: number; count: number };
+        deployment: { cost: number; count: number };
     };
 }> {
-    const subscription = await prisma.userSubscription.findUnique({
-        where: { userId },
-        include: { plan: true },
+    // Get current balance
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { accountBalance: true },
     });
 
-    if (!subscription) {
-        throw new Error("No subscription found");
-    }
+    const balance = Number(user?.accountBalance || 0);
 
-    const usageRecord = await prisma.usageRecord.findUnique({
-        where: {
-            subscriptionId_billingPeriodStart: {
-                subscriptionId: subscription.id,
-                billingPeriodStart: subscription.currentPeriodStart,
-            },
-        },
-    });
-
+    // Get current month's usage
     const now = new Date();
-    const daysRemaining = Math.ceil(
-        (subscription.currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const planName = subscription.plan.name as "HOBBY" | "PRO" | "ENTERPRISE";
-    const monthlyCreditsLimit = subscription.plan.monthlyCredits || getDefaultMonthlyCredits(planName);
-    const monthlyCreditsUsed = subscription.monthlyCreditsUsed.toNumber(); // Use Decimal.toNumber()
-    const creditsRemaining = Math.max(0, monthlyCreditsLimit - monthlyCreditsUsed);
-    const percentUsed = (monthlyCreditsUsed / monthlyCreditsLimit) * 100;
+    // Get AI usage
+    const aiUsage = await prisma.aICreditUsage.aggregate({
+        where: {
+            userId,
+            createdAt: { gte: monthStart },
+        },
+        _sum: { providerCostUsd: true },
+        _count: true,
+    });
+
+    // Get sandbox usage
+    const sandboxUsage = await prisma.sandboxUsage.aggregate({
+        where: {
+            userId,
+            createdAt: { gte: monthStart },
+        },
+        _sum: { providerCostUsd: true },
+        _count: true,
+    });
+
+    // Get storage usage
+    const storageUsage = await prisma.storageUsage.aggregate({
+        where: {
+            userId,
+            createdAt: { gte: monthStart },
+        },
+        _sum: { providerCostUsd: true },
+        _count: true,
+    });
+
+    // Get deployment usage
+    const deploymentUsage = await prisma.deploymentUsage.aggregate({
+        where: {
+            userId,
+            createdAt: { gte: monthStart },
+        },
+        _sum: { providerCostUsd: true },
+        _count: true,
+    });
 
     return {
-        period: {
-            start: subscription.currentPeriodStart,
-            end: subscription.currentPeriodEnd,
-            daysRemaining,
-        },
-        credits: {
-            limit: monthlyCreditsLimit,
-            used: monthlyCreditsUsed,
-            remaining: creditsRemaining,
-            percentUsed: Math.round(percentUsed * 100) / 100,
-        },
-        breakdown: {
+        balance,
+        usage: {
             ai: {
-                used: usageRecord?.aiCreditsUsed.toNumber() || 0,
-                cost: usageRecord?.aiCostUsd || 0,
+                cost: Number(aiUsage._sum.providerCostUsd || 0),
+                count: aiUsage._count,
             },
             sandbox: {
-                used: usageRecord?.sandboxCreditsUsed.toNumber() || 0,
-                cost: usageRecord?.sandboxCostUsd || 0,
-            },
-            database: {
-                used: usageRecord?.databaseCreditsUsed.toNumber() || 0,
-                cost: usageRecord?.databaseCostUsd || 0,
+                cost: Number(sandboxUsage._sum.providerCostUsd || 0),
+                count: sandboxUsage._count,
             },
             storage: {
-                used: usageRecord?.storageCreditsUsed.toNumber() || 0,
-                cost: usageRecord?.storageCostUsd || 0,
+                cost: Number(storageUsage._sum.providerCostUsd || 0),
+                count: storageUsage._count,
             },
             deployment: {
-                used: usageRecord?.deployCreditsUsed.toNumber() || 0,
-                cost: usageRecord?.deployCostUsd || 0,
+                cost: Number(deploymentUsage._sum.providerCostUsd || 0),
+                count: deploymentUsage._count,
             },
         },
     };

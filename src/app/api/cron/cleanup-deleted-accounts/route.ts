@@ -101,26 +101,8 @@ export async function POST(request: NextRequest) {
                         where: { userId: user.id },
                     });
 
-                    // Delete subscription-related data
-                    const userSubscription = await tx.userSubscription.findFirst({
-                        where: { userId: user.id },
-                        select: { id: true },
-                    });
-
-                    if (userSubscription) {
-                        // Delete usage records
-                        await tx.usageRecord.deleteMany({
-                            where: { subscriptionId: userSubscription.id },
-                        });
-                    }
-
-                    // Delete subscription
-                    await tx.userSubscription.deleteMany({
-                        where: { userId: user.id },
-                    });
-
-                    // Delete invoices
-                    await tx.invoice.deleteMany({
+                    // Delete balance transactions
+                    await tx.balanceTransaction.deleteMany({
                         where: { userId: user.id },
                     });
 

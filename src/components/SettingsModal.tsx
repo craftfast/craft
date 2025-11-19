@@ -27,7 +27,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { TwoFactorSettings } from "@/components/auth/two-factor-settings";
 import OTPInput from "@/components/auth/OTPInput";
-import { PRO_TIERS } from "@/lib/pricing-constants";
 import { AVAILABLE_MODELS, type ModelConfig } from "@/lib/models/config";
 import { validatePassword } from "@/lib/password-validation";
 import validator from "validator";
@@ -475,15 +474,7 @@ export default function SettingsModal({
     }
   }, [isOpen, initialTab, initialProTierIndex]);
 
-  // Fetch billing data when billing tab is active
-  useEffect(() => {
-    // Only fetch if modal is open and user is authenticated
-    if (!isOpen || !session?.user) return;
-
-    if (activeTab === "billing") {
-      fetchBillingData();
-    }
-  }, [activeTab, isOpen, session]);
+  // Billing tab removed - using credits tab instead
 
   // Auto-trigger checkout when coming from pricing page with tier change action
   useEffect(() => {
@@ -497,27 +488,9 @@ export default function SettingsModal({
       !showEmbeddedCheckout &&
       !isAutoTriggeringCheckout
     ) {
-      // Wait for billing data to load, then auto-trigger checkout
-      const selectedTier = PRO_TIERS[selectedProTierIndex];
-      const currentTierCredits = subscriptionData.plan?.monthlyCredits;
-
-      // Only trigger if user is changing to a different tier
-      if (selectedTier && selectedTier.monthlyCredits !== currentTierCredits) {
-        console.log("Auto-triggering checkout for tier:", selectedTier);
-        setIsAutoTriggeringCheckout(true);
-
-        // Show toast to inform user
-        toast.info(
-          `Preparing checkout for ${selectedTier.monthlyCredits} credits/month tier...`,
-          { duration: 3000 }
-        );
-
-        // Small delay to show the UI has loaded before opening checkout
-        setTimeout(() => {
-          handleOpenEmbeddedCheckout(selectedTier.monthlyCredits);
-          setIsAutoTriggeringCheckout(false);
-        }, 800);
-      }
+      // Subscription system removed - redirect to credits page
+      console.log("Auto-triggering checkout - redirecting to credits page");
+      window.location.href = "/?settings=true&tab=billing";
     }
   }, [
     isOpen,
@@ -607,60 +580,6 @@ export default function SettingsModal({
       fetchReferralData();
     }
   }, [activeTab, isOpen, session]);
-
-  const fetchBillingData = async () => {
-    setIsLoadingBilling(true);
-    try {
-      // Fetch subscription details
-      const subRes = await fetch("/api/billing/subscription");
-      const subData = await subRes.json();
-      if (subRes.ok) {
-        setSubscriptionData(subData);
-
-        // Set credit balance data from subscription response
-        if (subData.monthly) {
-          setCreditBalanceData({
-            monthly: subData.monthly,
-            plan: {
-              name: subData.plan.name,
-              displayName: subData.plan.displayName,
-              monthlyCredits: subData.plan.monthlyCredits,
-            },
-          });
-        }
-
-        // Set current Pro tier index if user is on Pro plan
-        // BUT only if tier wasn't already set from pricing page
-        if (
-          subData.plan?.name?.startsWith("PRO") &&
-          subData.plan?.monthlyCredits &&
-          !tierSetFromPricingPage
-        ) {
-          const currentTierIndex = PRO_TIERS.findIndex(
-            (tier) => tier.monthlyCredits === subData.plan.monthlyCredits
-          );
-          if (currentTierIndex !== -1) {
-            console.log(
-              "Setting tier index to current plan tier:",
-              currentTierIndex
-            );
-            setSelectedProTierIndex(currentTierIndex);
-          }
-        }
-      }
-
-      // Fetch subscription history
-      const historyRes = await fetch("/api/billing/subscription-history");
-      const historyData = await historyRes.json();
-      if (historyRes.ok) {
-        setSubscriptionHistory(historyData);
-      }
-    } catch (error) {
-      console.error("Error fetching billing data:", error);
-    } finally {
-      setIsLoadingBilling(false);
-    }
-  };
 
   const fetchReferralData = async () => {
     setIsLoadingReferralData(true);
@@ -1312,7 +1231,6 @@ export default function SettingsModal({
             { duration: 8000 }
           );
         }
-        await fetchBillingData();
         setIsPurchasing(false);
         return;
       }
@@ -1339,10 +1257,7 @@ export default function SettingsModal({
     setShowEmbeddedCheckout(false);
     setCheckoutUrl("");
 
-    // Refresh billing data
-    await fetchBillingData();
-
-    toast.success("Successfully upgraded! Your new plan is now active.");
+    toast.success("Successfully added credits!");
   };
 
   // Handle checkout close
@@ -1653,26 +1568,16 @@ export default function SettingsModal({
                 <h2 className="text-2xl font-semibold mb-6">Personalization</h2>
                 <PersonalizationTab />
               </div>
-            )}{" "}
+            )}
             {/* Billing Tab */}
             {activeTab === "billing" && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-semibold mb-6">Billing</h2>
-                <BillingTab
-                  isLoadingBilling={isLoadingBilling}
-                  isAutoTriggeringCheckout={isAutoTriggeringCheckout}
-                  subscriptionData={subscriptionData}
-                  creditBalanceData={creditBalanceData}
-                  subscriptionHistory={subscriptionHistory}
-                  selectedProTierIndex={selectedProTierIndex}
-                  setSelectedProTierIndex={setSelectedProTierIndex}
-                  isPurchasing={isPurchasing}
-                  updateUrlParams={updateUrlParams}
-                  handleOpenEmbeddedCheckout={handleOpenEmbeddedCheckout}
-                  fetchBillingData={fetchBillingData}
-                />
+                <h2 className="text-2xl font-semibold mb-6">
+                  Balance & Billing
+                </h2>
+                <BillingTab />
               </div>
-            )}{" "}
+            )}
             {/* Usage Tab */}
             {activeTab === "usage" && (
               <div className="space-y-6">

@@ -2,7 +2,7 @@ import { getSystemPrompt } from "@/lib/ai/system-prompts";
 import { streamCodingResponse } from "@/lib/ai/agent";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
-import { checkUserCreditAvailability, processAIUsage } from "@/lib/ai-usage";
+import { checkUserBalance, processAIUsage } from "@/lib/ai-usage";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createOrchestrator } from "@/lib/ai/orchestrator/orchestrator-agent";
 
@@ -74,25 +74,26 @@ export async function POST(req: Request) {
         // Generate session ID for agent loop coordination
         const sessionId = `session-${user.id}-${projectId}-${Date.now()}`;
 
-        // Check if user has available credits before processing
-        const creditAvailability = await checkUserCreditAvailability(user.id);
+        // Check if user has sufficient balance for the operation
+        // Estimate cost assuming ~10K tokens (will be deducted after actual usage)
+        const estimatedCost = 0.10; // Rough estimate for a typical chat request
+        const balanceCheck = await checkUserBalance(user.id, estimatedCost);
 
-        if (!creditAvailability.allowed) {
-            console.warn(`🚫 Monthly credit limit reached for user ${user.id}`);
+        if (!balanceCheck.allowed) {
+            console.warn(`🚫 Insufficient balance for user ${user.id}`);
             return new Response(
                 JSON.stringify({
-                    error: "Credit limit reached",
-                    message: creditAvailability.reason || "Monthly credit limit reached. Credits refresh at the start of your next billing period.",
-                    monthlyCreditsUsed: creditAvailability.monthlyCreditsUsed,
-                    monthlyCreditsLimit: creditAvailability.monthlyCreditsLimit,
-                    creditsRemaining: creditAvailability.creditsRemaining,
+                    error: "Insufficient balance",
+                    message: balanceCheck.reason || "Please add credits to continue.",
+                    balance: balanceCheck.balance,
+                    estimatedCost: balanceCheck.estimatedCost,
                 }),
                 { status: 429, headers: { "Content-Type": "application/json" } }
             );
         }
 
-        // Log credit availability
-        console.log(`💰 Credit Availability - Used: ${creditAvailability.monthlyCreditsUsed}/${creditAvailability.monthlyCreditsLimit || 'unlimited'}, Remaining: ${creditAvailability.creditsRemaining}`);
+        // Log balance availability
+        console.log(`💰 Balance Check - Available: $${balanceCheck.balance.toFixed(2)}, Estimated Cost: $${balanceCheck.estimatedCost.toFixed(2)}`);
 
         // ============================================================================
         // PHASE 3: ORCHESTRATOR MODE (Multi-Agent System)

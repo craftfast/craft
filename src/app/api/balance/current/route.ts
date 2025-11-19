@@ -1,38 +1,44 @@
+/**
+ * API Route: Get Current Balance
+ * GET /api/balance/current
+ * 
+ * Returns the current account balance for the authenticated user
+ */
+
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 
-// GET /api/user/plan - Balance-based system (no subscription plans)
 export async function GET() {
     try {
         const session = await getSession();
-
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get the user from the database
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
-            select: { id: true, accountBalance: true },
+            select: {
+                id: true,
+                accountBalance: true
+            },
         });
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Balance-based system - no subscription plans
-        // Return compatible response for legacy code
+        const balance = Number(user.accountBalance || 0);
+
         return NextResponse.json({
-            plan: "PAY_AS_YOU_GO",
-            displayName: "Pay As You Go",
-            userId: user.id,
-            balance: Number(user.accountBalance),
+            success: true,
+            balance: balance,
+            balanceFormatted: `$${balance.toFixed(2)}`,
         });
     } catch (error) {
-        console.error("Error fetching user info:", error);
+        console.error("Error fetching balance:", error);
         return NextResponse.json(
-            { error: "Failed to fetch user info" },
+            { error: "Failed to fetch balance" },
             { status: 500 }
         );
     }

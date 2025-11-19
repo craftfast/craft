@@ -89,44 +89,7 @@ export default function CraftInput() {
   const [isBillingError, setIsBillingError] = useState(false);
   const { balance } = useCreditBalance();
   const [selectedTier, setSelectedTier] = useState<ModelTier>("fast"); // Default to "fast" mode
-  const [userPlan, setUserPlan] = useState<"HOBBY" | "PRO" | "ENTERPRISE">(
-    "HOBBY"
-  );
   const { data: session } = useSession();
-
-  // No longer needed - we pass tier directly, not model ID
-
-  // Fetch user's preferred model and plan on mount
-  useEffect(() => {
-    // Skip if user is not authenticated
-    if (!session?.user) return;
-
-    let isMounted = true;
-
-    const fetchUserPlan = async () => {
-      try {
-        const response = await fetch("/api/user/plan");
-        if (!isMounted) return;
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.plan) {
-            setUserPlan(data.plan);
-          }
-        }
-      } catch (error) {
-        if (!isMounted) return;
-        console.error("Failed to fetch user plan:", error);
-        // Keep "fast" as default tier and "HOBBY" as default plan
-      }
-    };
-
-    fetchUserPlan();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [session]);
 
   // Check if tokens are low or exhausted
   const isLowTokens =
@@ -728,7 +691,6 @@ export default function CraftInput() {
             <ModelSelector
               selectedTier={selectedTier}
               onTierChange={setSelectedTier}
-              userPlan={userPlan}
             />
           </div>
 

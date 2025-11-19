@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { getCurrentPeriodAIUsage } from "@/lib/ai-usage";
-import { getCurrentUsageRecord } from "@/lib/usage-tracking";
 
 export async function GET() {
     try {
@@ -15,12 +14,9 @@ export async function GET() {
         // Get user from database
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
-            include: {
-                subscription: {
-                    include: {
-                        plan: true,
-                    },
-                },
+            select: {
+                id: true,
+                accountBalance: true,
             },
         });
 
@@ -30,13 +26,6 @@ export async function GET() {
 
         // Get AI usage for current period
         const aiUsage = await getCurrentPeriodAIUsage(user.id);
-
-        // Get usage record for current period
-        const usageRecord = await getCurrentUsageRecord(user.id);
-
-        // Get subscription details
-        const subscription = user.subscription;
-        const plan = subscription?.plan;
 
         // Get project count
         const projectCount = await prisma.project.count({
@@ -51,12 +40,10 @@ export async function GET() {
                 byModel: aiUsage.byModel,
             },
 
-            // Subscription & Limits
-            subscription: {
-                planName: plan?.name || "HOBBY",
-                status: subscription?.status || "active",
-                currentPeriodStart: subscription?.currentPeriodStart,
-                currentPeriodEnd: subscription?.currentPeriodEnd,
+            // Balance (pay-as-you-go system)
+            balance: {
+                current: Number(user.accountBalance),
+                formatted: `$${Number(user.accountBalance).toFixed(2)}`,
             },
 
             // Project Count
