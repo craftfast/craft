@@ -95,6 +95,7 @@ export default function DashboardHeader({
           <CreditCounter
             onClickAction={() => {
               // Open settings modal to billing tab
+              setSettingsTab("billing");
               setIsSettingsOpen(true);
             }}
           />
@@ -114,7 +115,8 @@ export default function DashboardHeader({
         <div className="flex items-center gap-2">
           <CreditCounter
             onClickAction={() => {
-              // Open settings modal to credits tab
+              // Open settings modal to billing tab
+              setSettingsTab("billing");
               setIsSettingsOpen(true);
             }}
           />

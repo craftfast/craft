@@ -348,7 +348,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
             <button
               onClick={() => {
                 setIsUserMenuOpen(false);
-                setSettingsInitialTab("credits");
+                setSettingsInitialTab("billing");
                 setIsSettingsModalOpen(true);
               }}
               className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"

@@ -160,27 +160,6 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
               </p>
               <p className="text-xs text-muted-foreground">credits remaining</p>
             </div>
-
-            {/* Credit Info */}
-            <div className="space-y-2 pt-3 border-t border-neutral-200 dark:border-neutral-800">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-accent-foreground">
-                  Monthly limit
-                </span>
-                <span className="text-sm font-medium text-foreground">
-                  {formatFullNumber(balance.subscriptionCreditLimit)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-accent-foreground">
-                  Resets in
-                </span>
-                <span className="text-sm font-medium text-muted-foreground">
-                  {getTimeUntilReset()}
-                </span>
-              </div>
-            </div>
           </div>
 
           {/* Actions Section */}
@@ -202,10 +181,10 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                  d="M12 4v16m8-8H4"
                 />
               </svg>
-              <span>Upgrade Plan</span>
+              <span>Top Up Credits</span>
             </Button>
           </div>
         </div>

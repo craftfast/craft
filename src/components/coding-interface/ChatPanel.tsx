@@ -1694,9 +1694,7 @@ export default function ChatPanel({
                     }}
                     className="text-foreground underline hover:no-underline font-medium"
                   >
-                    {balance?.planName?.startsWith("PRO")
-                      ? "Upgrade your plan"
-                      : "Upgrade to Pro"}
+                    Top up credits
                   </button>
                 </p>
               </div>
@@ -1706,7 +1704,7 @@ export default function ChatPanel({
             {isTokensExhausted && (
               <div className="mb-2 px-3 py-2 bg-muted/50 border-b border-border -mx-2 -mt-2 rounded-t-2xl">
                 <p className="text-xs text-muted-foreground">
-                  Out of credits this month.{" "}
+                  Out of credits.{" "}
                   <button
                     onClick={() => {
                       setSettingsInitialTab("billing");
@@ -1714,9 +1712,7 @@ export default function ChatPanel({
                     }}
                     className="text-foreground underline hover:no-underline font-medium"
                   >
-                    {balance?.planName?.startsWith("PRO")
-                      ? "Upgrade your plan for more monthly credits"
-                      : "Upgrade to Pro"}
+                    Top up credits to continue
                   </button>
                 </p>
               </div>
