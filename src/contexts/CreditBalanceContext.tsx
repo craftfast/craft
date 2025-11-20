@@ -11,11 +11,6 @@ import { useSession } from "@/lib/auth-client";
 
 interface CreditBalance {
   totalAvailable: number;
-  subscriptionCreditsRemaining: number;
-  subscriptionCreditLimit: number | null;
-  subscriptionCreditsUsed: number;
-  planName?: "HOBBY" | "PRO" | "ENTERPRISE"; // User's subscription plan
-  periodEnd?: string; // Billing period end date (ISO string)
 }
 
 interface CreditBalanceContextType {
@@ -34,6 +29,9 @@ const CreditBalanceContext = createContext<
  *
  * Provides a single source of truth for credit balance across the entire app.
  * This prevents multiple API calls when multiple components need the balance.
+ *
+ * Balance-based system: Users top up their account and credits are deducted per use.
+ * No subscription tiers, no monthly resets.
  *
  * Usage:
  * 1. Wrap your app with <CreditBalanceProvider>

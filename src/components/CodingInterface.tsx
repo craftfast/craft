@@ -96,7 +96,6 @@ interface User {
 interface CodingInterfaceProps {
   project: Project;
   user: User;
-  planName: string;
 }
 
 interface CustomView {
@@ -110,11 +109,8 @@ interface CustomView {
 export default function CodingInterface({
   project: initialProject,
   user,
-  planName,
 }: CodingInterfaceProps) {
   const router = useRouter();
-
-  console.log("🎨 CodingInterface received planName:", planName);
 
   // Keep sandbox alive while user has project page open
   useSandboxHeartbeat(initialProject.id);
@@ -1118,13 +1114,6 @@ export default function CodingInterface({
             </div>
           )}
         </div>
-
-        {/* Token Purchase Modal */}
-        {/* <TokenPurchaseModal
-          isOpen={isPricingModalOpen}
-          onClose={() => setIsPricingModalOpen(false)}
-          currentPlan={planName}
-        /> */}
 
         {/* Rename Project Dialog */}
         <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>

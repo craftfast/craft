@@ -86,10 +86,11 @@ interface CodingStreamOptions {
     sessionId?: string; // Optional: session ID for agent loop coordination
     enableAgentLoop?: boolean; // Optional: enable Think→Act→Observe→Reflect pattern (Phase 2)
     onFinish?: (params: {
-        model: string;
+        model: string; // OpenRouter model ID (e.g., "anthropic/claude-sonnet-4.5")
         inputTokens: number;
         outputTokens: number;
         totalTokens: number;
+        providerCostUsd?: number; // Actual cost from OpenRouter (if available)
     }) => void | Promise<void>;
 }
 
@@ -238,7 +239,7 @@ function getModelProvider(modelId: string): {
 
     return {
         provider,
-        modelPath: modelConfig.name, // Use the actual API model name
+        modelPath: modelConfig.id, // Use the full OpenRouter model ID (e.g., "anthropic/claude-haiku-4.5")
         displayName: modelConfig.displayName,
         providerType
     };
@@ -465,7 +466,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
             }
 
             if (usage) {
-                // AI SDK v5 with Anthropic - uses promptTokens/completionTokens
+                // AI SDK v5 with Anthropic/OpenRouter - uses promptTokens/completionTokens
                 const usageData = usage as Record<string, number | undefined>;
                 const inputTokens =
                     usageData.promptTokens ||       // ✅ AI SDK v5 primary format
@@ -483,15 +484,26 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
                     usageData.totalTokens ||
                     (inputTokens + outputTokens);
 
-                console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
+                // Extract actual cost from OpenRouter response (if available)
+                // OpenRouter returns cost in their response metadata
+                const providerCostUsd = usageData.cost as number | undefined;
+
+                if (providerCostUsd) {
+                    console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
+                    console.log(`💰 OpenRouter Cost: $${providerCostUsd.toFixed(6)}`);
+                } else {
+                    console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
+                    console.log(`⚠️ OpenRouter cost not available, will calculate from pricing config`);
+                }
 
                 if (onFinish) {
                     try {
                         await onFinish({
-                            model: codingModel, // Return the coding model ID
+                            model: codingModel, // OpenRouter model ID (e.g., "anthropic/claude-sonnet-4.5")
                             inputTokens,
                             outputTokens,
                             totalTokens,
+                            providerCostUsd, // Pass actual cost if available
                         });
                     } catch (error) {
                         console.error('❌ Failed to track usage:', error);

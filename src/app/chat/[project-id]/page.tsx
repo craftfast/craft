@@ -40,20 +40,42 @@ export default async function ProjectCodingPage({ params }: PageProps) {
     redirect("/");
   }
 
-  // Balance-based system - no plan tiers needed
+  // Fetch user data with accountBalance (need to serialize Decimal)
+  const userData = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      accountBalance: true,
+    },
+  });
 
-  return (
-    <CodingInterface
-      project={{
-        ...project,
-        visibility: project.visibility as
-          | "public"
-          | "secret"
-          | "private"
-          | undefined,
-      }}
-      user={session.user}
-      planName={planName}
-    />
-  );
+  // Balance-based system - no plan tiers needed
+  // Serialize user data to plain object (convert Decimal to number)
+  const serializedUser = {
+    ...session.user,
+    accountBalance: userData?.accountBalance
+      ? Number(userData.accountBalance)
+      : 0,
+  };
+
+  // Serialize project data (convert any Decimal fields in nested user object)
+  const serializedProject = {
+    ...project,
+    visibility: project.visibility as
+      | "public"
+      | "secret"
+      | "private"
+      | undefined,
+    user: project.user
+      ? {
+          ...project.user,
+          accountBalance: Number(project.user.accountBalance || 0),
+        }
+      : undefined,
+  };
+
+  return <CodingInterface project={serializedProject} user={serializedUser} />;
 }

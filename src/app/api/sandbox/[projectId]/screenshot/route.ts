@@ -21,7 +21,7 @@ import puppeteer from "puppeteer";
  * 5. Server uploads new screenshot to Cloudflare R2 storage
  * 6. Server updates project.previewImage
  */
-export async function GET(
+export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ projectId: string }> }
 ) {

@@ -308,9 +308,10 @@ export async function POST(req: Request) {
                                 await trackAIUsage({
                                     userId: user.id,
                                     projectId,
-                                    model: usageData.model,
+                                    model: usageData.model, // OpenRouter model ID
                                     inputTokens: usageData.inputTokens,
                                     outputTokens: usageData.outputTokens,
+                                    providerCostUsd: usageData.providerCostUsd, // Actual cost from OpenRouter
                                     endpoint: '/api/chat',
                                     callType: 'chat',
                                 });

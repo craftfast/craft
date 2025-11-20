@@ -56,79 +56,6 @@ export interface CreditUsageData {
     };
 }
 
-export interface SubscriptionData {
-    plan: {
-        name: string;
-        displayName: string;
-        priceMonthlyUsd: number;
-        maxProjects: number | null;
-        monthlyCredits: number | null;
-        features: Record<string, unknown>;
-    };
-    status: string;
-    currentPeriodStart: Date;
-    currentPeriodEnd: Date;
-    cancelAtPeriodEnd: boolean;
-    monthly?: {
-        limit: number;
-        used: number;
-        remaining: number;
-        periodEnd: Date;
-        daysUntilReset: number;
-    };
-}
-
-export interface CreditBalanceData {
-    monthly: {
-        limit: number;
-        used: number;
-        remaining: number;
-        periodEnd: Date;
-        daysUntilReset: number;
-    };
-    plan: {
-        name: string;
-        displayName: string;
-        monthlyCredits: number | null;
-    };
-}
-
-export interface SubscriptionHistoryData {
-    currentSubscription: {
-        id: string;
-        planName: string;
-        planDisplayName: string;
-        status: string;
-        currentPeriodStart: Date;
-        currentPeriodEnd: Date;
-        cancelAtPeriodEnd: boolean;
-        cancelledAt: Date | null;
-        createdAt: Date;
-        priceMonthlyUsd: number;
-    } | null;
-    usageRecords: Array<{
-        id: string;
-        billingPeriodStart: Date;
-        billingPeriodEnd: Date;
-        aiCreditsUsed: number;
-        aiCostUsd: number;
-        totalCostUsd: number;
-        createdAt: Date;
-    }>;
-    invoices: Array<{
-        id: string;
-        invoiceNumber: string;
-        status: string;
-        billingPeriodStart: Date;
-        billingPeriodEnd: Date;
-        subscriptionFeeUsd: number;
-        aiUsageCostUsd: number;
-        totalUsd: number;
-        paidAt: Date | null;
-        createdAt: Date;
-    }>;
-}
-
 export interface ReferralData {
     referralCode: string;
     referrals: Array<{
@@ -144,16 +71,8 @@ export interface ReferralData {
 
 export interface BillingTabProps {
     isLoadingBilling: boolean;
-    isAutoTriggeringCheckout: boolean;
-    subscriptionData: SubscriptionData | null;
-    creditBalanceData: CreditBalanceData | null;
-    subscriptionHistory: SubscriptionHistoryData | null;
-    selectedProTierIndex: number;
-    setSelectedProTierIndex: (index: number) => void;
     isPurchasing: boolean;
     updateUrlParams: (params: Record<string, unknown>) => void;
-    handleOpenEmbeddedCheckout: (monthlyCredits: number) => Promise<void>;
-    fetchBillingData: () => void;
 }
 
 export type SettingsTab =

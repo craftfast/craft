@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
-import { getCurrentPeriodAIUsage } from "@/lib/ai-usage";
+import { getUserAIUsageInRange } from "@/lib/ai-usage";
 
 export async function GET() {
     try {
@@ -24,8 +24,11 @@ export async function GET() {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Get AI usage for current period
-        const aiUsage = await getCurrentPeriodAIUsage(user.id);
+        // Get AI usage for current month
+        const now = new Date();
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const aiUsage = await getUserAIUsageInRange(user.id, startDate, endDate);
 
         // Get project count
         const projectCount = await prisma.project.count({

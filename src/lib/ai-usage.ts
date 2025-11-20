@@ -1,16 +1,29 @@
 /**
- * AI Usage Tracking - OpenRouter Style
- * Tracks AI model usage and deducts exact provider costs from user balance
+ * AI Usage Tracking - OpenRouter Integration
+ * 
+ * Tracks AI model usage and deducts exact provider costs from user balance.
+ * 
+ * OPENROUTER MODEL IDs:
+ * - Uses OpenRouter's standard format: "provider/model-name"
+ * - Examples: "anthropic/claude-sonnet-4.5", "openai/gpt-5", "google/gemini-2.5-flash"
+ * - All models in config.ts use OpenRouter IDs
+ * 
+ * COST TRACKING:
+ * 1. OpenRouter returns actual usage cost in their API response
+ * 2. We extract this cost and store it directly (no calculation needed)
+ * 3. If cost is unavailable, we calculate from pricing config as fallback
+ * 4. Cost is deducted from user's accountBalance atomically
+ * 
+ * DATABASE STORAGE:
+ * - model: OpenRouter model ID (e.g., "anthropic/claude-sonnet-4.5")
+ * - inputTokens/outputTokens: Token counts from OpenRouter
+ * - providerCostUsd: Actual cost in USD (from OpenRouter or calculated)
+ * - balanceTransaction: Records the deduction from user balance
  */
 
 import { prisma } from "@/lib/db";
-import { AVAILABLE_MODELS, getModelConfig } from "@/lib/models/config";
-import {
-    getDefaultMonthlyCredits,
-    MINIMUM_BALANCE_THRESHOLD,
-    calculateAICost,
-    getModelPricing
-} from "@/lib/pricing-constants";
+import { AVAILABLE_MODELS } from "@/lib/models/config";
+import { MINIMUM_BALANCE_THRESHOLD } from "@/lib/pricing-constants";
 
 // ============================================================================
 // NEW BALANCE SYSTEM
@@ -87,7 +100,7 @@ export async function deductBalance(
                 balanceBefore,
                 balanceAfter,
                 description,
-                metadata: metadata || {},
+                metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : {},
             },
         });
 
@@ -123,15 +136,17 @@ const MODEL_PRICING = {
 export interface AIUsageRecord {
     userId: string;
     projectId: string;
-    model: string;
+    model: string; // OpenRouter model ID (e.g., "anthropic/claude-sonnet-4.5")
     inputTokens: number;
     outputTokens: number;
+    providerCostUsd?: number; // Actual cost from OpenRouter (if available)
     endpoint?: string;
     callType?: "agent" | "edit" | "chat"; // Type of AI interaction (defaults to "agent")
 }
 
 /**
- * Calculate cost for AI usage
+ * Calculate cost for AI usage (fallback when provider doesn't return cost)
+ * Uses OpenRouter pricing from model config
  */
 function calculateCost(
     model: string,
@@ -151,16 +166,28 @@ function calculateCost(
 /**
  * Track AI usage and deduct from balance
  * Records token usage and deducts exact provider cost (no markup)
+ * 
+ * IMPORTANT: OpenRouter returns actual costs in their response.
+ * If providerCostUsd is provided, use it. Otherwise, calculate based on pricing config.
  */
 export async function trackAIUsage(
     usage: AIUsageRecord
 ): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
     const totalTokens = usage.inputTokens + usage.outputTokens;
-    const providerCostUsd = calculateCost(
+
+    // Use actual cost from OpenRouter if available, otherwise calculate
+    const providerCostUsd = usage.providerCostUsd ?? calculateCost(
         usage.model,
         usage.inputTokens,
         usage.outputTokens
     );
+
+    // Log if we're using calculated vs actual cost
+    if (usage.providerCostUsd) {
+        console.log(`💰 Using actual OpenRouter cost: $${providerCostUsd.toFixed(6)}`);
+    } else {
+        console.log(`🧮 Calculated cost (OpenRouter data unavailable): $${providerCostUsd.toFixed(6)}`);
+    }
 
     // Deduct from balance and create usage record in transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -332,24 +359,5 @@ export async function getUserAIUsage(
     };
 }
 
-// ============================================================================
-// LEGACY SUBSCRIPTION FUNCTIONS - TO BE DELETED
-// These are kept temporarily to avoid breaking existing code
-// Will be removed in cleanup phase
-// ============================================================================
-
-/**
- * @deprecated Use checkUserBalance instead
- * Kept for backward compatibility during transition
- */
-export async function getCurrentPeriodAIUsage(userId: string): Promise<{
-    totalTokens: number;
-    totalCostUsd: number;
-    byModel: Record<string, { tokens: number; costUsd: number }>;
-}> {
-    // Return current month usage as fallback
-    const now = new Date();
-    const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    return getUserAIUsageInRange(userId, startDate, endDate);
-}
+// All legacy subscription-based functions have been removed.
+// Use balance-based functions: checkUserBalance, deductUserBalance, getUserAIUsageInRange

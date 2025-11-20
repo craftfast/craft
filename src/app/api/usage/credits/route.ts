@@ -103,10 +103,7 @@ export async function GET(request: Request) {
                 inputTokens: record.inputTokens,
                 outputTokens: record.outputTokens,
                 totalTokens: record.totalTokens,
-                costUsd: record.costUsd,
-                // Credits with model-based multipliers (now stored in DB)
-                creditsUsed: Number(record.creditsUsed),
-                modelMultiplier: record.modelMultiplier,
+                creditsUsed: record.providerCostUsd, // Using actual provider cost in USD
                 callType: record.callType || "agent",
                 endpoint: record.endpoint || "chat",
                 createdAt: record.createdAt,

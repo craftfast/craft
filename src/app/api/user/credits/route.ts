@@ -21,15 +21,8 @@ export async function GET() {
 
         return NextResponse.json({
             totalAvailable: balance,
-            subscriptionCreditsRemaining: balance,
-            subscriptionCreditLimit: balance,
-            subscriptionCreditsUsed: 0,
-            planName: "Pay-As-You-Go", // No more plans
-            periodEnd: new Date(), // No billing periods
-            creditsRemaining: balance,
             allowed,
             reason: allowed ? undefined : "Insufficient balance. Please top up.",
-            referralCredits: 0, // No more referral credits
         });
     } catch (error) {
         console.error("Error fetching credit balance:", error);

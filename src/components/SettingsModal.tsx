@@ -317,29 +317,8 @@ export default function SettingsModal({
     useState<CreditUsageData | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
 
-  // Billing state
-  const [subscriptionData, setSubscriptionData] =
-    useState<SubscriptionData | null>(null);
-  const [creditBalanceData, setCreditBalanceData] =
-    useState<CreditBalanceData | null>(null);
-  const [subscriptionHistory, setSubscriptionHistory] =
-    useState<SubscriptionHistoryData | null>(null);
-  const [isLoadingBilling, setIsLoadingBilling] = useState(false);
-  const [selectedProTierIndex, setSelectedProTierIndex] = useState<number>(0); // Default to first Pro tier (100 credits/month)
+  // Billing state - now handled by BillingTab component
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [tierSetFromPricingPage, setTierSetFromPricingPage] = useState(false); // Track if tier was set from pricing page
-  const [isAutoTriggeringCheckout, setIsAutoTriggeringCheckout] =
-    useState(false); // Track when auto-triggering checkout
-
-  // Embedded checkout state
-  const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
-  const [checkoutData, setCheckoutData] = useState<{
-    orderId: string;
-    amount: number;
-    currency: string;
-    keyId: string;
-    description?: string;
-  } | null>(null);
 
   // Filters and pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -461,57 +440,8 @@ export default function SettingsModal({
   useEffect(() => {
     if (isOpen && initialTab) {
       setActiveTab(initialTab);
-    } else if (!isOpen) {
-      // Reset the tier flag when modal closes
-      setTierSetFromPricingPage(false);
     }
   }, [isOpen, initialTab]);
-
-  // Set initial Pro tier index when modal opens with billing tab
-  useEffect(() => {
-    if (
-      isOpen &&
-      initialTab === "billing" &&
-      initialProTierIndex !== undefined
-    ) {
-      console.log(
-        "Setting Pro tier index from pricing page to:",
-        initialProTierIndex
-      );
-      setSelectedProTierIndex(initialProTierIndex);
-      setTierSetFromPricingPage(true); // Mark that tier was explicitly set
-    }
-  }, [isOpen, initialTab, initialProTierIndex]);
-
-  // Billing tab removed - using credits tab instead
-
-  // Auto-trigger checkout when coming from pricing page with tier change action
-  useEffect(() => {
-    if (
-      isOpen &&
-      autoTriggerCheckout &&
-      initialTab === "billing" &&
-      tierSetFromPricingPage &&
-      subscriptionData &&
-      !isPurchasing &&
-      !showEmbeddedCheckout &&
-      !isAutoTriggeringCheckout
-    ) {
-      // Subscription system removed - redirect to credits page
-      console.log("Auto-triggering checkout - redirecting to credits page");
-      window.location.href = "/?settings=true&tab=billing";
-    }
-  }, [
-    isOpen,
-    autoTriggerCheckout,
-    initialTab,
-    tierSetFromPricingPage,
-    subscriptionData,
-    selectedProTierIndex,
-    isPurchasing,
-    showEmbeddedCheckout,
-    isAutoTriggeringCheckout,
-  ]);
 
   // Initialize filters and values from URL parameters
   useEffect(() => {
@@ -1137,155 +1067,6 @@ export default function SettingsModal({
 
   // Helper function to open embedded checkout
   // CRITICAL: Debouncing to prevent concurrent requests (Polar locker pattern equivalent)
-  const lastRequestTimeRef = useRef<number>(0);
-  const DEBOUNCE_MS = 3000; // 3 seconds between tier change requests
-
-  const handleOpenEmbeddedCheckout = async (monthlyCredits: number) => {
-    // CRITICAL: Prevent concurrent requests
-    const now = Date.now();
-    const timeSinceLastRequest = now - lastRequestTimeRef.current;
-
-    if (timeSinceLastRequest < DEBOUNCE_MS && lastRequestTimeRef.current > 0) {
-      toast.error(
-        `Please wait ${Math.ceil(
-          (DEBOUNCE_MS - timeSinceLastRequest) / 1000
-        )} more seconds before making another tier change.`,
-        { duration: 3000 }
-      );
-      return;
-    }
-
-    lastRequestTimeRef.current = now;
-    setIsPurchasing(true);
-
-    try {
-      // Check if user is already on Pro plan (tier change)
-      const isProUser = subscriptionData?.plan?.name?.startsWith("PRO");
-      const endpoint = isProUser
-        ? "/api/billing/change-pro-tier"
-        : "/api/billing/create-checkout-session";
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ monthlyCredits }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // CRITICAL: Handle specific error types from backend
-        if (data.error === "MissingPaymentMethod") {
-          toast.error(data.message || "Please add balance to continue.", {
-            duration: 8000,
-            action: {
-              label: "Add Balance",
-              onClick: () => {
-                // Open balance top-up modal or redirect to billing page
-                setActiveTab("billing");
-              },
-            },
-          });
-          return;
-        }
-
-        if (data.error === "AlreadyCanceledSubscription") {
-          toast.error(
-            data.message ||
-              "Your subscription has been cancelled. Please start a new subscription.",
-            { duration: 8000 }
-          );
-          return;
-        }
-
-        if (data.error === "TrialingSubscription") {
-          toast.error(
-            data.message ||
-              "Tier changes are not available during trial period.",
-            { duration: 8000 }
-          );
-          return;
-        }
-
-        // Check for scheduled change conflict
-        if (data.scheduledChange) {
-          toast.error(
-            data.error || "You already have a tier change scheduled.",
-            { duration: 8000 }
-          );
-          return;
-        }
-
-        throw new Error(data.error || "Failed to process request");
-      }
-
-      // Handle tier change response
-      if (data.success) {
-        if (data.immediate) {
-          // Upgrade - invoiced immediately
-          toast.success(
-            data.message ||
-              `Tier upgrade completed! Your new plan is now active.`
-          );
-        } else if (data.scheduled) {
-          // Downgrade - scheduled for end of billing period
-          toast.success(
-            data.message ||
-              `Downgrade scheduled. Changes will take effect at the end of your billing period.`,
-            { duration: 8000 }
-          );
-        }
-        setIsPurchasing(false);
-        return;
-      }
-
-      // Open embedded checkout (for new Pro subscriptions or balance top-ups)
-      if (data.orderId && data.keyId) {
-        setCheckoutData({
-          orderId: data.orderId,
-          amount: data.amount,
-          currency: data.currency || "USD",
-          keyId: data.keyId,
-          description: data.description,
-        });
-        setShowEmbeddedCheckout(true);
-      } else if (data.checkoutUrl) {
-        // Fallback for legacy Polar URLs (should not happen after migration)
-        console.warn(
-          "Received legacy Polar checkoutUrl, please update backend to return Razorpay data"
-        );
-        toast.error(
-          "Payment system configuration error. Please contact support."
-        );
-      }
-    } catch (error) {
-      console.error("Error processing checkout:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to process request. Please try again."
-      );
-    } finally {
-      setIsPurchasing(false);
-    }
-  };
-
-  // Handle checkout success
-  const handleCheckoutSuccess = async () => {
-    setShowEmbeddedCheckout(false);
-    setCheckoutData(null);
-
-    toast.success("Successfully added credits!");
-  };
-
-  // Handle checkout close
-  const handleCheckoutClose = () => {
-    setShowEmbeddedCheckout(false);
-    setCheckoutData(null);
-    setIsPurchasing(false);
-  };
 
   const fetchCreditUsage = () => {
     setIsLoadingUsage(true);
@@ -1822,22 +1603,6 @@ export default function SettingsModal({
         onConfirm={confirmUnlinkProvider}
         onCancel={() => setPendingUnlinkProvider(null)}
       />
-
-      {/* Embedded Checkout Modal */}
-      {showEmbeddedCheckout && checkoutData && (
-        <EmbeddedCheckout
-          orderId={checkoutData.orderId}
-          amount={checkoutData.amount}
-          currency={checkoutData.currency}
-          keyId={checkoutData.keyId}
-          userEmail={userEmail}
-          userName={userName}
-          description={checkoutData.description}
-          onSuccess={handleCheckoutSuccess}
-          onClose={handleCheckoutClose}
-          theme={theme === "dark" ? "dark" : "light"}
-        />
-      )}
     </>
   );
 }

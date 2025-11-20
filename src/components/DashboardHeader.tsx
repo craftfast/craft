@@ -226,10 +226,7 @@ export default function DashboardHeader({
                         </span>
                       </div>
                       <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                        <span>
-                          Monthly credits:{" "}
-                          {formatCredits(balance.subscriptionCreditsRemaining)}
-                        </span>
+                        <span>Credit balance</span>
                       </div>
                     </div>
                   )}
