@@ -21,10 +21,11 @@ import puppeteer from "puppeteer";
  * 5. Server uploads new screenshot to Cloudflare R2 storage
  * 6. Server updates project.previewImage
  */
-export async function POST(
+export async function GET(
     request: NextRequest,
-    { params }: { params: { projectId: string } }
+    { params }: { params: Promise<{ projectId: string }> }
 ) {
+    const { projectId } = await params;
     try {
         // Verify user is authenticated
         const session = await getSession();
@@ -235,7 +236,7 @@ export async function POST(
  */
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { projectId: string } }
+    { params }: { params: Promise<{ projectId: string }> }
 ) {
     try {
         // Verify user is authenticated
@@ -244,8 +245,7 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const resolvedParams = await params;
-        const projectId = resolvedParams.projectId;
+        const { projectId } = await params;
 
         // Verify project exists and user owns it
         const project = await prisma.project.findUnique({

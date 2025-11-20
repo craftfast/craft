@@ -66,9 +66,8 @@ model User {
   // Craft-specific soft delete fields
   deletionScheduledAt   DateTime?
   deletedAt             DateTime?
-  // Polar Integration fields
-  polarCustomerId       String?               @unique
-  polarCustomerExtId    String?               @unique
+  // Razorpay Integration fields
+  razorpayCustomerId    String?               @unique
   // Balance system (replaces subscription credits)
   accountBalance        Decimal               @default(0) @db.Decimal(10, 2)
   // Relations
@@ -96,8 +95,7 @@ model User {
   invitedCollaborators  ProjectCollaborator[] @relation("InvitedCollaborators")
   uploadedKnowledge     KnowledgeFile[]       @relation("UploadedKnowledge")
 
-  @@index([polarCustomerId])
-  @@index([polarCustomerExtId])
+  @@index([razorpayCustomerId])
   @@map("users")
 }
 
@@ -422,54 +420,53 @@ model Plan {
   monthlyCredits  Int
   isActive        Boolean            @default(true)
   sortOrder       Int                @default(0)
-  // Polar Integration fields
-  polarProductId  String?            @unique
-  polarPriceId    String?
+  // Razorpay Integration fields
+  razorpayPlanId  String?            @unique
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   subscriptions   UserSubscription[]
 
   @@index([name])
   @@index([isActive])
-  @@index([polarProductId])
+  @@index([razorpayPlanId])
   @@map("plans")
 }
 
 model UserSubscription {
-  id                  String             @id @default(cuid())
-  userId              String             @unique
-  planId              String
-  status              SubscriptionStatus @default(ACTIVE)
-  currentPeriodStart  DateTime           @default(now())
-  currentPeriodEnd    DateTime
-  cancelAtPeriodEnd   Boolean            @default(false)
-  cancelledAt         DateTime?
-  polarCheckoutId     String?
-  polarPaymentId      String?
-  // Polar Integration fields
-  polarSubscriptionId String?            @unique
-  polarCustomerId     String?
-  monthlyCreditsUsed  Decimal            @default(0) @db.Decimal(10, 2)
-  periodCreditsReset  DateTime           @default(now())
-  gracePeriodEndsAt   DateTime?
-  paymentFailedAt     DateTime?
+  id                     String             @id @default(cuid())
+  userId                 String             @unique
+  planId                 String
+  status                 SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart     DateTime           @default(now())
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean            @default(false)
+  cancelledAt            DateTime?
+  razorpayOrderId        String?
+  razorpayPaymentId      String?
+  // Razorpay Integration fields
+  razorpaySubscriptionId String?            @unique
+  razorpayCustomerId     String?
+  monthlyCreditsUsed     Decimal            @default(0) @db.Decimal(10, 2)
+  periodCreditsReset     DateTime           @default(now())
+  gracePeriodEndsAt      DateTime?
+  paymentFailedAt        DateTime?
   // Scheduled plan changes (for downgrades)
-  pendingPlanId       String?
-  planChangeAt        DateTime?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  invoices            Invoice[]
-  usageRecords        UsageRecord[]
-  plan                Plan               @relation(fields: [planId], references: [id])
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pendingPlanId          String?
+  planChangeAt           DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  invoices               Invoice[]
+  usageRecords           UsageRecord[]
+  plan                   Plan               @relation(fields: [planId], references: [id])
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([planId])
   @@index([status])
   @@index([currentPeriodEnd])
   @@index([gracePeriodEndsAt])
-  @@index([polarSubscriptionId])
-  @@index([polarCustomerId])
+  @@index([razorpaySubscriptionId])
+  @@index([razorpayCustomerId])
   @@map("user_subscriptions")
 }
 
@@ -538,8 +535,8 @@ model Invoice {
   taxUsd             Float            @default(0)
   totalUsd           Float            @default(0)
   currency           String           @default("USD")
-  polarCheckoutId    String?
-  polarPaymentId     String?
+  razorpayOrderId    String?
+  razorpayPaymentId  String?
   paidAt             DateTime?
   dueDate            DateTime?
   createdAt          DateTime         @default(now())
@@ -555,34 +552,34 @@ model Invoice {
 }
 
 model PaymentTransaction {
-  id              String   @id @default(cuid())
-  userId          String
-  invoiceId       String?
-  amount          Float
-  currency        String   @default("USD")
-  status          String
-  paymentMethod   String   @default("polar")
-  polarCheckoutId String?
-  polarPaymentId  String?
-  polarSignature  String?
-  failureReason   String?
-  metadata        Json?
+  id                String   @id @default(cuid())
+  userId            String
+  invoiceId         String?
+  amount            Float
+  currency          String   @default("USD")
+  status            String
+  paymentMethod     String   @default("razorpay")
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  failureReason     String?
+  metadata          Json?
   // Tax compliance fields
-  taxAmount       Float?
-  taxRate         Float?
-  taxCountryCode  String?
+  taxAmount         Float?
+  taxRate           Float?
+  taxCountryCode    String?
   // Audit fields
-  ipAddress       String?
-  userAgent       String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([invoiceId])
   @@index([status])
-  @@index([polarCheckoutId])
-  @@index([polarPaymentId])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
   @@index([createdAt])
   @@map("payment_transactions")
 }
@@ -615,8 +612,8 @@ model BalanceTransaction {
 
 model WebhookEvent {
   id          String             @id @default(cuid())
-  eventId     String             @unique // Polar event ID
-  eventType   String // "order.paid", "subscription.canceled", etc.
+  eventId     String             @unique // Razorpay event ID
+  eventType   String // "payment.captured", "subscription.cancelled", etc.
   payload     Json
   status      WebhookEventStatus @default(PENDING)
   processedAt DateTime?
@@ -856,14 +853,14 @@ model DeploymentUsage {
 }
 
 // ============================================================================
-// POLAR INTEGRATION MODELS
+// RAZORPAY INTEGRATION MODELS
 // ============================================================================
 
-// Polar webhook event tracking
-model PolarWebhookEvent {
+// Razorpay webhook event tracking
+model RazorpayWebhookEvent {
   id           String             @id @default(cuid())
-  eventType    String // e.g., "subscription.created", "order.paid"
-  eventId      String             @unique // Polar's event ID for idempotency
+  eventType    String // e.g., "payment.captured", "order.paid"
+  eventId      String             @unique // Razorpay's event ID for idempotency
   payload      Json // Full webhook payload
   status       WebhookEventStatus @default(PENDING)
   processedAt  DateTime?
@@ -875,23 +872,7 @@ model PolarWebhookEvent {
   @@index([eventType])
   @@index([status])
   @@index([createdAt])
-  @@map("polar_webhook_events")
-}
-
-// Polar usage event tracking
-model PolarUsageEvent {
-  id                 String   @id @default(cuid())
-  userId             String
-  externalCustomerId String // Our user.id stored in Polar
-  eventName          String // e.g., "ai_credits_used"
-  metadata           Json // Event metadata (model, tokens, credits, etc.)
-  polarEventId       String?  @unique // Event ID returned by Polar
-  sentAt             DateTime @default(now())
-
-  @@index([userId])
-  @@index([externalCustomerId])
-  @@index([sentAt])
-  @@map("polar_usage_events")
+  @@map("razorpay_webhook_events")
 }
 
 // Referral system

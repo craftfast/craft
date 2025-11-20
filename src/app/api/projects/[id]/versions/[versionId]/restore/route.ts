@@ -4,8 +4,9 @@ import { prisma } from "@/lib/db";
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { id: string; versionId: string } }
+    { params }: { params: Promise<{ id: string; versionId: string }> }
 ) {
+    const { id: projectId, versionId } = await params;
     try {
         const session = await auth.api.getSession({
             headers: req.headers,

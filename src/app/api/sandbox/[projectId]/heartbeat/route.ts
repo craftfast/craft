@@ -16,8 +16,9 @@ import { keepSandboxAlive } from "@/lib/e2b/sandbox-manager";
  */
 export async function POST(
     request: NextRequest,
-    { params }: { params: { projectId: string } }
+    { params }: { params: Promise<{ projectId: string }> }
 ) {
+    const { projectId } = await params;
     try {
         // Verify user is authenticated
         const session = await getSession();

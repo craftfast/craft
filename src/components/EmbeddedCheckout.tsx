@@ -1,14 +1,22 @@
 "use client";
 
-import { PolarEmbedCheckout } from "@polar-sh/checkout/embed";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
-// Use the actual exported type from Polar
-type EmbedCheckout = InstanceType<typeof PolarEmbedCheckout>;
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface EmbeddedCheckoutProps {
-  checkoutUrl: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+  userEmail?: string;
+  userName?: string;
+  description?: string;
   onSuccess?: () => void;
   onClose?: () => void;
   theme?: "light" | "dark";
@@ -17,21 +25,27 @@ interface EmbeddedCheckoutProps {
 /**
  * EmbeddedCheckout Component
  *
- * Integrates Polar checkout directly in the app without redirects.
- * Polar appends iframe directly to document.body with z-index: 2147483647 (max value).
+ * Integrates Razorpay checkout directly in the app.
+ * Razorpay provides a modal overlay for payment collection.
  *
- * @see https://polar.sh/docs/features/checkout/embed
+ * @see https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/
  */
 export default function EmbeddedCheckout({
-  checkoutUrl,
+  orderId,
+  amount,
+  currency,
+  keyId,
+  userEmail,
+  userName,
+  description = "Balance Top-Up",
   onSuccess,
   onClose,
   theme = "light",
 }: EmbeddedCheckoutProps) {
-  const checkoutInstanceRef = useRef<EmbedCheckout | null>(null);
   const isInitializingRef = useRef(false);
   const onSuccessRef = useRef(onSuccess);
   const onCloseRef = useRef(onClose);
+  const razorpayInstanceRef = useRef<any>(null);
 
   // Update refs when callbacks change
   useEffect(() => {
@@ -39,119 +53,102 @@ export default function EmbeddedCheckout({
     onCloseRef.current = onClose;
   }, [onSuccess, onClose]);
 
-  // Initialize checkout when component mounts
+  // Load Razorpay SDK and initialize checkout
   useEffect(() => {
     // Prevent duplicate initialization
-    if (isInitializingRef.current || checkoutInstanceRef.current) {
-      console.log("⚠️ Checkout already initializing or initialized, skipping");
+    if (isInitializingRef.current) {
+      console.log("⚠️ Checkout already initializing, skipping");
       return;
     }
 
-    // Clean up any existing Polar iframes before creating new one
-    const existingIframes = document.querySelectorAll(
-      'iframe[src*="polar.sh"]'
-    );
-    if (existingIframes.length > 0) {
-      console.log(
-        `🧹 Cleaning up ${existingIframes.length} existing Polar iframes`
-      );
-      existingIframes.forEach((iframe) => iframe.remove());
-    }
-
     isInitializingRef.current = true;
-    let checkoutInstance: EmbedCheckout | null = null;
 
-    console.log("🚀 Creating Polar checkout...");
-    console.log("Checkout URL:", checkoutUrl);
-    console.log("Theme:", theme);
-
-    // Add global message listener to debug
-    const debugMessageListener = (event: MessageEvent) => {
-      // Only log messages from Polar or show all for debugging
-      if (
-        event.origin.includes("polar.sh") ||
-        event.data?.type === "POLAR_CHECKOUT"
-      ) {
-        console.log("📨 Polar message received:", {
-          origin: event.origin,
-          data: event.data,
-        });
+    // Load Razorpay SDK if not already loaded
+    const loadRazorpaySDK = () => {
+      if (window.Razorpay) {
+        return Promise.resolve();
       }
-    };
-    window.addEventListener("message", debugMessageListener);
 
-    // Expose to window for debugging
-    interface WindowWithDebug extends Window {
-      debugPolarCheckout?: () => void;
-      polarCheckoutInstance?: EmbedCheckout | null;
-    }
-
-    (window as WindowWithDebug).debugPolarCheckout = () => {
-      console.log("Checkout instance:", checkoutInstance);
-      if (checkoutInstance) {
-        console.log("Calling close() manually...");
-        checkoutInstance.close();
-      } else {
-        console.log("No checkout instance found");
-      }
+      return new Promise<void>((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.async = true;
+        script.onload = () => {
+          console.log("✅ Razorpay SDK loaded");
+          resolve();
+        };
+        script.onerror = () => {
+          console.error("❌ Failed to load Razorpay SDK");
+          reject(new Error("Failed to load Razorpay SDK"));
+        };
+        document.body.appendChild(script);
+      });
     };
 
-    // Set a timeout to check if checkout never loads
-    const loadTimeout = setTimeout(() => {
-      if (!checkoutInstance) {
-        console.error("⏰ TIMEOUT: Checkout didn't load in 10 seconds");
-        console.log(
-          "This usually means the Polar iframe isn't sending the 'loaded' message"
-        );
-        console.log("Try refreshing the page or check your network tab");
-      }
-    }, 10000);
+    console.log("🚀 Initializing Razorpay checkout...");
+    console.log("Order ID:", orderId);
+    console.log("Amount:", amount, currency);
 
-    // Call create and attach listeners when ready
-    PolarEmbedCheckout.create(checkoutUrl, theme)
-      .then((checkout) => {
-        clearTimeout(loadTimeout);
-        checkoutInstance = checkout;
-        checkoutInstanceRef.current = checkout;
-        (window as WindowWithDebug).polarCheckoutInstance = checkout;
+    loadRazorpaySDK()
+      .then(() => {
+        const options = {
+          key: keyId,
+          amount: amount,
+          currency: currency,
+          order_id: orderId,
+          name: "Craft",
+          description: description,
+          image: "/logo.png",
+          prefill: {
+            email: userEmail,
+            name: userName,
+          },
+          theme: {
+            color: theme === "dark" ? "#000000" : "#3399cc",
+          },
+          handler: function (response: {
+            razorpay_payment_id: string;
+            razorpay_order_id: string;
+            razorpay_signature: string;
+          }) {
+            console.log("💰 Payment successful", response);
+            toast.success("Payment successful! Your balance has been updated.");
 
-        console.log("✅ Polar checkout loaded and ready");
-        console.log(
-          "Try calling: window.debugPolarCheckout() to manually close"
-        );
+            // Dispatch credit update event
+            const event = new CustomEvent("credits-updated");
+            window.dispatchEvent(event);
 
-        // Attach event listeners
-        checkout.addEventListener("loaded", () => {
-          console.log("📦 Loaded event fired");
-        });
+            onSuccessRef.current?.();
 
-        checkout.addEventListener("success", (event) => {
-          console.log("💰 Success event fired", event);
-          toast.success("Payment successful! Your plan has been upgraded.");
-          onSuccessRef.current?.();
-
-          if (!event.detail.redirect) {
+            // Close after success
             setTimeout(() => {
-              console.log("Closing checkout after success");
-              checkout.close();
+              onCloseRef.current?.();
             }, 1500);
-          }
-        });
+          },
+          modal: {
+            ondismiss: function () {
+              console.log("❌ Checkout dismissed");
+              isInitializingRef.current = false;
+              onCloseRef.current?.();
+            },
+          },
+        };
 
-        checkout.addEventListener("close", () => {
-          console.log("❌ Close event fired");
-          checkoutInstance = null;
-          checkoutInstanceRef.current = null;
-          isInitializingRef.current = false;
-          (window as WindowWithDebug).polarCheckoutInstance = null;
+        const rzp = new window.Razorpay(options);
+        razorpayInstanceRef.current = rzp;
+
+        rzp.on("payment.failed", function (response: any) {
+          console.error("❌ Payment failed", response.error);
+          toast.error("Payment failed. Please try again.");
           onCloseRef.current?.();
         });
 
-        console.log("🎯 All event listeners attached");
+        // Open the checkout
+        rzp.open();
+        console.log("✅ Razorpay checkout opened");
       })
       .catch((error) => {
-        clearTimeout(loadTimeout);
-        console.error("❌ Failed to create checkout:", error);
+        console.error("❌ Failed to initialize checkout:", error);
         toast.error("Failed to load checkout. Please try again.");
         isInitializingRef.current = false;
         onCloseRef.current?.();
@@ -160,21 +157,27 @@ export default function EmbeddedCheckout({
     // Cleanup on unmount
     return () => {
       console.log("🧹 Component unmounting");
-      clearTimeout(loadTimeout);
-      window.removeEventListener("message", debugMessageListener);
-      if (checkoutInstance) {
+      if (razorpayInstanceRef.current) {
         try {
-          checkoutInstance.close();
+          // Razorpay doesn't have a close method, modal auto-closes
+          razorpayInstanceRef.current = null;
         } catch (e) {
-          console.error("Error closing checkout:", e);
+          console.error("Error cleaning up checkout:", e);
         }
       }
-      checkoutInstance = null;
-      checkoutInstanceRef.current = null;
       isInitializingRef.current = false;
     };
-  }, [checkoutUrl, theme]); // Include deps that should trigger re-initialization
+  }, [
+    orderId,
+    amount,
+    currency,
+    keyId,
+    userEmail,
+    userName,
+    description,
+    theme,
+  ]);
 
-  // Polar manages its own rendering via document.body.appendChild
+  // Razorpay manages its own rendering
   return null;
 }

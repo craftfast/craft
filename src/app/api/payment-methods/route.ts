@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
  * GET /api/payment-methods
  * 
  * Retrieves saved payment methods for the authenticated user.
- * Returns Stripe payment methods associated with the user's Polar customer.
+ * Returns payment methods associated with the user's Razorpay customer.
  */
 export async function GET() {
     try {
@@ -19,7 +19,7 @@ export async function GET() {
             where: { email: session.user.email },
             select: {
                 id: true,
-                polarCustomerId: true,
+                razorpayCustomerId: true,
             },
         });
 
@@ -27,31 +27,22 @@ export async function GET() {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // If no Polar customer ID, return empty array
-        if (!user.polarCustomerId) {
+        // If no Razorpay customer ID, return empty array
+        if (!user.razorpayCustomerId) {
             return NextResponse.json({
                 success: true,
                 paymentMethods: [],
             });
         }
 
-        // TODO: Integrate with Stripe to fetch actual payment methods
-        // For now, return mock data structure
-        // In production, you would:
-        // 1. Use Stripe SDK to fetch payment methods for the customer
-        // 2. const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-        // 3. const paymentMethods = await stripe.paymentMethods.list({ customer: stripeCustomerId })
+        // TODO: Integrate with Razorpay to fetch actual payment methods
+        // For now, return empty array as Razorpay handles payment methods through checkout
+        // Note: Razorpay doesn't support saved payment methods in the same way as Stripe
+        // Payment methods are managed through Razorpay checkout flow
 
         const mockPaymentMethods = [
-            // Example structure - replace with actual Stripe integration
-            // {
-            //   id: "pm_xxx",
-            //   brand: "visa",
-            //   last4: "4242",
-            //   expMonth: 12,
-            //   expYear: 2025,
-            //   isDefault: true,
-            // }
+            // Razorpay doesn't provide a direct API for saved payment methods
+            // Payment methods are handled through checkout flow
         ];
 
         return NextResponse.json({
@@ -74,7 +65,7 @@ export async function GET() {
  * POST /api/payment-methods
  * 
  * Adds a new payment method for the user.
- * Creates a Stripe setup intent for collecting payment method details.
+ * Note: Razorpay handles payment methods through checkout flow, not setup intents.
  */
 export async function POST(request: Request) {
     try {
@@ -88,7 +79,7 @@ export async function POST(request: Request) {
             select: {
                 id: true,
                 email: true,
-                polarCustomerId: true,
+                razorpayCustomerId: true,
             },
         });
 
@@ -96,18 +87,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // TODO: Integrate with Stripe to create setup intent
-        // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-        // const setupIntent = await stripe.setupIntents.create({
-        //   customer: stripeCustomerId,
-        //   payment_method_types: ['card'],
-        // })
+        // Note: Razorpay doesn't support setup intents like Stripe
+        // Payment methods are collected during checkout flow
 
         return NextResponse.json({
-            success: true,
-            setupIntent: {
-                clientSecret: "seti_xxx", // Replace with actual Stripe setup intent
-            },
+            success: false,
+            message: "Payment methods are managed through Razorpay checkout flow",
         });
     } catch (error) {
         console.error("Error creating setup intent:", error);
@@ -142,9 +127,8 @@ export async function DELETE(request: Request) {
             );
         }
 
-        // TODO: Integrate with Stripe to detach payment method
-        // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-        // await stripe.paymentMethods.detach(paymentMethodId)
+        // Note: Razorpay doesn't support detaching payment methods via API
+        // Payment methods are managed through Razorpay dashboard
 
         return NextResponse.json({
             success: true,

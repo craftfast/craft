@@ -7,12 +7,12 @@ async function main() {
 
     console.log("\n✅ Craft uses a pure pay-as-you-go model:");
     console.log("   - No subscription plans or tiers");
-    console.log("   - Users top up balance anytime via Polar");
+    console.log("   - Users top up balance anytime via Razorpay");
     console.log("   - Pay only for actual usage");
 
     console.log("\n💰 Balance System:");
     console.log("   - 1 credit = $1 USD");
-    console.log("   - Powered by Polar Pay What You Want checkout");
+    console.log("   - Powered by Razorpay payment gateway");
     console.log("   - 10% platform fee on top-ups");
     console.log("   - Balance stored in User.accountBalance");
     console.log("   - Actual usage costs deducted directly");

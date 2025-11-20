@@ -4,9 +4,10 @@ import { prisma } from "@/lib/db";
 
 export async function PUT(
     req: NextRequest,
-    { params }: { params: { id: string; integration: string } }
+    { params }: { params: Promise<{ id: string; integration: string }> }
 ) {
     try {
+        const { id: projectId, integration } = await params;
         const session = await auth.api.getSession({
             headers: req.headers,
         });
@@ -14,9 +15,6 @@ export async function PUT(
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        const projectId = params.id;
-        const integration = params.integration;
 
         // Verify project ownership
         const project = await prisma.project.findUnique({

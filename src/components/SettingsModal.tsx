@@ -333,7 +333,13 @@ export default function SettingsModal({
 
   // Embedded checkout state
   const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState<string>("");
+  const [checkoutData, setCheckoutData] = useState<{
+    orderId: string;
+    amount: number;
+    currency: string;
+    keyId: string;
+    description?: string;
+  } | null>(null);
 
   // Filters and pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -1172,19 +1178,16 @@ export default function SettingsModal({
       if (!response.ok) {
         // CRITICAL: Handle specific error types from backend
         if (data.error === "MissingPaymentMethod") {
-          toast.error(
-            data.message || "Please add a payment method to upgrade.",
-            {
-              duration: 8000,
-              action: {
-                label: "Add Payment Method",
-                onClick: () => {
-                  // TODO: Open payment method modal or redirect to Polar customer portal
-                  window.open("https://polar.sh/dashboard", "_blank");
-                },
+          toast.error(data.message || "Please add balance to continue.", {
+            duration: 8000,
+            action: {
+              label: "Add Balance",
+              onClick: () => {
+                // Open balance top-up modal or redirect to billing page
+                setActiveTab("billing");
               },
-            }
-          );
+            },
+          });
           return;
         }
 
@@ -1238,10 +1241,24 @@ export default function SettingsModal({
         return;
       }
 
-      // Open embedded checkout (for new Pro subscriptions)
-      if (data.checkoutUrl) {
-        setCheckoutUrl(data.checkoutUrl);
+      // Open embedded checkout (for new Pro subscriptions or balance top-ups)
+      if (data.orderId && data.keyId) {
+        setCheckoutData({
+          orderId: data.orderId,
+          amount: data.amount,
+          currency: data.currency || "USD",
+          keyId: data.keyId,
+          description: data.description,
+        });
         setShowEmbeddedCheckout(true);
+      } else if (data.checkoutUrl) {
+        // Fallback for legacy Polar URLs (should not happen after migration)
+        console.warn(
+          "Received legacy Polar checkoutUrl, please update backend to return Razorpay data"
+        );
+        toast.error(
+          "Payment system configuration error. Please contact support."
+        );
       }
     } catch (error) {
       console.error("Error processing checkout:", error);
@@ -1258,7 +1275,7 @@ export default function SettingsModal({
   // Handle checkout success
   const handleCheckoutSuccess = async () => {
     setShowEmbeddedCheckout(false);
-    setCheckoutUrl("");
+    setCheckoutData(null);
 
     toast.success("Successfully added credits!");
   };
@@ -1266,7 +1283,7 @@ export default function SettingsModal({
   // Handle checkout close
   const handleCheckoutClose = () => {
     setShowEmbeddedCheckout(false);
-    setCheckoutUrl("");
+    setCheckoutData(null);
     setIsPurchasing(false);
   };
 
@@ -1807,9 +1824,15 @@ export default function SettingsModal({
       />
 
       {/* Embedded Checkout Modal */}
-      {showEmbeddedCheckout && checkoutUrl && (
+      {showEmbeddedCheckout && checkoutData && (
         <EmbeddedCheckout
-          checkoutUrl={checkoutUrl}
+          orderId={checkoutData.orderId}
+          amount={checkoutData.amount}
+          currency={checkoutData.currency}
+          keyId={checkoutData.keyId}
+          userEmail={userEmail}
+          userName={userName}
+          description={checkoutData.description}
           onSuccess={handleCheckoutSuccess}
           onClose={handleCheckoutClose}
           theme={theme === "dark" ? "dark" : "light"}

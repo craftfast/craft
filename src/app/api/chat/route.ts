@@ -2,7 +2,7 @@ import { getSystemPrompt } from "@/lib/ai/system-prompts";
 import { streamCodingResponse } from "@/lib/ai/agent";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
-import { checkUserBalance, processAIUsage } from "@/lib/ai-usage";
+import { checkUserBalance, trackAIUsage } from "@/lib/ai-usage";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createOrchestrator } from "@/lib/ai/orchestrator/orchestrator-agent";
 
@@ -305,7 +305,7 @@ export async function POST(req: Request) {
                         enableAgentLoop, // ⚡ Phase 2: Enable Think→Act→Observe→Reflect
                         onFinish: async (usageData) => {
                             try {
-                                await processAIUsage({
+                                await trackAIUsage({
                                     userId: user.id,
                                     projectId,
                                     model: usageData.model,

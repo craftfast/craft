@@ -16,7 +16,7 @@ import {
 } from "@/lib/security-logger";
 import { sendPasswordResetEmail, sendOTPEmail } from "@/lib/email";
 import { validatePassword } from "@/lib/password-validation";
-import { createPolarCustomer } from "@/lib/polar/customer";
+import { getOrCreateRazorpayCustomer } from "@/lib/razorpay/customer";
 
 // Validate required environment variables
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -252,37 +252,37 @@ export const auth = betterAuth({
                     provider
                 );
 
-                // Create Polar customer if needed for OAuth users
+                // Create Razorpay customer if needed for OAuth users
                 // This handles both new signups and existing users who haven't been migrated
                 try {
                     const user = await prisma.user.findUnique({
                         where: { id: newSession.session.userId },
                     });
 
-                    console.log(`🔍 User fetched: ${user?.email}, polarCustomerId: ${user?.polarCustomerId || 'NOT SET'}`);
+                    console.log(`🔍 User fetched: ${user?.email}, razorpayCustomerId: ${user?.razorpayCustomerId || 'NOT SET'}`);
 
                     if (user) {
-                        if (!user.polarCustomerId) {
-                            // User doesn't have Polar customer - create one
-                            console.log(`🔄 Creating Polar customer for OAuth user: ${user.email}`);
+                        if (!user.razorpayCustomerId) {
+                            // User doesn't have Razorpay customer - create one
+                            console.log(`🔄 Creating Razorpay customer for OAuth user: ${user.email}`);
 
-                            createPolarCustomer(user)
-                                .then((result) => {
-                                    if (result.success && 'customerId' in result) {
-                                        console.log(`✅ Polar customer created for OAuth user: ${user.email}`);
-                                    } else if (!result.success && 'error' in result) {
-                                        console.error(`❌ Failed to create Polar customer: ${result.error}`);
-                                    }
+                            getOrCreateRazorpayCustomer({
+                                userId: user.id,
+                                name: user.name || user.email,
+                                email: user.email,
+                            })
+                                .then((customer) => {
+                                    console.log(`✅ Razorpay customer created for OAuth user: ${user.email}`);
                                 })
                                 .catch((error) => {
-                                    console.error("Error creating Polar customer:", error);
+                                    console.error("Error creating Razorpay customer:", error);
                                 });
-                        } else if (user.polarCustomerId) {
-                            console.log(`✓ OAuth user already has Polar customer: ${user.email}`);
+                        } else if (user.razorpayCustomerId) {
+                            console.log(`✓ OAuth user already has Razorpay customer: ${user.email}`);
                         }
                     }
                 } catch (customerError) {
-                    console.error("Error checking OAuth user for Polar customer creation:", customerError);
+                    console.error("Error checking OAuth user for Razorpay customer creation:", customerError);
                 }
             }
 
@@ -297,34 +297,34 @@ export const auth = betterAuth({
                 // User created with $0 balance - balance system auto-initializes
                 console.log(`✅ User created with $0 balance: ${newSession.user.email}`);
 
-                // Create Polar customer account (async, non-blocking)
+                // Create Razorpay customer account (async, non-blocking)
                 try {
                     // Fetch user with full details
                     const user = await prisma.user.findUnique({
                         where: { id: newSession.session.userId },
                     });
 
-                    if (user && !user.polarCustomerId) {
-                        // User doesn't have Polar customer - create one
-                        console.log(`🔄 Creating Polar customer for new user: ${user.email}`);
+                    if (user && !user.razorpayCustomerId) {
+                        // User doesn't have Razorpay customer - create one
+                        console.log(`🔄 Creating Razorpay customer for new user: ${user.email}`);
 
-                        // Create Polar customer in background (don't block signup)
-                        createPolarCustomer(user)
-                            .then((result) => {
-                                if (result.success && 'customerId' in result) {
-                                    console.log(`✅ Polar customer created for user: ${newSession.user.email}`);
-                                } else if (!result.success && 'error' in result) {
-                                    console.error(`❌ Failed to create Polar customer: ${result.error}`);
-                                }
+                        // Create Razorpay customer in background (don't block signup)
+                        getOrCreateRazorpayCustomer({
+                            userId: user.id,
+                            name: user.name || user.email,
+                            email: user.email,
+                        })
+                            .then((customer) => {
+                                console.log(`✅ Razorpay customer created for user: ${newSession.user.email}`);
                             })
                             .catch((error) => {
-                                console.error("Error creating Polar customer:", error);
+                                console.error("Error creating Razorpay customer:", error);
                             });
-                    } else if (user?.polarCustomerId) {
-                        console.log(`✓ User already has Polar customer: ${user.email}`);
+                    } else if (user?.razorpayCustomerId) {
+                        console.log(`✓ User already has Razorpay customer: ${user.email}`);
                     }
                 } catch (customerError) {
-                    console.error("Error initiating Polar customer creation:", customerError);
+                    console.error("Error initiating Razorpay customer creation:", customerError);
                     // Don't fail the registration if customer creation fails
                 }
             }

@@ -9,8 +9,8 @@ async function checkLatestUser() {
         console.log("\n📊 Latest User:");
         console.log("   Email:", user.email);
         console.log("   Name:", user.name);
-        console.log("   Polar Customer ID:", user.polarCustomerId || "❌ Not set");
-        console.log("   Polar External ID:", user.polarCustomerExtId || "❌ Not set");
+        console.log("   Razorpay Customer ID:", user.razorpayCustomerId || "❌ Not set");
+        console.log("   Account Balance:", `$${user.accountBalance.toString()}`);
         console.log("   Created:", user.createdAt);
         console.log("   Age:", Math.floor((Date.now() - user.createdAt.getTime()) / 1000), "seconds");
     }

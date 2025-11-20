@@ -54,7 +54,7 @@ export default function CustomCheckoutModal({
 
     setLoading(true);
     try {
-      // Create Polar checkout session
+      // Create Razorpay order
       const res = await fetch("/api/balance/topup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,32 +64,60 @@ export default function CustomCheckoutModal({
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || "Failed to create checkout");
+        toast.error(data.error || "Failed to create order");
         return;
       }
 
-      if (data.success && data.checkoutUrl) {
-        // Initialize Polar embedded checkout
-        const { PolarEmbedCheckout } = await import("@polar-sh/checkout/embed");
-        const checkout = await PolarEmbedCheckout.create(
-          data.checkoutUrl,
-          "dark"
-        );
+      if (data.success && data.orderId) {
+        // Load Razorpay SDK if not already loaded
+        if (!window.Razorpay) {
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.async = true;
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+          });
+        }
 
-        // Handle success
-        checkout.addEventListener("success", () => {
-          toast.success("Payment successful! Credits added to your account.");
-          onSuccess();
-          onClose();
-          checkout.close();
-        });
+        // Initialize Razorpay checkout
+        const options = {
+          key: data.keyId,
+          amount: data.amount,
+          currency: data.currency,
+          order_id: data.orderId,
+          name: "Craft",
+          description: `Top-up $${data.requestedBalance}`,
+          theme: {
+            color: "#000000",
+          },
+          handler: function (response: any) {
+            toast.success("Payment successful! Credits added to your account.");
 
-        // Handle close
-        checkout.addEventListener("close", () => {
+            // Dispatch credit update event
+            const event = new CustomEvent("credits-updated");
+            window.dispatchEvent(event);
+
+            onSuccess();
+            onClose();
+          },
+          modal: {
+            ondismiss: function () {
+              setLoading(false);
+            },
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", function (response: any) {
+          console.error("Payment failed", response.error);
+          toast.error("Payment failed. Please try again.");
           setLoading(false);
         });
+        rzp.open();
       } else {
-        toast.error(data.error || "Failed to create checkout");
+        toast.error(data.error || "Failed to create order");
         setLoading(false);
       }
     } catch (error) {

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string; varId: string } }
+    { params }: { params: Promise<{ id: string; varId: string }> }
 ) {
     try {
         const session = await auth.api.getSession({
@@ -15,8 +15,7 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const projectId = params.id;
-        const varId = params.varId;
+        const { id: projectId, varId } = await params;
 
         // Verify project ownership
         const project = await prisma.project.findUnique({
