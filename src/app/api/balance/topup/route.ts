@@ -2,14 +2,15 @@
  * API Route: Balance Top-Up
  * POST /api/balance/topup
  * 
- * Creates a Polar checkout session for adding balance to user account
- * Uses Pay What You Want product with 10% platform fee
+ * Creates a Polar checkout session for adding balance to user account.
+ * Balance system: 1 credit = $1 USD, deducted at actual usage cost.
+ * Uses Pay What You Want product with 10% platform fee.
  */
 
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
-import { Polar } from "@polar-sh/sdk";
+import { polarClient, POLAR_BALANCE_TOPUP_PRODUCT_ID } from "@/lib/polar";
 import {
     getCheckoutAmount,
     MINIMUM_BALANCE_AMOUNT,
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { amount } = await request.json();
+        const { amount, useCustomCheckout, paymentMethodId } = await request.json();
 
         // Validate amount
         if (!amount || typeof amount !== "number" || amount < MINIMUM_BALANCE_AMOUNT) {
@@ -46,15 +47,8 @@ export async function POST(request: Request) {
         const checkoutAmount = getCheckoutAmount(amount);
         const platformFee = checkoutAmount - amount;
 
-        // Initialize Polar SDK
-        const polar = new Polar({
-            accessToken: process.env.POLAR_ACCESS_TOKEN!,
-            server: (process.env.POLAR_SERVER as "sandbox" | "production") || "sandbox",
-        });
-
-        // Get the Pay What You Want product  price ID
-        const priceId = process.env.POLAR_BALANCE_TOPUP_PRODUCT_ID;
-        if (!priceId) {
+        // Validate product configuration
+        if (!POLAR_BALANCE_TOPUP_PRODUCT_ID) {
             console.error("POLAR_BALANCE_TOPUP_PRODUCT_ID is not configured");
             return NextResponse.json(
                 { error: "Payment configuration error. Please contact support." },
@@ -64,12 +58,41 @@ export async function POST(request: Request) {
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-        // Create checkout with Pay What You Want product
-        // Note: For PWYW products, customer chooses amount in checkout UI
-        // We pass suggested amount in metadata for webhook processing
-        const checkout = await polar.checkouts.create({
+        // Fetch the product to get its price ID
+        // For Pay What You Want products, we need to use the actual price ID, not product ID
+        const product = await polarClient.products.get({
+            id: POLAR_BALANCE_TOPUP_PRODUCT_ID,
+        });
+
+        if (!product.prices || product.prices.length === 0) {
+            console.error("Product has no prices:", product);
+            return NextResponse.json(
+                { error: "Product configuration error. Please contact support." },
+                { status: 500 }
+            );
+        }
+
+        // Use the first available price (for PWYW products, there should be one price)
+        const priceId = product.prices[0].id;
+
+        console.log("Using product price:", {
+            productId: product.id,
+            priceId,
+            priceType: product.prices[0].type,
+        });
+
+        // Create checkout with the actual price ID
+        // Note: SDK v0.14.0 still uses legacy checkout API with productPriceId
+        const checkout = await polarClient.checkouts.create({
             productPriceId: priceId,
-            customerEmail: user.email || undefined,
+            // Amount in cents for PWYW products - this locks the amount
+            amount: Math.round(checkoutAmount * 100),
+            // Lock the customer email so they cannot edit it
+            customerEmail: user.email,
+            allowUserToSetAmount: false, // Prevent user from editing amount
+            customerBillingAddress: {
+                country: "US", // Default country, user can change in checkout
+            },
             embedOrigin: baseUrl,
             successUrl: `${baseUrl}/?settings=true&tab=billing&payment=success`,
             metadata: {
@@ -79,7 +102,7 @@ export async function POST(request: Request) {
                 platformFee: platformFee.toFixed(2),
                 totalCharged: checkoutAmount.toFixed(2),
             },
-        } as never); // Type assertion for SDK compatibility
+        } as any); // Type assertion needed for SDK v0.14.0
 
         console.log("Balance top-up checkout created:", {
             userId: user.id,

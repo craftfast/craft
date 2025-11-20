@@ -125,6 +125,47 @@ export default function CraftInput() {
     loadPreferredModel();
   }, []);
 
+  // Restore pending project data after login
+  useEffect(() => {
+    if (!session) return; // Only run if user is logged in
+
+    try {
+      const pendingProjectData = localStorage.getItem("pendingProject");
+      if (!pendingProjectData) return;
+
+      const pendingProject = JSON.parse(pendingProjectData);
+
+      // Validate and restore prompt
+      if (pendingProject.prompt && typeof pendingProject.prompt === "string") {
+        setInput(pendingProject.prompt);
+      }
+
+      // Validate and restore images
+      if (
+        Array.isArray(pendingProject.images) &&
+        pendingProject.images.length > 0
+      ) {
+        setSelectedImages(pendingProject.images);
+      }
+
+      // Validate and restore model selection
+      if (
+        pendingProject.selectedModel &&
+        typeof pendingProject.selectedModel === "string"
+      ) {
+        setSelectedModel(pendingProject.selectedModel);
+      }
+
+      // Clear localStorage after restoring
+      localStorage.removeItem("pendingProject");
+      console.log("✅ Restored pending project data after login");
+    } catch (error) {
+      console.error("Failed to restore pending project:", error);
+      // Clear corrupted data
+      localStorage.removeItem("pendingProject");
+    }
+  }, [session]);
+
   // Close preview modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -325,12 +366,7 @@ export default function CraftInput() {
 
     try {
       // Check if user is authenticated
-      const checkAuthResponse = await fetch("/api/projects", {
-        method: "GET",
-      });
-
-      // If unauthorized (401), store prompt and redirect to signup
-      if (checkAuthResponse.status === 401) {
+      if (!session?.user) {
         console.log(
           "🔒 User not authenticated, storing prompt and redirecting to signup"
         );
@@ -345,30 +381,14 @@ export default function CraftInput() {
           return;
         }
 
-        // Check if there's already a pending project
-        const existingPending = localStorage.getItem("pendingProject");
-        if (existingPending) {
-          try {
-            const existing = JSON.parse(existingPending);
-            // Check if it's recent (not expired)
-            const isRecent =
-              Date.now() - existing.timestamp < 24 * 60 * 60 * 1000;
-            if (isRecent) {
-              console.log("⚠️ Overwriting existing pending project");
-            }
-          } catch (e) {
-            // Ignore parse errors, will overwrite anyway
-          }
-        }
-
         // Store the prompt, images, and selected model in localStorage
         try {
           localStorage.setItem(
             "pendingProject",
             JSON.stringify({
-              prompt: trimmedInput, // Use trimmed input
+              prompt: trimmedInput,
               images: selectedImages,
-              selectedModel: selectedModel, // Store selected model
+              selectedModel: selectedModel,
               timestamp: Date.now(),
             })
           );

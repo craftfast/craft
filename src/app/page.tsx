@@ -4,7 +4,6 @@ import Logo from "@/components/Logo";
 import HomeHeader from "@/components/HomeHeader";
 import DashboardHeader from "@/components/DashboardHeader";
 import CraftInput from "@/components/CraftInput";
-import PendingProjectHandler from "@/components/PendingProjectHandler";
 import PaymentSuccessHandler from "@/components/PaymentSuccessHandler";
 import PlanRedirectHandler from "@/components/PlanRedirectHandler";
 import SettingsRedirectHandler from "@/components/SettingsRedirectHandler";
@@ -23,9 +22,6 @@ export default async function Home() {
         <Suspense fallback={null}>
           <ModalRedirectHandler />
         </Suspense>
-
-        {/* Pending Project Handler - Check for pending project on client side */}
-        <PendingProjectHandler />
 
         {/* Header - Fixed */}
         <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">

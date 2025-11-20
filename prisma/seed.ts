@@ -3,92 +3,27 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log("🌱 Seeding database with plan data...");
+    console.log("🌱 Database seed file (currently empty)...");
 
-    // Update or create plans (upsert to avoid foreign key constraint issues)
-    console.log("✅ Upserting plans...");
+    console.log("\n✅ Craft uses a pure pay-as-you-go model:");
+    console.log("   - No subscription plans or tiers");
+    console.log("   - Users top up balance anytime via Polar");
+    console.log("   - Pay only for actual usage");
 
-    // Plan data based on monthly credit-based pricing model
-    const plans = [
-        {
-            name: "HOBBY",
-            displayName: "Hobby",
-            description: "Try Craft with basic features. Limited to 3 projects.",
-            priceMonthlyUsd: 0,
-            maxProjects: 3, // Limited to 3 projects
-            monthlyCredits: 10, // 10 credits per month
-            sortOrder: 0,
-            features: [
-                "10 credits per month",
-                "Up to 3 projects",
-                "AI-powered code generation",
-                "Sandbox environments",
-                "Live preview",
-                "Database & storage included",
-                "Craft branding on projects",
-                "Community support",
-            ],
-        },
-        {
-            name: "PRO",
-            displayName: "Pro",
-            description: "Everything you need to build and scale your apps.",
-            priceMonthlyUsd: 25, // Base Pro tier starts at $25
-            maxProjects: 999, // Unlimited projects
-            monthlyCredits: 100, // Base Pro tier: 100 credits/month
-            sortOrder: 1,
-            features: [
-                "Everything in Hobby, plus:",
-                "100-10,000 credits/month (based on tier)",
-                "Unlimited projects",
-                "All AI models",
-                "Import from Figma & GitHub",
-                "Deploy to Vercel",
-                "No Craft branding",
-                "Priority email support",
-            ],
-        },
-        {
-            name: "ENTERPRISE",
-            displayName: "Enterprise",
-            description: "Custom solutions for large teams and organizations.",
-            priceMonthlyUsd: 0, // Contact sales for pricing
-            maxProjects: 999999, // Unlimited
-            monthlyCredits: 0, // Custom allocation
-            sortOrder: 2,
-            features: [
-                "All Pro features, plus:",
-                "Custom monthly credit allocation",
-                "Dedicated account manager",
-                "Priority support & SLA",
-                "Custom integrations",
-                "Advanced security features",
-                "Volume discounts",
-                "Custom contract terms",
-            ],
-        },
-    ];
+    console.log("\n💰 Balance System:");
+    console.log("   - 1 credit = $1 USD");
+    console.log("   - Powered by Polar Pay What You Want checkout");
+    console.log("   - 10% platform fee on top-ups");
+    console.log("   - Balance stored in User.accountBalance");
+    console.log("   - Actual usage costs deducted directly");
 
-    for (const planData of plans) {
-        const plan = await prisma.plan.upsert({
-            where: { name: planData.name },
-            update: planData,
-            create: planData,
-        });
-        console.log(`✅ Upserted plan: ${plan.displayName} (${plan.name})`);
-    }
+    console.log("\n📊 Usage Billing:");
+    console.log("   - AI models billed at actual provider cost");
+    console.log("   - Sandbox/compute billed at actual resource cost");
+    console.log("   - No credit multipliers or conversions");
+    console.log("   - Direct USD deduction from balance");
 
-    console.log("\n🎉 Database seeding completed successfully!");
-    console.log("\nPlan Summary:");
-    console.log("- HOBBY: Free forever, 10 credits/month, up to 3 projects");
-    console.log("- PRO: $25-2250/month, 100-10,000 credits/month, unlimited projects");
-    console.log("- ENTERPRISE: Contact sales, custom monthly credit allocation, dedicated support");
-    console.log("\nCredit Usage:");
-    console.log("- AI Generation: 1 credit = 10,000 tokens (varies by model)");
-    console.log("- Sandbox: 0.1 credits/minute (6 credits/hour)");
-    console.log("- Database: 0.5 credits/GB/month storage + 0.01 credits/hour compute");
-    console.log("- Storage (R2): 0.2 credits/GB/month");
-    console.log("- Deployment: 1 credit per deploy");
+    console.log("\n🎉 Seed completed - no data to insert!");
 }
 
 main()

@@ -3,18 +3,16 @@
 /**
  * BillingTab Component
  *
- * Displays account balance with integrated embedded checkout
+ * Displays account balance with custom checkout modal
  * Uses transparent pay-as-you-go pricing with no subscriptions
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { DollarSign, Info, Plus, History } from "lucide-react";
-import Script from "next/script";
+import CustomCheckoutModal from "@/components/CustomCheckoutModal";
 import {
-  SUGGESTED_TOPUP_AMOUNTS,
-  getCheckoutAmount,
   MINIMUM_BALANCE_AMOUNT,
   PLATFORM_FEE_PERCENT,
 } from "@/lib/pricing-constants";
@@ -31,16 +29,10 @@ interface Transaction {
 }
 
 export function BillingTab() {
-  const [amount, setAmount] = useState<number>(50);
-  const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutId, setCheckoutId] = useState<string | null>(null);
-  const [polarLoaded, setPolarLoaded] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
-  const checkoutRef = useRef<HTMLDivElement>(null);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   useEffect(() => {
     fetchBalance();
@@ -74,73 +66,10 @@ export function BillingTab() {
     }
   };
 
-  const checkoutAmount = getCheckoutAmount(amount);
-  const platformFee = checkoutAmount - amount;
-
-  const handleTopup = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/balance/topup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
-      });
-
-      const data = await res.json();
-      if (data.success && data.checkoutId) {
-        setCheckoutId(data.checkoutId);
-        setShowCheckout(true);
-
-        if (polarLoaded && checkoutRef.current) {
-          setTimeout(() => {
-            initializePolarCheckout(data.checkoutId);
-          }, 100);
-        }
-      } else {
-        alert(data.error || "Failed to create checkout");
-      }
-    } catch (error) {
-      console.error("Top-up error:", error);
-      alert("Failed to create checkout. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+  const handleCheckoutSuccess = () => {
+    fetchBalance();
+    fetchTransactions();
   };
-
-  const initializePolarCheckout = (id: string) => {
-    if (
-      typeof window !== "undefined" &&
-      (window as any).Polar &&
-      checkoutRef.current
-    ) {
-      try {
-        (window as any).Polar.mount({
-          checkoutId: id,
-          element: checkoutRef.current,
-          theme: "dark",
-          onPaymentSuccess: () => {
-            setShowCheckout(false);
-            setShowSuccess(true);
-            fetchBalance();
-            fetchTransactions();
-            setTimeout(() => setShowSuccess(false), 5000);
-          },
-          onPaymentError: (error: any) => {
-            console.error("Payment error:", error);
-            alert("Payment failed. Please try again.");
-          },
-        });
-      } catch (error) {
-        console.error("Failed to mount Polar checkout:", error);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (polarLoaded && checkoutId && checkoutRef.current) {
-      initializePolarCheckout(checkoutId);
-    }
-  }, [polarLoaded, checkoutId]);
 
   const balanceColor =
     balance === null
@@ -153,15 +82,14 @@ export function BillingTab() {
 
   return (
     <>
-      <div className="space-y-6">
-        {showSuccess && (
-          <div className="p-4 bg-green-100 dark:bg-green-900/20 border border-green-500 rounded-xl">
-            <p className="text-green-700 dark:text-green-300 font-medium text-sm">
-              ✅ Payment successful! Your balance has been updated.
-            </p>
-          </div>
-        )}
+      {/* Custom Checkout Modal */}
+      <CustomCheckoutModal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        onSuccess={handleCheckoutSuccess}
+      />
 
+      <div className="space-y-6">
         {/* Current Balance */}
         <div className="p-6 bg-muted/30 rounded-2xl border border-border">
           <div className="flex items-center justify-between mb-2">
@@ -188,78 +116,30 @@ export function BillingTab() {
         </div>
 
         {/* Add Credits Section */}
-        <div className="p-6 bg-muted/30 rounded-2xl border border-border space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Plus className="w-5 h-5 text-primary" />
-            <h4 className="text-base font-semibold text-foreground">
-              Add Credits
-            </h4>
-          </div>
-
-          {/* Quick Amounts */}
-          <div className="grid grid-cols-2 gap-2">
-            {SUGGESTED_TOPUP_AMOUNTS.map((amt) => (
-              <Button
-                key={amt}
-                variant={amount === amt ? "default" : "outline"}
-                onClick={() => setAmount(amt)}
-                className="h-10 rounded-full"
-              >
-                ${amt}
-              </Button>
-            ))}
-          </div>
-
-          {/* Custom Amount */}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Custom Amount
-            </label>
-            <Input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
-              min={MINIMUM_BALANCE_AMOUNT}
-              placeholder={`Min $${MINIMUM_BALANCE_AMOUNT}`}
-              className="h-10 rounded-full"
-            />
-          </div>
-
-          {/* Fee Breakdown */}
-          <div className="bg-background/50 rounded-xl p-3 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Balance to add:</span>
-              <span className="font-mono font-medium">
-                ${amount.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                Platform fee ({(PLATFORM_FEE_PERCENT * 100).toFixed(0)}%):
-              </span>
-              <span className="font-mono font-medium">
-                +${platformFee.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between text-base font-bold border-t pt-2">
-              <span>Total to pay:</span>
-              <span className="font-mono">${checkoutAmount.toFixed(2)}</span>
+        <div className="p-6 bg-muted/30 rounded-2xl border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary" />
+              <h4 className="text-base font-semibold text-foreground">
+                Add Credits
+              </h4>
             </div>
           </div>
+
+          <p className="text-sm text-muted-foreground mb-4">
+            Top up your balance with any amount (minimum $
+            {MINIMUM_BALANCE_AMOUNT}). A{" "}
+            {(PLATFORM_FEE_PERCENT * 100).toFixed(0)}% platform fee is added at
+            checkout.
+          </p>
 
           <Button
-            onClick={handleTopup}
-            disabled={loading || amount < MINIMUM_BALANCE_AMOUNT}
+            onClick={() => setShowCheckoutModal(true)}
             className="w-full rounded-full h-11 text-base font-semibold"
           >
-            {loading ? "Processing..." : "Add Credits"}
+            <Plus className="w-4 h-4 mr-2" />
+            Purchase Credits
           </Button>
-
-          {amount < MINIMUM_BALANCE_AMOUNT && (
-            <p className="text-xs text-red-600 dark:text-red-400 text-center">
-              Minimum top-up amount is ${MINIMUM_BALANCE_AMOUNT}
-            </p>
-          )}
         </div>
 
         {/* How It Works */}
@@ -387,33 +267,6 @@ export function BillingTab() {
           )}
         </div>
       </div>
-
-      {/* Embedded Checkout Modal */}
-      {showCheckout && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background">
-              <h2 className="text-lg font-semibold">Complete Payment</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowCheckout(false)}
-                className="rounded-full h-8 w-8 p-0"
-              >
-                ✕
-              </Button>
-            </div>
-            <div ref={checkoutRef} className="min-h-[500px] p-4" />
-          </div>
-        </div>
-      )}
-
-      {/* Load Polar SDK */}
-      <Script
-        src="https://cdn.jsdelivr.net/npm/@polar-sh/checkout@latest/dist/index.js"
-        onLoad={() => setPolarLoaded(true)}
-        strategy="lazyOnload"
-      />
     </>
   );
 }

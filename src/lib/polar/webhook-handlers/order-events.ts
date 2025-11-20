@@ -15,12 +15,39 @@ export async function handleOrderCreated(data: OrderEvent) {
 
     try {
         const order = data;
-        const metadata = order.metadata || {};
+        let metadata = order.metadata || {};
+
+        console.log("Order metadata:", JSON.stringify(metadata, null, 2));
+        console.log("Order checkout_id:", order.checkout_id);
+
+        // If order has no metadata but has a checkout_id, fetch the checkout to get metadata
+        if (Object.keys(metadata).length === 0 && order.checkout_id) {
+            console.log("⚠️ Order has empty metadata, fetching checkout:", order.checkout_id);
+
+            try {
+                const { polarClient } = await import("@/lib/polar");
+                const checkout = await polarClient.checkouts.get({ id: order.checkout_id });
+
+                if (checkout.metadata) {
+                    console.log("✅ Found checkout metadata:", JSON.stringify(checkout.metadata, null, 2));
+                    metadata = checkout.metadata as Record<string, unknown>;
+                } else {
+                    console.log("⚠️ Checkout also has no metadata");
+                }
+            } catch (checkoutError) {
+                console.error("Error fetching checkout:", checkoutError);
+                // Continue with empty metadata
+            }
+        }
 
         // Check if this is a balance top-up
         if (metadata.purchaseType === "balance_topup") {
-            return await handleBalanceTopup(order);
+            console.log("✅ Balance top-up detected, processing...");
+            // Pass the metadata we found
+            return await handleBalanceTopup({ ...order, metadata });
         }
+
+        console.log("⚠️ Not a balance top-up, purchaseType:", metadata.purchaseType);
 
         // Legacy subscription order handling
         // Find user by customer ID
