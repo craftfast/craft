@@ -46,25 +46,25 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
 
   if (!balance) return null;
 
-  // Format credits for display (e.g., 1,234,567 -> "1.23M" or 5,000 -> "5K")
+  // Format credits for display (e.g., 1,234,567 -> "$1.23M" or 5,000 -> "$5.00K")
   const formatCredits = (credits: number | null | undefined): string => {
     if (credits === null || credits === undefined) {
-      return "0";
+      return "$0.00";
     }
     if (credits >= 1000000) {
-      return `${(credits / 1000000).toFixed(2)}M`;
+      return `$${(credits / 1000000).toFixed(2)}M`;
     } else if (credits >= 1000) {
-      return `${(credits / 1000).toFixed(1)}K`;
+      return `$${(credits / 1000).toFixed(2)}K`;
     }
-    return credits.toString();
+    return `$${credits.toFixed(2)}`;
   };
 
   // Format full number with commas
   const formatFullNumber = (num: number | null | undefined): string => {
     if (num === null || num === undefined) {
-      return "0";
+      return "$0.00";
     }
-    return num.toLocaleString();
+    return `$${num.toFixed(2)}`;
   };
 
   // Calculate time until billing period end
@@ -124,7 +124,7 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
               : "text-neutral-700 dark:text-neutral-300"
           }`}
         >
-          {isCreditsExhausted ? "0" : formatCredits(balance.totalAvailable)}
+          {isCreditsExhausted ? "$0.00" : formatCredits(balance.totalAvailable)}
         </span>
         <svg
           className={`w-3 h-3 flex-shrink-0 text-neutral-600 dark:text-neutral-400 transition-transform ${

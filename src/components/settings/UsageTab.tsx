@@ -210,7 +210,7 @@ export default function UsageTab({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-foreground">
-                        {record.creditsUsed.toFixed(4)}
+                        ${record.creditsUsed.toFixed(2)}
                       </td>
                     </tr>
                   ))}

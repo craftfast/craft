@@ -60,11 +60,11 @@ export default function DashboardHeader({
   // Format credits for display (only for mobile menu)
   const formatCredits = (credits: number): string => {
     if (credits >= 1000000) {
-      return `${(credits / 1000000).toFixed(2)}M`;
+      return `$${(credits / 1000000).toFixed(2)}M`;
     } else if (credits >= 1000) {
-      return `${(credits / 1000).toFixed(1)}K`;
+      return `$${(credits / 1000).toFixed(2)}K`;
     }
-    return credits.toString();
+    return `$${credits.toFixed(2)}`;
   };
 
   // Determine if tokens are low (10 or less) - for mobile menu
@@ -221,7 +221,7 @@ export default function DashboardHeader({
                           }`}
                         >
                           {isTokensExhausted
-                            ? "0 credits"
+                            ? "$0.00 credits"
                             : formatCredits(balance.totalAvailable)}
                         </span>
                       </div>

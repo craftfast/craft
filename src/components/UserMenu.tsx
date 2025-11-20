@@ -44,17 +44,17 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
     router.push("/");
   };
 
-  // Format credits for display (e.g., 1,234,567 -> "1.23M" or 5,000 -> "5K")
+  // Format credits for display (e.g., 1,234,567 -> "$1.23M" or 5,000 -> "$5.00K")
   const formatCredits = (credits: number | null | undefined): string => {
     if (credits === null || credits === undefined) {
-      return "0";
+      return "$0.00";
     }
     if (credits >= 1000000) {
-      return `${(credits / 1000000).toFixed(2)}M`;
+      return `$${(credits / 1000000).toFixed(2)}M`;
     } else if (credits >= 1000) {
-      return `${(credits / 1000).toFixed(1)}K`;
+      return `$${(credits / 1000).toFixed(2)}K`;
     }
-    return credits.toLocaleString();
+    return `$${credits.toFixed(2)}`;
   };
 
   // Determine if credits are low (10 or less)
