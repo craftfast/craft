@@ -1495,44 +1495,21 @@ export default function ChatPanel({
                         </div>
                       )}
 
-                      {/* Tool Executions - Collapsible, at the bottom */}
-                      {!message.isStreaming &&
-                        message.toolCalls &&
-                        message.toolCalls.length > 0 && (
-                          <details className="mb-3 group">
-                            <summary className="cursor-pointer text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800/50 w-fit">
-                              <svg
-                                className="w-3 h-3 transition-transform group-open:rotate-90"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 5l7 7-7 7"
-                                />
-                              </svg>
-                              <span>
-                                View {message.toolCalls.length} tool execution
-                                {message.toolCalls.length > 1 ? "s" : ""}
-                              </span>
-                            </summary>
-                            <div className="mt-2 space-y-2 pl-1">
-                              {message.toolCalls.map((toolCall) => (
-                                <ToolCallDisplay
-                                  key={toolCall.id}
-                                  toolCall={toolCall}
-                                />
-                              ))}
-                            </div>
-                          </details>
-                        )}
+                      {/* Tool Executions - Live display during streaming and after */}
+                      {message.toolCalls && message.toolCalls.length > 0 && (
+                        <div className="space-y-1.5 mb-3">
+                          {message.toolCalls.map((toolCall) => (
+                            <ToolCallDisplay
+                              key={toolCall.id}
+                              toolCall={toolCall}
+                            />
+                          ))}
+                        </div>
+                      )}
 
                       {/* Footer - Only show when NOT streaming */}
                       {!message.isStreaming && (
-                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+                        <div className="flex items-center gap-2 mt-2 pt-2">
                           <span className="text-xs text-neutral-500 dark:text-neutral-400">
                             {message.createdAt
                               ? new Date(message.createdAt).toLocaleTimeString()

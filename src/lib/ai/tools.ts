@@ -853,9 +853,9 @@ export const runSandboxCommand = tool({
     inputSchema: z.object({
         projectId: z.string().describe('The project ID'),
         command: z.string().describe('Shell command to execute (e.g., "npm install react", "npx create-next-app .", "pnpm build")'),
-        timeoutMs: z.number().optional().describe('Command timeout in milliseconds (default: 30000)'),
+        timeoutMs: z.number().optional().describe('Command timeout in milliseconds (default: auto-detected based on command type)'),
     }),
-    execute: async ({ projectId, command, timeoutMs = 30000 }) => {
+    execute: async ({ projectId, command, timeoutMs }) => {
         console.log(`🔧 Running sandbox command: ${command}`);
 
         try {
@@ -870,6 +870,19 @@ export const runSandboxCommand = tool({
                     success: false,
                     error: 'No active sandbox. Use createProjectSandbox first.',
                 };
+            }
+
+            // Auto-detect timeout based on command type if not specified
+            if (!timeoutMs) {
+                const cmd = command.toLowerCase();
+                if (cmd.includes('install') || cmd.includes('add') || cmd.includes('create-next-app') || cmd.includes('create-react-app')) {
+                    timeoutMs = 120000; // 2 minutes for installation commands
+                } else if (cmd.includes('build') || cmd.includes('compile')) {
+                    timeoutMs = 90000; // 1.5 minutes for build commands
+                } else {
+                    timeoutMs = 30000; // 30 seconds for other commands
+                }
+                console.log(`⏱️ Auto-detected timeout: ${timeoutMs}ms for command type`);
             }
 
             const result = await executeSandboxCommand(project.sandboxId, command, timeoutMs);
