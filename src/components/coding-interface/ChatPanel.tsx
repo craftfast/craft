@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { notifyCreditUpdate } from "@/lib/credit-events";
 import { toast } from "sonner";
-import ToolUsageIndicator from "./ToolUsageIndicator";
+import { InlineReferences } from "./InlineReferences";
 import { OrchestratorProgress } from "./OrchestratorProgress";
 
 // Speech Recognition types
@@ -875,10 +875,19 @@ export default function ChatPanel({
                   messageToolCalls.set(tc.id, toolCall);
 
                   console.log(`🔧 Tool started: ${tc.name}`);
+                  break;
+                }
 
-                  // Show toast notification
-                  toast.info(`Running ${tc.name}...`, {
-                    id: `tool-${tc.id}`,
+                case "status-update": {
+                  // Long-running operation status update
+                  const { message: statusMessage, details, toolCallId } = data;
+                  console.log(`📊 Status: ${statusMessage}`);
+
+                  // Show status as temporary toast notification
+                  toast.info(statusMessage, {
+                    id: toolCallId ? `status-${toolCallId}` : undefined,
+                    description: details,
+                    duration: 3000, // Auto-dismiss after 3 seconds
                   });
                   break;
                 }
@@ -899,14 +908,9 @@ export default function ChatPanel({
                     `✅ Tool completed: ${tc.name} (${tc.status}) in ${tc.duration}ms`
                   );
 
-                  // Update toast notification
-                  if (tc.status === "success") {
-                    toast.success(`✓ ${tc.name} completed`, {
-                      id: `tool-${tc.id}`,
-                      description: `Finished in ${tc.duration}ms`,
-                    });
-                  } else {
-                    toast.error(`✗ ${tc.name} failed`, {
+                  // Only show toast for errors (keep important notifications)
+                  if (tc.status === "error") {
+                    toast.error(`Failed: ${tc.name}`, {
                       id: `tool-${tc.id}`,
                       description: tc.error || "Unknown error",
                     });
@@ -1449,9 +1453,12 @@ export default function ChatPanel({
                         </div>
                       )}
 
-                      {/* Tool Usage Indicator - GitHub Copilot style */}
+                      {/* Inline References - Professional GitHub Copilot style */}
                       {message.toolCalls && message.toolCalls.length > 0 && (
-                        <ToolUsageIndicator toolCalls={message.toolCalls} />
+                        <InlineReferences
+                          toolCalls={message.toolCalls}
+                          onFileClick={onFileClick}
+                        />
                       )}
 
                       {/* File Changes Card - Higher priority */}
@@ -1676,7 +1683,7 @@ export default function ChatPanel({
               </div>
             );
           })}
-          {isLoading && (
+          {isLoading && !messages.some((m) => m.isStreaming) && (
             <div className="flex gap-4 justify-start">
               <div className="px-4 py-3 w-full">
                 <div className="flex items-center gap-3">

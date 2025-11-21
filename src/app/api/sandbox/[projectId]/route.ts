@@ -69,104 +69,102 @@ export async function POST(
 
         let isServerRunning = false;
         let needsRestart = false;
-        let hasExistingProcess = false;
 
-        // First, check if there's a Next.js process (from resumed sandbox)
+        // Check if port 3000 is responding (health check)
         try {
-            const processCheck = await sandbox.commands.run(
-                "ps aux | grep -E 'next dev|next-server' | grep -v grep | wc -l",
-                { timeoutMs: 2000 }
+            const portCheck = await sandbox.commands.run(
+                "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo '000'",
+                { timeoutMs: 3000 }
             );
-            const processCount = parseInt(processCheck.stdout?.trim() || '0');
-            hasExistingProcess = processCount > 0;
+            const statusCode = portCheck.stdout?.trim() || '000';
+            isServerRunning = statusCode.startsWith('2') || statusCode === '404'; // 2xx or 404 means server is responding
 
-            if (hasExistingProcess) {
-                console.log(`📦 Found ${processCount} existing Next.js process(es) - will kill and restart for fresh preview`);
-                needsRestart = true; // ALWAYS restart to ensure fresh preview
+            if (isServerRunning) {
+                console.log(`✅ Dev server is already running and responding (HTTP ${statusCode})`);
+            } else {
+                console.log(`⚠️ Port 3000 not responding (HTTP ${statusCode})`);
+                needsRestart = true;
             }
         } catch (error) {
-            console.log("⚠️ Could not check for existing processes");
+            console.log("⚠️ Could not check port 3000, assuming server needs to start");
+            needsRestart = true;
         }
 
-        // Kill existing processes to ensure clean restart
-        if (hasExistingProcess) {
-            console.log("🔧 Killing existing Next.js processes for clean restart...");
+        // Only restart if server is not running or not responding
+        if (needsRestart) {
+            console.log("🔧 Cleaning up any stale processes...");
             try {
-                const pidsResult = await sandbox.commands.run(
-                    "ps aux | grep -E 'next dev|next-server|node' | grep -v grep | awk '{print $2}'",
-                    { timeoutMs: 2000 }
+                // Use pkill to cleanly kill the process tree by name
+                // This is more reliable than finding PIDs manually
+                await sandbox.commands.run(
+                    "pkill -f 'next dev' || pkill -f 'next-server' || true",
+                    { timeoutMs: 3000 }
                 );
-                const pids = pidsResult.stdout?.trim();
-                if (pids) {
-                    const pidList = pids.split('\n').filter(p => p.trim());
-                    console.log(`🔧 Killing PIDs: ${pidList.join(', ')}`);
-                    await sandbox.commands.run(`kill -9 ${pidList.join(' ')}`, { timeoutMs: 2000 });
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for cleanup
-                    console.log("✅ Processes killed, ready for fresh start");
-                }
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Wait for cleanup
+                console.log("✅ Cleanup complete");
             } catch (killError) {
-                console.log("⚠️ Could not kill processes, will try to start anyway");
+                console.log("⚠️ Cleanup warning (non-critical):", killError);
             }
         }
 
-        // Always start dev server (fresh start or first time)
-        console.log("🚀 Starting Next.js dev server...");
-
-        try {
-            // Start the dev server in the background
-            const devProcess = await sandbox.commands.run(
-                "pnpm dev",
-                {
-                    background: true,
-                    envs: {
-                        NODE_ENV: "development",
-                        PORT: "3000",
-                        HOSTNAME: "0.0.0.0",
-                        NEXT_TELEMETRY_DISABLED: "1",
-                    },
-                }
-            );
-            console.log(`✅ Dev server started with 'pnpm dev' (PID: ${devProcess.pid || 'unknown'})`);
-
-            // Wait for the server to become ready (up to 30 seconds)
-            console.log("⏳ Waiting for Next.js to compile and start...");
-            const startTime = Date.now();
-            let isReady = false;
-
-            while (Date.now() - startTime < 30000 && !isReady) {
-                await new Promise(resolve => setTimeout(resolve, 1500));
-
-                try {
-                    const check = await sandbox.commands.run(
-                        "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo 'failed'",
-                        { timeoutMs: 2000 }
-                    );
-
-                    const code = check.stdout?.trim() || '';
-                    if (code !== 'failed' && /^[2-5]\d\d$/.test(code)) {
-                        isReady = true;
-                        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                        console.log(`✅ Dev server is ready! (HTTP ${code}) - took ${elapsed}s`);
+        // Start dev server only if needed
+        if (needsRestart) {
+            try {
+                // Start the dev server in the background
+                const devProcess = await sandbox.commands.run(
+                    "pnpm dev",
+                    {
+                        background: true,
+                        envs: {
+                            NODE_ENV: "development",
+                            PORT: "3000",
+                            HOSTNAME: "0.0.0.0",
+                            NEXT_TELEMETRY_DISABLED: "1",
+                        },
                     }
-                } catch (checkError) {
-                    // Continue waiting
-                }
-            }
+                );
+                console.log(`✅ Dev server started with 'pnpm dev' (PID: ${devProcess.pid || 'unknown'})`);
 
-            if (!isReady) {
-                console.warn(`⚠️ Dev server may not be fully ready yet after 30s`);
+                // Wait for the server to become ready (up to 30 seconds)
+                console.log("⏳ Waiting for Next.js to compile and start...");
+                const startTime = Date.now();
+                let isReady = false;
 
-                // Log diagnostics
-                try {
-                    const psResult = await sandbox.commands.run("ps aux | grep -E 'node|pnpm|next'", { timeoutMs: 2000 });
-                    console.log("📊 Running processes:", psResult.stdout);
-                } catch (err) {
-                    // Ignore
+                while (Date.now() - startTime < 30000 && !isReady) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
+                    try {
+                        const check = await sandbox.commands.run(
+                            "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo 'failed'",
+                            { timeoutMs: 2000 }
+                        );
+
+                        const code = check.stdout?.trim() || '';
+                        if (code !== 'failed' && /^[2-5]\d\d$/.test(code)) {
+                            isReady = true;
+                            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                            console.log(`✅ Dev server is ready! (HTTP ${code}) - took ${elapsed}s`);
+                        }
+                    } catch (checkError) {
+                        // Continue waiting
+                    }
                 }
+
+                if (!isReady) {
+                    console.warn(`⚠️ Dev server may not be fully ready yet after 30s`);
+
+                    // Log diagnostics
+                    try {
+                        const psResult = await sandbox.commands.run("ps aux | grep -E 'node|pnpm|next'", { timeoutMs: 2000 });
+                        console.log("📊 Running processes:", psResult.stdout);
+                    } catch (err) {
+                        // Ignore
+                    }
+                }
+            } catch (startError) {
+                console.error(`❌ Failed to start dev server:`, startError);
+                throw new Error("Failed to start Next.js dev server");
             }
-        } catch (startError) {
-            console.error(`❌ Failed to start dev server:`, startError);
-            throw new Error("Failed to start Next.js dev server");
         }
 
         // Get the preview URL

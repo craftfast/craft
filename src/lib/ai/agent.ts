@@ -435,6 +435,11 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         userId,
         sessionId,
         sandboxId, // Phase 3: Sandbox ID for tools that need it
+        onStatusUpdate: (message: string, toolCallId?: string) => {
+            if (sseWriter) {
+                sseWriter.writeStatusUpdate(message, toolCallId);
+            }
+        },
     });
 
     // Stream the response with TOOLS ENABLED and usage tracking

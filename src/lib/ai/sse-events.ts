@@ -128,6 +128,15 @@ export interface AgentReflectionEvent {
     timestamp: number;
 }
 
+export interface StatusUpdateEvent {
+    type: 'status-update';
+    status: string;
+    message: string;
+    details?: string;
+    toolCallId?: string;
+    timestamp: number;
+}
+
 // ============================================================================
 // SSE EVENT UNION TYPE
 // ============================================================================
@@ -144,6 +153,7 @@ export type SSEEvent =
     | AgentObservationEvent
     | AgentReflectionEvent
     | PreviewReadyEvent
+    | StatusUpdateEvent
     | DoneEvent;
 
 // ============================================================================
@@ -377,6 +387,17 @@ export class SSEStreamWriter {
             observationType,
             content,
             relatedToolId,
+            timestamp: Date.now(),
+        });
+    }
+
+    writeStatusUpdate(message: string, toolCallId?: string, details?: string) {
+        this.write({
+            type: 'status-update',
+            status: 'running',
+            message,
+            details,
+            toolCallId,
             timestamp: Date.now(),
         });
     }

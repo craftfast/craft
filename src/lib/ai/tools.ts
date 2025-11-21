@@ -417,6 +417,10 @@ export const installPackages = tool({
     execute: async ({ projectId, packages, dev }) => {
         console.log(`📦 Installing ${packages.length} package(s): ${packages.join(', ')}${dev ? ' (dev)' : ''}`);
 
+        // Get status update callback from context
+        const context = getToolContext();
+        const onStatusUpdate = context?.onStatusUpdate;
+
         const sandboxData = activeSandboxes?.get(projectId);
 
         if (!sandboxData?.sandbox) {
@@ -442,10 +446,15 @@ export const installPackages = tool({
         const flag = dev ? '-D' : '';
         const command = `pnpm add ${flag} ${validPackages.join(' ')}`.trim();
 
+        // Notify user about installation starting
+        if (onStatusUpdate) {
+            onStatusUpdate(`Installing ${validPackages.length} package(s): ${validPackages.join(', ')}...`);
+        }
+
         try {
             const result = await sandboxData.sandbox.commands.run(
                 `cd /home/user/project && ${command}`,
-                { timeoutMs: 60000 } // 1 minute timeout for package installation (reduced from 2 minutes)
+                { timeoutMs: 180000 } // 3 minute timeout for package installation (some packages like recharts can be large)
             );
 
             if (result.exitCode === 0) {
@@ -453,6 +462,9 @@ export const installPackages = tool({
 
                 // Fetch updated package.json from sandbox and save to database
                 try {
+                    if (onStatusUpdate) {
+                        onStatusUpdate('Updating package.json in database...');
+                    }
                     console.log('📥 Fetching updated package.json from sandbox...');
                     const updatedPackageJson = await sandboxData.sandbox.files.read('/home/user/project/package.json');
 

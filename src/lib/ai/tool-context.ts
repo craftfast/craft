@@ -13,6 +13,7 @@ interface ToolExecutionContext {
     userId?: string;
     sessionId?: string;
     sandboxId?: string; // Phase 3: E2B sandbox ID for the project
+    onStatusUpdate?: (message: string, toolCallId?: string) => void; // For long-running operations
 }
 
 // Global registry of active tool execution contexts
