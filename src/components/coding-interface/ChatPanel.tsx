@@ -10,12 +10,12 @@ import "highlight.js/styles/github-dark.min.css";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import SettingsModal from "../SettingsModal";
-import { ModelSelector, ModelTier } from "@/components/ModelSelector";
+import { ModelSelector } from "@/components/ModelSelector";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { notifyCreditUpdate } from "@/lib/credit-events";
 import { toast } from "sonner";
-import ToolCallDisplay from "./ToolCallDisplay";
+import ToolUsageIndicator from "./ToolUsageIndicator";
 import { OrchestratorProgress } from "./OrchestratorProgress";
 
 // Speech Recognition types
@@ -1449,6 +1449,11 @@ export default function ChatPanel({
                         </div>
                       )}
 
+                      {/* Tool Usage Indicator - GitHub Copilot style */}
+                      {message.toolCalls && message.toolCalls.length > 0 && (
+                        <ToolUsageIndicator toolCalls={message.toolCalls} />
+                      )}
+
                       {/* File Changes Card - Higher priority */}
                       {message.fileChanges &&
                         message.fileChanges.length > 0 && (
@@ -1492,18 +1497,6 @@ export default function ChatPanel({
                           >
                             {message.content || ""}
                           </ReactMarkdown>
-                        </div>
-                      )}
-
-                      {/* Tool Executions - Live display during streaming and after */}
-                      {message.toolCalls && message.toolCalls.length > 0 && (
-                        <div className="space-y-1.5 mb-3">
-                          {message.toolCalls.map((toolCall) => (
-                            <ToolCallDisplay
-                              key={toolCall.id}
-                              toolCall={toolCall}
-                            />
-                          ))}
                         </div>
                       )}
 
