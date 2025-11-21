@@ -37,6 +37,7 @@ import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createAgentLoop, type AgentLoopCoordinator } from "@/lib/ai/agent-loop-coordinator";
 import { setToolContext, clearToolContext } from "@/lib/ai/tool-context";
 import { prisma } from "@/lib/db";
+import { calculateUsageCost, formatCostBreakdown, type AIUsage } from "@/lib/ai/usage-cost-calculator";
 
 // Create AI provider clients
 // Provider selection is handled dynamically based on model configuration
@@ -153,8 +154,30 @@ NOT requiring web search:
 - URLs in context (just references, not search requests)`;
 
         const orchestratorModelId = getOrchestratorModel();
-        const { provider, modelPath } = getModelProvider(orchestratorModelId);
-        const modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
+
+        let provider, modelPath, providerType;
+        let modelInstance;
+        let useOpenRouterFallback = false;
+
+        try {
+            ({ provider, modelPath, providerType } = getModelProvider(orchestratorModelId, useOpenRouterFallback));
+
+            switch (providerType) {
+                case "x-ai":
+                    modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
+                    break;
+                case "openrouter":
+                    modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+                    break;
+                default:
+                    throw new Error(`Unsupported provider type for orchestrator: ${providerType}`);
+            }
+        } catch (directProviderError) {
+            console.warn(`⚠️ Direct provider failed for requirement detection, falling back to OpenRouter:`, directProviderError);
+            useOpenRouterFallback = true;
+            ({ provider, modelPath } = getModelProvider(orchestratorModelId, useOpenRouterFallback));
+            modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+        }
 
         const result = await generateText({
             model: modelInstance,
@@ -184,12 +207,17 @@ NOT requiring web search:
 /**
  * Get the appropriate AI provider and model name for a given model ID
  * Dynamically uses model configuration from config.ts (single source of truth)
+ * 
+ * FALLBACK STRATEGY:
+ * - Primary: Use direct provider (Anthropic, OpenAI, Google, XAI)
+ * - Fallback: Use OpenRouter if direct provider fails (5% commission but reliability)
  */
-function getModelProvider(modelId: string): {
+function getModelProvider(modelId: string, useOpenRouterFallback = false): {
     provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter> | ReturnType<typeof createOpenAI> | ReturnType<typeof createGoogleGenerativeAI> | ReturnType<typeof createXai>;
     modelPath: string;
     displayName: string;
-    providerType: "anthropic" | "openrouter" | "openai" | "google" | "x-ai"
+    providerType: "anthropic" | "openrouter" | "openai" | "google" | "x-ai";
+    isFallback: boolean;
 } {
     // Get model config from single source of truth
     const modelConfig = getModelConfig(modelId);
@@ -206,7 +234,19 @@ function getModelProvider(modelId: string): {
         }
 
         // Recursively call with the fallback model
-        return getModelProvider(fallbackModelId);
+        return getModelProvider(fallbackModelId, useOpenRouterFallback);
+    }
+
+    // If OpenRouter fallback is requested, use OpenRouter regardless of original provider
+    if (useOpenRouterFallback && modelConfig.provider !== "openrouter") {
+        console.log(`🔄 Using OpenRouter as fallback for ${modelConfig.displayName}`);
+        return {
+            provider: openrouter,
+            modelPath: modelId, // Use the model ID which includes provider prefix (e.g., "anthropic/claude-haiku-4.5")
+            displayName: `${modelConfig.displayName} (via OpenRouter)`,
+            providerType: "openrouter",
+            isFallback: true,
+        };
     }
 
     // Return the appropriate provider based on model config
@@ -237,11 +277,18 @@ function getModelProvider(modelId: string): {
             break;
     }
 
+    // IMPORTANT: OpenRouter requires model ID format (e.g., "anthropic/claude-sonnet-4.5")
+    // Direct providers use model alias/name (e.g., "claude-sonnet-4-5" for Anthropic)
+    const modelPath = modelConfig.provider === "openrouter"
+        ? modelId  // OpenRouter format: provider/model-name
+        : modelConfig.name; // Direct provider format: specific model version
+
     return {
         provider,
-        modelPath: modelConfig.id, // Use the full OpenRouter model ID (e.g., "anthropic/claude-haiku-4.5")
+        modelPath,
         displayName: modelConfig.displayName,
-        providerType
+        providerType,
+        isFallback: false,
     };
 }
 
@@ -310,40 +357,58 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     // Get the coding model - use user's preferred model if available, otherwise fall back to tier-based selection
     const codingModel = getCodingModel(preferredModel, enabledModels);
 
-    const { provider, modelPath, displayName, providerType } = getModelProvider(codingModel);
-
-    console.log(`⚡ AI Agent: Using ${displayName} (${codingModel}) for coding with TOOL USE enabled`);
-    console.log(`🛠️ Available tools: ${Object.keys(tools).join(', ')}`);
-
-    if (Object.keys(projectFiles).length > 0) {
-        console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
-    }
-
-    // Different providers use different call patterns
-    // Anthropic: anthropic(modelPath)
-    // OpenRouter: openrouter.chat(modelPath)
-    // OpenAI: openai(modelPath) or openai.chat(modelPath)
-    // Google: google(modelPath)
-    // xAI: xai(modelPath)
+    // Try direct provider first, with OpenRouter as fallback
+    let provider, modelPath, displayName, providerType, isFallback;
     let modelInstance;
-    switch (providerType) {
-        case "anthropic":
-            modelInstance = (provider as ReturnType<typeof createAnthropic>)(modelPath);
-            break;
-        case "openai":
-            // OpenAI models can use both formats, prefer direct call
-            modelInstance = (provider as ReturnType<typeof createOpenAI>)(modelPath);
-            break;
-        case "google":
-            modelInstance = (provider as ReturnType<typeof createGoogleGenerativeAI>)(modelPath);
-            break;
-        case "x-ai":
-            modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
-            break;
-        case "openrouter":
-        default:
-            modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
-            break;
+    let useOpenRouterFallback = false;
+
+    try {
+        ({ provider, modelPath, displayName, providerType, isFallback } = getModelProvider(codingModel, useOpenRouterFallback));
+
+        console.log(`⚡ AI Agent: Using ${displayName} (${codingModel}) for coding with TOOL USE enabled`);
+        if (isFallback) {
+            console.log(`🔄 Using OpenRouter fallback (5% commission)`);
+        }
+        console.log(`🛠️ Available tools: ${Object.keys(tools).join(', ')}`);
+
+        if (Object.keys(projectFiles).length > 0) {
+            console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
+        }
+
+        // Different providers use different call patterns
+        // Anthropic: anthropic(modelPath)
+        // OpenRouter: openrouter.chat(modelPath)
+        // OpenAI: openai(modelPath) or openai.chat(modelPath)
+        // Google: google(modelPath)
+        // xAI: xai(modelPath)
+        switch (providerType) {
+            case "anthropic":
+                modelInstance = (provider as ReturnType<typeof createAnthropic>)(modelPath);
+                break;
+            case "openai":
+                // OpenAI models can use both formats, prefer direct call
+                modelInstance = (provider as ReturnType<typeof createOpenAI>)(modelPath);
+                break;
+            case "google":
+                modelInstance = (provider as ReturnType<typeof createGoogleGenerativeAI>)(modelPath);
+                break;
+            case "x-ai":
+                modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
+                break;
+            case "openrouter":
+            default:
+                modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+                break;
+        }
+    } catch (directProviderError) {
+        // If direct provider fails, retry with OpenRouter fallback
+        console.warn(`⚠️ Direct provider failed, falling back to OpenRouter:`, directProviderError);
+        useOpenRouterFallback = true;
+
+        ({ provider, modelPath, displayName, providerType, isFallback } = getModelProvider(codingModel, useOpenRouterFallback));
+
+        console.log(`🔄 Retrying with OpenRouter fallback: ${displayName}`);
+        modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
     }
 
     // Track tool execution timing for SSE events
@@ -484,26 +549,103 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
                     usageData.totalTokens ||
                     (inputTokens + outputTokens);
 
-                // Extract actual cost from OpenRouter response (if available)
-                // OpenRouter returns cost in their response metadata
-                const providerCostUsd = usageData.cost as number | undefined;
+                // ============================================================================
+                // COST CALCULATION USING COMPREHENSIVE CALCULATOR
+                // ============================================================================
+                // Uses usage-cost-calculator.ts for accurate, provider-specific cost calculation
+                // Automatically handles:
+                // - Standard input/output tokens
+                // - Prompt caching (creation & reads)
+                // - Reasoning tokens (OpenAI, XAI)
+                // - Multimodal tokens (audio, video, images)
+                // - Image generation costs
+                // - Tool usage costs (web search, code execution)
+                // - Long context premium pricing
+                // - Batch API discounts
+                // ============================================================================
 
-                if (providerCostUsd) {
-                    console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
-                    console.log(`💰 OpenRouter Cost: $${providerCostUsd.toFixed(6)}`);
+                // OpenRouter provides cost directly in usageData.cost
+                // Direct providers (Anthropic, OpenAI, Google, xAI) require manual calculation
+                let providerCostUsd = usageData.cost as number | undefined;
+
+                if (!providerCostUsd) {
+                    // Direct provider - calculate cost manually
+                    const modelConfig = getModelConfig(codingModel);
+                    console.log(`💳 Calculating cost for direct provider: ${modelConfig?.provider || 'unknown'}`);
+                    try {
+                        // Debug: Log raw usage data structure for troubleshooting
+                        console.log('🔍 Raw usage data keys:', Object.keys(usageData).join(', '));
+
+                        // Convert usage data to AIUsage format for calculator
+                        // Each provider has its own format, but we normalize to a common structure
+                        const aiUsage: AIUsage = {
+                            // Standard tokens (all providers) - Always populated
+                            promptTokens: inputTokens,
+                            completionTokens: outputTokens,
+                            totalTokens,
+
+                            // Anthropic format - CRITICAL: Always populate these fields for Anthropic models
+                            // AI SDK returns promptTokens/completionTokens, but calculator needs input_tokens/output_tokens
+                            input_tokens: usageData.input_tokens || inputTokens,  // ✅ Fallback to promptTokens
+                            output_tokens: usageData.output_tokens || outputTokens,  // ✅ Fallback to completionTokens
+                            cache_creation_input_tokens: usageData.cache_creation_input_tokens || usageData.cacheCreationInputTokens,
+                            cache_read_input_tokens: usageData.cache_read_input_tokens || usageData.cacheReadInputTokens,
+
+                            // OpenAI format - Extract from nested objects
+                            cached_tokens: (usageData.prompt_tokens_details as Record<string, number> | undefined)?.cached_tokens,
+                            reasoning_tokens: (usageData.completion_tokens_details as Record<string, number> | undefined)?.reasoning_tokens || usageData.reasoning_tokens,
+                            audio_tokens: (usageData.prompt_tokens_details as Record<string, number> | undefined)?.audio_tokens,
+
+                            // Google format - Direct mapping if available
+                            prompt_token_count: usageData.prompt_token_count || inputTokens,  // ✅ Fallback to promptTokens
+                            candidates_token_count: usageData.candidates_token_count || outputTokens,  // ✅ Fallback to completionTokens
+                            cached_content_token_count: usageData.cachedContentTokenCount,
+
+                            // Image generation
+                            images_generated: (usageData as Record<string, unknown>).images_generated as number | undefined ||
+                                (usageData as Record<string, unknown>).image_tokens as number | undefined,
+
+                            // Tool usage (if tracked - must match expected type)
+                            server_tool_use: typeof usageData.server_tool_use === 'object' ? usageData.server_tool_use : undefined,
+                        };
+
+                        // Calculate cost using comprehensive calculator
+                        const breakdown = calculateUsageCost(codingModel, aiUsage);
+                        providerCostUsd = breakdown.totalCost;
+
+                        // Enhanced logging for direct provider cost calculation
+                        console.log(`📊 Token Usage - Input: ${inputTokens.toLocaleString()}, Output: ${outputTokens.toLocaleString()}, Total: ${totalTokens.toLocaleString()}`);
+                        console.log(`💰 Cost Breakdown (Direct Provider): ${formatCostBreakdown(breakdown)}`);
+                        console.log(`💵 Total Cost (Calculated): $${providerCostUsd.toFixed(6)}`);
+                    } catch (error) {
+                        console.error('❌ Cost calculation error:', error);
+                        console.error('Error details:', error instanceof Error ? error.message : String(error));
+                        // Fallback to simple calculation
+                        const modelConfig = getModelConfig(codingModel);
+                        if (modelConfig?.pricing) {
+                            providerCostUsd =
+                                ((inputTokens / 1_000_000) * modelConfig.pricing.inputTokens) +
+                                ((outputTokens / 1_000_000) * modelConfig.pricing.outputTokens);
+                            console.log(`⚠️ Using fallback calculation (basic input/output only): $${providerCostUsd.toFixed(6)}`);
+                        } else {
+                            console.warn(`⚠️ No pricing config found for model: ${codingModel}`);
+                            providerCostUsd = 0; // Ensure we have a value
+                        }
+                    }
                 } else {
-                    console.log(`📊 Token Usage - Input: ${inputTokens}, Output: ${outputTokens}, Total: ${totalTokens}`);
-                    console.log(`⚠️ OpenRouter cost not available, will calculate from pricing config`);
+                    // OpenRouter provided cost directly - no calculation needed
+                    console.log(`📊 Token Usage - Input: ${inputTokens.toLocaleString()}, Output: ${outputTokens.toLocaleString()}, Total: ${totalTokens.toLocaleString()}`);
+                    console.log(`💰 OpenRouter Cost (from API response): $${providerCostUsd.toFixed(6)}`);
                 }
 
                 if (onFinish) {
                     try {
                         await onFinish({
-                            model: codingModel, // OpenRouter model ID (e.g., "anthropic/claude-sonnet-4.5")
+                            model: codingModel, // Model ID (e.g., "anthropic/claude-sonnet-4.5")
                             inputTokens,
                             outputTokens,
                             totalTokens,
-                            providerCostUsd, // Pass actual cost if available
+                            providerCostUsd, // Calculated or actual cost
                         });
                     } catch (error) {
                         console.error('❌ Failed to track usage:', error);
@@ -567,31 +709,44 @@ Project name (1-${maxWords} words only, no code):`;
 
     // Generate project name using intelligent model selection
     try {
-        // Use Grok 4 Fast (Orchestrator) for naming
+        // Use Grok 4.1 Fast (Orchestrator) for naming
         const namingModelId = getOrchestratorModel();
 
-        const { provider, modelPath, displayName, providerType } = getModelProvider(namingModelId);
-        console.log(`🤖 AI Agent: Generating project name with ${displayName} (${namingModelId})`);
-
-        // Different providers use different call patterns
+        let provider, modelPath, displayName, providerType;
         let modelInstance;
-        switch (providerType) {
-            case "anthropic":
-                modelInstance = (provider as ReturnType<typeof createAnthropic>)(modelPath);
-                break;
-            case "openai":
-                modelInstance = (provider as ReturnType<typeof createOpenAI>)(modelPath);
-                break;
-            case "google":
-                modelInstance = (provider as ReturnType<typeof createGoogleGenerativeAI>)(modelPath);
-                break;
-            case "x-ai":
-                modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
-                break;
-            case "openrouter":
-            default:
-                modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
-                break;
+        let useOpenRouterFallback = false;
+
+        try {
+            ({ provider, modelPath, displayName, providerType } = getModelProvider(namingModelId, useOpenRouterFallback));
+            console.log(`🤖 AI Agent: Generating project name with ${displayName} (${namingModelId})`);
+
+            // Different providers use different call patterns
+            switch (providerType) {
+                case "anthropic":
+                    modelInstance = (provider as ReturnType<typeof createAnthropic>)(modelPath);
+                    break;
+                case "openai":
+                    modelInstance = (provider as ReturnType<typeof createOpenAI>)(modelPath);
+                    break;
+                case "google":
+                    modelInstance = (provider as ReturnType<typeof createGoogleGenerativeAI>)(modelPath);
+                    break;
+                case "x-ai":
+                    modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
+                    break;
+                case "openrouter":
+                default:
+                    modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+                    break;
+            }
+        } catch (directProviderError) {
+            // If direct provider fails, retry with OpenRouter fallback
+            console.warn(`⚠️ Direct provider failed for naming, falling back to OpenRouter:`, directProviderError);
+            useOpenRouterFallback = true;
+
+            ({ provider, modelPath, displayName, providerType } = getModelProvider(namingModelId, useOpenRouterFallback));
+            console.log(`🔄 Retrying with OpenRouter fallback: ${displayName}`);
+            modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
         }
 
         const result = await generateText({

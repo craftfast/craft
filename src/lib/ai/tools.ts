@@ -508,58 +508,6 @@ export const installPackages = tool({
     },
 });
 
-export const validateSyntax = tool({
-    description: 'Validate TypeScript/JavaScript syntax without running the code. Use this after generating or modifying files to check for compilation errors. This helps catch mistakes before the user sees them.',
-    inputSchema: z.object({
-        projectId: z.string().describe('The project ID'),
-        files: z.array(z.string()).optional().describe('Optional: specific files to validate. If not provided, validates all TypeScript files.'),
-    }),
-    execute: async ({ projectId, files }) => {
-        console.log(`✅ Validating syntax${files ? ` for ${files.length} file(s)` : ' for all files'}`);
-
-        const sandboxData = activeSandboxes?.get(projectId);
-
-        if (!sandboxData?.sandbox) {
-            return {
-                success: false,
-                error: 'No active sandbox',
-            };
-        }
-
-        const fileArgs = files && files.length > 0 ? files.join(' ') : '';
-        const command = `pnpm tsc --noEmit ${fileArgs}`.trim();
-
-        try {
-            const result = await sandboxData.sandbox.commands.run(
-                `cd /home/user/project && ${command}`,
-                { timeoutMs: 30000 }
-            );
-
-            const hasErrors = result.exitCode !== 0;
-
-            if (!hasErrors) {
-                console.log(`✅ No syntax errors found`);
-            } else {
-                console.log(`❌ Syntax errors found`);
-            }
-
-            return {
-                success: !hasErrors,
-                valid: !hasErrors,
-                errors: hasErrors ? result.stdout : undefined,
-                message: hasErrors
-                    ? 'TypeScript compilation errors found - please fix these errors'
-                    : 'No syntax errors found',
-            };
-        } catch (error) {
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Validation failed',
-            };
-        }
-    },
-});
-
 export const getLogs = tool({
     description: 'Get the dev server logs from the E2B sandbox. Use this to debug runtime errors or check if the app is running correctly.',
     inputSchema: z.object({
@@ -1420,7 +1368,6 @@ export const tools = {
     // Advanced analysis tools
     getProjectStructure,
     searchFiles,
-    validateSyntax,
     getLogs,
 
     // Preview control

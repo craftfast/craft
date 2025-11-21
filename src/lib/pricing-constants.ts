@@ -55,11 +55,11 @@ export const AI_MODEL_PRICING = {
  */
 export function getModelPricing(modelId: string): { inputPrice: number; outputPrice: number } | null {
     const model = Object.values(AVAILABLE_MODELS).find(m => m.id === modelId);
-    if (!model) return null;
+    if (!model || !model.pricing) return null;
 
     return {
-        inputPrice: model.inputPrice || 0,
-        outputPrice: model.outputPrice || 0,
+        inputPrice: model.pricing.inputTokens || 0,
+        outputPrice: model.pricing.outputTokens || 0,
     };
 }
 

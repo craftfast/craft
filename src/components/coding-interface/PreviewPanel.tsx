@@ -197,6 +197,58 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
       onScreenshotCaptured,
     ]);
 
+    // Monitor for errors in dev server logs
+    useEffect(() => {
+      if (sandboxStatus !== "running" || !projectId) return;
+
+      let errorCheckInterval: NodeJS.Timeout;
+      let lastErrorReported = "";
+
+      const checkForErrors = async () => {
+        try {
+          const response = await fetch(
+            `/api/sandbox/${projectId}/logs?lines=100`
+          );
+          if (!response.ok) return;
+
+          const data = await response.json();
+
+          if (data.hasError && data.logs) {
+            // Only report if this is a new error (avoid spam)
+            if (data.logs !== lastErrorReported) {
+              console.log(`🚨 Error detected in preview:`, data.errorType);
+              lastErrorReported = data.logs;
+
+              // Auto-report to agent for fixing
+              fetch(`/api/sandbox/${projectId}/errors`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  errorType: data.errorType,
+                  errorMessage: data.logs.split("\n").slice(-20).join("\n"), // Last 20 lines
+                  logs: data.logs,
+                }),
+              }).catch((err) => console.error("Failed to report error:", err));
+            }
+          }
+        } catch (error) {
+          console.error("Error checking logs:", error);
+        }
+      };
+
+      // Check for errors every 10 seconds
+      errorCheckInterval = setInterval(checkForErrors, 10000);
+
+      // Initial check after 5 seconds
+      setTimeout(checkForErrors, 5000);
+
+      return () => {
+        if (errorCheckInterval) {
+          clearInterval(errorCheckInterval);
+        }
+      };
+    }, [sandboxStatus, projectId]);
+
     // Utility function to format relative time
     const getRelativeTime = (dateString: string): string => {
       const date = new Date(dateString);

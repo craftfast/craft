@@ -118,7 +118,10 @@ function generateModelPricing(): Record<string, { input: number; output: number 
     // Generate from AVAILABLE_MODELS (single source of truth)
     Object.values(AVAILABLE_MODELS).forEach(model => {
         if (model.pricing) {
-            pricing[model.id] = model.pricing;
+            pricing[model.id] = {
+                input: model.pricing.inputTokens,
+                output: model.pricing.outputTokens,
+            };
         }
     });
 
@@ -157,8 +160,8 @@ function calculateCost(
         MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING.default;
 
     // Cost per 1M tokens, so divide by 1,000,000
-    const inputCost = (inputTokens / 1000000) * pricing.input;
-    const outputCost = (outputTokens / 1000000) * pricing.output;
+    const inputCost = (inputTokens / 1000000) * (pricing.input as number);
+    const outputCost = (outputTokens / 1000000) * (pricing.output as number);
 
     return inputCost + outputCost;
 }
