@@ -31,6 +31,7 @@ export function LogsViewer({ projectId }: LogsViewerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const isFetching = useRef(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function LogsViewer({ projectId }: LogsViewerProps) {
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (autoRefresh) {
-      interval = setInterval(fetchLogs, 3000);
+      interval = setInterval(fetchLogs, 10000); // Poll every 10s instead of 3s
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -48,9 +49,13 @@ export function LogsViewer({ projectId }: LogsViewerProps) {
   }, [autoRefresh, projectId]);
 
   const fetchLogs = async () => {
+    // Prevent overlapping requests
+    if (isFetching.current) return;
+
     try {
+      isFetching.current = true;
       setLoading(true);
-      const response = await fetch(`/api/projects/${projectId}/logs`);
+      const response = await fetch(`/api/projects/${projectId}/logs?lines=30`); // Fetch only 30 lines
       if (!response.ok) throw new Error("Failed to fetch logs");
       const data = await response.json();
       setLogs(data.logs || []);
@@ -59,6 +64,7 @@ export function LogsViewer({ projectId }: LogsViewerProps) {
       console.error("Failed to fetch logs:", err);
     } finally {
       setLoading(false);
+      isFetching.current = false;
     }
   };
 

@@ -591,6 +591,14 @@ export function getDefaultCodingModel(): string {
 }
 
 /**
+ * Get default enabled coding models (all available by default)
+ * Used for schema defaults and new user initialization
+ */
+export function getDefaultEnabledCodingModels(): string[] {
+    return getAvailableCodingModels().map((m) => m.id);
+}
+
+/**
  * Get coding model by user preference
  * Falls back to default if preference is invalid or model is disabled
  */

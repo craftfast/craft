@@ -33,11 +33,22 @@ export async function GET(request: NextRequest) {
         // Get all available coding model IDs
         const availableModels = getAvailableCodingModels().map((m) => m.id);
 
+        // Filter out any invalid/deprecated models from user's enabled list
+        const validEnabledModels = user.enabledCodingModels.filter((modelId: string) =>
+            availableModels.includes(modelId)
+        );
+
+        // Use filtered list or all available if none are valid
+        const enabledModels = validEnabledModels.length > 0 ? validEnabledModels : availableModels;
+
+        // Validate preferred model is still available
+        const preferredModel = user.preferredCodingModel && availableModels.includes(user.preferredCodingModel)
+            ? user.preferredCodingModel
+            : getDefaultCodingModel();
+
         return NextResponse.json({
-            preferredCodingModel: user.preferredCodingModel || getDefaultCodingModel(),
-            enabledCodingModels: user.enabledCodingModels.length > 0
-                ? user.enabledCodingModels
-                : availableModels,
+            preferredCodingModel: preferredModel,
+            enabledCodingModels: enabledModels,
         });
     } catch (error) {
         console.error("Error fetching model preferences:", error);
@@ -92,7 +103,10 @@ export async function PATCH(request: NextRequest) {
 
             if (invalidModels.length > 0) {
                 return NextResponse.json(
-                    { error: `Invalid model IDs: ${invalidModels.join(", ")}` },
+                    {
+                        error: `Invalid or deprecated model IDs: ${invalidModels.join(", ")}`,
+                        availableModels: availableModelIds,
+                    },
                     { status: 400 }
                 );
             }

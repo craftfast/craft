@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Check, Info, Sparkles, Brain } from "lucide-react";
 import {
@@ -66,7 +67,11 @@ export default function ModelPreferencesTab() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to save model preferences");
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to save model preferences:", errorData);
+        throw new Error(errorData.error || "Failed to save model preferences");
+      }
 
       if (showToast) {
         toast.success("Model preferences saved");
@@ -170,12 +175,70 @@ export default function ModelPreferencesTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto" />
-          <p className="text-sm text-muted-foreground">
-            Loading preferences...
-          </p>
+      <div className="space-y-8">
+        {/* Header Skeleton */}
+        <div>
+          <Skeleton className="h-7 w-48 mb-2" />
+          <Skeleton className="h-4 w-full max-w-md" />
+        </div>
+
+        {/* Models Skeleton */}
+        <div className="space-y-6">
+          {[1, 2, 3].map((provider) => (
+            <div key={provider} className="space-y-3">
+              <Skeleton className="h-5 w-32" />
+              <div className="space-y-2">
+                {[1, 2].map((model) => (
+                  <div
+                    key={model}
+                    className="flex items-center justify-between p-4 rounded-xl border border-input bg-muted/50"
+                  >
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                      <Skeleton className="h-4 w-full max-w-sm" />
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-3 rounded-full" />
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-3 w-3 rounded-full" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 ml-4">
+                      <Skeleton className="h-8 w-28 rounded-full" />
+                      <Skeleton className="h-10 w-12 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* System Models Skeleton */}
+        <div>
+          <Skeleton className="h-6 w-40 mb-4" />
+          <div className="space-y-2">
+            {[1, 2].map((model) => (
+              <div
+                key={model}
+                className="flex items-center justify-between p-4 rounded-xl border border-input bg-muted/30"
+              >
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-4 rounded" />
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <Skeleton className="h-4 w-64" />
+                </div>
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -242,11 +305,13 @@ export default function ModelPreferencesTab() {
                         </span>
                         <span>•</span>
                         <span>
-                          ${model.pricing?.input.toFixed(2)}/1M input tokens
+                          ${model.pricing?.inputTokens?.toFixed(2) ?? "x.xx"}/1M
+                          input tokens
                         </span>
                         <span>•</span>
                         <span>
-                          ${model.pricing?.output.toFixed(2)}/1M output tokens
+                          ${model.pricing?.outputTokens?.toFixed(2) ?? "x.xx"}
+                          /1M output tokens
                         </span>
                       </div>
                     </div>
@@ -303,7 +368,7 @@ export default function ModelPreferencesTab() {
               <div className="flex items-center gap-2 mb-1">
                 <Brain className="w-4 h-4 text-muted-foreground" />
                 <h5 className="text-sm font-medium text-foreground">
-                  {AVAILABLE_MODELS["x-ai/grok-4-fast"].displayName}
+                  {AVAILABLE_MODELS["x-ai/grok-4-1-fast"].displayName}
                 </h5>
                 <span className="text-xs text-muted-foreground">(Naming)</span>
               </div>
@@ -322,7 +387,7 @@ export default function ModelPreferencesTab() {
               <div className="flex items-center gap-2 mb-1">
                 <Brain className="w-4 h-4 text-muted-foreground" />
                 <h5 className="text-sm font-medium text-foreground">
-                  {AVAILABLE_MODELS["x-ai/grok-4-fast"].displayName}
+                  {AVAILABLE_MODELS["x-ai/grok-4-1-fast"].displayName}
                 </h5>
                 <span className="text-xs text-muted-foreground">(Memory)</span>
               </div>
