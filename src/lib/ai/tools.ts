@@ -445,7 +445,7 @@ export const installPackages = tool({
         try {
             const result = await sandboxData.sandbox.commands.run(
                 `cd /home/user/project && ${command}`,
-                { timeoutMs: 120000 } // 2 minute timeout for package installation
+                { timeoutMs: 60000 } // 1 minute timeout for package installation (reduced from 2 minutes)
             );
 
             if (result.exitCode === 0) {

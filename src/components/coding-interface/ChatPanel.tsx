@@ -89,6 +89,7 @@ interface Message {
   };
   fileChanges?: FileChange[]; // Track file changes in assistant responses
   toolCalls?: ToolCall[]; // Track tool executions in assistant responses
+  isStreaming?: boolean; // Track if message is currently streaming
   orchestratorProgress?: {
     tasks: Array<{
       id: string;
@@ -732,6 +733,7 @@ export default function ChatPanel({
         role: "assistant",
         content: "",
         createdAt: new Date(),
+        isStreaming: true, // Mark as streaming
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -1144,6 +1146,7 @@ export default function ChatPanel({
                         : undefined,
                     toolCalls:
                       toolCallsArray.length > 0 ? toolCallsArray : undefined,
+                    isStreaming: true, // Still streaming
                   }
                 : m
             )
@@ -1181,6 +1184,7 @@ export default function ChatPanel({
                     fileChanges,
                     toolCalls:
                       toolCallsArray.length > 0 ? toolCallsArray : undefined,
+                    isStreaming: false, // Streaming complete
                   }
                 : m
             )
@@ -1201,16 +1205,19 @@ export default function ChatPanel({
           // Convert tool calls map to array for message
           const toolCallsArray = Array.from(messageToolCalls.values());
 
-          // Update message with tool calls if any were detected
-          if (toolCallsArray.length > 0) {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMessage.id
-                  ? { ...m, toolCalls: toolCallsArray }
-                  : m
-              )
-            );
-          }
+          // Update message with tool calls and mark as complete
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMessage.id
+                ? {
+                    ...m,
+                    toolCalls:
+                      toolCallsArray.length > 0 ? toolCallsArray : undefined,
+                    isStreaming: false, // Streaming complete
+                  }
+                : m
+            )
+          );
 
           await saveMessage(
             "assistant",
@@ -1442,22 +1449,7 @@ export default function ChatPanel({
                         </div>
                       )}
 
-                      {/* Tool Executions */}
-                      {message.toolCalls && message.toolCalls.length > 0 && (
-                        <div className="mb-4 space-y-2">
-                          <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-                            🛠️ Tool Executions
-                          </div>
-                          {message.toolCalls.map((toolCall) => (
-                            <ToolCallDisplay
-                              key={toolCall.id}
-                              toolCall={toolCall}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {/* File Changes Card */}
+                      {/* File Changes Card - Higher priority */}
                       {message.fileChanges &&
                         message.fileChanges.length > 0 && (
                           <div className="mb-4">
@@ -1465,18 +1457,15 @@ export default function ChatPanel({
                               title={`Updated project files`}
                               version={`v${messageVersionNumber}`}
                               files={message.fileChanges}
-                              isStreaming={
-                                isLoading &&
-                                messages[messages.length - 1]?.id === message.id
-                              }
+                              isStreaming={message.isStreaming}
                               onFileClick={onFileClick}
                             />
                           </div>
                         )}
 
-                      {/* Message content - only show if there's text */}
-                      {message.content.trim() && (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                      {/* Message content - show if there's text OR still streaming */}
+                      {(message.content.trim() || message.isStreaming) && (
+                        <div className="prose prose-sm dark:prose-invert max-w-none mb-3">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeHighlight]}
@@ -1501,29 +1490,19 @@ export default function ChatPanel({
                               },
                             }}
                           >
-                            {message.content}
+                            {message.content || ""}
                           </ReactMarkdown>
                         </div>
                       )}
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs opacity-60">
-                          {message.createdAt
-                            ? new Date(message.createdAt).toLocaleTimeString()
-                            : new Date().toLocaleTimeString()}
-                        </span>
-                        <div className="flex items-center gap-1 ml-auto">
-                          {/* Copy Button */}
-                          <button
-                            onClick={() =>
-                              handleCopyMessage(message.content, message.id)
-                            }
-                            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label="Copy response"
-                            title="Copy"
-                          >
-                            {copiedMessageId === message.id ? (
+
+                      {/* Tool Executions - Collapsible, at the bottom */}
+                      {!message.isStreaming &&
+                        message.toolCalls &&
+                        message.toolCalls.length > 0 && (
+                          <details className="mb-3 group">
+                            <summary className="cursor-pointer text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800/50 w-fit">
                               <svg
-                                className="w-4 h-4"
+                                className="w-3 h-3 transition-transform group-open:rotate-90"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1532,87 +1511,136 @@ export default function ChatPanel({
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   strokeWidth={2}
-                                  d="M5 13l4 4L19 7"
+                                  d="M9 5l7 7-7 7"
                                 />
                               </svg>
-                            ) : (
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              <span>
+                                View {message.toolCalls.length} tool execution
+                                {message.toolCalls.length > 1 ? "s" : ""}
+                              </span>
+                            </summary>
+                            <div className="mt-2 space-y-2 pl-1">
+                              {message.toolCalls.map((toolCall) => (
+                                <ToolCallDisplay
+                                  key={toolCall.id}
+                                  toolCall={toolCall}
                                 />
-                              </svg>
-                            )}
-                          </button>
-                          {/* Like Button */}
-                          <button
-                            onClick={() => handleFeedback(message.id, "like")}
-                            className={`p-1.5 rounded-lg transition-colors ${
-                              feedbackMessageId[message.id] === "like"
-                                ? "bg-muted text-foreground"
-                                : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                            }`}
-                            aria-label="Good response"
-                            title="Good response"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill={
+                              ))}
+                            </div>
+                          </details>
+                        )}
+
+                      {/* Footer - Only show when NOT streaming */}
+                      {!message.isStreaming && (
+                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+                          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                            {message.createdAt
+                              ? new Date(message.createdAt).toLocaleTimeString()
+                              : new Date().toLocaleTimeString()}
+                          </span>
+                          <div className="flex items-center gap-1 ml-auto">
+                            {/* Copy Button */}
+                            <button
+                              onClick={() =>
+                                handleCopyMessage(message.content, message.id)
+                              }
+                              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label="Copy response"
+                              title="Copy"
+                            >
+                              {copiedMessageId === message.id ? (
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              ) : (
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+                            {/* Like Button */}
+                            <button
+                              onClick={() => handleFeedback(message.id, "like")}
+                              className={`p-1.5 rounded-lg transition-colors ${
                                 feedbackMessageId[message.id] === "like"
-                                  ? "currentColor"
-                                  : "none"
-                              }
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                                  ? "bg-muted text-foreground"
+                                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                              }`}
+                              aria-label="Good response"
+                              title="Good response"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
-                              />
-                            </svg>
-                          </button>
-                          {/* Dislike Button */}
-                          <button
-                            onClick={() =>
-                              handleFeedback(message.id, "dislike")
-                            }
-                            className={`p-1.5 rounded-lg transition-colors ${
-                              feedbackMessageId[message.id] === "dislike"
-                                ? "bg-muted text-foreground"
-                                : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                            }`}
-                            aria-label="Bad response"
-                            title="Bad response"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill={
+                              <svg
+                                className="w-4 h-4"
+                                fill={
+                                  feedbackMessageId[message.id] === "like"
+                                    ? "currentColor"
+                                    : "none"
+                                }
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
+                                />
+                              </svg>
+                            </button>
+                            {/* Dislike Button */}
+                            <button
+                              onClick={() =>
+                                handleFeedback(message.id, "dislike")
+                              }
+                              className={`p-1.5 rounded-lg transition-colors ${
                                 feedbackMessageId[message.id] === "dislike"
-                                  ? "currentColor"
-                                  : "none"
-                              }
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                                  ? "bg-muted text-foreground"
+                                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                              }`}
+                              aria-label="Bad response"
+                              title="Bad response"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"
-                              />
-                            </svg>
-                          </button>
+                              <svg
+                                className="w-4 h-4"
+                                fill={
+                                  feedbackMessageId[message.id] === "dislike"
+                                    ? "currentColor"
+                                    : "none"
+                                }
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"
+                                />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </>
                   ) : (
                     <p className="text-sm whitespace-pre-wrap">
@@ -1688,7 +1716,7 @@ export default function ChatPanel({
                     <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.4s]" />
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    Generating code...
+                    Working...
                   </span>
                 </div>
               </div>

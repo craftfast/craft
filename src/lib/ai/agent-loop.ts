@@ -436,14 +436,14 @@ export function getAgentLoopState(
 }
 
 /**
- * Clean up inactive agent loop states (older than 1 hour)
+ * Clean up inactive agent loop states (older than 30 minutes)
  */
 export function cleanupInactiveAgentLoops() {
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000; // Changed from 1 hour to 30 minutes
 
     for (const [sessionId, manager] of activeAgentLoops.entries()) {
         const state = manager.getState();
-        if (!state.isActive && state.updatedAt < oneHourAgo) {
+        if (!state.isActive && state.updatedAt < thirtyMinutesAgo) {
             activeAgentLoops.delete(sessionId);
             console.log(`🧹 Cleaned up inactive agent loop: ${sessionId}`);
         }

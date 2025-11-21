@@ -173,24 +173,26 @@ export async function POST(req: Request) {
         // STANDARD MODE (Direct Coding Agent - Phase 1 & 2)
         // ============================================================================
 
-        // Get relevant user memories for context (if enabled)
+        // 🚫 MEMORY DISABLED FOR COST OPTIMIZATION
+        // Previous: Loading 10 memories added 44k tokens ($0.09/request)
+        // Savings: ~70% reduction in token usage
         let userMemoryContext = '';
-        if (user.enableMemory) {
-            try {
-                const { getRelevantMemories, formatMemoriesForPrompt } = await import('@/lib/memory/service');
-                const memories = await getRelevantMemories({
-                    userId: user.id,
-                    projectId,
-                    limit: 10,
-                });
-                if (memories.length > 0) {
-                    userMemoryContext = formatMemoriesForPrompt(memories);
-                    console.log(`🧠 Including ${memories.length} user memories in context`);
-                }
-            } catch (error) {
-                console.warn('⚠️ Could not load user memories:', error);
-            }
-        }
+        // if (user.enableMemory) {
+        //     try {
+        //         const { getRelevantMemories, formatMemoriesForPrompt } = await import('@/lib/memory/service');
+        //         const memories = await getRelevantMemories({
+        //             userId: user.id,
+        //             projectId,
+        //             limit: 10,
+        //         });
+        //         if (memories.length > 0) {
+        //             userMemoryContext = formatMemoriesForPrompt(memories);
+        //             console.log(`🧠 Including ${memories.length} user memories in context`);
+        //         }
+        //     } catch (error) {
+        //         console.warn('⚠️ Could not load user memories:', error);
+        //     }
+        // }
 
         // Prepare personalization settings
         const personalization = {
@@ -320,25 +322,27 @@ export async function POST(req: Request) {
                                 console.error('❌ Failed to track usage:', trackingError);
                             }
 
-                            // Capture memories (async, non-blocking)
-                            if (userMessageText && user.enableMemory) {
-                                try {
-                                    const { captureMemoriesFromConversation } = await import('@/lib/memory/service');
-                                    captureMemoriesFromConversation({
-                                        userId: user.id,
-                                        userMessage: userMessageText,
-                                        projectId,
-                                    }).then((count) => {
-                                        if (count > 0) {
-                                            console.log(`🧠 Captured ${count} new memories from conversation`);
-                                        }
-                                    }).catch((err) => {
-                                        console.warn('⚠️ Memory capture failed:', err);
-                                    });
-                                } catch (importError) {
-                                    console.warn('⚠️ Could not import memory service:', importError);
-                                }
-                            }
+                            // 🚫 MEMORY CAPTURE DISABLED FOR COST OPTIMIZATION
+                            // Previous: Used AI to extract memories from every message
+                            // Now: Disabled to reduce costs
+                            // if (userMessageText && user.enableMemory) {
+                            //     try {
+                            //         const { captureMemoriesFromConversation } = await import('@/lib/memory/service');
+                            //         captureMemoriesFromConversation({
+                            //             userId: user.id,
+                            //             userMessage: userMessageText,
+                            //             projectId,
+                            //         }).then((count) => {
+                            //             if (count > 0) {
+                            //                 console.log(`🧠 Captured ${count} new memories from conversation`);
+                            //             }
+                            //         }).catch((err) => {
+                            //             console.warn('⚠️ Memory capture failed:', err);
+                            //         });
+                            //     } catch (importError) {
+                            //         console.warn('⚠️ Could not import memory service:', importError);
+                            //     }
+                            // }
 
                             // Emit done event
                             sseWriter.writeDone({

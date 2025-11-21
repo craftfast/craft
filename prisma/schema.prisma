@@ -40,7 +40,7 @@ model User {
   customInstructions    String?               @db.Text
   occupation            String?
   techStack             String?               @db.Text
-  enableMemory          Boolean               @default(true)
+  enableMemory          Boolean               @default(false) // Disabled for cost optimization (was adding 44k tokens per request)
   referenceChatHistory  Boolean               @default(true)
   enableWebSearch       Boolean               @default(false)
   enableImageGeneration Boolean               @default(false)
