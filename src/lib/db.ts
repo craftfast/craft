@@ -1,18 +1,18 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaNeon } from '@prisma/adapter-neon'
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined
 }
 
+// Create Neon adapter with connection string
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! })
+
 export const prisma =
     globalForPrisma.prisma ??
     new PrismaClient({
+        adapter,
         log: process.env.PRISMA_QUERY_LOGS === 'true' ? ['query'] : [],
-        datasources: {
-            db: {
-                url: process.env.DATABASE_URL,
-            },
-        },
     })
 
 // Optimize connection pooling for serverless
