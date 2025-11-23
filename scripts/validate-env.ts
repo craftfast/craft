@@ -23,89 +23,28 @@ const ENV_VARIABLES: EnvValidation[] = [
         description: "PostgreSQL database connection URL",
         example: "postgresql://user:pass@host:5432/dbname"
     },
-    {
-        name: "DIRECT_DATABASE_URL",
-        required: true,
-        description: "Direct PostgreSQL database connection URL (for migrations)",
-        example: "postgresql://user:pass@host:5432/dbname"
-    },
 
-    // Polar Payment Provider
+    // Razorpay Payment Gateway
     {
-        name: "POLAR_ACCESS_TOKEN",
+        name: "RAZORPAY_KEY_ID",
         required: true,
-        description: "Polar API access token"
+        description: "Razorpay Key ID for payment processing"
     },
     {
-        name: "POLAR_WEBHOOK_SECRET",
+        name: "RAZORPAY_KEY_SECRET",
         required: true,
-        description: "Polar webhook signature verification secret"
+        description: "Razorpay Key Secret for payment processing"
     },
     {
-        name: "POLAR_ORGANIZATION_ID",
+        name: "RAZORPAY_WEBHOOK_SECRET",
         required: true,
-        description: "Polar organization ID"
-    },
-
-    // Polar Product IDs (Hobby Plan)
-    // Note: Hobby is free and not in Polar (Polar minimum is $0.50)
-    // Hobby plan is handled internally in the database only
-
-    // Polar Product IDs (Pro Plans - 11 tiers)
-    {
-        name: "POLAR_PRO_100_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 100 credits/month ($25)"
+        description: "Razorpay webhook signature verification secret"
     },
     {
-        name: "POLAR_PRO_200_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 200 credits/month ($50)"
-    },
-    {
-        name: "POLAR_PRO_400_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 400 credits/month ($100)"
-    },
-    {
-        name: "POLAR_PRO_800_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 800 credits/month ($200)"
-    },
-    {
-        name: "POLAR_PRO_1200_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 1,200 credits/month ($300)"
-    },
-    {
-        name: "POLAR_PRO_1800_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 1,800 credits/month ($450)"
-    },
-    {
-        name: "POLAR_PRO_2500_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 2,500 credits/month ($625)"
-    },
-    {
-        name: "POLAR_PRO_3500_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 3,500 credits/month ($875)"
-    },
-    {
-        name: "POLAR_PRO_5000_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 5,000 credits/month ($1,250)"
-    },
-    {
-        name: "POLAR_PRO_7000_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 7,000 credits/month ($1,750)"
-    },
-    {
-        name: "POLAR_PRO_10000_PRODUCT_ID",
-        required: true,
-        description: "Polar product ID for Pro 10,000 credits/month ($2,250)"
+        name: "RAZORPAY_CURRENCY",
+        required: false,
+        description: "Razorpay currency (default: USD)",
+        example: "USD"
     },
 
     // Better Auth
@@ -120,25 +59,31 @@ const ENV_VARIABLES: EnvValidation[] = [
         description: "Better Auth base URL",
         example: "http://localhost:3000"
     },
+    {
+        name: "NEXT_PUBLIC_BETTER_AUTH_URL",
+        required: true,
+        description: "Better Auth public URL for client-side",
+        example: "http://localhost:3000"
+    },
 
     // OAuth Providers (optional)
     {
-        name: "AUTH_GOOGLE_CLIENT_ID",
+        name: "GOOGLE_CLIENT_ID",
         required: false,
         description: "Google OAuth client ID"
     },
     {
-        name: "AUTH_GOOGLE_CLIENT_SECRET",
+        name: "GOOGLE_CLIENT_SECRET",
         required: false,
         description: "Google OAuth client secret"
     },
     {
-        name: "AUTH_GITHUB_CLIENT_ID",
+        name: "GITHUB_CLIENT_ID",
         required: false,
         description: "GitHub OAuth client ID"
     },
     {
-        name: "AUTH_GITHUB_CLIENT_SECRET",
+        name: "GITHUB_CLIENT_SECRET",
         required: false,
         description: "GitHub OAuth client secret"
     },
@@ -147,14 +92,40 @@ const ENV_VARIABLES: EnvValidation[] = [
     {
         name: "RESEND_ACCOUNT_API_KEY",
         required: true,
-        description: "Resend API key for sending subscription and notification emails"
+        description: "Resend API key for sending emails"
+    },
+    {
+        name: "RESEND_ACCOUNT_EMAIL_FROM",
+        required: true,
+        description: "Resend verified sender email address",
+        example: "team@notifications.example.com"
     },
 
-    // AI Providers
+    // AI Providers (at least one required)
     {
         name: "ANTHROPIC_API_KEY",
-        required: true,
+        required: false,
         description: "Anthropic API key for Claude models"
+    },
+    {
+        name: "OPENAI_API_KEY",
+        required: false,
+        description: "OpenAI API key for GPT models"
+    },
+    {
+        name: "GOOGLE_GENERATIVE_AI_API_KEY",
+        required: false,
+        description: "Google AI API key for Gemini models"
+    },
+    {
+        name: "XAI_API_KEY",
+        required: false,
+        description: "xAI API key for Grok models"
+    },
+    {
+        name: "OPENROUTER_API_KEY",
+        required: false,
+        description: "OpenRouter API key for aggregated models"
     },
 
     // E2B Sandbox
@@ -163,33 +134,87 @@ const ENV_VARIABLES: EnvValidation[] = [
         required: true,
         description: "E2B API key for code execution sandboxes"
     },
+    {
+        name: "E2B_TEMPLATE_ID",
+        required: true,
+        description: "E2B template ID for sandboxes",
+        example: "craft-next-dev"
+    },
 
     // Cloudflare R2 Storage
     {
-        name: "R2_ACCOUNT_ID",
+        name: "CLOUDFLARE_R2_ACCOUNT_ID",
         required: true,
         description: "Cloudflare R2 account ID"
     },
     {
-        name: "R2_ACCESS_KEY_ID",
+        name: "CLOUDFLARE_R2_ACCESS_KEY_ID",
         required: true,
         description: "Cloudflare R2 access key ID"
     },
     {
-        name: "R2_SECRET_ACCESS_KEY",
+        name: "CLOUDFLARE_R2_SECRET_ACCESS_KEY",
         required: true,
         description: "Cloudflare R2 secret access key"
     },
     {
-        name: "R2_BUCKET_NAME",
+        name: "CLOUDFLARE_R2_BUCKET_NAME",
         required: true,
         description: "Cloudflare R2 bucket name"
     },
     {
-        name: "R2_PUBLIC_URL",
-        required: true,
+        name: "CLOUDFLARE_R2_PUBLIC_URL",
+        required: false,
         description: "Cloudflare R2 public URL for file access",
         example: "https://pub-xxx.r2.dev"
+    },
+
+    // Upstash Redis (for rate limiting)
+    {
+        name: "UPSTASH_REDIS_REST_URL",
+        required: true,
+        description: "Upstash Redis REST URL"
+    },
+    {
+        name: "UPSTASH_REDIS_REST_TOKEN",
+        required: true,
+        description: "Upstash Redis REST token"
+    },
+
+    // Neon Database Integration (for AI Agent provisioning)
+    {
+        name: "NEON_API_KEY",
+        required: true,
+        description: "Neon API key for database provisioning"
+    },
+    {
+        name: "NEON_FREE_ORG_ID",
+        required: true,
+        description: "Neon organization ID for FREE/HOBBY tier users"
+    },
+    {
+        name: "NEON_PRO_ORG_ID",
+        required: true,
+        description: "Neon organization ID for PRO/ENTERPRISE tier users"
+    },
+
+    // Application Configuration
+    {
+        name: "NEXT_PUBLIC_APP_URL",
+        required: true,
+        description: "Application URL",
+        example: "http://localhost:3000"
+    },
+    {
+        name: "CRON_SECRET",
+        required: true,
+        description: "Secret for authenticating cron jobs"
+    },
+    {
+        name: "PRISMA_QUERY_LOGS",
+        required: false,
+        description: "Enable Prisma query logging (true/false)",
+        example: "false"
     },
 ];
 
@@ -217,6 +242,23 @@ function validateEnvironment(): { valid: boolean; errors: string[]; warnings: st
         } else {
             console.log(`  ${status} ${envVar.name} - Set`);
         }
+    }
+
+    // Special validation: At least one AI provider API key must be set
+    const aiProviders = [
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+        "XAI_API_KEY",
+        "OPENROUTER_API_KEY"
+    ];
+    const hasAnyAIProvider = aiProviders.some(key => process.env[key]);
+
+    if (!hasAnyAIProvider) {
+        errors.push("At least one AI provider API key is required (Anthropic, OpenAI, Google AI, xAI, or OpenRouter)");
+        console.log("\n  ✗ AI Providers - At least ONE AI provider API key is required");
+    } else {
+        console.log("\n  ✓ AI Providers - At least one provider configured");
     }
 
     console.log("\n" + "=".repeat(80));
