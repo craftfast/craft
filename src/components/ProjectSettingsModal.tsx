@@ -136,11 +136,22 @@ export default function ProjectSettingsModal({
 
   // Environment Variables
   const [environmentVariables, setEnvironmentVariables] = useState<
-    Array<{ id: string; key: string; value: string; isSecret: boolean }>
+    Array<{
+      id: string;
+      key: string;
+      value: string;
+      isSecret: boolean;
+      type?: string | null;
+      description?: string | null;
+      createdAt: string;
+      creator?: { name: string | null; email: string };
+    }>
   >([]);
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvValue, setNewEnvValue] = useState("");
   const [newEnvIsSecret, setNewEnvIsSecret] = useState(true);
+  const [newEnvType, setNewEnvType] = useState<string>("");
+  const [newEnvDescription, setNewEnvDescription] = useState("");
 
   // Custom Views
   const [customViews, setCustomViews] = useState<
@@ -462,29 +473,41 @@ export default function ProjectSettingsModal({
       return;
     }
 
-    const newVar = {
-      id: Date.now().toString(),
-      key: newEnvKey,
-      value: newEnvValue,
-      isSecret: newEnvIsSecret,
-    };
+    // Validate key format
+    const keyRegex = /^[A-Z][A-Z0-9_]*$/;
+    if (!keyRegex.test(newEnvKey)) {
+      toast.error(
+        "Invalid key format. Must start with a letter and contain only uppercase letters, numbers, and underscores."
+      );
+      return;
+    }
 
     setIsSaving(true);
     try {
       const response = await fetch(`/api/projects/${projectId}/environment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newVar),
+        body: JSON.stringify({
+          key: newEnvKey,
+          value: newEnvValue,
+          isSecret: newEnvIsSecret,
+          type: newEnvType || null,
+          description: newEnvDescription || null,
+        }),
       });
 
       if (response.ok) {
+        const newVar = await response.json();
         setEnvironmentVariables((prev) => [...prev, newVar]);
         setNewEnvKey("");
         setNewEnvValue("");
-        setNewEnvIsSecret(false);
+        setNewEnvIsSecret(true);
+        setNewEnvType("");
+        setNewEnvDescription("");
         toast.success("Environment variable added");
       } else {
-        toast.error("Failed to add environment variable");
+        const error = await response.json();
+        toast.error(error.error || "Failed to add environment variable");
       }
     } catch (error) {
       toast.error("Failed to add environment variable");
@@ -1570,26 +1593,85 @@ export default function ProjectSettingsModal({
                   {/* Add New Variable */}
                   <div className="space-y-4 mb-6 p-4 rounded-xl border">
                     <div className="space-y-2">
-                      <Label htmlFor="env-key">Key</Label>
+                      <Label htmlFor="env-key">
+                        Key <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="env-key"
                         value={newEnvKey}
-                        onChange={(e) => setNewEnvKey(e.target.value)}
+                        onChange={(e) =>
+                          setNewEnvKey(e.target.value.toUpperCase())
+                        }
                         placeholder="DATABASE_URL"
-                        className="rounded-lg"
+                        className="rounded-lg font-mono"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Uppercase letters, numbers, and underscores only
+                      </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="env-value">Value</Label>
+                      <Label htmlFor="env-value">
+                        Value <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="env-value"
                         type={newEnvIsSecret ? "password" : "text"}
                         value={newEnvValue}
                         onChange={(e) => setNewEnvValue(e.target.value)}
                         placeholder="postgresql://..."
-                        className="rounded-lg"
+                        className="rounded-lg font-mono"
                       />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="env-type">Type (Optional)</Label>
+                        <Select
+                          value={newEnvType}
+                          onValueChange={setNewEnvType}
+                        >
+                          <SelectTrigger className="rounded-lg">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="" className="rounded-lg">
+                              None
+                            </SelectItem>
+                            <SelectItem value="url" className="rounded-lg">
+                              URL
+                            </SelectItem>
+                            <SelectItem value="email" className="rounded-lg">
+                              Email
+                            </SelectItem>
+                            <SelectItem value="number" className="rounded-lg">
+                              Number
+                            </SelectItem>
+                            <SelectItem value="port" className="rounded-lg">
+                              Port
+                            </SelectItem>
+                            <SelectItem value="json" className="rounded-lg">
+                              JSON
+                            </SelectItem>
+                            <SelectItem value="boolean" className="rounded-lg">
+                              Boolean
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="env-description">
+                          Description (Optional)
+                        </Label>
+                        <Input
+                          id="env-description"
+                          value={newEnvDescription}
+                          onChange={(e) => setNewEnvDescription(e.target.value)}
+                          placeholder="Database connection string"
+                          className="rounded-lg"
+                        />
+                      </div>
                     </div>
 
                     <div className="flex items-center space-x-2">
@@ -1632,19 +1714,35 @@ export default function ProjectSettingsModal({
                       environmentVariables.map((envVar) => (
                         <div
                           key={envVar.id}
-                          className="flex items-center justify-between p-4 rounded-xl border"
+                          className="flex items-start justify-between p-4 rounded-xl border hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors"
                         >
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 space-y-2">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium font-mono text-sm">
+                              <span className="font-semibold font-mono text-sm">
                                 {envVar.key}
                               </span>
                               {envVar.isSecret && (
                                 <Lock className="w-3 h-3 text-muted-foreground" />
                               )}
+                              {envVar.type && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-muted-foreground">
+                                  {envVar.type}
+                                </span>
+                              )}
                             </div>
-                            <div className="text-sm text-muted-foreground font-mono truncate mt-1">
-                              {envVar.isSecret ? "••••••••" : envVar.value}
+                            <div className="text-sm text-muted-foreground font-mono truncate">
+                              {envVar.value}
+                            </div>
+                            {envVar.description && (
+                              <p className="text-xs text-muted-foreground">
+                                {envVar.description}
+                              </p>
+                            )}
+                            <div className="text-xs text-muted-foreground">
+                              Added{" "}
+                              {new Date(envVar.createdAt).toLocaleDateString()}
+                              {envVar.creator?.name &&
+                                ` by ${envVar.creator.name}`}
                             </div>
                           </div>
 
@@ -1655,6 +1753,7 @@ export default function ProjectSettingsModal({
                               handleRemoveEnvironmentVariable(envVar.id)
                             }
                             className="rounded-lg flex-shrink-0"
+                            title="Delete variable"
                           >
                             <Trash2 className="w-4 h-4 text-red-600" />
                           </Button>

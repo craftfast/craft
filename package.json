@@ -1,6 +1,7 @@
 {
   "name": "craft",
   "version": "0.1.0",
+  "type": "module",
   "description": "A revolutionary vibe coding tool that transforms the way developers create, collaborate, and craft amazing applications",
   "author": "Nextcrafter Labs (OPC) Private Limited",
   "license": "UNLICENSED",
@@ -24,7 +25,7 @@
     "vibe-coding"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0"
   },
   "scripts": {
     "dev": "next dev --turbopack",

@@ -103,7 +103,7 @@ export function validateEnvVarName(key: string): boolean {
  */
 export function validateEnvVarValue(
     value: string,
-    type?: "url" | "email" | "number" | "port"
+    type?: "url" | "email" | "number" | "port" | "json" | "boolean"
 ): { valid: boolean; error?: string } {
     if (!value || value.trim() === "") {
         return { valid: false, error: "Value cannot be empty" };
@@ -138,5 +138,81 @@ export function validateEnvVarValue(
         }
     }
 
+    if (type === "json") {
+        try {
+            JSON.parse(value);
+            return { valid: true };
+        } catch {
+            return { valid: false, error: "Invalid JSON format" };
+        }
+    }
+
+    if (type === "boolean") {
+        const normalized = value.toLowerCase();
+        if (!["true", "false", "1", "0", "yes", "no"].includes(normalized)) {
+            return { valid: false, error: "Invalid boolean value" };
+        }
+    }
+
     return { valid: true };
+}
+
+/**
+ * Mask a secret value for display
+ * @param value - Value to mask
+ * @param visibleChars - Number of characters to show at the end
+ * @returns Masked string
+ */
+export function maskSecretValue(value: string, visibleChars: number = 4): string {
+    if (value.length <= visibleChars) {
+        return "•".repeat(8);
+    }
+    const visible = value.slice(-visibleChars);
+    return "•".repeat(8) + visible;
+}
+
+/**
+ * Generate a secure random token for webhook secrets, API keys, etc.
+ * @param length - Length of the token (default 32)
+ * @returns Random token string
+ */
+export function generateSecureToken(length: number = 32): string {
+    return randomBytes(length).toString("hex");
+}
+
+/**
+ * Hash a value using SHA-256 for comparison without storing the original
+ * @param value - Value to hash
+ * @returns Hashed value
+ */
+export function hashValue(value: string): string {
+    const crypto = require("crypto");
+    return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+/**
+ * Check if a value is encrypted
+ * @param value - Value to check
+ * @returns true if encrypted format is detected
+ */
+export function isEncrypted(value: string): boolean {
+    const parts = value.split(":");
+    return parts.length === 2 && /^[0-9a-f]+$/.test(parts[0]) && /^[0-9a-f]+$/.test(parts[1]);
+}
+
+/**
+ * Sanitize environment variable value for logging (never log secrets)
+ * @param value - Value to sanitize
+ * @param isSecret - Whether this is a secret value
+ * @returns Sanitized string safe for logs
+ */
+export function sanitizeForLog(value: string, isSecret: boolean): string {
+    if (isSecret) {
+        return "[REDACTED]";
+    }
+    // Even for non-secrets, truncate very long values
+    if (value.length > 100) {
+        return value.slice(0, 100) + "... (truncated)";
+    }
+    return value;
 }

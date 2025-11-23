@@ -7,7 +7,79 @@ import {
     decryptValue,
     validateEnvVarName,
     validateEnvVarValue,
+    maskSecretValue,
+    sanitizeForLog,
 } from "@/lib/crypto";
+
+/**
+ * Helper to check if user has access to project
+ */
+async function checkProjectAccess(
+    projectId: string,
+    userId: string,
+    requiredRole: "owner" | "editor" | "viewer" = "viewer"
+) {
+    const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        include: {
+            collaborators: {
+                where: { userId },
+            },
+        },
+    });
+
+    if (!project) {
+        return { hasAccess: false, project: null, role: null };
+    }
+
+    const isOwner = project.userId === userId;
+    const collaboration = project.collaborators[0];
+    const role = isOwner ? "owner" : collaboration?.role || null;
+
+    if (isOwner) {
+        return { hasAccess: true, project, role: "owner" };
+    }
+
+    if (collaboration) {
+        if (requiredRole === "viewer") {
+            return { hasAccess: true, project, role: collaboration.role };
+        }
+        if (requiredRole === "editor" && ["editor", "owner"].includes(collaboration.role)) {
+            return { hasAccess: true, project, role: collaboration.role };
+        }
+    }
+
+    return { hasAccess: false, project, role };
+}
+
+/**
+ * Helper to create audit log
+ */
+async function createAuditLog(
+    envVarId: string,
+    action: string,
+    performedBy: string,
+    req: NextRequest,
+    metadata?: any
+) {
+    try {
+        const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+        const userAgent = req.headers.get("user-agent") || "unknown";
+
+        await prisma.environmentVariableAudit.create({
+            data: {
+                envVarId,
+                action,
+                performedBy,
+                ipAddress,
+                userAgent,
+                metadata,
+            },
+        });
+    } catch (error) {
+        console.error("Failed to create audit log:", error);
+    }
+}
 
 // POST /api/projects/[id]/environment - Add environment variable
 export async function POST(
@@ -29,9 +101,9 @@ export async function POST(
 
         const { id: projectId } = await params;
         const body = await req.json();
-        const { key, value, isSecret = true, type } = body;
+        const { key, value, isSecret = true, type, description } = body;
 
-        if (!key || !value) {
+        if (!key || value === undefined || value === null || value === "") {
             return NextResponse.json(
                 { error: "Key and value are required" },
                 { status: 400 }
@@ -43,52 +115,44 @@ export async function POST(
             return NextResponse.json(
                 {
                     error:
-                        "Invalid environment variable name. Must be uppercase letters, numbers, and underscores only.",
+                        "Invalid environment variable name. Must start with a letter and contain only uppercase letters, numbers, and underscores.",
                 },
                 { status: 400 }
             );
         }
 
         // Validate value if type is specified
-        const valueValidation = validateEnvVarValue(value, type);
-        if (!valueValidation.valid) {
-            return NextResponse.json(
-                { error: valueValidation.error },
-                { status: 400 }
-            );
+        if (type) {
+            const valueValidation = validateEnvVarValue(value, type);
+            if (!valueValidation.valid) {
+                return NextResponse.json(
+                    { error: valueValidation.error },
+                    { status: 400 }
+                );
+            }
         }
 
-        // Verify project ownership or editor access
-        const project = await prisma.project.findUnique({
-            where: { id: projectId },
-            include: {
-                collaborators: true,
-            },
-        });
+        // Check project access (editor or owner required)
+        const { hasAccess, role } = await checkProjectAccess(projectId, session.user.id, "editor");
 
-        if (!project) {
-            return NextResponse.json({ error: "Project not found" }, { status: 404 });
-        }
-
-        const isOwner = project.userId === session.user.id;
-        const isEditor = project.collaborators?.some(
-            (c: any) => c.userId === session.user.id && c.role === "editor"
-        );
-
-        if (!isOwner && !isEditor) {
+        if (!hasAccess || !["owner", "editor"].includes(role || "")) {
             return NextResponse.json(
                 { error: "You don't have permission to add environment variables" },
                 { status: 403 }
             );
         }
 
-        // Get existing environment variables
-        const existingVars = Array.isArray(project.environmentVariables)
-            ? (project.environmentVariables as any[])
-            : [];
+        // Check for duplicate key
+        const existingVar = await prisma.projectEnvironmentVariable.findUnique({
+            where: {
+                projectId_key: {
+                    projectId,
+                    key,
+                },
+            },
+        });
 
-        // Check for duplicate keys
-        if (existingVars.some((v: any) => v.key === key)) {
+        if (existingVar && !existingVar.deletedAt) {
             return NextResponse.json(
                 { error: "Environment variable with this key already exists" },
                 { status: 400 }
@@ -98,30 +162,44 @@ export async function POST(
         // Encrypt value if secret
         const storedValue = isSecret ? encryptValue(value) : value;
 
-        // Add new variable
-        const newVar = {
-            id: Date.now().toString(),
-            key,
-            value: storedValue,
-            isSecret,
-            type: type || null,
-            createdAt: new Date().toISOString(),
-        };
-
-        const updatedVars = [...existingVars, newVar];
-
-        // Update project
-        await prisma.project.update({
-            where: { id: projectId },
+        // Create environment variable
+        const envVar = await prisma.projectEnvironmentVariable.create({
             data: {
-                environmentVariables: updatedVars as any,
+                projectId,
+                key,
+                value: storedValue,
+                isSecret,
+                type,
+                description,
+                createdBy: session.user.id,
+            },
+            include: {
+                creator: {
+                    select: {
+                        name: true,
+                        email: true,
+                    },
+                },
             },
         });
 
-        // Return variable with masked value if secret
+        // Create audit log
+        await createAuditLog(
+            envVar.id,
+            "created",
+            session.user.id,
+            req,
+            {
+                key,
+                isSecret,
+                type,
+            }
+        );
+
+        // Return with masked value if secret
         return NextResponse.json({
-            ...newVar,
-            value: isSecret ? "••••••••" : value,
+            ...envVar,
+            value: isSecret ? maskSecretValue(storedValue, 0) : value,
         });
     } catch (error) {
         console.error("Error adding environment variable:", error);
@@ -148,34 +226,44 @@ export async function GET(
 
         const { id: projectId } = await params;
 
-        // Verify project access
-        const project = await prisma.project.findUnique({
-            where: { id: projectId },
-            include: {
-                collaborators: true,
-            },
-        });
-
-        if (!project) {
-            return NextResponse.json({ error: "Project not found" }, { status: 404 });
-        }
-
-        const hasAccess =
-            project.userId === session.user.id ||
-            project.collaborators?.some((c: any) => c.userId === session.user.id);
+        // Check project access
+        const { hasAccess } = await checkProjectAccess(projectId, session.user.id);
 
         if (!hasAccess) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const vars = Array.isArray(project.environmentVariables)
-            ? (project.environmentVariables as any[])
-            : [];
+        // Get environment variables (only non-deleted)
+        const envVars = await prisma.projectEnvironmentVariable.findMany({
+            where: {
+                projectId,
+                deletedAt: null,
+            },
+            orderBy: {
+                createdAt: "asc",
+            },
+            select: {
+                id: true,
+                key: true,
+                value: true,
+                isSecret: true,
+                type: true,
+                description: true,
+                createdAt: true,
+                updatedAt: true,
+                creator: {
+                    select: {
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+        });
 
-        // Return with masked secret values
-        const maskedVars = vars.map((v: any) => ({
+        // Mask secret values
+        const maskedVars = envVars.map((v) => ({
             ...v,
-            value: v.isSecret ? "••••••••" : v.value,
+            value: v.isSecret ? maskSecretValue(v.value, 0) : v.value,
         }));
 
         return NextResponse.json({ environmentVariables: maskedVars });
