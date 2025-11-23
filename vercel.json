@@ -5,10 +5,6 @@
             "schedule": "0 0 * * *"
         },
         {
-            "path": "/api/cron/award-referral-credits",
-            "schedule": "0 0 1 * *"
-        },
-        {
             "path": "/api/cron/reset-credits",
             "schedule": "0 1 * * *"
         }

@@ -6,7 +6,6 @@ export { default as AccountTab } from "./AccountTab";
 export { default as IntegrationsTab } from "./IntegrationsTab";
 export { default as PersonalizationTab } from "./PersonalizationTab";
 export { default as ModelPreferencesTab } from "./ModelPreferencesTab";
-export { default as ReferralsTab } from "./ReferralsTab";
 export { default as PasswordSetupModal } from "./PasswordSetupModal";
 export { default as DeleteAccountModal } from "./DeleteAccountModal";
 export type * from "./types";

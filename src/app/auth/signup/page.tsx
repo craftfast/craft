@@ -16,14 +16,12 @@ function SignUpContent() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const planParam = searchParams.get("plan"); // Capture plan parameter
   const tierParam = searchParams.get("tier"); // Capture tier parameter
-  const referralParam = searchParams.get("ref"); // Capture referral code
 
   const [step, setStep] = useState(1); // 1 for email, 2 for name/password, 3 for OTP verification
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [referralCode, setReferralCode] = useState(referralParam || "");
   const [otp, setOTP] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -139,22 +137,6 @@ function SignUpContent() {
           router.push("/auth/signin");
         }, 2000);
         return;
-      }
-
-      // Process referral code if provided
-      if (referralCode && referralCode.trim()) {
-        try {
-          await fetch("/api/referrals/process", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ referralCode: referralCode.trim() }),
-          });
-          // Don't block signup if referral processing fails
-        } catch (refError) {
-          console.error("Failed to process referral:", refError);
-        }
       }
 
       // Successfully verified and signed in - redirect to chat
@@ -521,24 +503,6 @@ function SignUpContent() {
                 <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1 px-1">
                   Must include uppercase, lowercase, number, and special
                   character
-                </p>
-              </div>
-
-              {/* Referral Code Input */}
-              <div>
-                <Input
-                  id="referralCode"
-                  type="text"
-                  value={referralCode}
-                  onChange={(e) =>
-                    setReferralCode(e.target.value.toUpperCase())
-                  }
-                  className="h-12 rounded-full px-5"
-                  placeholder="Referral code (optional)"
-                  maxLength={8}
-                />
-                <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1 px-1">
-                  Get 1 free credit/month for every friend you refer
                 </p>
               </div>
 

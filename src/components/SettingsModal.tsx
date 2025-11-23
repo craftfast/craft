@@ -40,7 +40,6 @@ import {
   AccountTab,
   IntegrationsTab,
   PersonalizationTab,
-  ReferralsTab,
   PasswordSetupModal,
   DeleteAccountModal,
 } from "@/components/settings";
@@ -56,8 +55,7 @@ interface SettingsModalProps {
     | "account"
     | "integrations"
     | "personalization"
-    | "model-preferences"
-    | "referrals";
+    | "model-preferences";
   initialOption?: SettingsOption; // Specific section within the tab
   initialProTierIndex?: number;
   autoTriggerCheckout?: boolean; // Auto-trigger checkout when coming from pricing page
@@ -182,8 +180,7 @@ type SettingsTab =
   | "account"
   | "integrations"
   | "personalization"
-  | "model-preferences"
-  | "referrals";
+  | "model-preferences";
 
 export default function SettingsModal({
   isOpen,
@@ -391,25 +388,6 @@ export default function SettingsModal({
   // Confirmation dialog state
   const [showUnlinkConfirmation, setShowUnlinkConfirmation] = useState(false);
 
-  // Referral state
-  interface ReferralData {
-    referralCode: string;
-    referrals: Array<{
-      id: string;
-      email: string | null;
-      name: string | null;
-      createdAt: string;
-    }>;
-    totalReferrals: number;
-    totalCreditsEarned: number;
-    currentMonthlyCredits: number;
-  }
-  const [referralData, setReferralData] = useState<ReferralData | null>(null);
-  const [isLoadingReferralData, setIsLoadingReferralData] = useState(false);
-  const [copiedReferralCode, setCopiedReferralCode] = useState(false);
-  const [copiedReferralLink, setCopiedReferralLink] = useState(false);
-  const [isGeneratingReferralCode, setIsGeneratingReferralCode] =
-    useState(false);
   const [pendingUnlinkProvider, setPendingUnlinkProvider] = useState<
     "google" | "github" | "credentials" | null
   >(null);
@@ -509,34 +487,6 @@ export default function SettingsModal({
       }
     }
   }, [activeTab, isOpen, session]);
-
-  // Fetch referral data when referrals tab is active
-  useEffect(() => {
-    // Only fetch if modal is open and user is authenticated
-    if (!isOpen || !session?.user) return;
-
-    if (activeTab === "referrals") {
-      fetchReferralData();
-    }
-  }, [activeTab, isOpen, session]);
-
-  const fetchReferralData = async () => {
-    setIsLoadingReferralData(true);
-    try {
-      const res = await fetch("/api/referrals/stats");
-      if (res.ok) {
-        const data = await res.json();
-        setReferralData(data);
-      } else {
-        toast.error("Failed to load referral data");
-      }
-    } catch (error) {
-      console.error("Error fetching referral data:", error);
-      toast.error("Failed to load referral data");
-    } finally {
-      setIsLoadingReferralData(false);
-    }
-  };
 
   const fetchUserProfile = async () => {
     setIsLoadingProfile(true);
@@ -1139,7 +1089,6 @@ export default function SettingsModal({
     { id: "usage" as SettingsTab, label: "Usage" },
     { id: "account" as SettingsTab, label: "Account" },
     { id: "integrations" as SettingsTab, label: "Integrations" },
-    { id: "referrals" as SettingsTab, label: "Referrals" },
   ];
 
   const getMenuIcon = (itemId: SettingsTab) => {
@@ -1260,22 +1209,6 @@ export default function SettingsModal({
               strokeLinejoin="round"
               strokeWidth={2}
               d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
-            />
-          </svg>
-        );
-      case "referrals":
-        return (
-          <svg
-            className={iconClass}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
             />
           </svg>
         );
@@ -1536,17 +1469,6 @@ export default function SettingsModal({
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold mb-6">Integrations</h2>
                 <IntegrationsTab />
-              </div>
-            )}
-            {/* Referrals Tab */}
-            {activeTab === "referrals" && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold mb-6">Referrals</h2>
-                <ReferralsTab
-                  referralData={referralData}
-                  isLoadingReferralData={isLoadingReferralData}
-                  fetchReferralData={fetchReferralData}
-                />
               </div>
             )}
           </div>

@@ -48,7 +48,6 @@ export default function DashboardHeader({
           "account",
           "integrations",
           "personalization",
-          "referrals",
         ].includes(tab)
       ) {
         setSettingsTab(tab as typeof settingsTab);

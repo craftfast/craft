@@ -47,9 +47,6 @@ model User {
   // Model preferences
   preferredCodingModel  String?                      @default("anthropic/claude-sonnet-4.5") // User's preferred coding model
   enabledCodingModels   String[]                     @default(["anthropic/claude-haiku-4.5", "anthropic/claude-sonnet-4.5", "openai/gpt-5-mini", "openai/gpt-5.1", "google/gemini-2.5-flash", "google/gemini-3-pro-preview", "x-ai/grok-code-fast-1"]) // Models user has enabled
-  // Referral system
-  referralCode          String?                      @unique
-  referredById          String?
   createdAt             DateTime                     @default(now())
   updatedAt             DateTime                     @updatedAt
   // Better Auth admin plugin fields
@@ -78,10 +75,6 @@ model User {
   sessions              Session[]
   subscription          UserSubscription?
   twofactors            TwoFactor[]
-  // Referral relations
-  referredBy            User?                        @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referrals             User[]                       @relation("UserReferrals")
-  referralCredits       ReferralCredit[]
   // Balance transactions
   balanceTransactions   BalanceTransaction[]
   // Memory relations
@@ -922,26 +915,6 @@ model RazorpayWebhookEvent {
   @@index([status])
   @@index([createdAt])
   @@map("razorpay_webhook_events")
-}
-
-// Referral system
-model ReferralCredit {
-  id              String   @id @default(cuid())
-  userId          String // User who earned the credit
-  referredUserId  String // User who signed up with referral code
-  creditsAwarded  Int      @default(1) // Monthly credits earned
-  awardedForMonth DateTime // Which month this credit is for (YYYY-MM-01)
-  status          String   @default("active") // "active", "revoked" (if referred user deleted account)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, referredUserId, awardedForMonth])
-  @@index([userId, awardedForMonth])
-  @@index([referredUserId])
-  @@index([status])
-  @@index([createdAt])
-  @@map("referral_credits")
 }
 
 // ============================================================================
