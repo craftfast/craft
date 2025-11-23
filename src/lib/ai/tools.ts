@@ -888,11 +888,11 @@ export const runSandboxCommand = tool({
             if (!timeoutMs) {
                 const cmd = command.toLowerCase();
                 if (cmd.includes('install') || cmd.includes('add') || cmd.includes('create-next-app') || cmd.includes('create-react-app')) {
-                    timeoutMs = 120000; // 2 minutes for installation commands
+                    timeoutMs = 300000; // 5 minutes for installation commands (E2B can be slow)
                 } else if (cmd.includes('build') || cmd.includes('compile')) {
-                    timeoutMs = 90000; // 1.5 minutes for build commands
+                    timeoutMs = 180000; // 3 minutes for build commands
                 } else {
-                    timeoutMs = 30000; // 30 seconds for other commands
+                    timeoutMs = 60000; // 1 minute for other commands
                 }
                 console.log(`⏱️ Auto-detected timeout: ${timeoutMs}ms for command type`);
             }

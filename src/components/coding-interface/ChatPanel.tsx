@@ -15,8 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { notifyCreditUpdate } from "@/lib/credit-events";
 import { toast } from "sonner";
-import { InlineReferences } from "./InlineReferences";
 import { OrchestratorProgress } from "./OrchestratorProgress";
+import { AgentActivityIndicator } from "./AgentActivityIndicator";
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -146,6 +146,9 @@ export default function ChatPanel({
   const [activeToolCalls, setActiveToolCalls] = useState<Map<string, ToolCall>>(
     new Map()
   ); // Track tool executions
+  const [streamingToolCalls, setStreamingToolCalls] = useState<
+    Map<string, ToolCall>
+  >(new Map()); // Track tools for currently streaming message
   const [selectedImages, setSelectedImages] = useState<ImageAttachment[]>([]);
   const [previewImage, setPreviewImage] = useState<ImageAttachment | null>(
     null
@@ -874,6 +877,9 @@ export default function ChatPanel({
                   };
                   messageToolCalls.set(tc.id, toolCall);
 
+                  // Update streaming tool calls for live indicator
+                  setStreamingToolCalls(new Map(messageToolCalls));
+
                   console.log(`🔧 Tool started: ${tc.name}`);
                   break;
                 }
@@ -903,6 +909,9 @@ export default function ChatPanel({
                     existingTool.error = tc.error;
                     existingTool.completedAt = tc.completedAt;
                   }
+
+                  // Update streaming tool calls for live indicator
+                  setStreamingToolCalls(new Map(messageToolCalls));
 
                   console.log(
                     `✅ Tool completed: ${tc.name} (${tc.status}) in ${tc.duration}ms`
@@ -1232,6 +1241,9 @@ export default function ChatPanel({
           );
         }
 
+        // Clear streaming tool calls
+        setStreamingToolCalls(new Map());
+
         // Trigger credit balance update after successful response
         notifyCreditUpdate();
       }
@@ -1453,14 +1465,6 @@ export default function ChatPanel({
                         </div>
                       )}
 
-                      {/* Inline References - Professional GitHub Copilot style */}
-                      {message.toolCalls && message.toolCalls.length > 0 && (
-                        <InlineReferences
-                          toolCalls={message.toolCalls}
-                          onFileClick={onFileClick}
-                        />
-                      )}
-
                       {/* File Changes Card - Higher priority */}
                       {message.fileChanges &&
                         message.fileChanges.length > 0 && (
@@ -1624,6 +1628,18 @@ export default function ChatPanel({
                       {message.content}
                     </p>
                   )}
+
+                  {/* Agent Activity Indicator - show for last streaming message */}
+                  {message.role === "assistant" &&
+                    message.isStreaming &&
+                    index === messages.length - 1 && (
+                      <div className="mt-4">
+                        <AgentActivityIndicator
+                          toolCalls={streamingToolCalls}
+                          isStreaming={isLoading}
+                        />
+                      </div>
+                    )}
                 </div>
                 {/* User message images - displayed as small thumbnails outside the text box */}
                 {message.role === "user" &&
