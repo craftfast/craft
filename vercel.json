@@ -1,11 +1,11 @@
 {
     "crons": [
         {
-            "path": "/api/cron/grace-period",
+            "path": "/api/cron/cleanup-deleted-accounts",
             "schedule": "0 0 * * *"
         },
         {
-            "path": "/api/cron/reset-credits",
+            "path": "/api/cron/expire-tokens",
             "schedule": "0 1 * * *"
         }
     ]

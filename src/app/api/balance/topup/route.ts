@@ -16,12 +16,30 @@ import {
     getCheckoutAmount,
     MINIMUM_BALANCE_AMOUNT,
 } from "@/lib/pricing-constants";
+import { paymentRateLimiter, checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
     try {
         const session = await getSession();
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Rate limit payment requests (fail closed for security)
+        const rateLimitResult = await checkRateLimit(
+            paymentRateLimiter,
+            session.user.email,
+            true // failClosed = true for payment endpoints
+        );
+
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: "Too many payment requests. Please try again later." },
+                {
+                    status: 429,
+                    headers: getRateLimitHeaders(rateLimitResult),
+                }
+            );
         }
 
         const { amount } = await request.json();

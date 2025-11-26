@@ -1,7 +1,19 @@
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from "crypto";
 
 // Encryption key must be 32 bytes for AES-256
-const ENCRYPTION_KEY = process.env.ENV_VAR_ENCRYPTION_KEY || "default-32-byte-key-for-dev-use"; // Must be 32 bytes
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const ENCRYPTION_KEY = process.env.ENV_VAR_ENCRYPTION_KEY;
+
+// Validate encryption key in production
+if (IS_PRODUCTION && !ENCRYPTION_KEY) {
+    throw new Error(
+        "ENV_VAR_ENCRYPTION_KEY environment variable is required in production. " +
+        "Generate a secure 32-character key for AES-256 encryption."
+    );
+}
+
+// Use default key only in development
+const EFFECTIVE_KEY = ENCRYPTION_KEY || "default-32-byte-key-for-dev-use";
 const IV_LENGTH = 16;
 
 /**
@@ -11,7 +23,7 @@ const IV_LENGTH = 16;
  */
 export function encryptValue(text: string): string {
     try {
-        const key = Buffer.from(ENCRYPTION_KEY.padEnd(32, "0").slice(0, 32));
+        const key = Buffer.from(EFFECTIVE_KEY.padEnd(32, "0").slice(0, 32));
         const iv = randomBytes(IV_LENGTH);
         const cipher = createCipheriv("aes-256-cbc", key, iv);
         const encrypted = Buffer.concat([cipher.update(text, "utf8"), cipher.final()]);
@@ -29,7 +41,7 @@ export function encryptValue(text: string): string {
  */
 export function decryptValue(text: string): string {
     try {
-        const key = Buffer.from(ENCRYPTION_KEY.padEnd(32, "0").slice(0, 32));
+        const key = Buffer.from(EFFECTIVE_KEY.padEnd(32, "0").slice(0, 32));
         const parts = text.split(":");
         if (parts.length !== 2) {
             throw new Error("Invalid encrypted format");

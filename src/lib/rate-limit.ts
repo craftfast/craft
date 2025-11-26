@@ -8,6 +8,8 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
 // Create Redis client (uses UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN env vars)
 const redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL || "",
@@ -48,12 +50,38 @@ export const sandboxRateLimiter = new Ratelimit({
 });
 
 /**
+ * Rate limiter for payment/billing operations (critical - fail closed)
+ * Allows 10 requests per minute per user
+ */
+export const paymentRateLimiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+    analytics: true,
+    prefix: "craft:ratelimit:payment",
+});
+
+/**
+ * Rate limiter for auth operations (critical - fail closed)
+ * Allows 5 requests per minute per IP
+ */
+export const authRateLimiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(5, "1 m"),
+    analytics: true,
+    prefix: "craft:ratelimit:auth",
+});
+
+/**
  * Check if rate limit is exceeded for a given identifier
- * Returns true if allowed, false if rate limited
+ * 
+ * @param limiter - The rate limiter to use
+ * @param identifier - Unique identifier (e.g., user ID, IP address)
+ * @param failClosed - If true, deny requests when Redis is unavailable (for critical endpoints)
  */
 export async function checkRateLimit(
     limiter: Ratelimit,
-    identifier: string
+    identifier: string,
+    failClosed: boolean = false
 ): Promise<{ success: boolean; limit: number; remaining: number; reset: number }> {
     try {
         const result = await limiter.limit(identifier);
@@ -64,8 +92,20 @@ export async function checkRateLimit(
             reset: result.reset,
         };
     } catch (error) {
-        // If Redis is unavailable, allow the request but log the error
         console.error("Rate limit check failed:", error);
+
+        // For critical endpoints (payments, auth), fail closed in production
+        if (failClosed && IS_PRODUCTION) {
+            console.error("⚠️ Rate limiting failed closed for critical endpoint");
+            return {
+                success: false,
+                limit: 0,
+                remaining: 0,
+                reset: 0,
+            };
+        }
+
+        // For non-critical endpoints, allow the request but log the error
         return {
             success: true,
             limit: 0,

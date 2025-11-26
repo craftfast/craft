@@ -5,17 +5,27 @@
  * This endpoint should be called by a cron job to permanently delete accounts
  * that have passed their 30-day grace period.
  * 
- * Security: This should be protected by a cron secret in production.
+ * Security: CRON_SECRET is REQUIRED in production.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
 export async function POST(request: NextRequest) {
     try {
-        // Verify cron secret in production
+        // Verify cron secret - REQUIRED in production
         const authHeader = request.headers.get("authorization");
         const cronSecret = process.env.CRON_SECRET;
+
+        if (IS_PRODUCTION && !cronSecret) {
+            console.error("❌ CRON_SECRET not configured in production");
+            return NextResponse.json(
+                { error: "Server configuration error" },
+                { status: 500 }
+            );
+        }
 
         if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
             return NextResponse.json(
