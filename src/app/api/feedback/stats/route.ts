@@ -1,18 +1,12 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/get-session";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth";
 import { getFeedbackStats } from "@/lib/feedback";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const session = await getSession();
-
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        // TODO: Add admin check here
-        // For now, any logged-in user can view stats
-        // In production, restrict to admin users only
+        // Check admin authorization
+        const adminCheck = await requireAdmin(request);
+        if (adminCheck) return adminCheck;
 
         const stats = await getFeedbackStats();
 

@@ -16,7 +16,7 @@ import {
     retryWebhookEvent,
     cleanupWebhookQueue,
 } from "@/lib/webhook-queue";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/admin-auth";
 
 /**
  * GET /api/admin/webhook-queue
@@ -24,17 +24,9 @@ import { auth } from "@/lib/auth";
  */
 export async function GET(request: NextRequest) {
     try {
-        // Check authentication
-        const session = await auth.api.getSession({
-            headers: request.headers,
-        });
-
-        if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        // TODO: Add admin role check
-        // For now, any authenticated user can view (should be admin-only)
+        // Check admin authorization
+        const adminCheck = await requireAdmin(request);
+        if (adminCheck) return adminCheck;
 
         const { searchParams } = new URL(request.url);
         const view = searchParams.get("view") || "stats";
@@ -78,16 +70,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
     try {
-        // Check authentication
-        const session = await auth.api.getSession({
-            headers: request.headers,
-        });
-
-        if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        // TODO: Add admin role check
+        // Check admin authorization
+        const adminCheck = await requireAdmin(request);
+        if (adminCheck) return adminCheck;
 
         const body = await request.json();
         const { action, eventId } = body;

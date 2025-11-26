@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
         // Send OTP email
         await sendOTPEmail(user.email, otp, "account-deletion");
 
-        console.log(`📧 Account deletion OTP sent to ${user.email}: ${otp}`);
+        console.log(`📧 Account deletion OTP sent to ${user.email}`);
 
         return NextResponse.json({
             success: true,

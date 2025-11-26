@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
             request
         );
 
-        console.log(`📧 Email change OTP sent to ${newEmail}: ${otp}`);
+        console.log(`📧 Email change OTP sent to ${newEmail}`);
 
         return NextResponse.json({
             success: true,

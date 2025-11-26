@@ -146,7 +146,7 @@ export const auth = betterAuth({
                 // Send OTP email using the dedicated OTP email template
                 await sendOTPEmail(email, otp, type);
 
-                console.log(`📧 Sent ${type} OTP to ${email}: ${otp}`);
+                console.log(`📧 Sent ${type} OTP to ${email}`);
             },
             otpLength: 6,
             expiresIn: 300, // 5 minutes
