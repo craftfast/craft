@@ -92,7 +92,7 @@ function SignUpContent() {
           },
         }
       );
-    } catch (err) {
+    } catch (_err) {
       setError("Something went wrong");
       setLoading(false);
     }

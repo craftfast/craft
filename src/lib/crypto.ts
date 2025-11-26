@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import { createCipheriv, createDecipheriv, randomBytes, createHash } from "crypto";
 
 // Encryption key must be 32 bytes for AES-256
 const ENCRYPTION_KEY = process.env.ENV_VAR_ENCRYPTION_KEY || "default-32-byte-key-for-dev-use"; // Must be 32 bytes
@@ -186,8 +186,7 @@ export function generateSecureToken(length: number = 32): string {
  * @returns Hashed value
  */
 export function hashValue(value: string): string {
-    const crypto = require("crypto");
-    return crypto.createHash("sha256").update(value).digest("hex");
+    return createHash("sha256").update(value).digest("hex");
 }
 
 /**

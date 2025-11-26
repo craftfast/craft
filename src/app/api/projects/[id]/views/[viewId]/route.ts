@@ -6,7 +6,10 @@ export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string; viewId: string }> }
 ) {
-    const { id: projectId, viewId } = await params;
+    const resolvedParams = await params;
+    const projectId = resolvedParams.id;
+    const viewId = resolvedParams.viewId;
+
     try {
         const session = await auth.api.getSession({
             headers: req.headers,
@@ -16,8 +19,6 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const projectId = params.id;
-        const viewId = params.viewId;
         const body = await req.json();
         const { enabled } = body;
 

@@ -7,7 +7,7 @@ import SettingsModal from "./SettingsModal";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ModelSelector, ModelTier } from "@/components/ModelSelector";
+import { ModelSelector } from "@/components/ModelSelector";
 import { useSession } from "@/lib/auth-client";
 
 interface ImageAttachment {

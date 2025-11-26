@@ -136,16 +136,16 @@ export default function ChatPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasLoadedMessages = useRef(false); // Track if we've already loaded messages
   const hasTriggeredAutoSend = useRef(false); // Track if we've triggered auto-send
-  const router = useRouter();
+  const _router = useRouter();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const [activeToolCalls, setActiveToolCalls] = useState<Map<string, ToolCall>>(
-    new Map()
-  ); // Track tool executions
+  const [_activeToolCalls, _setActiveToolCalls] = useState<
+    Map<string, ToolCall>
+  >(new Map()); // Track tool executions
   const [streamingToolCalls, setStreamingToolCalls] = useState<
     Map<string, ToolCall>
   >(new Map()); // Track tools for currently streaming message
@@ -559,7 +559,7 @@ export default function ChatPanel({
   };
 
   // Function to clean AI response content from model-specific markers
-  const cleanAIResponse = (content: string): string => {
+  const _cleanAIResponse = (content: string): string => {
     return content
       .replace(/minimax:tool_call[^\n]*/gi, "") // Remove MiniMax tool call markers
       .replace(/\btool_call[^\n]*/gi, "") // Remove generic tool call text
@@ -930,7 +930,7 @@ export default function ChatPanel({
                 case "preview-ready": {
                   // Preview is ready to start
                   const {
-                    projectId: previewProjectId,
+                    projectId: _previewProjectId,
                     filesGenerated,
                     reason,
                   } = data;

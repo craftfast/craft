@@ -5,6 +5,9 @@ import { prisma } from "@/lib/db";
 import { checkUserBalance, trackAIUsage } from "@/lib/ai-usage";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createOrchestrator } from "@/lib/ai/orchestrator/orchestrator-agent";
+import { chatRateLimiter, checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
+import { captureError } from "@/lib/sentry";
+import { logger } from "@/lib/logger";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -30,6 +33,25 @@ export async function POST(req: Request) {
             return new Response(
                 JSON.stringify({ error: "Unauthorized" }),
                 { status: 401, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        // Rate limiting check
+        const rateLimitResult = await checkRateLimit(chatRateLimiter, session.user.email);
+        if (!rateLimitResult.success) {
+            return new Response(
+                JSON.stringify({
+                    error: "Rate limit exceeded",
+                    message: "Too many requests. Please wait a moment before trying again.",
+                    retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+                }),
+                {
+                    status: 429,
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...getRateLimitHeaders(rateLimitResult),
+                    },
+                }
             );
         }
 
@@ -82,7 +104,7 @@ export async function POST(req: Request) {
         const balanceCheck = await checkUserBalance(user.id, estimatedCost);
 
         if (!balanceCheck.allowed) {
-            console.warn(`🚫 Insufficient balance for user ${user.id}`);
+            logger.ai.warn(`Insufficient balance for user ${user.id}`);
             return new Response(
                 JSON.stringify({
                     error: "Insufficient balance",
@@ -95,14 +117,14 @@ export async function POST(req: Request) {
         }
 
         // Log balance availability
-        console.log(`💰 Balance Check - Available: $${balanceCheck.balance.toFixed(2)}, Estimated Cost: $${balanceCheck.estimatedCost.toFixed(2)}`);
+        logger.ai.debug(`Balance Check - Available: $${balanceCheck.balance.toFixed(2)}, Estimated Cost: $${balanceCheck.estimatedCost.toFixed(2)}`);
 
         // ============================================================================
         // PHASE 3: ORCHESTRATOR MODE (Multi-Agent System)
         // ============================================================================
         // If orchestrator mode is enabled, route through orchestrator agent first
         if (useOrchestrator) {
-            console.log('🎯 Using Orchestrator Mode (Phase 3)');
+            logger.ai.info('Using Orchestrator Mode (Phase 3)');
 
             const sseWriter = new SSEStreamWriter();
 
@@ -176,7 +198,7 @@ export async function POST(req: Request) {
         // 🚫 MEMORY DISABLED FOR COST OPTIMIZATION
         // Previous: Loading 10 memories added 44k tokens ($0.09/request)
         // Savings: ~70% reduction in token usage
-        let userMemoryContext = '';
+        const userMemoryContext = '';
         // if (user.enableMemory) {
         //     try {
         //         const { getRelevantMemories, formatMemoriesForPrompt } = await import('@/lib/memory/service');
@@ -268,14 +290,14 @@ export async function POST(req: Request) {
             Array.isArray(m.content) && m.content.some((c: { type: string }) => c.type === 'image')
         );
 
-        console.log(`🤖 AI Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}`);
+        logger.ai.info(`Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}`);
         if (projectFiles && Object.keys(projectFiles).length > 0) {
-            console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
+            logger.ai.debug(`Context: ${Object.keys(projectFiles).length} existing project files`);
         }
 
         // Get last user message for memory capture
         const lastUserMessage = messages.filter((m: { role: string }) => m.role === 'user').pop();
-        const userMessageText = typeof lastUserMessage?.content === 'string'
+        const _userMessageText = typeof lastUserMessage?.content === 'string'
             ? lastUserMessage.content
             : Array.isArray(lastUserMessage?.content)
                 ? lastUserMessage.content.find((c: { type: string }) => c.type === 'text')?.text || ''
@@ -317,9 +339,9 @@ export async function POST(req: Request) {
                                     endpoint: '/api/chat',
                                     callType: 'chat',
                                 });
-                                console.log(`✅ Usage tracked - User: ${user.id}, Tokens: ${usageData.totalTokens}`);
+                                logger.ai.debug(`Usage tracked - User: ${user.id}, Tokens: ${usageData.totalTokens}`);
                             } catch (trackingError) {
-                                console.error('❌ Failed to track usage:', trackingError);
+                                logger.ai.error('Failed to track usage:', trackingError);
                             }
 
                             // 🚫 MEMORY CAPTURE DISABLED FOR COST OPTIMIZATION
@@ -367,14 +389,14 @@ export async function POST(req: Request) {
                         }
                     }
                 } catch (error) {
-                    console.error('❌ SSE stream error:', error);
+                    logger.ai.error('SSE stream error:', error);
                     controller.error(error);
                 } finally {
                     controller.close();
                 }
             },
             cancel() {
-                console.log('🛑 SSE stream cancelled by client');
+                logger.ai.debug('SSE stream cancelled by client');
                 textStreamReader?.cancel();
             },
         });
@@ -388,7 +410,16 @@ export async function POST(req: Request) {
             },
         });
     } catch (error) {
-        console.error("AI Chat Error:", error);
+        logger.ai.error("Chat Error:", error);
+
+        // Report to Sentry for production monitoring
+        if (error instanceof Error) {
+            await captureError(error, {
+                tags: { route: "api/chat", type: "ai_chat_error" },
+                extra: { endpoint: "/api/chat" },
+            });
+        }
+
         return new Response(
             JSON.stringify({
                 error: "Failed to process chat request",

@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
     // Razorpay uses a different flow - orders are created via API
     // and checkout is handled on the frontend with Razorpay.js
 
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     );
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
     // If a POST request is made, suggest using the balance top-up endpoint
     return NextResponse.json({
         error: "This endpoint is for Polar compatibility only",

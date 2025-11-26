@@ -53,7 +53,7 @@ export async function GET(
         }
 
         // Return webhook with deliveries (exclude secret)
-        const { secret, ...webhookData } = webhook;
+        const { secret: _secret, ...webhookData } = webhook;
 
         return NextResponse.json({ webhook: webhookData });
     } catch (error) {
@@ -83,7 +83,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { id: projectId, webhookId } = await params;
+        const { id: _projectId, webhookId } = await params;
         const body = await req.json();
         const { url, events, isActive, description } = body;
 
@@ -170,7 +170,7 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { id: projectId, webhookId } = await params;
+        const { id: _projectId, webhookId } = await params;
 
         // Verify ownership
         const webhook = await prisma.projectWebhook.findUnique({

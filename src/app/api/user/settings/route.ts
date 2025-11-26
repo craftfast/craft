@@ -7,7 +7,7 @@ import { withCsrfProtection } from "@/lib/csrf";
  * GET /api/user/settings
  * Get user settings (preferredChatPosition, preferredTheme, etc.)
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
     try {
         const session = await getSession();
 

@@ -6,7 +6,10 @@ export async function POST(
     req: NextRequest,
     { params }: { params: Promise<{ id: string; versionId: string }> }
 ) {
-    const { id: projectId, versionId } = await params;
+    const resolvedParams = await params;
+    const projectId = resolvedParams.id;
+    const versionId = resolvedParams.versionId;
+
     try {
         const session = await auth.api.getSession({
             headers: req.headers,
@@ -15,9 +18,6 @@ export async function POST(
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        const projectId = params.id;
-        const versionId = params.versionId;
 
         // Verify project ownership
         const project = await prisma.project.findUnique({

@@ -68,39 +68,10 @@ export default function CreditCounter({ onClickAction }: CreditCounterProps) {
   };
 
   // Calculate time until billing period end
+  // Note: periodEnd is not currently tracked in the pay-as-you-go model
   const getTimeUntilReset = (): string => {
-    if (!balance?.periodEnd) {
-      return "Unknown";
-    }
-
-    const now = new Date();
-    const periodEnd = new Date(balance.periodEnd);
-
-    const diff = periodEnd.getTime() - now.getTime();
-
-    if (diff <= 0) {
-      return "Resetting soon";
-    }
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (days > 1) {
-      return `${days} days`;
-    } else if (days === 1) {
-      return `1 day`;
-    } else if (hours > 1) {
-      return `${hours} hours`;
-    } else if (hours === 1) {
-      return `1 hour`;
-    } else if (minutes > 1) {
-      return `${minutes} minutes`;
-    } else if (minutes === 1) {
-      return `1 minute`;
-    } else {
-      return `less than a minute`;
-    }
+    // In pay-as-you-go model, there's no period reset
+    return "No expiry";
   };
 
   // Determine if credits are low (10 or less)

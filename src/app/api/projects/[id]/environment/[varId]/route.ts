@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 import {
     encryptValue,
     decryptValue,
-    validateEnvVarName,
     validateEnvVarValue,
     maskSecretValue,
 } from "@/lib/crypto";

@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Database, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import { CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 
 interface DatabaseConnectionDialogProps {
   open: boolean;
@@ -25,7 +25,7 @@ interface IntegrationStatus {
 export default function DatabaseConnectionDialog({
   open,
   onOpenChange,
-  projectId,
+  projectId: _projectId,
 }: DatabaseConnectionDialogProps) {
   const [supabaseStatus, setSupabaseStatus] =
     useState<IntegrationStatus | null>(null);

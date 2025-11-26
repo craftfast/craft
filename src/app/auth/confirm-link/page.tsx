@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { signIn, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
 
 function ConfirmLinkContent() {

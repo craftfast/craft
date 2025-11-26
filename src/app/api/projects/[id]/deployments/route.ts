@@ -121,7 +121,7 @@ export async function POST(
                     status: result.success ? "active" : "failed",
                     deploymentId: result.deploymentId,
                     url: result.url,
-                    metadata: result.metadata as any,
+                    metadata: result.metadata as object,
                 },
             });
 
@@ -154,16 +154,21 @@ export async function POST(
 /**
  * Trigger deployment on various providers
  */
+interface ProjectData {
+    name: string;
+    codeFiles: unknown;
+}
+
 async function triggerDeployment(
     provider: string,
-    project: any,
-    deploymentId: string,
+    project: ProjectData,
+    _deploymentId: string,
     environment: string
 ): Promise<{
     success: boolean;
     deploymentId?: string;
     url?: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
 }> {
     const projectName = project.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
 
@@ -190,10 +195,15 @@ async function triggerDeployment(
  * Deploy to Vercel
  */
 async function deployToVercel(
-    project: any,
+    _project: ProjectData,
     projectName: string,
     environment: string
-): Promise<any> {
+): Promise<{
+    success: boolean;
+    deploymentId?: string;
+    url?: string;
+    metadata?: Record<string, unknown>;
+}> {
     const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
 
     if (!VERCEL_TOKEN) {
@@ -221,10 +231,15 @@ async function deployToVercel(
  * Deploy to Netlify
  */
 async function deployToNetlify(
-    project: any,
+    _project: ProjectData,
     projectName: string,
     environment: string
-): Promise<any> {
+): Promise<{
+    success: boolean;
+    deploymentId?: string;
+    url?: string;
+    metadata?: Record<string, unknown>;
+}> {
     const NETLIFY_TOKEN = process.env.NETLIFY_AUTH_TOKEN;
 
     if (!NETLIFY_TOKEN) {
@@ -251,10 +266,15 @@ async function deployToNetlify(
  * Deploy to Railway
  */
 async function deployToRailway(
-    project: any,
+    _project: ProjectData,
     projectName: string,
     environment: string
-): Promise<any> {
+): Promise<{
+    success: boolean;
+    deploymentId?: string;
+    url?: string;
+    metadata?: Record<string, unknown>;
+}> {
     const RAILWAY_TOKEN = process.env.RAILWAY_TOKEN;
 
     if (!RAILWAY_TOKEN) {

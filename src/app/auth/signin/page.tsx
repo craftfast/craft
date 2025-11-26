@@ -97,7 +97,7 @@ function SignInContent() {
         setError("Invalid email or password");
         setLoading(false);
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Something went wrong");
       setLoading(false);
     }

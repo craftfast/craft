@@ -29,7 +29,7 @@ export default function DashboardHeader({
     | "account"
     | "integrations"
     | "personalization"
-    | "referrals"
+    | "model-preferences"
   >("general");
   const { balance } = useCreditBalance(); // Only for mobile menu detailed breakdown
 
@@ -48,6 +48,7 @@ export default function DashboardHeader({
           "account",
           "integrations",
           "personalization",
+          "model-preferences",
         ].includes(tab)
       ) {
         setSettingsTab(tab as typeof settingsTab);

@@ -5,8 +5,6 @@ import HomeHeader from "@/components/HomeHeader";
 import DashboardHeader from "@/components/DashboardHeader";
 import CraftInput from "@/components/CraftInput";
 import PaymentSuccessHandler from "@/components/PaymentSuccessHandler";
-import PlanRedirectHandler from "@/components/PlanRedirectHandler";
-import SettingsRedirectHandler from "@/components/SettingsRedirectHandler";
 import ModalRedirectHandler from "@/components/ModalRedirectHandler";
 export default async function Home() {
   const session = await getSession();

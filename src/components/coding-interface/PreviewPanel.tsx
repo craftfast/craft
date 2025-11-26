@@ -8,10 +8,7 @@ import {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import {
-  captureIframeScreenshot,
-  uploadScreenshot,
-} from "@/lib/utils/screenshot";
+import { uploadScreenshot } from "@/lib/utils/screenshot";
 
 interface PreviewPanelProps {
   projectId: string;

@@ -7,7 +7,6 @@ import { CreditBalanceProvider } from "@/contexts/CreditBalanceContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ChatPositionProvider } from "@/contexts/ChatPositionContext";
 import { Toaster } from "@/components/ui/sonner";
-import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({

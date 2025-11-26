@@ -12,7 +12,6 @@ import {
   Globe,
   Link2,
   Lock,
-  ChevronRight,
   Code2,
   Monitor,
   Settings,
@@ -124,7 +123,8 @@ export default function CodingInterface({
   const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
-  const [isVisibilitySubmenuOpen, setIsVisibilitySubmenuOpen] = useState(false);
+  const [_isVisibilitySubmenuOpen, _setIsVisibilitySubmenuOpen] =
+    useState(false);
   const [projectVisibility, setProjectVisibility] = useState<
     "public" | "secret" | "private"
   >(project.visibility || "private");
@@ -827,7 +827,7 @@ export default function CodingInterface({
                     align="start"
                     className="w-40 rounded-xl"
                   >
-                    {allViews.map((view, index) => (
+                    {allViews.map((view) => (
                       <div key={view.id}>
                         <DropdownMenuItem
                           onClick={() => setActiveTab(view.id)}

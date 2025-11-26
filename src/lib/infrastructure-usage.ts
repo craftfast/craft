@@ -111,8 +111,7 @@ export async function startSandboxSession(params: {
             startTime,
             endTime: null, // Will be set when session ends
             durationMin: 0,
-            creditsUsed: 0,
-            costUsd: 0,
+            providerCostUsd: 0,
         },
     });
 

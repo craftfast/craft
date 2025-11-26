@@ -58,7 +58,7 @@ export async function GET(
                 where: { id: deploymentId },
                 data: {
                     status: status.status,
-                    metadata: status.metadata as any,
+                    metadata: status.metadata as object,
                 },
             });
         }
@@ -97,7 +97,7 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { id: projectId, deploymentId } = await params;
+        const { id: _projectId, deploymentId } = await params;
 
         // Verify ownership
         const deployment = await prisma.projectDeployment.findUnique({
@@ -142,13 +142,21 @@ export async function DELETE(
 /**
  * Fetch deployment status from provider
  */
-async function fetchDeploymentStatus(deployment: any): Promise<{
+interface DeploymentRecord {
+    deploymentId: string | null;
     status: string;
-    metadata?: any;
+    metadata: unknown;
+    provider: string;
+}
+
+async function fetchDeploymentStatus(deployment: DeploymentRecord): Promise<{
+    status: string;
+    metadata?: Record<string, unknown>;
 }> {
     // If no deployment ID, return current status
     if (!deployment.deploymentId) {
-        return { status: deployment.status, metadata: deployment.metadata };
+        const meta = deployment.metadata as Record<string, unknown> | null;
+        return { status: deployment.status, metadata: meta ?? undefined };
     }
 
     try {
@@ -159,19 +167,25 @@ async function fetchDeploymentStatus(deployment: any): Promise<{
                 return await getNetlifyDeploymentStatus(deployment.deploymentId);
             case "railway":
                 return await getRailwayDeploymentStatus(deployment.deploymentId);
-            default:
-                return { status: deployment.status, metadata: deployment.metadata };
+            default: {
+                const meta = deployment.metadata as Record<string, unknown> | null;
+                return { status: deployment.status, metadata: meta ?? undefined };
+            }
         }
     } catch (error) {
         console.error("Error fetching deployment status:", error);
-        return { status: deployment.status, metadata: deployment.metadata };
+        const meta = deployment.metadata as Record<string, unknown> | null;
+        return { status: deployment.status, metadata: meta ?? undefined };
     }
 }
 
 /**
  * Get Vercel deployment status
  */
-async function getVercelDeploymentStatus(deploymentId: string): Promise<any> {
+async function getVercelDeploymentStatus(_deploymentId: string): Promise<{
+    status: string;
+    metadata?: Record<string, unknown>;
+}> {
     const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
 
     if (!VERCEL_TOKEN) {
@@ -190,7 +204,10 @@ async function getVercelDeploymentStatus(deploymentId: string): Promise<any> {
 /**
  * Get Netlify deployment status
  */
-async function getNetlifyDeploymentStatus(deploymentId: string): Promise<any> {
+async function getNetlifyDeploymentStatus(_deploymentId: string): Promise<{
+    status: string;
+    metadata?: Record<string, unknown>;
+}> {
     const NETLIFY_TOKEN = process.env.NETLIFY_AUTH_TOKEN;
 
     if (!NETLIFY_TOKEN) {
@@ -209,7 +226,10 @@ async function getNetlifyDeploymentStatus(deploymentId: string): Promise<any> {
 /**
  * Get Railway deployment status
  */
-async function getRailwayDeploymentStatus(deploymentId: string): Promise<any> {
+async function getRailwayDeploymentStatus(_deploymentId: string): Promise<{
+    status: string;
+    metadata?: Record<string, unknown>;
+}> {
     const RAILWAY_TOKEN = process.env.RAILWAY_TOKEN;
 
     if (!RAILWAY_TOKEN) {
@@ -228,7 +248,7 @@ async function getRailwayDeploymentStatus(deploymentId: string): Promise<any> {
 /**
  * Cancel deployment on provider
  */
-async function cancelDeployment(deployment: any): Promise<void> {
+async function cancelDeployment(deployment: DeploymentRecord): Promise<void> {
     if (!deployment.deploymentId) return;
 
     switch (deployment.provider) {

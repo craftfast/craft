@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { name, description, selectedModel } = body;
+        const { name, description, selectedModel: _selectedModel } = body;
 
         if (!name || name.trim() === "") {
             return NextResponse.json(

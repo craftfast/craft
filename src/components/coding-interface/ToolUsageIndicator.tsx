@@ -171,8 +171,9 @@ export default function ToolUsageIndicator({
                       )}
                       {!filePath && tool.args?.query && (
                         <span className="text-neutral-900 dark:text-neutral-100 ml-1">
-                          "{String(tool.args.query).slice(0, 30)}
-                          {String(tool.args.query).length > 30 ? "..." : ""}"
+                          &quot;{String(tool.args.query).slice(0, 30)}
+                          {String(tool.args.query).length > 30 ? "..." : ""}
+                          &quot;
                         </span>
                       )}
                     </span>

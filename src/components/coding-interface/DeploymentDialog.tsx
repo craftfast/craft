@@ -6,18 +6,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Download,
-  ExternalLink,
-  CheckCircle2,
-  Loader2,
-  AlertCircle,
-  Link2,
-} from "lucide-react";
+import { ExternalLink, CheckCircle2, Loader2, Link2 } from "lucide-react";
 
 interface DeploymentDialogProps {
   open: boolean;
@@ -37,7 +29,7 @@ export default function DeploymentDialog({
   open,
   onOpenChange,
   projectId,
-  onExportProject,
+  onExportProject: _onExportProject,
 }: DeploymentDialogProps) {
   const [vercelStatus, setVercelStatus] = useState<IntegrationStatus | null>(
     null

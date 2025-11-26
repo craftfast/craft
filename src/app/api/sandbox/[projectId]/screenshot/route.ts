@@ -25,7 +25,6 @@ export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ projectId: string }> }
 ) {
-    const { projectId } = await params;
     try {
         // Verify user is authenticated
         const session = await getSession();

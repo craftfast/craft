@@ -2,7 +2,6 @@
 
 import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { signIn } from "@/lib/auth-client";
 
 /**
  * OAuth Link Callback Page

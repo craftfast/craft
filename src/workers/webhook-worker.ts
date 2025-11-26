@@ -48,7 +48,7 @@ async function processWebhookEvent(job: Job<WebhookJobData>): Promise<void> {
 
     try {
         // Update webhook event status to PROCESSING
-        await prisma.polarWebhookEvent.updateMany({
+        await prisma.webhookEvent.updateMany({
             where: { eventId },
             data: {
                 status: "PROCESSING",
@@ -60,12 +60,12 @@ async function processWebhookEvent(job: Job<WebhookJobData>): Promise<void> {
         await processWebhookByType(eventType, payload);
 
         // Mark as completed
-        await prisma.polarWebhookEvent.updateMany({
+        await prisma.webhookEvent.updateMany({
             where: { eventId },
             data: {
                 status: "COMPLETED",
                 processedAt: new Date(),
-                errorMessage: null,
+                error: null,
             },
         });
 
@@ -75,11 +75,11 @@ async function processWebhookEvent(job: Job<WebhookJobData>): Promise<void> {
         console.error(`[Worker] ❌ Failed to process webhook ${eventId}:`, errorMessage);
 
         // Update webhook event with error
-        await prisma.polarWebhookEvent.updateMany({
+        await prisma.webhookEvent.updateMany({
             where: { eventId },
             data: {
                 status: "FAILED",
-                errorMessage: errorMessage,
+                error: errorMessage,
                 retryCount: attempt + 1,
             },
         });

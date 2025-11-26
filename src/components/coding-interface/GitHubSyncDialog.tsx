@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -17,6 +16,7 @@ import {
   Link2,
   ExternalLink,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface GitHubSyncDialogProps {
   open: boolean;
@@ -59,6 +59,7 @@ export default function GitHubSyncDialog({
       }
     } catch (error) {
       console.error("Failed to check integration status:", error);
+      toast.error("Failed to check GitHub connection status");
     } finally {
       setIsCheckingStatus(false);
     }
@@ -71,9 +72,12 @@ export default function GitHubSyncDialog({
 
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        toast.error("Failed to initiate GitHub connection");
       }
     } catch (error) {
       console.error("Failed to connect GitHub:", error);
+      toast.error("Failed to connect to GitHub");
     }
   };
 
@@ -91,19 +95,32 @@ export default function GitHubSyncDialog({
       });
 
       if (!res.ok) {
-        throw new Error("GitHub sync failed");
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "GitHub sync failed");
       }
 
       const result = await res.json();
 
-      // Show success
-      alert("Code pushed to GitHub successfully!");
-      if (result.repoUrl) {
-        window.open(result.repoUrl, "_blank");
-      }
+      // Show success toast
+      toast.success("Code pushed to GitHub successfully!", {
+        description: result.repoUrl ? "Click to view repository" : undefined,
+        action: result.repoUrl
+          ? {
+              label: "Open",
+              onClick: () => window.open(result.repoUrl, "_blank"),
+            }
+          : undefined,
+      });
+
+      // Close dialog after successful sync
+      onOpenChange(false);
     } catch (error) {
       console.error("GitHub sync error:", error);
-      alert("GitHub sync failed. Please try again.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "GitHub sync failed. Please try again."
+      );
     } finally {
       setIsSyncing(false);
     }

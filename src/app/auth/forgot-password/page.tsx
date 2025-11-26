@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -9,8 +8,6 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 
 function ForgotPasswordContent() {
-  const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

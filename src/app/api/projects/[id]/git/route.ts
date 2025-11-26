@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
-import { encryptValue, decryptValue } from "@/lib/crypto";
+import { encryptValue } from "@/lib/crypto";
 
 // GET /api/projects/[id]/git - Get Git connection
 export async function GET(

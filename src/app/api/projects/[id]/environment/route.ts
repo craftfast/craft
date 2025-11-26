@@ -4,11 +4,9 @@ import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
 import {
     encryptValue,
-    decryptValue,
     validateEnvVarName,
     validateEnvVarValue,
     maskSecretValue,
-    sanitizeForLog,
 } from "@/lib/crypto";
 
 /**

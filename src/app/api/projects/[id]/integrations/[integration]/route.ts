@@ -26,7 +26,7 @@ export async function PUT(
         }
 
         const body = await req.json();
-        const { enabled, config } = body;
+        const { enabled: _enabled, config: _config } = body;
 
         // Here you would save the integration configuration to the database
         // For now, we'll just return success

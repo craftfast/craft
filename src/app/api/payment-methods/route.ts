@@ -40,7 +40,7 @@ export async function GET() {
         // Note: Razorpay doesn't support saved payment methods in the same way as Stripe
         // Payment methods are managed through Razorpay checkout flow
 
-        const mockPaymentMethods = [
+        const mockPaymentMethods: { id: string; type: string; last4: string }[] = [
             // Razorpay doesn't provide a direct API for saved payment methods
             // Payment methods are handled through checkout flow
         ];
@@ -67,7 +67,7 @@ export async function GET() {
  * Adds a new payment method for the user.
  * Note: Razorpay handles payment methods through checkout flow, not setup intents.
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
     try {
         const session = await getSession();
         if (!session?.user?.email) {

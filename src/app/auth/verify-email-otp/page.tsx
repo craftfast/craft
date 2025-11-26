@@ -15,7 +15,7 @@ function VerifyEmailOTPContent() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const planParam = searchParams.get("plan");
 
-  const [email, setEmail] = useState(emailParam || "");
+  const [email, _setEmail] = useState(emailParam || "");
   const [otp, setOTP] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
