@@ -573,17 +573,23 @@ const integrationsList: Integration[] = [
   },
   // Payments
   {
-    id: "polar",
-    name: "Polar",
-    description: "Accept payments and manage subscriptions",
+    id: "razorpay",
+    name: "Razorpay",
+    description: "Payment gateway for India and global payments",
     icon: CreditCard,
     category: "payments",
     fields: [
       {
-        label: "Access Token",
-        placeholder: "polar_at_...",
+        label: "Key ID",
+        placeholder: "rzp_test_...",
+        type: "text",
+        key: "keyId",
+      },
+      {
+        label: "Key Secret",
+        placeholder: "your-key-secret",
         type: "password",
-        key: "accessToken",
+        key: "keySecret",
       },
     ],
   },

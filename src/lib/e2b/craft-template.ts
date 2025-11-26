@@ -28,7 +28,7 @@
  * - Cloudflare R2 (file storage, S3-compatible)
  * - OpenRouter + AI SDK (AI features)
  * - Upstash Redis (caching/sessions)
- * - Polar (payments/subscriptions)
+ * - Razorpay (payments - optional)
  * - PostHog (analytics/feature flags)
  * 
  * DX:
@@ -96,7 +96,7 @@ export function buildCraftTemplate() {
             "pnpm add ai",                              // Vercel AI SDK
             "pnpm add openai",                          // OpenAI SDK (for OpenRouter)
             "pnpm add @upstash/redis",                  // Redis for caching/sessions
-            "pnpm add @polar-sh/sdk",                   // Polar payments
+            "pnpm add razorpay",                        // Razorpay payments (optional)
             "pnpm add posthog-js posthog-node",         // PostHog analytics
             "pnpm add next-themes",                     // Dark mode support
             "pnpm add sonner",                          // Toast notifications (instead of shadcn toast)
@@ -155,10 +155,10 @@ export function buildCraftTemplate() {
             "echo 'UPSTASH_REDIS_REST_TOKEN=\"AxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxA==\"' >> .env.example",
             "echo '' >> .env.example",
             "echo '# ============================================================================' >> .env.example",
-            "echo '# Payments (Polar - https://polar.sh)' >> .env.example",
+            "echo '# Payments (Razorpay - https://razorpay.com) - Optional' >> .env.example",
             "echo '# ============================================================================' >> .env.example",
-            "echo 'POLAR_ACCESS_TOKEN=\"polar_at_xxxxxxxxxxxx\"' >> .env.example",
-            "echo 'POLAR_ORGANIZATION_ID=\"your-org-id\"' >> .env.example",
+            "echo 'RAZORPAY_KEY_ID=\"rzp_test_xxxxxxxxxxxx\"' >> .env.example",
+            "echo 'RAZORPAY_KEY_SECRET=\"your-key-secret\"' >> .env.example",
             "echo '' >> .env.example",
             "echo '# ============================================================================' >> .env.example",
             "echo '# Analytics (PostHog - Free tier: https://posthog.com)' >> .env.example",
@@ -290,13 +290,14 @@ export function buildCraftTemplate() {
             "echo '  token: process.env.UPSTASH_REDIS_REST_TOKEN || \"\",' >> src/lib/cache/redis.ts",
             "echo '});' >> src/lib/cache/redis.ts",
 
-            // 7.13. Create Polar payments client
+            // 7.13. Create Razorpay payments client (optional)
             "mkdir -p src/lib/payments",
-            "echo 'import { Polar } from \"@polar-sh/sdk\";' > src/lib/payments/polar.ts",
-            "echo '' >> src/lib/payments/polar.ts",
-            "echo 'export const polar = new Polar({' >> src/lib/payments/polar.ts",
-            "echo '  accessToken: process.env.POLAR_ACCESS_TOKEN || \"\",' >> src/lib/payments/polar.ts",
-            "echo '});' >> src/lib/payments/polar.ts",
+            "echo 'import Razorpay from \"razorpay\";' > src/lib/payments/razorpay.ts",
+            "echo '' >> src/lib/payments/razorpay.ts",
+            "echo 'export const razorpay = new Razorpay({' >> src/lib/payments/razorpay.ts",
+            "echo '  key_id: process.env.RAZORPAY_KEY_ID || \"\",' >> src/lib/payments/razorpay.ts",
+            "echo '  key_secret: process.env.RAZORPAY_KEY_SECRET || \"\",' >> src/lib/payments/razorpay.ts",
+            "echo '});' >> src/lib/payments/razorpay.ts",
 
             // 7.14. Create PostHog analytics provider
             "mkdir -p src/lib/analytics",
@@ -367,7 +368,7 @@ export function buildCraftTemplate() {
             "echo '- Cloudflare R2 (file storage)' >> README.md",
             "echo '- OpenRouter + AI SDK (AI features)' >> README.md",
             "echo '- Upstash Redis (caching)' >> README.md",
-            "echo '- Polar (payments)' >> README.md",
+            "echo '- Razorpay (payments - optional)' >> README.md",
             "echo '- PostHog (analytics)' >> README.md",
             "echo '- Zustand (state management)' >> README.md",
             "echo '- React Hook Form + Zod (forms & validation)' >> README.md",
@@ -418,10 +419,10 @@ export function buildCraftTemplate() {
             "echo 'await redis.set(\"key\", \"value\", { ex: 3600 });' >> README.md",
             "echo '```' >> README.md",
             "echo '' >> README.md",
-            "echo '### Payments (Polar)' >> README.md",
+            "echo '### Payments (Razorpay - Optional)' >> README.md",
             "echo '```ts' >> README.md",
-            "echo 'import { polar } from \"@/lib/payments/polar\";' >> README.md",
-            "echo 'const products = await polar.products.list({ organizationId: process.env.POLAR_ORGANIZATION_ID });' >> README.md",
+            "echo 'import { razorpay } from \"@/lib/payments/razorpay\";' >> README.md",
+            "echo 'const order = await razorpay.orders.create({ amount: 50000, currency: \"INR\" });' >> README.md",
             "echo '```' >> README.md",
             "echo '' >> README.md",
             "echo '### Analytics (PostHog)' >> README.md",
@@ -481,7 +482,7 @@ export function buildCraftTemplate() {
     // ✅ Storage: Cloudflare R2 (file uploads)
     // ✅ AI: OpenRouter + AI SDK (LLM integrations)
     // ✅ Cache: Upstash Redis (sessions/rate limiting)
-    // ✅ Payments: Polar (subscriptions/one-time)
+    // ✅ Payments: Razorpay (optional)
     // ✅ Analytics: PostHog (events/feature flags)
     // ✅ AI can immediately start building - no setup needed!
 }
@@ -502,7 +503,7 @@ export const craftTemplateMetadata = {
         "storage", "cloudflare-r2",
         "ai", "openrouter", "ai-sdk",
         "redis", "upstash",
-        "payments", "polar",
+        "payments", "razorpay",
         "analytics", "posthog",
         "zustand", "forms", "zod"
     ],

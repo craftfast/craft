@@ -99,9 +99,9 @@ async function processWebhookByType(
 ): Promise<void> {
     console.log(`Processing ${eventType} webhook`);
 
-    // Webhooks are already processed synchronously in /api/webhooks/polar
+    // Webhooks are already processed synchronously in /api/webhooks/razorpay
     // This queue is mainly for retry logic and async processing
-    // The actual event handlers are in src/lib/polar/webhook-handlers/
+    // The actual event handlers are in src/lib/razorpay/webhooks.ts
 }
 
 /**

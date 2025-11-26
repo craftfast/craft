@@ -48,7 +48,7 @@ export default function HelpPage() {
     {
       question: "How do payments work?",
       answer:
-        "We use Polar.sh for secure payment processing. Your payment information is encrypted and secure. We support multiple payment methods including credit cards and debit cards.",
+        "We use Razorpay for secure payment processing. Your payment information is encrypted and secure. We support multiple payment methods including credit cards, debit cards, UPI, and net banking.",
     },
     {
       question: "What if I need help or support?",

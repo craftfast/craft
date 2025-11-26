@@ -1016,7 +1016,7 @@ export default function SettingsModal({
   };
 
   // Helper function to open embedded checkout
-  // CRITICAL: Debouncing to prevent concurrent requests (Polar locker pattern equivalent)
+  // CRITICAL: Debouncing to prevent concurrent requests
 
   const fetchCreditUsage = () => {
     setIsLoadingUsage(true);

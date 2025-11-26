@@ -30,7 +30,7 @@ interface CustomCheckoutModalProps {
 /**
  * Custom Checkout Modal - OpenRouter Style
  *
- * A clean, modern checkout UI that replaces Polar's embedded checkout.
+ * A clean, modern checkout UI using Razorpay payment gateway.
  * Features:
  * - Saved payment method selection
  * - Clear pricing breakdown with service fees

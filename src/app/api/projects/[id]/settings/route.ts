@@ -30,7 +30,7 @@ export async function GET(
             integrations: {
                 supabase: { enabled: false },
                 supabaseStorage: { enabled: false },
-                polar: { enabled: false },
+                razorpay: { enabled: false },
                 openpanel: { enabled: false },
                 resend: { enabled: false },
                 tawkto: { enabled: false },

@@ -173,7 +173,7 @@ export default function TermsOfService() {
             <ul className="space-y-2">
               <li>
                 <strong>Payment Processing:</strong> All payments are processed
-                securely through Polar.sh
+                securely through Razorpay
               </li>
               <li>
                 <strong>Subscription Renewals:</strong> Pro and Enterprise
@@ -189,7 +189,7 @@ export default function TermsOfService() {
               </li>
               <li>
                 <strong>Payment Methods:</strong> We accept credit cards, debit
-                cards, and other methods supported by Polar.sh
+                cards, UPI, net banking, and other methods supported by Razorpay
               </li>
               <li>
                 <strong>Taxes:</strong> You are responsible for all applicable
@@ -579,7 +579,7 @@ export default function TermsOfService() {
                 <strong>Figma:</strong> Design imports
               </li>
               <li>
-                <strong>Polar.sh:</strong> Payment processing
+                <strong>Razorpay:</strong> Payment processing
               </li>
             </ul>
 

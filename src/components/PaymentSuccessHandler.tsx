@@ -7,7 +7,7 @@ import { notifyCreditUpdate } from "@/lib/credit-events";
 /**
  * Payment Success Handler
  *
- * Detects when users return from Polar checkout with ?payment=success
+ * Detects when users return from Razorpay checkout with ?payment=success
  * Triggers credit balance refresh across all components
  */
 export default function PaymentSuccessHandler() {

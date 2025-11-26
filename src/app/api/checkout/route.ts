@@ -2,8 +2,7 @@
  * Razorpay Checkout Route
  * This provides a checkout flow using Razorpay payment gateway
  * 
- * Note: Razorpay doesn't have a hosted checkout like Polar.
- * Instead, we create orders and use Razorpay's JavaScript SDK on the frontend.
+ * Razorpay uses orders and the JavaScript SDK on the frontend.
  * This endpoint is kept for API compatibility but redirects to balance top-up.
  */
 
@@ -24,7 +23,7 @@ export async function GET(_request: NextRequest) {
 export async function POST(_request: NextRequest) {
     // If a POST request is made, suggest using the balance top-up endpoint
     return NextResponse.json({
-        error: "This endpoint is for Polar compatibility only",
+        error: "Use /api/balance/topup to create Razorpay orders",
         message: "Use /api/balance/topup to create Razorpay orders",
     }, { status: 400 });
 }

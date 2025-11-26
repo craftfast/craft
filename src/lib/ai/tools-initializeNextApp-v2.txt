@@ -9,7 +9,7 @@ export const initializeNextApp = tool({
 - Prisma ORM + PostgreSQL (User model)
 - Better Auth (email/password)
 - Resend (emails), R2 (storage), OpenRouter (AI)
-- Upstash Redis, Polar (payments), PostHog (analytics)
+- Upstash Redis, Razorpay (payments), PostHog (analytics)
 
 📂 PRE-CONFIGURED SERVICES (src/lib/):
 - auth/ → useSession, signIn, signOut
@@ -18,7 +18,7 @@ export const initializeNextApp = tool({
 - storage/r2.ts → uploadFile()  
 - ai/openrouter.ts → AI SDK
 - cache/redis.ts → redis.set/get
-- payments/polar.ts → Polar API
+- payments/razorpay.ts → Razorpay API
 - analytics/posthog.ts → posthog.capture()
 
 ⚠️ CUSTOMIZE FOR USER'S APP:
@@ -33,7 +33,7 @@ Example: "Build blog with subscriptions"
 → initializeNextApp()
 → Add Post, Subscription models to schema
 → Build blog UI with shadcn
-→ Wire up Prisma + Polar + PostHog
+→ Wire up Prisma + Razorpay + PostHog
 → Deliver working SaaS!`,
     inputSchema: z.object({
         projectId: z.string().describe('The project ID'),
