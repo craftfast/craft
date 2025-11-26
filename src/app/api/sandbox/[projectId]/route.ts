@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { getOrCreateProjectSandbox } from "@/lib/e2b/sandbox-manager";
+import { decryptValue } from "@/lib/crypto";
 
 /**
  * POST /api/sandbox/[projectId]
@@ -48,6 +49,66 @@ export async function POST(
 
         console.log(`✅ Sandbox ready: ${sandbox.sandboxId}`);
 
+        // Fetch project environment variables
+        console.log("🔐 Fetching environment variables...");
+        const envVars = await prisma.projectEnvironmentVariable.findMany({
+            where: {
+                projectId,
+                deletedAt: null,
+            },
+            select: {
+                key: true,
+                value: true,
+                isSecret: true,
+            },
+        });
+
+        // Decrypt secret values and build env object
+        const envObject: Record<string, string> = {};
+        for (const envVar of envVars) {
+            try {
+                const value = envVar.isSecret ? decryptValue(envVar.value) : envVar.value;
+                envObject[envVar.key] = value;
+            } catch (error) {
+                console.warn(`⚠️ Failed to decrypt env var ${envVar.key}, using raw value`);
+                envObject[envVar.key] = envVar.value;
+            }
+        }
+
+        console.log(`✅ Loaded ${envVars.length} environment variables:`, Object.keys(envObject));
+
+        // Write .env file to sandbox (always update with latest values)
+        console.log("📝 Writing .env file to sandbox...");
+        const envContent = Object.keys(envObject).length > 0
+            ? Object.entries(envObject)
+                .map(([key, value]) => `${key}="${value.replace(/"/g, '\\"')}"`)
+                .join('\n')
+            : '# No environment variables configured yet\n# Add them in Project Settings > Environment';
+
+        try {
+            await sandbox.files.write('/home/user/project/.env', envContent);
+            console.log(`✅ .env file written with ${Object.keys(envObject).length} variables`);
+        } catch (error) {
+            console.error("❌ Failed to write .env file:", error);
+        }
+
+        // Check if .env file changed (to determine if restart is needed)
+        let envFileChanged = false;
+        try {
+            const existingEnv = await sandbox.files.read('/home/user/project/.env.previous');
+            envFileChanged = existingEnv !== envContent;
+        } catch {
+            // File doesn't exist yet, assume changed
+            envFileChanged = true;
+        }
+
+        // Save current env for next comparison
+        try {
+            await sandbox.files.write('/home/user/project/.env.previous', envContent);
+        } catch (error) {
+            console.warn("⚠️ Could not save .env backup for comparison");
+        }
+
         // ⚡ OPTIMIZATION: Sandbox is source of truth!
         // Files are already in the sandbox (from E2B template or AI edits via writeFileToSandbox)
         // We do NOT inject files from database - that would overwrite sandbox state
@@ -81,6 +142,12 @@ export async function POST(
 
             if (isServerRunning) {
                 console.log(`✅ Dev server is already running and responding (HTTP ${statusCode})`);
+
+                // Force restart if environment variables changed
+                if (envFileChanged) {
+                    console.log("🔄 Environment variables changed - restarting server to apply changes...");
+                    needsRestart = true;
+                }
             } else {
                 console.log(`⚠️ Port 3000 not responding (HTTP ${statusCode})`);
                 needsRestart = true;
@@ -110,17 +177,21 @@ export async function POST(
         // Start dev server only if needed
         if (needsRestart) {
             try {
+                // Merge project env vars with system env vars
+                const devServerEnvs = {
+                    NODE_ENV: "development",
+                    PORT: "3000",
+                    HOSTNAME: "0.0.0.0",
+                    NEXT_TELEMETRY_DISABLED: "1",
+                    ...envObject, // Include project's environment variables
+                };
+
                 // Start the dev server in the background
                 const devProcess = await sandbox.commands.run(
                     "pnpm dev",
                     {
                         background: true,
-                        envs: {
-                            NODE_ENV: "development",
-                            PORT: "3000",
-                            HOSTNAME: "0.0.0.0",
-                            NEXT_TELEMETRY_DISABLED: "1",
-                        },
+                        envs: devServerEnvs,
                     }
                 );
                 console.log(`✅ Dev server started with 'pnpm dev' (PID: ${devProcess.pid || 'unknown'})`);

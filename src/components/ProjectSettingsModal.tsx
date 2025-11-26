@@ -150,7 +150,7 @@ export default function ProjectSettingsModal({
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvValue, setNewEnvValue] = useState("");
   const [newEnvIsSecret, setNewEnvIsSecret] = useState(true);
-  const [newEnvType, setNewEnvType] = useState<string>("");
+  const [newEnvType, setNewEnvType] = useState<string>("none");
   const [newEnvDescription, setNewEnvDescription] = useState("");
 
   // Custom Views
@@ -491,7 +491,7 @@ export default function ProjectSettingsModal({
           key: newEnvKey,
           value: newEnvValue,
           isSecret: newEnvIsSecret,
-          type: newEnvType || null,
+          type: newEnvType === "none" ? null : newEnvType,
           description: newEnvDescription || null,
         }),
       });
@@ -502,7 +502,7 @@ export default function ProjectSettingsModal({
         setNewEnvKey("");
         setNewEnvValue("");
         setNewEnvIsSecret(true);
-        setNewEnvType("");
+        setNewEnvType("none");
         setNewEnvDescription("");
         toast.success("Environment variable added");
       } else {
@@ -1616,7 +1616,7 @@ export default function ProjectSettingsModal({
                       </Label>
                       <Input
                         id="env-value"
-                        type={newEnvIsSecret ? "password" : "text"}
+                        type="text"
                         value={newEnvValue}
                         onChange={(e) => setNewEnvValue(e.target.value)}
                         placeholder="postgresql://..."
@@ -1635,7 +1635,7 @@ export default function ProjectSettingsModal({
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl">
-                            <SelectItem value="" className="rounded-lg">
+                            <SelectItem value="none" className="rounded-lg">
                               None
                             </SelectItem>
                             <SelectItem value="url" className="rounded-lg">
