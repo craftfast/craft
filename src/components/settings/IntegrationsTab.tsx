@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, Key, ExternalLink } from "lucide-react";
 
 interface IntegrationStatus {
   connected: boolean;
@@ -20,6 +20,9 @@ export default function IntegrationsTab() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [connectingTo, setConnectingTo] = useState<string | null>(null);
+  const [showVercelTokenInput, setShowVercelTokenInput] = useState(false);
+  const [vercelToken, setVercelToken] = useState("");
+  const [isConnectingWithToken, setIsConnectingWithToken] = useState(false);
 
   useEffect(() => {
     checkIntegrationStatus();
@@ -64,6 +67,42 @@ export default function IntegrationsTab() {
       toast.error(`Failed to connect to ${provider}`);
     } finally {
       setConnectingTo(null);
+    }
+  };
+
+  const handleVercelTokenConnect = async () => {
+    if (!vercelToken.trim()) {
+      toast.error("Please enter your Vercel access token");
+      return;
+    }
+
+    setIsConnectingWithToken(true);
+    try {
+      const res = await fetch("/api/integrations/vercel/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken: vercelToken.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(`Connected to Vercel as ${data.username || data.email}`);
+        setVercelStatus({
+          connected: true,
+          username: data.username,
+          email: data.email,
+        });
+        setShowVercelTokenInput(false);
+        setVercelToken("");
+      } else {
+        toast.error(data.error || "Failed to connect with token");
+      }
+    } catch (error) {
+      console.error("Failed to connect with token:", error);
+      toast.error("Failed to connect with token");
+    } finally {
+      setIsConnectingWithToken(false);
     }
   };
 
@@ -154,57 +193,110 @@ export default function IntegrationsTab() {
           </div>
 
           {/* Vercel - Functional */}
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-900 flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="white"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2L2 20h20L12 2z" />
-                </svg>
+          <div className="p-4 bg-muted/50 rounded-xl border border-input">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-900 flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="white"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2L2 20h20L12 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Vercel</p>
+                  <p className="text-xs text-muted-foreground">
+                    {vercelStatus?.connected
+                      ? `Connected as ${
+                          vercelStatus.username || vercelStatus.email
+                        }`
+                      : "Deploy and host your projects"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">Vercel</p>
-                <p className="text-xs text-muted-foreground">
-                  {vercelStatus?.connected
-                    ? `Connected as ${
-                        vercelStatus.username || vercelStatus.email
-                      }`
-                    : "Deploy and host your projects"}
-                </p>
+              <div className="flex items-center gap-2">
+                {vercelStatus?.connected && (
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-500" />
+                )}
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                ) : vercelStatus?.connected ? (
+                  <button
+                    onClick={() => handleDisconnect("vercel")}
+                    className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleConnect("vercel")}
+                      disabled={connectingTo === "vercel"}
+                      className="px-4 py-2 text-sm font-medium bg-accent text-foreground rounded-lg hover:bg-accent/80 transition-colors disabled:opacity-50"
+                    >
+                      {connectingTo === "vercel" ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Connect"
+                      )}
+                    </button>
+                    <button
+                      onClick={() =>
+                        setShowVercelTokenInput(!showVercelTokenInput)
+                      }
+                      className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent/50 transition-colors"
+                      title="Connect with access token"
+                    >
+                      <Key className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {vercelStatus?.connected && (
-                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-500" />
-              )}
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              ) : vercelStatus?.connected ? (
-                <button
-                  onClick={() => handleDisconnect("vercel")}
-                  className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
-                >
-                  Disconnect
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleConnect("vercel")}
-                  disabled={connectingTo === "vercel"}
-                  className="px-4 py-2 text-sm font-medium bg-accent text-foreground rounded-lg hover:bg-accent/80 transition-colors disabled:opacity-50"
-                >
-                  {connectingTo === "vercel" ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    "Connect"
-                  )}
-                </button>
-              )}
-            </div>
+
+            {/* Token input fallback */}
+            {showVercelTokenInput && !vercelStatus?.connected && (
+              <div className="mt-4 pt-4 border-t border-border space-y-3">
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <span>
+                    Create a token at{" "}
+                    <a
+                      href="https://vercel.com/account/tokens"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground underline hover:no-underline inline-flex items-center gap-1"
+                    >
+                      vercel.com/account/tokens
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={vercelToken}
+                    onChange={(e) => setVercelToken(e.target.value)}
+                    placeholder="Paste your Vercel access token"
+                    className="flex-1 px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button
+                    onClick={handleVercelTokenConnect}
+                    disabled={isConnectingWithToken || !vercelToken.trim()}
+                    className="px-4 py-2 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                  >
+                    {isConnectingWithToken ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Connect"
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Coming Soon Section */}

@@ -50,6 +50,7 @@ import {
   Zap,
   Rocket,
   Box,
+  ExternalLink,
 } from "lucide-react";
 
 interface ProjectSettingsModalProps {
@@ -164,6 +165,21 @@ export default function ProjectSettingsModal({
     }>
   >([]);
 
+  // Deployment History
+  const [deploymentHistory, setDeploymentHistory] = useState<
+    Array<{
+      id: string;
+      platform: string;
+      status: string;
+      vercelUrl?: string;
+      vercelProjectId?: string;
+      errorMessage?: string;
+      createdAt: string;
+      completedAt?: string;
+      duration?: number;
+    }>
+  >([]);
+
   // Usage Tracking
   const [usageData, setUsageData] = useState({
     apiCalls: { current: 0, limit: 10000, percentage: 0 },
@@ -217,6 +233,7 @@ export default function ProjectSettingsModal({
         knowledgeRes,
         envVarsRes,
         usageRes,
+        deploymentsRes,
       ] = await Promise.all([
         fetch(`/api/projects/${projectId}/settings`),
         fetch(`/api/projects/${projectId}/collaborators`),
@@ -224,6 +241,7 @@ export default function ProjectSettingsModal({
         fetch(`/api/projects/${projectId}/knowledge`),
         fetch(`/api/projects/${projectId}/environment`),
         fetch(`/api/projects/${projectId}/usage`),
+        fetch(`/api/integrations/deploy?projectId=${projectId}`),
       ]);
 
       if (settingsRes.ok) {
@@ -282,6 +300,11 @@ export default function ProjectSettingsModal({
           // Update billing integrations with real cost data
           // This would need to be properly structured based on your needs
         }
+      }
+
+      if (deploymentsRes.ok) {
+        const data = await deploymentsRes.json();
+        if (data.deployments) setDeploymentHistory(data.deployments);
       }
     } catch (error) {
       console.error("Failed to load project settings:", error);
@@ -909,6 +932,91 @@ export default function ProjectSettingsModal({
                     Deploy and sync your project with external services
                   </p>
 
+                  {/* Deployment History */}
+                  {deploymentHistory.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-sm font-medium mb-3">
+                        Recent Deployments
+                      </h3>
+                      <div className="space-y-2">
+                        {deploymentHistory.slice(0, 5).map((deployment) => (
+                          <div
+                            key={deployment.id}
+                            className="p-4 rounded-xl border flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  deployment.status === "ready"
+                                    ? "bg-green-500"
+                                    : deployment.status === "error"
+                                    ? "bg-red-500"
+                                    : deployment.status === "building"
+                                    ? "bg-yellow-500 animate-pulse"
+                                    : "bg-neutral-400"
+                                }`}
+                              />
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium capitalize">
+                                    {deployment.platform}
+                                  </span>
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full ${
+                                      deployment.status === "ready"
+                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                        : deployment.status === "error"
+                                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                        : deployment.status === "building"
+                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                        : "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-400"
+                                    }`}
+                                  >
+                                    {deployment.status}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(
+                                    deployment.createdAt
+                                  ).toLocaleDateString()}{" "}
+                                  at{" "}
+                                  {new Date(
+                                    deployment.createdAt
+                                  ).toLocaleTimeString()}
+                                  {deployment.duration &&
+                                    ` • ${deployment.duration}s`}
+                                </p>
+                              </div>
+                            </div>
+                            {deployment.vercelUrl &&
+                              deployment.status === "ready" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="rounded-lg"
+                                  onClick={() =>
+                                    window.open(
+                                      `https://${deployment.vercelUrl}`,
+                                      "_blank"
+                                    )
+                                  }
+                                >
+                                  <ExternalLink className="w-4 h-4 mr-1" />
+                                  View
+                                </Button>
+                              )}
+                            {deployment.status === "error" &&
+                              deployment.errorMessage && (
+                                <span className="text-xs text-red-500 max-w-[200px] truncate">
+                                  {deployment.errorMessage}
+                                </span>
+                              )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-4">
                     {/* Vercel */}
                     <div className="p-6 rounded-xl border">
@@ -941,12 +1049,33 @@ export default function ProjectSettingsModal({
                               Connected
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">
-                              Project
-                            </span>
-                            <span>my-project-xyz</span>
-                          </div>
+                          {deploymentHistory.find(
+                            (d) => d.platform === "vercel" && d.vercelUrl
+                          ) && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                Latest URL
+                              </span>
+                              <a
+                                href={`https://${
+                                  deploymentHistory.find(
+                                    (d) =>
+                                      d.platform === "vercel" && d.vercelUrl
+                                  )?.vercelUrl
+                                }`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline truncate max-w-[200px]"
+                              >
+                                {
+                                  deploymentHistory.find(
+                                    (d) =>
+                                      d.platform === "vercel" && d.vercelUrl
+                                  )?.vercelUrl
+                                }
+                              </a>
+                            </div>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
