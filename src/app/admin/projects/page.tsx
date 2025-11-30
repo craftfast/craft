@@ -21,6 +21,7 @@ import {
   History,
   ExternalLink,
   User,
+  Bug,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -392,6 +393,12 @@ export default function AdminProjectsPage() {
                             >
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <a href={`/admin/projects/${project.id}`}>
+                                <Bug className="h-4 w-4 mr-2" />
+                                Debug / Full Chat
+                              </a>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <a
