@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { USAGE_LIMITS, INFRASTRUCTURE_COSTS } from "@/lib/pricing-constants";
 
 export interface UsageData {
     apiCalls: { current: number; limit: number; percentage: number };
@@ -10,6 +11,9 @@ export interface UsageData {
 
 /**
  * Get AI token usage from chat messages
+ * 
+ * Note: This is for display purposes only. With pay-as-you-go model,
+ * there are no hard limits - users are billed for actual usage.
  */
 async function getAITokenUsage(projectId: string): Promise<{
     current: number;
@@ -41,22 +45,26 @@ async function getAITokenUsage(projectId: string): Promise<{
             return sum + Math.ceil(msg.content.length / 4);
         }, 0);
 
-        const limit = 1000000; // 1M tokens default
-        const percentage = Math.min(100, Math.round((totalTokens / limit) * 100));
+        // Use a high reference limit for percentage display (pay-as-you-go has no real limit)
+        const referenceLimit = 10_000_000; // 10M tokens as reference
+        const percentage = Math.min(100, Math.round((totalTokens / referenceLimit) * 100));
 
         return {
             current: totalTokens,
-            limit,
+            limit: referenceLimit,
             percentage,
         };
     } catch (error) {
         console.error("Error calculating AI token usage:", error);
-        return { current: 0, limit: 1000000, percentage: 0 };
+        return { current: 0, limit: 10_000_000, percentage: 0 };
     }
 }
 
 /**
  * Get storage usage from files
+ * 
+ * Note: This is for display purposes. With pay-as-you-go model,
+ * users are billed for actual usage from their balance.
  */
 async function getStorageUsage(projectId: string): Promise<{
     current: number;
@@ -88,7 +96,7 @@ async function getStorageUsage(projectId: string): Promise<{
             files.reduce((sum, file) => sum + file.size, 0) +
             knowledgeFiles.reduce((sum, file) => sum + file.size, 0);
 
-        const limit = 5000 * 1024 * 1024; // 5GB in bytes
+        const limit = USAGE_LIMITS.STORAGE_BYTES;
         const percentage = Math.min(100, Math.round((totalSize / limit) * 100));
 
         return {
@@ -98,12 +106,15 @@ async function getStorageUsage(projectId: string): Promise<{
         };
     } catch (error) {
         console.error("Error calculating storage usage:", error);
-        return { current: 0, limit: 5000 * 1024 * 1024, percentage: 0 };
+        return { current: 0, limit: USAGE_LIMITS.STORAGE_BYTES, percentage: 0 };
     }
 }
 
 /**
  * Get build count from deployments
+ * 
+ * Note: This is for display purposes. With pay-as-you-go model,
+ * users are billed for actual usage from their balance.
  */
 async function getBuildCount(projectId: string): Promise<{
     current: number;
@@ -123,7 +134,7 @@ async function getBuildCount(projectId: string): Promise<{
             },
         });
 
-        const limit = 100; // 100 builds per month
+        const limit = USAGE_LIMITS.BUILDS_PER_MONTH;
         const percentage = Math.min(100, Math.round((builds / limit) * 100));
 
         return {
@@ -133,12 +144,15 @@ async function getBuildCount(projectId: string): Promise<{
         };
     } catch (error) {
         console.error("Error calculating build count:", error);
-        return { current: 0, limit: 100, percentage: 0 };
+        return { current: 0, limit: USAGE_LIMITS.BUILDS_PER_MONTH, percentage: 0 };
     }
 }
 
 /**
  * Get comprehensive project usage data
+ * 
+ * Note: These are reference limits for display purposes.
+ * With pay-as-you-go model, there are no hard limits.
  */
 export async function getProjectUsage(
     projectId: string,
@@ -152,26 +166,29 @@ export async function getProjectUsage(
         ]);
 
         return {
-            apiCalls: { current: 0, limit: 10000, percentage: 0 }, // Placeholder
+            apiCalls: { current: 0, limit: USAGE_LIMITS.API_CALLS_PER_MONTH, percentage: 0 },
             aiTokens,
             storage,
-            bandwidth: { current: 0, limit: 100000 * 1024 * 1024, percentage: 0 }, // Placeholder
+            bandwidth: { current: 0, limit: USAGE_LIMITS.BANDWIDTH_BYTES, percentage: 0 },
             builds,
         };
     } catch (error) {
         console.error("Error getting project usage:", error);
         return {
-            apiCalls: { current: 0, limit: 10000, percentage: 0 },
-            aiTokens: { current: 0, limit: 1000000, percentage: 0 },
-            storage: { current: 0, limit: 5000 * 1024 * 1024, percentage: 0 },
-            bandwidth: { current: 0, limit: 100000 * 1024 * 1024, percentage: 0 },
-            builds: { current: 0, limit: 100, percentage: 0 },
+            apiCalls: { current: 0, limit: USAGE_LIMITS.API_CALLS_PER_MONTH, percentage: 0 },
+            aiTokens: { current: 0, limit: 10_000_000, percentage: 0 },
+            storage: { current: 0, limit: USAGE_LIMITS.STORAGE_BYTES, percentage: 0 },
+            bandwidth: { current: 0, limit: USAGE_LIMITS.BANDWIDTH_BYTES, percentage: 0 },
+            builds: { current: 0, limit: USAGE_LIMITS.BUILDS_PER_MONTH, percentage: 0 },
         };
     }
 }
 
 /**
  * Get service costs for a project
+ * 
+ * Note: These are estimates based on INFRASTRUCTURE_COSTS constants.
+ * Actual costs are calculated in real-time from provider APIs.
  */
 export async function getServiceCosts(projectId: string): Promise<{
     services: Array<{
@@ -185,17 +202,18 @@ export async function getServiceCosts(projectId: string): Promise<{
     total: number;
 }> {
     try {
-        // Get AI token usage
+        // Get AI token usage - cost is calculated per-model in ai-usage.ts
         const aiTokens = await getAITokenUsage(projectId);
-        const aiCost = (aiTokens.current / 1000000) * 3.0; // $3 per 1M tokens (example)
+        // Rough estimate using average cost (actual cost is model-specific)
+        const aiCost = (aiTokens.current / 1_000_000) * 3.0;
 
-        // Get storage
+        // Get storage - use INFRASTRUCTURE_COSTS
         const storage = await getStorageUsage(projectId);
-        const storageCost = (storage.current / (1024 * 1024 * 1024)) * 0.15; // $0.15 per GB
+        const storageCost = (storage.current / (1024 * 1024 * 1024)) * INFRASTRUCTURE_COSTS.storage.perGBMonth;
 
-        // Get deployments
+        // Get deployments - use INFRASTRUCTURE_COSTS
         const builds = await getBuildCount(projectId);
-        const deploymentCost = builds.current * 0.1; // $0.10 per build
+        const deploymentCost = builds.current * INFRASTRUCTURE_COSTS.deployment.perDeploy;
 
         const services: Array<{
             name: string;
@@ -204,8 +222,8 @@ export async function getServiceCosts(projectId: string): Promise<{
             usage: Record<string, string | number>;
         }> = [
                 {
-                    name: "AI (Anthropic)",
-                    provider: "anthropic",
+                    name: "AI (Multi-provider)",
+                    provider: "multi",
                     cost: Number(aiCost.toFixed(2)),
                     usage: {
                         tokens: `${(aiTokens.current / 1000).toFixed(0)}K`,

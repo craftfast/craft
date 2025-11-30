@@ -70,9 +70,7 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
       <div className="h-14 border-b border-border flex items-center justify-between px-6">
-        <h2 className="text-sm font-semibold text-foreground">
-          API Endpoints
-        </h2>
+        <h2 className="text-sm font-semibold text-foreground">API Endpoints</h2>
         <button
           onClick={() => setShowCreateEndpoint(true)}
           className="px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-full hover:opacity-80 transition-opacity"
@@ -87,9 +85,7 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
           {/* API Key Section */}
           <div className="mb-6 p-4 bg-muted rounded-2xl border border-border">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground">
-                API Key
-              </h3>
+              <h3 className="text-sm font-semibold text-foreground">API Key</h3>
               <button className="px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-colors">
                 Regenerate
               </button>
@@ -157,7 +153,9 @@ export default function ApiPanel({ projectId }: ApiPanelProps) {
                     <pre className="p-3 bg-background border border-border rounded-lg overflow-x-auto">
                       <code className="text-xs font-mono text-neutral-700 dark:text-neutral-300">
                         {`curl -X ${endpoint.method} \\
-  https://api.craft.fast${endpoint.path} \\
+  ${process.env.NEXT_PUBLIC_API_URL || "https://api.craft.fast"}${
+                          endpoint.path
+                        } \\
   -H "Authorization: Bearer YOUR_API_KEY"`}
                       </code>
                     </pre>

@@ -49,38 +49,28 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              1. Subscription Plans Overview
+              1. Pricing Model Overview
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">1.1 Hobby Plan</h3>
+            <h3 className="text-xl font-semibold mb-3">
+              1.1 Pay-As-You-Go Model
+            </h3>
+            <p className="mb-3">
+              Craft uses a transparent pay-as-you-go pricing model. You top up
+              your account balance and only pay for what you use at exact
+              provider costs.
+            </p>
             <ul className="space-y-2">
-              <li>No subscription fee or payment required</li>
-              <li>
-                Can be cancelled at any time without any refund implications
-              </li>
-              <li>100k AI tokens per month included</li>
-              <li>Up to 3 projects</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold mb-3 mt-6">1.2 Pro Plan</h3>
-            <ul className="space-y-2">
-              <li>Monthly subscription billed in advance</li>
-              <li>Pricing: $50/month</li>
-              <li>Includes 10M AI tokens per month</li>
-              <li>Unlimited projects</li>
-              <li>
-                Purchase additional AI credits at $5 per million tokens (expire
-                1 year after purchase if not used)
-              </li>
-              <li>Automatically renews monthly unless cancelled</li>
-              <li>
-                Infrastructure (database & storage) managed through your own
-                Supabase account - not billed by Craft
-              </li>
+              <li>No monthly subscription required</li>
+              <li>Top up your balance starting from $10 minimum</li>
+              <li>10% platform fee applied on top-ups</li>
+              <li>Pay exact AI provider costs with zero markup</li>
+              <li>Balance never expires</li>
+              <li>All features included with your balance</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              1.3 Enterprise Plan
+              1.2 Enterprise Plan
             </h3>
             <ul className="space-y-2">
               <li>Custom pricing and terms</li>
@@ -92,12 +82,12 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              2. Cancellation Policy
+              2. Account & Balance Policy
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">2.1 How to Cancel</h3>
+            <h3 className="text-xl font-semibold mb-3">2.1 Account Closure</h3>
             <p className="mb-3">
-              You may cancel your subscription at any time through:
+              You may close your account at any time through:
             </p>
             <ul className="space-y-2">
               <li>Your account settings dashboard</li>
@@ -113,36 +103,29 @@ export default function RefundPolicy() {
               <li>Writing to us at our registered office address</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3">
-              2.2 Cancellation Effective Date
+            <h3 className="text-xl font-semibold mb-3 mt-6">
+              2.2 Balance After Account Closure
             </h3>
             <ul className="space-y-2">
+              <li>Unused balance is generally non-refundable</li>
               <li>
-                Cancellations take effect at the end of your current billing
-                period
+                You may request a refund for unused balance if your account is
+                in good standing
               </li>
               <li>
-                You will retain access to Pro features until the end of the paid
-                period
+                Refund requests must be made within 30 days of last top-up
               </li>
-              <li>No partial refunds are provided for unused time or tokens</li>
-              <li>
-                Your account will automatically downgrade to the Free plan
-              </li>
+              <li>Platform fees (10%) are non-refundable</li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              2.3 What Happens After Cancellation
+              2.3 What Happens After Account Closure
             </h3>
             <ul className="space-y-2">
-              <li>Your projects and data remain accessible</li>
-              <li>Pro features are disabled</li>
-              <li>
-                Usage is subject to Hobby plan limitations (100k AI
-                tokens/month, 3 projects max)
-              </li>
-              <li>You can resubscribe at any time</li>
-              <li>No data is deleted from your account</li>
+              <li>Your projects and data are retained for 30 days</li>
+              <li>You can reactivate your account within 30 days</li>
+              <li>After 30 days, all data is permanently deleted</li>
+              <li>Remaining balance is forfeited after 30 days</li>
             </ul>
           </section>
 
@@ -153,20 +136,21 @@ export default function RefundPolicy() {
               3.1 General Refund Terms
             </h3>
             <p className="mb-3">
-              We strive to ensure customer satisfaction. However, due to the
-              nature of our digital services:
+              We strive to ensure customer satisfaction. Due to the nature of
+              our pay-as-you-go digital services:
             </p>
             <ul className="space-y-2">
               <li>
-                <strong>Monthly subscriptions are non-refundable</strong> once
-                the billing period begins
+                <strong>Balance top-ups are generally non-refundable</strong>{" "}
+                once any credits have been used
               </li>
               <li>
                 Refunds may be considered on a case-by-case basis for
                 exceptional circumstances
               </li>
               <li>
-                All refund requests must be submitted within 7 days of charge
+                All refund requests must be submitted within 30 days of the
+                top-up
               </li>
             </ul>
 
@@ -179,7 +163,7 @@ export default function RefundPolicy() {
             <ul className="space-y-2">
               <li>
                 <strong>Duplicate charges:</strong> If you were charged twice
-                for the same subscription period
+                for the same top-up
               </li>
               <li>
                 <strong>Service unavailability:</strong> If our service was
@@ -192,6 +176,10 @@ export default function RefundPolicy() {
               <li>
                 <strong>Technical issues:</strong> If critical features were
                 non-functional and we were unable to resolve them within 7 days
+              </li>
+              <li>
+                <strong>Unused balance:</strong> If you have not used any
+                credits from a top-up, you may request a refund within 30 days
               </li>
             </ul>
 
@@ -240,81 +228,52 @@ export default function RefundPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              4. Token Package Credits Policy
+              4. Balance Top-up Policy
             </h2>
 
             <p className="mb-4">
-              Token packages purchased separately from your subscription are
-              subject to specific terms:
+              Balance top-ups are subject to specific terms:
             </p>
 
-            <h3 className="text-xl font-semibold mb-3">
-              4.1 Non-Refundable Policy
-            </h3>
+            <h3 className="text-xl font-semibold mb-3">4.1 General Policy</h3>
             <ul className="space-y-2">
               <li>
-                All purchased token packages are <strong>non-refundable</strong>{" "}
-                once issued to your account
+                Balance top-ups are <strong>generally non-refundable</strong>{" "}
+                once credits have been used from the balance
               </li>
               <li>
-                This policy applies regardless of whether tokens are used or
-                unused
+                A 10% platform fee is applied to all top-ups and is
+                non-refundable
               </li>
+              <li>Your balance never expires - use it whenever you need</li>
               <li>
-                No refunds will be provided for tokens that expire after the
-                1-year validity period
-              </li>
-              <li>
-                Tokens cannot be exchanged for cash, credit, or transferred to
+                Balance cannot be exchanged for cash, credit, or transferred to
                 another account
               </li>
             </ul>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
-              4.2 Expiration Policy
+              4.2 Unused Balance Refunds
             </h3>
             <ul className="space-y-2">
               <li>
-                Purchased token packages expire <strong>1 year</strong> from the
-                date of purchase confirmation
+                If you have <strong>not used any credits</strong> from a top-up,
+                you may request a full refund (minus platform fee) within 30
+                days
               </li>
               <li>
-                You will receive notifications as your tokens approach
-                expiration
+                If you have partially used your balance, refunds are at our
+                discretion
               </li>
-              <li>Expired tokens cannot be reinstated or refunded</li>
               <li>
-                Monthly subscription token allocations reset each billing cycle
-                and do not expire (they simply refresh monthly)
+                Refund requests must include your account email and transaction
+                details
               </li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">
-              4.3 Subscription Requirements
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                Purchased token packages require an active Pro or Enterprise
-                plan to use
-              </li>
-              <li>
-                If you cancel or downgrade your subscription, purchased tokens
-                remain in your account but cannot be used until you upgrade
-                again
-              </li>
-              <li>
-                Tokens continue aging toward their 1-year expiration date even
-                if your account is downgraded
-              </li>
-              <li>
-                No refunds are provided if tokens expire while your account is
-                on the Hobby plan
-              </li>
-            </ul>
-
-            <h3 className="text-xl font-semibold mb-3 mt-6">4.4 Exceptions</h3>
+            <h3 className="text-xl font-semibold mb-3 mt-6">4.3 Exceptions</h3>
             <p className="mb-3">
-              We may provide refunds for token packages only in the following
+              We may provide refunds for balance top-ups in the following
               exceptional circumstances:
             </p>
             <ul className="space-y-2">
@@ -323,7 +282,7 @@ export default function RefundPolicy() {
                 hours of purchase
               </li>
               <li>
-                Technical errors that prevented tokens from being added to your
+                Technical errors that prevented balance from being added to your
                 account (must be reported within 7 days)
               </li>
               <li>
@@ -383,16 +342,16 @@ export default function RefundPolicy() {
                 infrastructure
               </li>
               <li>
-                Any charges from Supabase, Vercel, GitHub, or Figma are billed
-                directly by those providers
+                Any charges from Neon, Vercel, GitHub, or E2B are billed
+                directly by those providers if you use their paid tiers
               </li>
               <li>
                 Refunds for third-party services must be requested directly from
                 those providers
               </li>
               <li>
-                Craft subscription fees cover only AI development assistance and
-                platform features
+                Craft balance covers AI development assistance and platform
+                features
               </li>
             </ul>
 

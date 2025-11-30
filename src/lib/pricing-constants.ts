@@ -5,6 +5,10 @@
  */
 
 import { AVAILABLE_MODELS } from "@/lib/models/config";
+import { EMAILS, USAGE_LIMITS } from "@/lib/constants";
+
+// Re-export USAGE_LIMITS for convenience
+export { USAGE_LIMITS };
 
 // ============================================================================
 // BALANCE & TOP-UP SYSTEM
@@ -102,8 +106,10 @@ export const INFRASTRUCTURE_COSTS = {
 } as const;
 
 // ============================================================================
-// LEGACY / DEPRECATED (kept temporarily for backwards compatibility)
+// LEGACY / DEPRECATED - Use EMAILS from @/lib/constants instead
 // ============================================================================
 
-export const SUPPORT_EMAIL = "support@craft.fast";
-export const SALES_EMAIL = "sales@craft.fast";
+/** @deprecated Use EMAILS.SUPPORT from @/lib/constants */
+export const SUPPORT_EMAIL = EMAILS.SUPPORT;
+/** @deprecated Use EMAILS.SALES from @/lib/constants */
+export const SALES_EMAIL = EMAILS.SALES;

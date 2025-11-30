@@ -3,6 +3,8 @@
  * Handles sending verification and notification emails
  */
 
+import { EMAILS } from "@/lib/constants";
+
 interface SendEmailParams {
     to: string;
     subject: string;
@@ -16,7 +18,7 @@ type OTPType = "sign-in" | "email-verification" | "forget-password" | "account-d
  */
 export async function sendEmail({ to, subject, html }: SendEmailParams): Promise<boolean> {
     const resendApiKey = process.env.RESEND_ACCOUNT_API_KEY || process.env.RESEND_API_KEY;
-    const emailFrom = process.env.RESEND_ACCOUNT_EMAIL_FROM || process.env.EMAIL_FROM || "noreply@craft.dev";
+    const emailFrom = process.env.RESEND_ACCOUNT_EMAIL_FROM || process.env.EMAIL_FROM || EMAILS.NOREPLY;
 
     // If no API key, just log to console
     if (!resendApiKey) {

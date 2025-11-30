@@ -115,53 +115,43 @@ export default function TermsOfService() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">
-              3. Subscription Plans and Billing
+              3. Pricing and Billing
             </h2>
 
-            <h3 className="text-xl font-semibold mb-3">3.1 Plan Types</h3>
+            <h3 className="text-xl font-semibold mb-3">
+              3.1 Pay-As-You-Go Model
+            </h3>
             <div className="space-y-4">
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
-                <p className="font-semibold mb-2">Hobby Plan</p>
+                <p className="font-semibold mb-2">Transparent Pricing</p>
+                <p className="text-sm mb-3">
+                  Craft uses a transparent pay-as-you-go pricing model similar
+                  to OpenRouter. You top up your account balance and only pay
+                  for what you use at exact provider costs.
+                </p>
                 <ul className="space-y-1 text-sm">
-                  <li>• Free forever</li>
-                  <li>• 100k AI tokens per month</li>
-                  <li>• Up to 3 projects</li>
-                  <li>• AI-powered chat interface</li>
-                  <li>• Live preview environment</li>
-                  <li>• Supabase integration (database & storage)</li>
-                  <li>• Vercel deployment</li>
-                  <li>• Craft branding on projects</li>
-                  <li>• Community support</li>
-                </ul>
-              </div>
-              <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
-                <p className="font-semibold mb-2">Pro Plan</p>
-                <ul className="space-y-1 text-sm">
-                  <li>• $50/month</li>
-                  <li>• 10M AI tokens per month</li>
+                  <li>• No monthly subscription required</li>
+                  <li>• Top up your balance starting from $10 minimum</li>
+                  <li>• 10% platform fee applied on top-ups</li>
+                  <li>• Pay exact AI provider costs with zero markup</li>
+                  <li>• Balance never expires</li>
                   <li>• Unlimited projects</li>
-                  <li>
-                    • Purchase additional AI credits at $5 per million tokens
-                    (expire 1 year after purchase)
-                  </li>
-                  <li>• Import from Figma & GitHub</li>
-                  <li>• Supabase integration (database & storage)</li>
-                  <li>• Vercel deployment</li>
-                  <li>• Remove Craft branding</li>
-                  <li>• Priority email support</li>
+                  <li>• All features included</li>
+                  <li>• Live preview environment (E2B sandbox)</li>
+                  <li>• Database integration (Neon PostgreSQL)</li>
+                  <li>• Vercel & GitHub deployment</li>
                 </ul>
               </div>
 
               <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
                 <p className="font-semibold mb-2">Enterprise Plan</p>
                 <ul className="space-y-1 text-sm">
-                  <li>• Contact sales for pricing</li>
-                  <li>• Custom AI token allocation</li>
+                  <li>• Contact sales for custom pricing</li>
+                  <li>• Volume discounts available</li>
                   <li>• Dedicated account manager</li>
                   <li>• Priority support & SLA</li>
                   <li>• Custom integrations</li>
                   <li>• Advanced security features</li>
-                  <li>• Volume discounts</li>
                   <li>• Custom contract terms</li>
                 </ul>
               </div>
@@ -176,16 +166,14 @@ export default function TermsOfService() {
                 securely through Razorpay
               </li>
               <li>
-                <strong>Subscription Renewals:</strong> Pro and Enterprise
-                subscriptions auto-renew monthly unless cancelled (Enterprise
-                terms may vary per agreement)
+                <strong>Balance Top-ups:</strong> Top up your account balance
+                with a minimum of $10. A 10% platform fee is applied to all
+                top-ups.
               </li>
               <li>
-                <strong>Token Usage:</strong> AI tokens are used for AI
-                interactions and features. Hobby plan includes 100k tokens per
-                month. Pro plan includes 10M tokens per month. Additional tokens
-                can be purchased at $5 per million tokens (Pro plan only).
-                Purchased tokens expire 1 year after purchase if not used.
+                <strong>Usage-Based Billing:</strong> Your balance is deducted
+                in real-time as you use AI features. You pay exact provider
+                costs with no markup.
               </li>
               <li>
                 <strong>Payment Methods:</strong> We accept credit cards, debit
@@ -201,23 +189,17 @@ export default function TermsOfService() {
               </li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">
-              3.3 Refunds and Cancellations
-            </h3>
+            <h3 className="text-xl font-semibold mb-3 mt-6">3.3 Refunds</h3>
             <ul className="space-y-2">
               <li>
-                <strong>Cancellation:</strong> You may cancel your subscription
-                at any time. Access continues until the end of the billing
-                period.
+                <strong>Balance Refunds:</strong> Unused balance is
+                non-refundable except in cases of account closure where you have
+                not violated our terms.
               </li>
               <li>
-                <strong>Refunds:</strong> We do not offer refunds for partial
-                periods or unused tokens. Purchased token packages are
-                non-refundable and expire 1 year after purchase if not used.
-              </li>
-              <li>
-                <strong>Downgrades:</strong> Plan downgrades take effect at the
-                start of the next billing cycle.
+                <strong>Billing Disputes:</strong> If you believe you were
+                charged incorrectly, contact support within 30 days of the
+                charge.
               </li>
               <li>
                 <strong>Failed Payments:</strong> If payment fails, we may
