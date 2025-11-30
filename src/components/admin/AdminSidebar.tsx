@@ -20,6 +20,9 @@ import {
   Activity,
   Settings,
   ChevronLeft,
+  BarChart3,
+  MessageCircle,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/Logo";
@@ -30,6 +33,12 @@ const navItems = [
     href: "/admin",
     icon: LayoutDashboard,
     description: "Overview & KPIs",
+  },
+  {
+    name: "Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3,
+    description: "Charts & trends",
   },
   {
     name: "Users",
@@ -56,10 +65,22 @@ const navItems = [
     description: "Chat with users",
   },
   {
+    name: "Feedback",
+    href: "/admin/feedback",
+    icon: MessageCircle,
+    description: "User feedback",
+  },
+  {
     name: "Security Events",
     href: "/admin/security-events",
     icon: Shield,
     description: "Security logs",
+  },
+  {
+    name: "Audit Logs",
+    href: "/admin/audit-logs",
+    icon: History,
+    description: "Model changes",
   },
   {
     name: "Webhooks",
