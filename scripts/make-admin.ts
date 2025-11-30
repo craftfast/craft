@@ -8,6 +8,7 @@
  * npx tsx scripts/make-admin.ts admin@example.com
  */
 
+import "dotenv/config";
 import { prisma } from "../src/lib/db";
 
 async function makeAdmin(email: string) {

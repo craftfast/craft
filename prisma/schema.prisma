@@ -89,6 +89,9 @@ model User {
   createdEnvVars        ProjectEnvironmentVariable[] @relation("CreatedEnvVars")
   updatedEnvVars        ProjectEnvironmentVariable[] @relation("UpdatedEnvVars")
   envVarAudits          EnvironmentVariableAudit[]   @relation("EnvVarAudits")
+  // Support messages relations
+  supportMessages       SupportMessage[]             @relation("UserSupportMessages")
+  adminSupportMessages  SupportMessage[]             @relation("AdminSupportMessages")
 
   @@index([razorpayCustomerId])
   @@map("users")
@@ -1033,4 +1036,30 @@ model Task {
   @@index([status])
   @@index([sessionId, status])
   @@map("tasks")
+}
+
+// ============================================================================
+// SUPPORT MESSAGING SYSTEM
+// ============================================================================
+// Admin support chat system for user communication
+
+model SupportMessage {
+  id          String   @id @default(cuid())
+  userId      String // The user this conversation is with
+  content     String   @db.Text
+  isFromAdmin Boolean  @default(false)
+  adminId     String? // The admin who sent the message (if isFromAdmin)
+  isRead      Boolean  @default(false)
+  metadata    Json? // Additional data (attachments, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  // Relations
+  user        User     @relation("UserSupportMessages", fields: [userId], references: [id], onDelete: Cascade)
+  admin       User?    @relation("AdminSupportMessages", fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([isRead])
+  @@index([isFromAdmin])
+  @@map("support_messages")
 }
