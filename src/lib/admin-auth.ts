@@ -69,6 +69,36 @@ export async function requireAdmin(
 }
 
 /**
+ * Get the admin user if authenticated and has admin role
+ * Use after requireAdmin to get user details for audit logging
+ */
+export async function getAdminUser(
+    request: NextRequest
+): Promise<{ id: string; email: string; role: string } | null> {
+    try {
+        const session = await getSession();
+
+        if (!session?.user?.id) {
+            return null;
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { id: true, email: true, role: true },
+        });
+
+        if (!user || user.role !== "admin") {
+            return null;
+        }
+
+        return { id: user.id, email: user.email || "", role: user.role };
+    } catch (error) {
+        console.error("Error getting admin user:", error);
+        return null;
+    }
+}
+
+/**
  * Check if a user has admin role
  * Returns boolean instead of response (for use in non-route handlers)
  */

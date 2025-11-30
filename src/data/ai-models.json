@@ -1,0 +1,389 @@
+{
+    "version": "1.0.0",
+    "lastUpdated": "2025-11-30",
+    "defaults": {
+        "orchestrator": "x-ai/grok-4-1-fast",
+        "memory": "x-ai/grok-4-1-fast",
+        "coding": "anthropic/claude-sonnet-4.5",
+        "image-generation": "google/gemini-2.5-flash-image",
+        "video-generation": "google/veo-3.1-generate-preview"
+    },
+    "models": [
+        {
+            "id": "x-ai/grok-4-1-fast",
+            "name": "grok-4-1-fast-non-reasoning",
+            "displayName": "Grok 4.1 Fast",
+            "provider": "x-ai",
+            "tier": "fast",
+            "description": "System: Project naming and memory (2M context)",
+            "useCase": "orchestrator",
+            "isSystem": true,
+            "capabilities": {
+                "supportedInputs": [
+                    "text",
+                    "image"
+                ],
+                "supportedOutputs": [
+                    "text",
+                    "code",
+                    "structured-data"
+                ],
+                "maxContextLength": 2000000,
+                "supportsStreaming": true,
+                "supportsSystemPrompts": true,
+                "supportsWebSearch": false,
+                "supportsFunctionCalling": true,
+                "supportsJsonMode": true
+            },
+            "pricing": {
+                "inputTokens": 0.20,
+                "outputTokens": 0.50,
+                "cacheRead": 0.05
+            }
+        },
+        {
+            "id": "anthropic/claude-haiku-4.5",
+            "name": "claude-haiku-4-5",
+            "displayName": "Claude Haiku 4.5",
+            "provider": "anthropic",
+            "tier": "fast",
+            "description": "Fast and affordable coding assistant",
+            "useCase": "coding",
+            "isSystem": false,
+            "capabilities": {
+                "supportedInputs": [
+                    "text",
+                    "image",
+                    "pdf",
+                    "document"
+                ],
+                "supportedOutputs": [
+                    "text",
+                    "code",
+                    "structured-data"
+                ],
+                "maxContextLength": 200000,
+                "supportsStreaming": true,
+                "supportsSystemPrompts": true,
+                "supportsWebSearch": true,
+                "supportsFunctionCalling": true,
+                "supportsJsonMode": true
+            },
+            "pricing": {
+                "inputTokens": 1.00,
+                "outputTokens": 5.00,
+                "cacheCreation": 1.25,
+                "cacheRead": 0.10,
+                "cacheDuration": "5-min",
+                "webSearch": 10
+            }
+        },
+        {
+            "id": "anthropic/claude-sonnet-4.5",
+            "name": "claude-sonnet-4-5",
+            "displayName": "Claude Sonnet 4.5",
+            "provider": "anthropic",
+            "tier": "expert",
+            "description": "Balanced performance and quality (Default)",
+            "useCase": "coding",
+            "isSystem": false,
+            "capabilities": {
+                "supportedInputs": [
+                    "text",
+                    "image",
+                    "pdf",
+                    "document"
+                ],
+                "supportedOutputs": [
+                    "text",
+                    "code",
+                    "structured-data"
+                ],
+                "maxContextLength": 1000000,
+                "supportsStreaming": true,
+                "supportsSystemPrompts": true,
+                "supportsWebSearch": true,
+                "supportsFunctionCalling": true,
+                "supportsJsonMode": true
+            },
+            "pricing": {
+                "inputTokens": 3.00,
+                "outputTokens": 15.00,
+                "longContextThreshold": 200000,
+                "inputTokensLongContext": 6.00,
+                "outputTokensLongContext": 22.50,
+                "cacheCreation": 3.75,
+                "cacheRead": 0.30,
+                "cacheCreationLongContext": 7.50,
+                "cacheReadLongContext": 0.60,
+                "cacheDuration": "5-min",
+                "webSearch": 10
+            }
+        },
+        {
+            "id": "openai/gpt-5-mini",
+            "name": "gpt-5-mini",
+            "displayName": "GPT-5 Mini",
+            "provider": "openai",
+            "tier": "fast",
+            "description": "Fast OpenAI model for coding",
+            "useCase": "coding",
+            "isSystem": false,
+            "capabilities": {
+                "supportedInputs": [
+                    "text",
+                    "image"
+                ],
+                "supportedOutputs": [
+                    "text",
+                    "code",
+                    "structured-data"
+                ],
+                "maxContextLength": 400000,
+                "supportsStreaming": true,
+                "supportsSystemPrompts": true,
+                "supportsWebSearch": true,
+                "supportsFunctionCalling": true,
+                "supportsJsonMode": true
+            },
+            "pricing": {
+                "inputTokens": 0.25,
+                "outputTokens": 2.00,
+                "cacheRead": 0.025,
+                "webSearch": 10
+            }
+        },
+        {
+            "id": "openai/gpt-5.1",
+            "name": "gpt-5.1",
+            "displayName": "GPT-5.1",
+            "provider": "openai",
+            "tier": "expert",
+            "description": "Premium OpenAI model for complex tasks",
+            "useCase": "coding",
+            "isSystem": false,
+            "capabilities": {
+                "supportedInputs": [
+                    "text",
+                    "image"
+                ],
+                "supportedOutputs": [
+                    "text",
+                    "code",
+                    "structured-data"
+                ],
+                "maxContextLength": 400000,
+                "supportsStreaming": true,
+                "supportsSystemPrompts": true,
+                "supportsWebSearch": true,
+                "supportsFunctionCalling": true,
+                "supportsJsonMode": true
+            },
+            "pricing": {
+                "inputTokens": 1.25,
+                "outputTokens": 10.00,
+                "cacheRead": 0.125,
+                "webSearch": 10
+            }
+        },
+        {
+            "id": "google/gemini-2.5-flash",
+            "name": "gemini-2.5-flash",
+            "displayName": "Gemini 2.5 Flash",
+            "provider": "google",
+            "tier": "fast",
+            "description": "Fast Google model with large context",
+            "useCase": "coding",
+            "isSystem": false,
+            "capabilities": {
+                "supportedInputs": [
+                    "text",
+                    "image",
+                    "video",
+                    "audio"
+                ],
+                "supportedOutputs": [
+                    "text",
+                    "code",
+                    "structured-data"
+                ],
+                "maxContextLength": 1048576,
+                "supportsStreaming": true,
+                "supportsSystemPrompts": true,
+                "supportsWebSearch": true,
+                "supportsFunctionCalling": true,
+                "supportsJsonMode": true
+            },
+            "pricing": {
+                "inputTokens": 0.30,
+                "outputTokens": 2.50,
+                "audioInputTokens": 1.00,
+                "audioOutputTokens": 0.10,
+                "cacheRead": 0.03,
+                "webSearchFreePerDay": 1500,
+                "webSearch": 35,
+                "mapsGroundingFreePerDay": 1500,
+                "mapsGrounding": 25
+            }
+        },
+        {
+            "id": "google/gemini-3-pro-preview",
+            "name": "gemini-3-pro-preview",
+            "displayName": "Gemini 3 Pro (Preview)",
+            "provider": "google",
+            "tier": "expert",
+            "description": "Best model for multimodal understanding and agentic coding",
+            "useCase": "coding",
+            "isSystem": false,
+            "capabilities": {
+                "supportedInputs": [
+                    "text",
+                    "image",
+                    "video",
+                    "audio"
+                ],
+                "supportedOutputs": [
+                    "text",
+                    "code",
+                    "structured-data"
+                ],
+                "maxContextLength": 1048576,
+                "supportsStreaming": true,
+                "supportsSystemPrompts": true,
+                "supportsWebSearch": true,
+                "supportsFunctionCalling": true,
+                "supportsJsonMode": true
+            },
+            "pricing": {
+                "inputTokens": 2.00,
+                "outputTokens": 12.00,
+                "longContextThreshold": 200000,
+                "inputTokensLongContext": 4.00,
+                "outputTokensLongContext": 18.00,
+                "cacheRead": 0.20,
+                "cacheReadLongContext": 0.40,
+                "webSearchFreePerDay": 1500,
+                "webSearch": 14
+            }
+        },
+        {
+            "id": "x-ai/grok-code-fast-1",
+            "name": "grok-code-fast-1",
+            "displayName": "Grok Code Fast 1",
+            "provider": "x-ai",
+            "tier": "fast",
+            "description": "Lightning fast reasoning model for agentic coding",
+            "useCase": "coding",
+            "isSystem": false,
+            "capabilities": {
+                "supportedInputs": [
+                    "text"
+                ],
+                "supportedOutputs": [
+                    "text",
+                    "code",
+                    "structured-data"
+                ],
+                "maxContextLength": 256000,
+                "supportsStreaming": true,
+                "supportsSystemPrompts": true,
+                "supportsWebSearch": false,
+                "supportsFunctionCalling": true,
+                "supportsJsonMode": true
+            },
+            "pricing": {
+                "inputTokens": 0.20,
+                "outputTokens": 1.50,
+                "cacheRead": 0.02
+            }
+        },
+        {
+            "id": "google/gemini-2.5-flash-image",
+            "name": "gemini-2.5-flash-image",
+            "displayName": "Gemini 2.5 Flash Image 🍌",
+            "provider": "google",
+            "tier": "fast",
+            "description": "Native image generation optimized for speed and flexibility",
+            "useCase": "image-generation",
+            "isSystem": true,
+            "capabilities": {
+                "supportedInputs": [
+                    "text",
+                    "image"
+                ],
+                "supportedOutputs": [
+                    "image"
+                ],
+                "maxContextLength": 32768,
+                "supportsStreaming": false,
+                "supportsSystemPrompts": false,
+                "supportsWebSearch": false,
+                "supportsFunctionCalling": false,
+                "supportsJsonMode": false
+            },
+            "pricing": {
+                "inputTokens": 0.30,
+                "outputTokens": 0.30,
+                "images": 39
+            }
+        },
+        {
+            "id": "google/veo-3.1-generate-preview",
+            "name": "veo-3.1-generate-preview",
+            "displayName": "Veo 3.1 Standard (Preview)",
+            "provider": "google",
+            "tier": "expert",
+            "description": "Latest video generation model with audio (Preview)",
+            "useCase": "video-generation",
+            "isSystem": true,
+            "capabilities": {
+                "supportedInputs": [
+                    "text"
+                ],
+                "supportedOutputs": [
+                    "video"
+                ],
+                "maxContextLength": 32768,
+                "supportsStreaming": false,
+                "supportsSystemPrompts": false,
+                "supportsWebSearch": false,
+                "supportsFunctionCalling": false,
+                "supportsJsonMode": false
+            },
+            "pricing": {
+                "inputTokens": 0.30,
+                "outputTokens": 0.30,
+                "videoSeconds": 0.40
+            }
+        },
+        {
+            "id": "google/veo-3.1-fast-generate-preview",
+            "name": "veo-3.1-fast-generate-preview",
+            "displayName": "Veo 3.1 Fast (Preview)",
+            "provider": "google",
+            "tier": "fast",
+            "description": "Fast video generation model with audio (Preview)",
+            "useCase": "video-generation",
+            "isSystem": true,
+            "capabilities": {
+                "supportedInputs": [
+                    "text"
+                ],
+                "supportedOutputs": [
+                    "video"
+                ],
+                "maxContextLength": 32768,
+                "supportsStreaming": false,
+                "supportsSystemPrompts": false,
+                "supportsWebSearch": false,
+                "supportsFunctionCalling": false,
+                "supportsJsonMode": false
+            },
+            "pricing": {
+                "inputTokens": 0.30,
+                "outputTokens": 0.30,
+                "videoSeconds": 0.15
+            }
+        }
+    ]
+}

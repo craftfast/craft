@@ -45,7 +45,7 @@ const navItems = [
   },
   {
     name: "AI Models",
-    href: "/admin/models",
+    href: "/admin/ai-models",
     icon: Cpu,
     description: "Model configuration",
   },

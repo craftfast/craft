@@ -1063,3 +1063,177 @@ model SupportMessage {
   @@index([isFromAdmin])
   @@map("support_messages")
 }
+
+// ============================================================================
+// AI MODEL CONFIGURATION SYSTEM
+// ============================================================================
+// Database-driven AI model management with full admin CRUD capabilities
+// Supports multiple providers: Anthropic, OpenAI, Google, X-AI, OpenRouter
+
+enum AIModelProvider {
+  ANTHROPIC
+  OPENAI
+  GOOGLE
+  XAI
+  OPENROUTER
+}
+
+enum AIModelTier {
+  FAST
+  EXPERT
+}
+
+enum AIModelUseCase {
+  ORCHESTRATOR
+  MEMORY
+  CODING
+  IMAGE_GENERATION
+  VIDEO_GENERATION
+}
+
+enum AIModelInputType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  PDF
+  DOCUMENT
+}
+
+enum AIModelOutputType {
+  TEXT
+  CODE
+  IMAGE
+  AUDIO
+  VIDEO
+  STRUCTURED_DATA
+}
+
+model AIModel {
+  id           String               @id // OpenRouter format: "provider/model-name" (e.g., "anthropic/claude-sonnet-4.5")
+  name         String // Direct provider API name (e.g., "claude-sonnet-4-5" for Anthropic)
+  displayName  String
+  provider     AIModelProvider
+  tier         AIModelTier
+  description  String
+  useCase      AIModelUseCase
+  // Status flags
+  isEnabled    Boolean              @default(true) // Can be disabled without deletion
+  isDefault    Boolean              @default(false) // Is this the default for its use case
+  isSystem     Boolean              @default(false) // System models cannot be user-selected (e.g., orchestrator)
+  // Display order
+  sortOrder    Int                  @default(0)
+  // Relations
+  capabilities AIModelCapabilities?
+  pricing      AIModelPricing?
+  // Metadata
+  metadata     Json? // Additional provider-specific data
+  // Audit fields
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  createdBy    String? // Admin who created this
+  updatedBy    String? // Admin who last updated this
+
+  @@index([provider])
+  @@index([tier])
+  @@index([useCase])
+  @@index([isEnabled])
+  @@index([isDefault])
+  @@index([useCase, isEnabled])
+  @@index([useCase, isDefault])
+  @@map("ai_models")
+}
+
+model AIModelCapabilities {
+  id                      String              @id @default(cuid())
+  modelId                 String              @unique
+  // Input/Output types (stored as arrays of enum values)
+  supportedInputs         AIModelInputType[]
+  supportedOutputs        AIModelOutputType[]
+  // Context and features
+  maxContextLength        Int? // Maximum context window in tokens
+  supportsStreaming       Boolean             @default(true)
+  supportsSystemPrompts   Boolean             @default(true)
+  supportsWebSearch       Boolean             @default(false)
+  supportsFunctionCalling Boolean             @default(true)
+  supportsJsonMode        Boolean             @default(true)
+  // Relations
+  model                   AIModel             @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  @@index([modelId])
+  @@map("ai_model_capabilities")
+}
+
+model AIModelPricing {
+  id                       String   @id @default(cuid())
+  modelId                  String   @unique
+  // STANDARD TOKEN PRICING (Required) - USD per 1M tokens
+  inputTokens              Float // USD per 1M input tokens
+  outputTokens             Float // USD per 1M output tokens
+  // LONG CONTEXT PRICING (Optional)
+  longContextThreshold     Int? // Context size threshold (e.g., 200000)
+  inputTokensLongContext   Float? // USD per 1M input tokens above threshold
+  outputTokensLongContext  Float? // USD per 1M output tokens above threshold
+  // PROMPT CACHING (Optional)
+  cacheCreation            Float? // USD per 1M cache creation tokens
+  cacheRead                Float? // USD per 1M cache read tokens
+  cacheCreationLongContext Float? // USD per 1M cache creation (long context)
+  cacheReadLongContext     Float? // USD per 1M cache read (long context)
+  cacheDuration            String? // e.g., "5-min", "1-hour"
+  // MULTIMODAL INPUTS (Optional)
+  imageInputTokens         Float? // USD per 1M image input tokens
+  audioInputTokens         Float? // USD per 1M audio input tokens
+  videoInputTokens         Float? // USD per 1M video input tokens
+  // MULTIMODAL OUTPUTS (Optional)
+  audioOutputTokens        Float? // USD per 1M audio output tokens
+  // GENERATED CONTENT OUTPUT (Optional)
+  images                   Float? // USD per 1K images generated
+  videoSeconds             Float? // USD per second of video generated
+  // TOOL/FEATURE CHARGES (Optional)
+  webSearchFreePerDay      Int? // Free requests per day
+  webSearch                Float? // USD per 1K search requests
+  mapsGroundingFreePerDay  Int? // Free requests per day
+  mapsGrounding            Float? // USD per 1K grounding requests
+  // Notes (for admin reference)
+  pricingNotes             String?  @db.Text // Additional pricing info, discounts, etc.
+  // Relations
+  model                    AIModel  @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([modelId])
+  @@map("ai_model_pricing")
+}
+
+// Default model settings per use case
+model AIModelDefaults {
+  id        String         @id @default(cuid())
+  useCase   AIModelUseCase @unique
+  modelId   String // Reference to AIModel.id
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  updatedBy String? // Admin who last updated this
+
+  @@index([useCase])
+  @@map("ai_model_defaults")
+}
+
+// Audit log for model configuration changes
+model AIModelAuditLog {
+  id          String   @id @default(cuid())
+  modelId     String? // Can be null for global settings changes
+  action      String // created, updated, deleted, enabled, disabled, set_default
+  changes     Json? // What changed (before/after)
+  performedBy String // Admin user ID
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([modelId])
+  @@index([action])
+  @@index([performedBy])
+  @@index([createdAt])
+  @@map("ai_model_audit_logs")
+}
