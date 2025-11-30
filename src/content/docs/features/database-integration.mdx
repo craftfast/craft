@@ -1,0 +1,320 @@
+# Database Integration
+
+Craft supports database integration for building full-stack applications. This guide covers setting up and working with databases in your projects.
+
+## Supported Databases
+
+### PostgreSQL
+
+The recommended choice for production applications.
+
+**Providers:**
+
+- Neon (recommended)
+- Supabase
+- Railway
+- PlanetScale
+- Vercel Postgres
+
+### SQLite
+
+Good for development and simple applications.
+
+**Use cases:**
+
+- Local development
+- Prototyping
+- Small applications
+
+## Setting Up a Database
+
+### Step 1: Choose a Provider
+
+We recommend **Neon** for its:
+
+- Free tier
+- Serverless architecture
+- Easy setup
+- Excellent performance
+
+### Step 2: Create Database
+
+1. Sign up at your chosen provider
+2. Create a new database
+3. Get the connection string
+
+### Step 3: Add Connection String
+
+In Craft, add the environment variable:
+
+```
+DATABASE_URL=postgresql://user:password@host:5432/database
+```
+
+### Step 4: Initialize Prisma
+
+Ask the AI to set up Prisma:
+
+```
+Set up Prisma ORM with PostgreSQL connection
+```
+
+## Using Prisma
+
+### Schema Definition
+
+Define your data models in `prisma/schema.prisma`:
+
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+### Querying Data
+
+Use Prisma Client in your code:
+
+```tsx
+import { prisma } from "@/lib/prisma";
+
+// Get all users
+const users = await prisma.user.findMany();
+
+// Get user with posts
+const userWithPosts = await prisma.user.findUnique({
+  where: { id: userId },
+  include: { posts: true },
+});
+
+// Create a new post
+const post = await prisma.post.create({
+  data: {
+    title: "My First Post",
+    content: "Hello World!",
+    authorId: userId,
+  },
+});
+```
+
+### API Routes with Database
+
+```tsx
+// app/api/users/route.ts
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const users = await prisma.user.findMany();
+  return NextResponse.json(users);
+}
+
+export async function POST(request: Request) {
+  const data = await request.json();
+
+  const user = await prisma.user.create({
+    data: {
+      email: data.email,
+      name: data.name,
+    },
+  });
+
+  return NextResponse.json(user, { status: 201 });
+}
+```
+
+## Database Operations
+
+### Creating Records
+
+```tsx
+// Single record
+const user = await prisma.user.create({
+  data: { email: "user@example.com" },
+});
+
+// Multiple records
+const users = await prisma.user.createMany({
+  data: [{ email: "user1@example.com" }, { email: "user2@example.com" }],
+});
+```
+
+### Reading Records
+
+```tsx
+// Find one
+const user = await prisma.user.findUnique({
+  where: { id: "user_id" },
+});
+
+// Find many
+const users = await prisma.user.findMany({
+  where: { name: { contains: "John" } },
+  orderBy: { createdAt: "desc" },
+  take: 10,
+});
+```
+
+### Updating Records
+
+```tsx
+// Update one
+const updated = await prisma.user.update({
+  where: { id: "user_id" },
+  data: { name: "New Name" },
+});
+
+// Update many
+await prisma.user.updateMany({
+  where: { verified: false },
+  data: { verified: true },
+});
+```
+
+### Deleting Records
+
+```tsx
+// Delete one
+await prisma.user.delete({
+  where: { id: "user_id" },
+});
+
+// Delete many
+await prisma.post.deleteMany({
+  where: { published: false },
+});
+```
+
+## Migrations
+
+### Creating Migrations
+
+After changing your schema:
+
+```
+Create and apply a Prisma migration for the updated schema
+```
+
+The AI will run:
+
+```bash
+npx prisma migrate dev --name your_migration_name
+```
+
+### Applying in Production
+
+For production deployments:
+
+```bash
+npx prisma migrate deploy
+```
+
+## Best Practices
+
+### Connection Pooling
+
+Use connection pooling for serverless:
+
+```
+DATABASE_URL=postgresql://...?pgbouncer=true
+DIRECT_URL=postgresql://...
+```
+
+### Error Handling
+
+Always handle database errors:
+
+```tsx
+try {
+  const user = await prisma.user.create({
+    data: userData,
+  });
+  return user;
+} catch (error) {
+  if (error.code === "P2002") {
+    throw new Error("Email already exists");
+  }
+  throw error;
+}
+```
+
+### Transactions
+
+Use transactions for related operations:
+
+```tsx
+const result = await prisma.$transaction(async (tx) => {
+  const user = await tx.user.create({
+    data: { email: "new@example.com" },
+  });
+
+  const profile = await tx.profile.create({
+    data: { userId: user.id },
+  });
+
+  return { user, profile };
+});
+```
+
+### Validation
+
+Validate data before database operations:
+
+```tsx
+import { z } from "zod";
+
+const userSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2).max(100).optional(),
+});
+
+export async function createUser(data: unknown) {
+  const validated = userSchema.parse(data);
+  return prisma.user.create({ data: validated });
+}
+```
+
+## Troubleshooting
+
+### Connection Issues
+
+1. Verify DATABASE_URL is correct
+2. Check if database server is running
+3. Verify network access/firewalls
+4. Check SSL requirements
+
+### Migration Errors
+
+1. Check for schema syntax errors
+2. Verify database permissions
+3. Review migration history
+4. Reset development database if needed
+
+### Performance Issues
+
+1. Add appropriate indexes
+2. Use select to limit fields
+3. Paginate large result sets
+4. Monitor query performance
+
+## Next Steps
+
+- [Deployment](/docs/features/deployment) - Deploy with database
+- [Environment Variables](/docs/features/environment-variables) - Secure credentials
+- [API Reference](/docs/api-reference/overview) - API documentation

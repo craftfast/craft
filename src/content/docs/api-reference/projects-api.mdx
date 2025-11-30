@@ -1,0 +1,352 @@
+# Projects API
+
+The Projects API allows you to manage your Craft projects programmatically.
+
+## Endpoints
+
+| Method | Endpoint        | Description          |
+| ------ | --------------- | -------------------- |
+| GET    | `/projects`     | List all projects    |
+| POST   | `/projects`     | Create a new project |
+| GET    | `/projects/:id` | Get a single project |
+| PATCH  | `/projects/:id` | Update a project     |
+| DELETE | `/projects/:id` | Delete a project     |
+
+## List Projects
+
+Retrieve a list of all your projects.
+
+### Request
+
+```bash
+GET /v1/projects
+```
+
+### Query Parameters
+
+| Parameter | Type   | Description                                  |
+| --------- | ------ | -------------------------------------------- |
+| `page`    | number | Page number (default: 1)                     |
+| `limit`   | number | Items per page (default: 20, max: 100)       |
+| `status`  | string | Filter by status: `active`, `archived`       |
+| `sort`    | string | Sort field: `name`, `createdAt`, `updatedAt` |
+| `order`   | string | Sort order: `asc`, `desc`                    |
+
+### Example
+
+```bash
+curl -X GET "https://api.craft.fast/v1/projects?status=active&sort=updatedAt&order=desc" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "proj_abc123",
+      "name": "My Landing Page",
+      "description": "Marketing website",
+      "status": "active",
+      "template": "landing-page",
+      "previewUrl": "https://preview.craft.fast/proj_abc123",
+      "createdAt": "2024-01-10T08:00:00Z",
+      "updatedAt": "2024-01-15T12:30:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 5,
+    "totalPages": 1,
+    "hasMore": false
+  }
+}
+```
+
+## Get Project
+
+Retrieve details for a specific project.
+
+### Request
+
+```bash
+GET /v1/projects/:id
+```
+
+### Example
+
+```bash
+curl -X GET "https://api.craft.fast/v1/projects/proj_abc123" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proj_abc123",
+    "name": "My Landing Page",
+    "description": "Marketing website for product launch",
+    "status": "active",
+    "template": "landing-page",
+    "previewUrl": "https://preview.craft.fast/proj_abc123",
+    "settings": {
+      "framework": "nextjs",
+      "styling": "tailwind"
+    },
+    "stats": {
+      "files": 24,
+      "lastEditedAt": "2024-01-15T12:30:00Z"
+    },
+    "createdAt": "2024-01-10T08:00:00Z",
+    "updatedAt": "2024-01-15T12:30:00Z"
+  }
+}
+```
+
+## Create Project
+
+Create a new project.
+
+### Request
+
+```bash
+POST /v1/projects
+```
+
+### Body Parameters
+
+| Parameter     | Type   | Required | Description                         |
+| ------------- | ------ | -------- | ----------------------------------- |
+| `name`        | string | Yes      | Project name (1-100 chars)          |
+| `description` | string | No       | Project description (max 500 chars) |
+| `template`    | string | No       | Template to use                     |
+
+### Example
+
+```bash
+curl -X POST "https://api.craft.fast/v1/projects" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "New Dashboard",
+    "description": "Admin panel for our SaaS product",
+    "template": "dashboard"
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proj_def456",
+    "name": "New Dashboard",
+    "description": "Admin panel for our SaaS product",
+    "status": "active",
+    "template": "dashboard",
+    "previewUrl": "https://preview.craft.fast/proj_def456",
+    "createdAt": "2024-01-20T10:00:00Z",
+    "updatedAt": "2024-01-20T10:00:00Z"
+  }
+}
+```
+
+## Update Project
+
+Update an existing project.
+
+### Request
+
+```bash
+PATCH /v1/projects/:id
+```
+
+### Body Parameters
+
+| Parameter     | Type   | Description            |
+| ------------- | ------ | ---------------------- |
+| `name`        | string | New project name       |
+| `description` | string | New description        |
+| `status`      | string | `active` or `archived` |
+
+### Example
+
+```bash
+curl -X PATCH "https://api.craft.fast/v1/projects/proj_abc123" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Landing Page",
+    "description": "New marketing website"
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proj_abc123",
+    "name": "Updated Landing Page",
+    "description": "New marketing website",
+    "status": "active",
+    "updatedAt": "2024-01-21T09:00:00Z"
+  }
+}
+```
+
+## Delete Project
+
+Permanently delete a project.
+
+### Request
+
+```bash
+DELETE /v1/projects/:id
+```
+
+### Example
+
+```bash
+curl -X DELETE "https://api.craft.fast/v1/projects/proj_abc123" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proj_abc123",
+    "deleted": true
+  }
+}
+```
+
+## Project Files
+
+### List Files
+
+```bash
+GET /v1/projects/:id/files
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "path": "src/app/page.tsx",
+      "type": "file",
+      "size": 1234,
+      "updatedAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "path": "src/components",
+      "type": "directory"
+    }
+  ]
+}
+```
+
+### Get File Content
+
+```bash
+GET /v1/projects/:id/files/:path
+```
+
+### Update File
+
+```bash
+PUT /v1/projects/:id/files/:path
+Content-Type: text/plain
+
+// File content here
+```
+
+### Delete File
+
+```bash
+DELETE /v1/projects/:id/files/:path
+```
+
+## Error Codes
+
+| Code                     | Description                             |
+| ------------------------ | --------------------------------------- |
+| `PROJECT_NOT_FOUND`      | Project doesn't exist or not accessible |
+| `PROJECT_LIMIT_EXCEEDED` | Maximum projects reached for plan       |
+| `INVALID_PROJECT_NAME`   | Name doesn't meet requirements          |
+| `TEMPLATE_NOT_FOUND`     | Specified template doesn't exist        |
+
+## SDK Examples
+
+### JavaScript
+
+```typescript
+import { CraftClient } from "@craft/sdk";
+
+const craft = new CraftClient({
+  apiKey: process.env.CRAFT_API_KEY,
+});
+
+// List projects
+const projects = await craft.projects.list({
+  status: "active",
+  sort: "updatedAt",
+});
+
+// Create project
+const newProject = await craft.projects.create({
+  name: "My New Project",
+  template: "landing-page",
+});
+
+// Update project
+await craft.projects.update("proj_abc123", {
+  name: "Updated Name",
+});
+
+// Delete project
+await craft.projects.delete("proj_abc123");
+```
+
+### Python
+
+```python
+from craft import CraftClient
+
+craft = CraftClient(api_key=os.environ['CRAFT_API_KEY'])
+
+# List projects
+projects = craft.projects.list(status='active')
+
+# Create project
+new_project = craft.projects.create(
+    name='My New Project',
+    template='landing-page'
+)
+
+# Update project
+craft.projects.update('proj_abc123', name='Updated Name')
+
+# Delete project
+craft.projects.delete('proj_abc123')
+```
+
+## Next Steps
+
+- [Authentication](/docs/api-reference/authentication) - API authentication
+- [Rate Limits](/docs/api-reference/rate-limits) - Usage limits
+- [API Overview](/docs/api-reference/overview) - General reference

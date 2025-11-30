@@ -1,0 +1,243 @@
+# File Management
+
+Effective file management is essential for maintaining clean, organized projects. This guide covers everything you need to know about working with files in Craft.
+
+## File Browser
+
+The file browser on the left sidebar shows all your project files. You can:
+
+- **Browse** the directory structure
+- **Create** new files and folders
+- **Rename** existing files
+- **Delete** files you no longer need
+- **Search** for specific files
+
+## Creating Files
+
+### Using AI
+
+Ask the AI to create files:
+
+```
+Create a new component at src/components/UserProfile.tsx
+```
+
+The AI will create the file with appropriate boilerplate code.
+
+### Manual Creation
+
+1. Click the **+** icon in the file browser
+2. Choose **New File** or **New Folder**
+3. Enter the path and name
+4. Press Enter to create
+
+### File Templates
+
+When creating manually, Craft provides templates:
+
+- **React Component** - Basic component structure
+- **API Route** - Next.js API handler
+- **Page** - App Router page
+- **Utility** - Helper functions
+
+## File Types
+
+### Supported Extensions
+
+Craft supports all common web development files:
+
+| Extension | Type               | Syntax Highlighting |
+| --------- | ------------------ | ------------------- |
+| `.tsx`    | React + TypeScript | ✓                   |
+| `.ts`     | TypeScript         | ✓                   |
+| `.jsx`    | React + JavaScript | ✓                   |
+| `.js`     | JavaScript         | ✓                   |
+| `.css`    | Stylesheets        | ✓                   |
+| `.json`   | Data/Config        | ✓                   |
+| `.md`     | Markdown           | ✓                   |
+| `.mdx`    | MDX                | ✓                   |
+
+### Special Files
+
+Some files have special meaning in Next.js:
+
+| File            | Purpose                         |
+| --------------- | ------------------------------- |
+| `layout.tsx`    | Shared layout for route segment |
+| `page.tsx`      | Route page component            |
+| `loading.tsx`   | Loading UI                      |
+| `error.tsx`     | Error handling                  |
+| `not-found.tsx` | 404 page                        |
+| `route.ts`      | API endpoint                    |
+
+## Editing Files
+
+### Code Editor
+
+The built-in editor features:
+
+- Syntax highlighting
+- Auto-completion
+- Error detection
+- Code formatting
+- Find and replace
+
+### Keyboard Shortcuts
+
+| Action     | Mac             | Windows            |
+| ---------- | --------------- | ------------------ |
+| Save       | `⌘ + S`         | `Ctrl + S`         |
+| Find       | `⌘ + F`         | `Ctrl + F`         |
+| Replace    | `⌘ + H`         | `Ctrl + H`         |
+| Format     | `⌘ + Shift + F` | `Ctrl + Shift + F` |
+| Go to Line | `⌘ + G`         | `Ctrl + G`         |
+
+### AI-Assisted Editing
+
+Select code and ask the AI to modify it:
+
+```
+Refactor this component to use TypeScript interfaces
+instead of inline types
+```
+
+## Organizing Files
+
+### Recommended Structure
+
+```
+src/
+├── app/                    # Pages and routes
+│   ├── (auth)/            # Auth-related pages (group)
+│   ├── (marketing)/       # Marketing pages (group)
+│   ├── api/               # API routes
+│   └── layout.tsx         # Root layout
+├── components/            # React components
+│   ├── ui/               # Base UI components
+│   ├── forms/            # Form components
+│   └── layout/           # Layout components
+├── lib/                   # Utilities
+│   ├── utils.ts          # Helper functions
+│   ├── constants.ts      # Constants
+│   └── types.ts          # TypeScript types
+└── styles/               # Global styles
+```
+
+### Naming Conventions
+
+Follow these patterns:
+
+| Type       | Convention      | Example             |
+| ---------- | --------------- | ------------------- |
+| Components | PascalCase      | `UserProfile.tsx`   |
+| Utilities  | camelCase       | `formatDate.ts`     |
+| Constants  | SCREAMING_SNAKE | `API_ENDPOINTS.ts`  |
+| Styles     | kebab-case      | `button-styles.css` |
+
+### Route Groups
+
+Use parentheses for logical grouping without affecting URLs:
+
+```
+app/
+├── (marketing)/
+│   ├── page.tsx         → /
+│   ├── about/page.tsx   → /about
+│   └── pricing/page.tsx → /pricing
+└── (dashboard)/
+    ├── dashboard/page.tsx → /dashboard
+    └── settings/page.tsx  → /settings
+```
+
+## Moving and Renaming
+
+### Moving Files
+
+1. Select the file in the browser
+2. Drag to the new location
+3. Or right-click and choose **Move**
+
+> **Note:** Imports are automatically updated when you move files.
+
+### Renaming Files
+
+1. Right-click the file
+2. Select **Rename**
+3. Enter the new name
+4. Press Enter
+
+## Deleting Files
+
+### Single File
+
+1. Right-click the file
+2. Select **Delete**
+3. Confirm the deletion
+
+### Multiple Files
+
+1. Select files with `⌘/Ctrl + Click`
+2. Right-click and delete
+3. Or press `Delete` key
+
+### Recovery
+
+Deleted files can be recovered within 24 hours:
+
+1. Open **Project Settings**
+2. Go to **Deleted Files**
+3. Select files to restore
+
+## Searching Files
+
+### Quick Search
+
+Press `⌘ + P` (Mac) or `Ctrl + P` (Windows) to:
+
+- Search by filename
+- Navigate to any file
+- Filter by extension
+
+### Content Search
+
+Press `⌘ + Shift + F` for project-wide search:
+
+- Search in all files
+- Regular expression support
+- Replace across files
+
+## Best Practices
+
+### Keep It Clean
+
+- Delete unused files regularly
+- Don't commit commented-out code
+- Remove test files before production
+
+### Use Consistent Patterns
+
+- Same folder structure across projects
+- Consistent naming conventions
+- Clear file purposes
+
+### Document Complex Logic
+
+Add comments for complex code:
+
+```tsx
+/**
+ * Calculates the discount based on user tier and cart total
+ * @param tier - User membership tier
+ * @param total - Cart total before discount
+ * @returns Discount percentage to apply
+ */
+function calculateDiscount(tier: string, total: number): number {
+  // ...
+}
+```
+
+## Next Steps
+
+- [Code Generation](/docs/features/code-generation) - Let AI create files
+- [Templates](/docs/features/templates) - Start with pre-built structures
+- [Best Practices](/docs/guides/best-practices) - Write maintainable code

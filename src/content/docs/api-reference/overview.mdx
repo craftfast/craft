@@ -1,0 +1,216 @@
+# API Reference Overview
+
+Welcome to the Craft API Reference. This documentation covers the technical details of Craft's API for advanced users and integrations.
+
+## Base URL
+
+All API requests are made to:
+
+```
+https://api.craft.fast/v1
+```
+
+## Authentication
+
+All API requests require authentication using an API key.
+
+### Getting Your API Key
+
+1. Go to **Account Settings**
+2. Navigate to **API Keys**
+3. Click **Create New Key**
+4. Copy and securely store your key
+
+### Using Your API Key
+
+Include your API key in the `Authorization` header:
+
+```bash
+curl -X GET "https://api.craft.fast/v1/projects" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Response Format
+
+All responses are returned as JSON:
+
+```json
+{
+  "success": true,
+  "data": {
+    // Response data
+  }
+}
+```
+
+### Error Responses
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "The request was invalid",
+    "details": {
+      // Additional error information
+    }
+  }
+}
+```
+
+## HTTP Status Codes
+
+| Code | Description           |
+| ---- | --------------------- |
+| 200  | Success               |
+| 201  | Created               |
+| 400  | Bad Request           |
+| 401  | Unauthorized          |
+| 403  | Forbidden             |
+| 404  | Not Found             |
+| 429  | Too Many Requests     |
+| 500  | Internal Server Error |
+
+## Pagination
+
+List endpoints support pagination:
+
+### Request
+
+```
+GET /projects?page=1&limit=20
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "totalPages": 3,
+    "hasMore": true
+  }
+}
+```
+
+## Filtering
+
+Many endpoints support filtering:
+
+```
+GET /projects?status=active&sort=createdAt&order=desc
+```
+
+## Rate Limiting
+
+API requests are rate limited:
+
+| Tier       | Requests/Minute | Requests/Day |
+| ---------- | --------------- | ------------ |
+| Free       | 60              | 1,000        |
+| Pro        | 300             | 10,000       |
+| Enterprise | 1,000           | Unlimited    |
+
+Rate limit headers are included in responses:
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1699999999
+```
+
+## SDKs
+
+Official SDKs are available for:
+
+- **JavaScript/TypeScript** - `npm install @craft/sdk`
+- **Python** - `pip install craft-sdk`
+
+### JavaScript Example
+
+```typescript
+import { CraftClient } from "@craft/sdk";
+
+const craft = new CraftClient({
+  apiKey: process.env.CRAFT_API_KEY,
+});
+
+const projects = await craft.projects.list();
+```
+
+## Webhooks
+
+Craft can send webhooks for events:
+
+### Supported Events
+
+| Event             | Description              |
+| ----------------- | ------------------------ |
+| `project.created` | New project created      |
+| `project.updated` | Project settings changed |
+| `project.deleted` | Project deleted          |
+| `build.started`   | Build process started    |
+| `build.completed` | Build process completed  |
+| `build.failed`    | Build process failed     |
+
+### Webhook Payload
+
+```json
+{
+  "event": "project.updated",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "data": {
+    "projectId": "proj_123",
+    "changes": ["name", "settings"]
+  }
+}
+```
+
+### Verifying Webhooks
+
+Webhooks include a signature header:
+
+```
+X-Craft-Signature: sha256=abc123...
+```
+
+Verify using:
+
+```typescript
+import { verifyWebhook } from "@craft/sdk";
+
+const isValid = verifyWebhook(payload, signature, process.env.WEBHOOK_SECRET);
+```
+
+## Versioning
+
+The API is versioned. The current version is `v1`.
+
+Breaking changes will result in a new version (v2, v3, etc.).
+
+## Changelog
+
+### v1.0.0 (Current)
+
+- Initial release
+- Projects API
+- Files API
+- Deployments API
+
+## Support
+
+For API support:
+
+- **Documentation**: You're reading it!
+- **Email**: api-support@craft.fast
+- **Discord**: [Join our community](https://discord.gg/YvPKxcCV)
+
+## Next Steps
+
+- [Authentication](/docs/api-reference/authentication) - Detailed auth guide
+- [Projects API](/docs/api-reference/projects-api) - Project endpoints
+- [Rate Limits](/docs/api-reference/rate-limits) - Usage limits

@@ -1,0 +1,273 @@
+# Authentication
+
+Learn how to authenticate with the Craft API. All API requests require proper authentication.
+
+## API Keys
+
+### Creating an API Key
+
+1. Log in to your Craft account
+2. Go to **Account Settings** → **API Keys**
+3. Click **Create New Key**
+4. Give your key a descriptive name
+5. Set permissions (read-only or read-write)
+6. Copy the key immediately (it won't be shown again)
+
+### Key Permissions
+
+| Permission | Access                                       |
+| ---------- | -------------------------------------------- |
+| Read-Only  | View projects, files, deployments            |
+| Read-Write | Full access including create, update, delete |
+
+### Key Security
+
+- Never commit API keys to version control
+- Use environment variables
+- Rotate keys periodically
+- Delete unused keys
+
+## Using API Keys
+
+### Authorization Header
+
+Include your key in the `Authorization` header:
+
+```bash
+curl -X GET "https://api.craft.fast/v1/projects" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript Example
+
+```typescript
+const response = await fetch("https://api.craft.fast/v1/projects", {
+  headers: {
+    Authorization: `Bearer ${process.env.CRAFT_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+});
+```
+
+### Using the SDK
+
+```typescript
+import { CraftClient } from "@craft/sdk";
+
+const craft = new CraftClient({
+  apiKey: process.env.CRAFT_API_KEY,
+});
+
+// The SDK handles authentication automatically
+const projects = await craft.projects.list();
+```
+
+## OAuth 2.0
+
+For applications that need to act on behalf of users.
+
+### Supported Grant Types
+
+- Authorization Code
+- Refresh Token
+
+### OAuth Flow
+
+#### 1. Redirect User to Authorize
+
+```
+https://craft.fast/oauth/authorize?
+  client_id=YOUR_CLIENT_ID
+  &redirect_uri=https://yourapp.com/callback
+  &response_type=code
+  &scope=read write
+```
+
+#### 2. Handle Callback
+
+```typescript
+// GET /callback?code=AUTH_CODE
+const code = searchParams.get("code");
+
+const response = await fetch("https://api.craft.fast/v1/oauth/token", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    grant_type: "authorization_code",
+    code: code,
+    client_id: process.env.CLIENT_ID,
+    client_secret: process.env.CLIENT_SECRET,
+    redirect_uri: "https://yourapp.com/callback",
+  }),
+});
+
+const { access_token, refresh_token, expires_in } = await response.json();
+```
+
+#### 3. Use Access Token
+
+```typescript
+const response = await fetch("https://api.craft.fast/v1/projects", {
+  headers: {
+    Authorization: `Bearer ${access_token}`,
+  },
+});
+```
+
+#### 4. Refresh Token
+
+```typescript
+const response = await fetch("https://api.craft.fast/v1/oauth/token", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    grant_type: "refresh_token",
+    refresh_token: refresh_token,
+    client_id: process.env.CLIENT_ID,
+    client_secret: process.env.CLIENT_SECRET,
+  }),
+});
+```
+
+### OAuth Scopes
+
+| Scope    | Access                            |
+| -------- | --------------------------------- |
+| `read`   | Read-only access to all resources |
+| `write`  | Create and modify resources       |
+| `delete` | Delete resources                  |
+| `admin`  | Administrative actions            |
+
+Request specific scopes:
+
+```
+scope=read write
+```
+
+## Session Tokens
+
+For browser-based applications using cookies.
+
+### Session Flow
+
+1. User logs in via Craft UI
+2. Session cookie is set
+3. API calls include cookie automatically
+
+```typescript
+// Browser fetch with credentials
+const response = await fetch("https://api.craft.fast/v1/me", {
+  credentials: "include",
+});
+```
+
+## Authentication Errors
+
+### 401 Unauthorized
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing authentication"
+  }
+}
+```
+
+**Causes:**
+
+- Missing Authorization header
+- Invalid API key
+- Expired token
+
+### 403 Forbidden
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "Insufficient permissions"
+  }
+}
+```
+
+**Causes:**
+
+- API key doesn't have required permissions
+- Resource belongs to another user
+
+## Best Practices
+
+### Environment Variables
+
+Store keys securely:
+
+```bash
+# .env.local
+CRAFT_API_KEY=your_api_key_here
+```
+
+```typescript
+const apiKey = process.env.CRAFT_API_KEY;
+```
+
+### Key Rotation
+
+Rotate keys periodically:
+
+1. Create a new key
+2. Update your application
+3. Test the new key
+4. Delete the old key
+
+### Scoped Keys
+
+Create keys with minimal permissions:
+
+- Use read-only keys for display purposes
+- Use write keys only where necessary
+- Never use admin keys in client-side code
+
+### Token Storage
+
+For OAuth tokens:
+
+- Store securely (encrypted)
+- Never expose to client
+- Implement refresh logic
+- Handle expiration gracefully
+
+## Testing Authentication
+
+### Verify Your Key
+
+```bash
+curl -X GET "https://api.craft.fast/v1/me" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Expected Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "user_123",
+    "email": "user@example.com",
+    "name": "John Doe"
+  }
+}
+```
+
+## Next Steps
+
+- [Projects API](/docs/api-reference/projects-api) - Manage projects
+- [Rate Limits](/docs/api-reference/rate-limits) - Understand limits
+- [API Overview](/docs/api-reference/overview) - General reference

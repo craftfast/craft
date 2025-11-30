@@ -1,0 +1,193 @@
+# Live Preview
+
+The live preview is one of Craft's most powerful features. It shows your application exactly as users will see it, updating in real-time as you make changes.
+
+## How Live Preview Works
+
+When you make changes in Craft, the preview:
+
+1. Receives the updated code
+2. Hot-reloads the affected components
+3. Maintains application state when possible
+4. Shows you the result instantly
+
+No manual refresh needed!
+
+## Using the Preview
+
+### Preview Panel
+
+The preview panel is located on the right side of the interface. You can:
+
+- **Resize** by dragging the divider
+- **Refresh** with the refresh button
+- **Open in new tab** for full-screen testing
+- **Copy link** to share with others
+
+### Device Modes
+
+Test on different screen sizes:
+
+| Mode    | Width  | Use Case           |
+| ------- | ------ | ------------------ |
+| Mobile  | 375px  | Phone layouts      |
+| Tablet  | 768px  | iPad and similar   |
+| Desktop | 1280px | Standard monitors  |
+| Full    | 100%   | Responsive testing |
+
+Click the device icons or use keyboard shortcuts:
+
+- `⌘ + 1` - Mobile
+- `⌘ + 2` - Tablet
+- `⌘ + 3` - Desktop
+- `⌘ + 4` - Full width
+
+## Real-Time Updates
+
+### What Updates Instantly
+
+- Component changes
+- Style modifications
+- New pages and routes
+- API route updates
+- Configuration changes
+
+### What Requires Refresh
+
+- Environment variable changes
+- Package installations
+- Major structural changes
+
+The preview will indicate when a refresh is needed.
+
+## Interacting with the Preview
+
+The preview is fully interactive:
+
+- Click buttons and links
+- Fill out forms
+- Navigate between pages
+- Test hover states
+- Trigger animations
+
+### Testing Forms
+
+Forms in the preview work just like production:
+
+1. Fill in fields
+2. See validation in action
+3. Submit and check responses
+4. Verify error handling
+
+### Testing Navigation
+
+Click links to navigate:
+
+- Internal links work normally
+- External links open in new tabs
+- API calls go to your routes
+
+## Sharing Previews
+
+### Share Link
+
+Get a temporary link to share:
+
+1. Click **"Share"** button
+2. Copy the generated URL
+3. Share with stakeholders
+
+> **Note:** Share links expire after 24 hours
+
+### Embed Preview
+
+Embed in documentation or presentations:
+
+```html
+<iframe
+  src="https://preview.craft.fast/your-project-id"
+  width="100%"
+  height="600"
+></iframe>
+```
+
+## Preview vs Production
+
+The preview environment is similar to production but with some differences:
+
+| Feature       | Preview          | Production |
+| ------------- | ---------------- | ---------- |
+| Performance   | Development mode | Optimized  |
+| Caching       | Disabled         | Enabled    |
+| Error Details | Verbose          | Minimal    |
+| Hot Reload    | Yes              | No         |
+
+## Troubleshooting
+
+### Preview Not Loading
+
+1. Check your internet connection
+2. Clear browser cache
+3. Try refreshing the preview
+4. Check for JavaScript errors in console
+
+### Preview Out of Sync
+
+If the preview doesn't match your code:
+
+1. Click the refresh button
+2. Wait for changes to apply
+3. Check for save errors
+
+### Slow Preview
+
+Performance tips:
+
+- Close unused browser tabs
+- Use Chrome for best performance
+- Disable browser extensions
+- Check for infinite loops in code
+
+### Console Errors
+
+Open browser DevTools (`F12`) to see:
+
+- JavaScript errors
+- Network requests
+- Console logs
+- React component tree
+
+## Best Practices
+
+### Test Responsively
+
+Always check your app on multiple device sizes:
+
+1. Start with mobile design
+2. Scale up to tablet
+3. Verify desktop layout
+4. Test edge cases (very wide/narrow)
+
+### Test Interactions
+
+Verify all interactive elements:
+
+- Buttons trigger correct actions
+- Forms validate properly
+- Navigation works as expected
+- Loading states display correctly
+
+### Test Edge Cases
+
+Check unusual scenarios:
+
+- Empty states
+- Long text content
+- Many items in lists
+- Slow network conditions
+
+## Next Steps
+
+- [File Management](/docs/core-concepts/file-management) - Organize your project
+- [Deployment](/docs/features/deployment) - Go live with your app
+- [Best Practices](/docs/guides/best-practices) - Build better applications

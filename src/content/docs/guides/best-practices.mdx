@@ -1,0 +1,420 @@
+# Best Practices
+
+Get the most out of Craft with these proven best practices. These tips help you build better applications faster.
+
+## AI Prompting
+
+### Be Specific
+
+The more detail you provide, the better the results:
+
+```
+❌ Vague: "Make a form"
+
+✅ Specific: "Create a contact form with name, email,
+   and message fields. Add validation that requires
+   all fields, validates email format, and shows
+   inline error messages. Include a submit button
+   that shows loading state while submitting."
+```
+
+### Provide Context
+
+Help the AI understand your project:
+
+```
+"I'm building a project management app. Create a
+TaskCard component that shows the task title,
+assignee avatar, due date, and priority badge.
+It should match the existing design system using
+our Card and Badge components."
+```
+
+### Iterate Incrementally
+
+Break complex features into steps:
+
+```
+Step 1: "Create the basic form structure with fields"
+Step 2: "Add validation using Zod schema"
+Step 3: "Add loading and success states"
+Step 4: "Add error handling and display"
+Step 5: "Polish animations and responsive design"
+```
+
+### Reference Existing Patterns
+
+Point to code that works well:
+
+```
+"Create a DeleteConfirmationModal following the
+same pattern as the existing PaymentModal component"
+```
+
+## Code Organization
+
+### File Structure
+
+Keep a consistent structure:
+
+```
+src/
+├── app/              # Routes and pages
+│   └── (group)/      # Route groups
+├── components/
+│   ├── ui/           # Reusable UI components
+│   ├── forms/        # Form components
+│   └── [feature]/    # Feature-specific components
+├── lib/
+│   ├── utils.ts      # Utility functions
+│   ├── constants.ts  # App constants
+│   └── types.ts      # TypeScript types
+├── hooks/            # Custom React hooks
+└── styles/           # Global styles
+```
+
+### Naming Conventions
+
+Be consistent:
+
+| Type       | Convention           | Example              |
+| ---------- | -------------------- | -------------------- |
+| Components | PascalCase           | `UserProfile.tsx`    |
+| Utilities  | camelCase            | `formatDate.ts`      |
+| Types      | PascalCase           | `User`, `TaskStatus` |
+| Constants  | SCREAMING_SNAKE      | `API_URL`            |
+| Hooks      | camelCase with `use` | `useAuth.ts`         |
+
+### Component Organization
+
+Structure components predictably:
+
+```tsx
+// 1. Imports
+import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+
+// 2. Types
+interface Props {
+  user: User;
+  onSave: (user: User) => void;
+}
+
+// 3. Component
+export function UserProfile({ user, onSave }: Props) {
+  // 3a. Hooks
+  const [isEditing, setIsEditing] = useState(false);
+
+  // 3b. Event handlers
+  const handleSave = () => {
+    // ...
+  };
+
+  // 3c. Render
+  return <div>{/* Component JSX */}</div>;
+}
+```
+
+## Performance
+
+### Lazy Loading
+
+Load components only when needed:
+
+```tsx
+import dynamic from "next/dynamic";
+
+const HeavyChart = dynamic(() => import("./HeavyChart"), {
+  loading: () => <ChartSkeleton />,
+});
+```
+
+### Image Optimization
+
+Use Next.js Image component:
+
+```tsx
+import Image from "next/image";
+
+<Image
+  src="/hero.jpg"
+  alt="Hero image"
+  width={1200}
+  height={600}
+  priority // For above-the-fold images
+/>;
+```
+
+### Minimize Re-renders
+
+Use memoization wisely:
+
+```tsx
+// Memoize expensive computations
+const expensiveValue = useMemo(() => {
+  return computeExpensiveValue(data);
+}, [data]);
+
+// Memoize callbacks
+const handleClick = useCallback(() => {
+  doSomething(id);
+}, [id]);
+
+// Memoize components
+const MemoizedList = memo(function List({ items }) {
+  return items.map((item) => <Item key={item.id} {...item} />);
+});
+```
+
+## TypeScript
+
+### Use Types Liberally
+
+Type everything:
+
+```tsx
+interface Task {
+  id: string;
+  title: string;
+  status: "todo" | "in-progress" | "done";
+  priority: "low" | "medium" | "high";
+  dueDate?: Date;
+  assignee?: User;
+}
+
+function updateTask(id: string, updates: Partial<Task>): Promise<Task> {
+  // Implementation
+}
+```
+
+### Avoid `any`
+
+Use proper types:
+
+```tsx
+// ❌ Bad
+function processData(data: any) {
+  return data.map((item: any) => item.value);
+}
+
+// ✅ Good
+interface DataItem {
+  id: string;
+  value: number;
+}
+
+function processData(data: DataItem[]): number[] {
+  return data.map((item) => item.value);
+}
+```
+
+### Use Utility Types
+
+Leverage TypeScript's built-in utilities:
+
+```tsx
+// Partial - all properties optional
+type TaskUpdate = Partial<Task>;
+
+// Pick - select specific properties
+type TaskPreview = Pick<Task, "id" | "title" | "status">;
+
+// Omit - exclude specific properties
+type NewTask = Omit<Task, "id" | "createdAt">;
+
+// Record - key-value mapping
+type TaskMap = Record<string, Task>;
+```
+
+## Error Handling
+
+### Handle All Cases
+
+Plan for failures:
+
+```tsx
+async function fetchData() {
+  try {
+    const response = await fetch("/api/data");
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error("Network error");
+    }
+    throw error;
+  }
+}
+```
+
+### User-Friendly Errors
+
+Show helpful messages:
+
+```tsx
+function ErrorDisplay({ error }: { error: Error }) {
+  return (
+    <div className="p-4 bg-red-50 rounded-lg">
+      <h3 className="font-medium text-red-800">Something went wrong</h3>
+      <p className="text-sm text-red-600 mt-1">{getErrorMessage(error)}</p>
+      <button onClick={retry} className="mt-3 text-sm underline">
+        Try again
+      </button>
+    </div>
+  );
+}
+```
+
+### Error Boundaries
+
+Contain failures:
+
+```tsx
+"use client";
+
+import { ErrorBoundary } from "react-error-boundary";
+
+function App() {
+  return (
+    <ErrorBoundary fallback={<ErrorFallback />}>
+      <Dashboard />
+    </ErrorBoundary>
+  );
+}
+```
+
+## Accessibility
+
+### Semantic HTML
+
+Use proper elements:
+
+```tsx
+// ❌ Bad
+<div onClick={handleClick}>Click me</div>
+
+// ✅ Good
+<button onClick={handleClick}>Click me</button>
+```
+
+### ARIA Labels
+
+Add context for screen readers:
+
+```tsx
+<button aria-label="Delete task" onClick={handleDelete}>
+  <TrashIcon />
+</button>
+```
+
+### Keyboard Navigation
+
+Ensure keyboard accessibility:
+
+```tsx
+<div
+  role="button"
+  tabIndex={0}
+  onClick={handleClick}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      handleClick();
+    }
+  }}
+>
+  Custom button
+</div>
+```
+
+## Testing
+
+### Test User Flows
+
+Focus on user experience:
+
+```tsx
+test("user can create a task", async () => {
+  render(<TaskForm />);
+
+  await userEvent.type(screen.getByLabelText("Title"), "New task");
+  await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(screen.getByText("Task created")).toBeInTheDocument();
+});
+```
+
+### Test Edge Cases
+
+Cover unusual scenarios:
+
+```tsx
+test("handles empty input", async () => {
+  render(<SearchInput />);
+
+  await userEvent.type(screen.getByRole("textbox"), "   ");
+  await userEvent.click(screen.getByRole("button", { name: "Search" }));
+
+  expect(screen.getByText("Please enter a search term")).toBeInTheDocument();
+});
+```
+
+## Security
+
+### Validate Input
+
+Never trust user input:
+
+```tsx
+import { z } from "zod";
+
+const TaskSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  priority: z.enum(["low", "medium", "high"]),
+});
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const validated = TaskSchema.parse(body); // Throws on invalid
+  // Process validated data
+}
+```
+
+### Protect API Routes
+
+Always verify authentication:
+
+```tsx
+export async function GET(request: Request) {
+  const session = await getSession();
+
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Proceed with authenticated request
+}
+```
+
+## Review Checklist
+
+Before deploying, verify:
+
+- [ ] All forms have validation
+- [ ] Errors are handled gracefully
+- [ ] Loading states are implemented
+- [ ] Mobile responsive design works
+- [ ] Accessibility requirements met
+- [ ] No console errors
+- [ ] Performance is acceptable
+- [ ] Security best practices followed
+
+## Next Steps
+
+- [Code Generation](/docs/features/code-generation) - Advanced techniques
+- [Deployment](/docs/features/deployment) - Production setup
+- [API Reference](/docs/api-reference/overview) - Technical documentation

@@ -1,0 +1,268 @@
+# Code Generation
+
+Craft's AI-powered code generation helps you build applications faster while maintaining high quality. This guide covers advanced techniques for getting the most from AI code generation.
+
+## Understanding Code Generation
+
+When you describe what you want, the AI:
+
+1. Analyzes your requirements
+2. Considers the project context
+3. Generates appropriate code
+4. Follows best practices automatically
+
+## Generation Capabilities
+
+### Components
+
+Generate complete React components:
+
+```
+Create a data table component with:
+- Sortable columns
+- Pagination
+- Row selection
+- Search filtering
+- Loading state
+```
+
+### Pages
+
+Create entire pages with layout:
+
+```
+Build a user profile page with:
+- Profile header with avatar and name
+- Stats section showing followers and posts
+- Tabs for posts, likes, and saved items
+- Activity feed
+```
+
+### API Routes
+
+Generate backend endpoints:
+
+```
+Create an API route at /api/users that:
+- GET: Returns paginated user list
+- POST: Creates a new user with validation
+- Handles authentication
+- Returns proper error responses
+```
+
+### Utilities
+
+Generate helper functions:
+
+```
+Create a utility function that:
+- Formats currency with proper locale
+- Handles multiple currencies
+- Includes TypeScript types
+```
+
+## Code Quality
+
+### TypeScript Integration
+
+All generated code includes proper TypeScript:
+
+```tsx
+interface UserProfileProps {
+  user: User;
+  onEdit?: () => void;
+  className?: string;
+}
+
+export function UserProfile({ user, onEdit, className }: UserProfileProps) {
+  // Component implementation
+}
+```
+
+### Best Practices
+
+Generated code follows:
+
+- **React patterns** - Proper hooks usage, memo when beneficial
+- **TypeScript** - Strong typing, interfaces over types when appropriate
+- **Accessibility** - ARIA labels, keyboard navigation
+- **Performance** - Lazy loading, optimized renders
+
+### Styling Conventions
+
+Tailwind CSS is used consistently:
+
+- Utility-first approach
+- Responsive breakpoints
+- Dark mode support
+- Design system colors
+
+## Advanced Techniques
+
+### Multi-File Generation
+
+Request related files together:
+
+```
+Create a product feature with:
+1. ProductCard component
+2. ProductGrid layout
+3. ProductDetails page
+4. useProduct hook for data fetching
+5. Product TypeScript types
+```
+
+### Incremental Building
+
+Build complex features step by step:
+
+**Round 1:**
+
+```
+Create the basic layout structure for an e-commerce site
+```
+
+**Round 2:**
+
+```
+Add the product listing page with grid layout
+```
+
+**Round 3:**
+
+```
+Implement add-to-cart functionality with a cart sidebar
+```
+
+### Reference Existing Code
+
+Point to existing patterns:
+
+```
+Create a SettingsPage component following the same
+pattern as the existing ProfilePage component
+```
+
+### Specify Libraries
+
+Request specific implementations:
+
+```
+Create a form using react-hook-form with zod validation,
+similar to the login form pattern
+```
+
+## Regeneration and Refinement
+
+### Requesting Changes
+
+If the generated code isn't quite right:
+
+```
+Update the ProductCard to:
+- Use a horizontal layout instead of vertical
+- Add a wishlist button
+- Show stock status
+```
+
+### Partial Regeneration
+
+Update specific parts only:
+
+```
+Just change the styling of the header section,
+keep everything else the same
+```
+
+### Alternative Approaches
+
+Ask for different implementations:
+
+```
+Show me a different way to implement the pagination,
+using URL parameters instead of state
+```
+
+## Generation Patterns
+
+### CRUD Operations
+
+```
+Create a complete CRUD interface for managing blog posts:
+- List view with search and filters
+- Create form with rich text editor
+- Edit page with form pre-population
+- Delete with confirmation modal
+- Proper loading and error states
+```
+
+### Authentication Flow
+
+```
+Build an authentication system with:
+- Login page
+- Registration page
+- Password reset flow
+- Protected route wrapper
+- Session management
+```
+
+### Data Visualization
+
+```
+Create a dashboard with:
+- Line chart for revenue over time
+- Bar chart for top products
+- Pie chart for traffic sources
+- Real-time updating stats cards
+```
+
+## Code Generation Limits
+
+Be aware of limitations:
+
+- Very complex algorithms may need refinement
+- External API integrations need credentials
+- Database queries require schema context
+- Some edge cases may need manual handling
+
+## Tips for Better Code
+
+### Provide Context
+
+The more context, the better:
+
+```
+I'm building a SaaS dashboard for project management.
+Create a task list component that shows tasks with
+priority, assignee, due date, and status. Users should
+be able to drag tasks to reorder them.
+```
+
+### Specify Constraints
+
+Mention important requirements:
+
+```
+Create a file upload component that:
+- Accepts only images (jpg, png, webp)
+- Has a 5MB size limit
+- Shows upload progress
+- Validates on the client side
+```
+
+### Request Documentation
+
+Ask for comments and documentation:
+
+```
+Create a utility for handling API requests with
+proper error handling. Include JSDoc comments
+explaining each function.
+```
+
+## Next Steps
+
+- [Templates](/docs/features/templates) - Start from pre-built foundations
+- [AI Chat](/docs/core-concepts/ai-chat) - Improve your prompting
+- [Best Practices](/docs/guides/best-practices) - Write maintainable code

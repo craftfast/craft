@@ -1,0 +1,180 @@
+# Projects
+
+Projects are the foundation of everything you build in Craft. This guide explains how projects work, their structure, and how to manage them effectively.
+
+## What is a Project?
+
+A project in Craft is a complete web application with:
+
+- Source code files
+- Configuration
+- Dependencies
+- Environment variables
+- Preview environment
+
+Each project is isolated and has its own development environment.
+
+## Project Structure
+
+Every Craft project follows a consistent Next.js structure:
+
+```
+my-project/
+├── src/
+│   ├── app/              # App Router pages and layouts
+│   │   ├── layout.tsx    # Root layout
+│   │   ├── page.tsx      # Home page
+│   │   └── api/          # API routes
+│   ├── components/       # React components
+│   └── lib/              # Utilities and helpers
+├── public/               # Static assets
+├── package.json          # Dependencies
+├── tailwind.config.ts    # Tailwind configuration
+└── tsconfig.json         # TypeScript configuration
+```
+
+## Creating a Project
+
+### From Scratch
+
+1. Click **"New Project"** on your dashboard
+2. Enter a project name
+3. Optionally select a template
+4. Click **"Create"**
+
+### From Template
+
+Templates provide pre-built starting points:
+
+- **Landing Page** - Marketing pages and portfolios
+- **Dashboard** - Admin panels and data displays
+- **E-commerce** - Product listings and shopping carts
+- **Blog** - Content-focused sites
+
+## Project Dashboard
+
+The project dashboard shows:
+
+### Overview Tab
+
+- Project status and health
+- Recent activity
+- Quick actions
+
+### Files Tab
+
+- Browse all project files
+- Create, edit, delete files
+- Organize with folders
+
+### Settings Tab
+
+- Project name and description
+- Environment variables
+- Danger zone (delete project)
+
+## Working with Files
+
+### Creating Files
+
+Ask the AI to create files:
+
+```
+Create a new component called ProductCard
+in src/components/ProductCard.tsx
+```
+
+Or use the file browser:
+
+1. Click the **+** button
+2. Choose file type
+3. Enter the file path
+
+### Editing Files
+
+- **With AI**: Describe the changes you want
+- **Manually**: Click a file to open the editor
+
+### Organizing Files
+
+Follow these conventions:
+
+| Type         | Location          |
+| ------------ | ----------------- |
+| Pages        | `src/app/`        |
+| Components   | `src/components/` |
+| Utilities    | `src/lib/`        |
+| API Routes   | `src/app/api/`    |
+| Static Files | `public/`         |
+
+## Project Settings
+
+### General Settings
+
+- **Name**: Display name for the project
+- **Description**: Brief description (optional)
+- **Visibility**: Public or private
+
+### Environment Variables
+
+Store sensitive configuration:
+
+```
+DATABASE_URL=postgresql://...
+NEXT_PUBLIC_API_URL=https://api.example.com
+SECRET_KEY=your-secret-key
+```
+
+### Danger Zone
+
+- **Archive Project**: Hide from dashboard
+- **Delete Project**: Permanently remove
+
+## Collaboration
+
+> **Coming Soon**: Team collaboration features
+
+Future updates will include:
+
+- Invite team members
+- Role-based permissions
+- Real-time collaboration
+- Comments and feedback
+
+## Project Limits
+
+Depending on your plan:
+
+| Plan | Projects  | Storage | Preview Time |
+| ---- | --------- | ------- | ------------ |
+| Free | 3         | 500MB   | 2 hours/day  |
+| Pro  | Unlimited | 5GB     | Unlimited    |
+| Team | Unlimited | 50GB    | Unlimited    |
+
+## Best Practices
+
+### Naming Conventions
+
+- Use descriptive names: `coffee-shop-landing` not `project1`
+- Use lowercase with hyphens
+- Keep names concise but meaningful
+
+### Organization
+
+- Group related projects in folders (coming soon)
+- Archive completed projects
+- Delete unused projects
+
+### Regular Saves
+
+The AI saves automatically, but:
+
+- Check the save indicator
+- Verify changes in preview
+- Export important projects
+
+## Next Steps
+
+- [AI Chat](/docs/core-concepts/ai-chat) - Communicate effectively with the AI
+- [Live Preview](/docs/core-concepts/live-preview) - Test your applications
+- [File Management](/docs/core-concepts/file-management) - Organize your code

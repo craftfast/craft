@@ -1,0 +1,261 @@
+# Environment Variables
+
+Environment variables let you store configuration and secrets separately from your code. This is essential for API keys, database URLs, and other sensitive information.
+
+## Why Use Environment Variables
+
+- **Security**: Keep secrets out of your codebase
+- **Flexibility**: Different values for development and production
+- **Portability**: Easy configuration across environments
+
+## Setting Environment Variables
+
+### In Craft
+
+1. Open **Project Settings**
+2. Navigate to **Environment Variables**
+3. Click **Add Variable**
+4. Enter the name and value
+5. Click **Save**
+
+### Variable Format
+
+```
+DATABASE_URL=postgresql://user:pass@host:5432/db
+NEXT_PUBLIC_API_URL=https://api.example.com
+SECRET_KEY=your-super-secret-key
+```
+
+## Naming Conventions
+
+### Public Variables
+
+Variables accessible in the browser **must** start with `NEXT_PUBLIC_`:
+
+```
+NEXT_PUBLIC_API_URL=https://api.example.com
+NEXT_PUBLIC_STRIPE_KEY=pk_live_xxx
+NEXT_PUBLIC_GA_ID=G-XXXXXXX
+```
+
+### Private Variables
+
+Server-only variables (no prefix):
+
+```
+DATABASE_URL=postgresql://...
+STRIPE_SECRET_KEY=sk_live_xxx
+JWT_SECRET=xxx
+```
+
+> **Warning**: Never expose private variables to the client!
+
+## Accessing Variables
+
+### In Server Components
+
+```tsx
+export default function Page() {
+  const dbUrl = process.env.DATABASE_URL;
+
+  return <div>Connected to database</div>;
+}
+```
+
+### In Client Components
+
+Only `NEXT_PUBLIC_` variables are available:
+
+```tsx
+"use client";
+
+export function Analytics() {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+
+  return <Script src={`https://...?id=${gaId}`} />;
+}
+```
+
+### In API Routes
+
+Full access to all variables:
+
+```tsx
+export async function POST(request: Request) {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+
+  // Use the secret key for API calls
+}
+```
+
+## Common Variables
+
+### Database
+
+```
+DATABASE_URL=postgresql://user:password@host:5432/database
+```
+
+### Authentication
+
+```
+NEXTAUTH_URL=https://your-domain.com
+NEXTAUTH_SECRET=your-random-secret-string
+GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=xxx
+```
+
+### APIs
+
+```
+NEXT_PUBLIC_API_URL=https://api.your-service.com
+API_SECRET_KEY=sk-xxx
+```
+
+### Payments
+
+```
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxx
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+```
+
+### Email
+
+```
+RESEND_API_KEY=re_xxx
+EMAIL_FROM=noreply@your-domain.com
+```
+
+## Best Practices
+
+### Never Commit Secrets
+
+Add `.env` files to `.gitignore`:
+
+```gitignore
+.env
+.env.local
+.env.*.local
+```
+
+### Use Descriptive Names
+
+```
+# Bad
+KEY=xxx
+URL=https://...
+
+# Good
+STRIPE_SECRET_KEY=xxx
+DATABASE_URL=https://...
+```
+
+### Document Required Variables
+
+Create an `.env.example` file:
+
+```
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/mydb
+
+# Authentication
+NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
+
+# APIs
+API_KEY=your-api-key-here
+```
+
+### Validate Variables
+
+Check for required variables:
+
+```tsx
+// lib/env.ts
+function getEnvVar(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing environment variable: ${key}`);
+  }
+  return value;
+}
+
+export const env = {
+  databaseUrl: getEnvVar("DATABASE_URL"),
+  stripeKey: getEnvVar("STRIPE_SECRET_KEY"),
+};
+```
+
+## Environment-Specific Values
+
+### Development
+
+Use test/development values:
+
+```
+DATABASE_URL=postgresql://localhost:5432/dev_db
+STRIPE_SECRET_KEY=sk_test_xxx
+```
+
+### Production
+
+Use production values (set in deployment platform):
+
+```
+DATABASE_URL=postgresql://prod-host:5432/prod_db
+STRIPE_SECRET_KEY=sk_live_xxx
+```
+
+## Security Considerations
+
+### Access Control
+
+- Limit who can view/edit environment variables
+- Use different values for each environment
+- Rotate secrets regularly
+
+### Encryption
+
+Craft encrypts all environment variables:
+
+- Encrypted at rest
+- Encrypted in transit
+- Only decrypted at runtime
+
+### Audit Logging
+
+Track changes to environment variables:
+
+- Who made changes
+- When changes were made
+- What was changed (names only, not values)
+
+## Troubleshooting
+
+### Variable Not Available
+
+1. Check the naming (NEXT*PUBLIC* for client)
+2. Verify the variable is saved
+3. Restart the preview
+4. Check for typos
+
+### Value Not Updating
+
+1. Save the changes
+2. Refresh the preview
+3. Clear browser cache
+4. Check the correct environment
+
+### Build Errors
+
+If builds fail due to missing variables:
+
+1. Check all required variables are set
+2. Verify variable names match code
+3. Ensure production variables are configured
+
+## Next Steps
+
+- [Database Integration](/docs/features/database-integration) - Connect your database
+- [Deployment](/docs/features/deployment) - Deploy with proper config
+- [Best Practices](/docs/guides/best-practices) - Secure development

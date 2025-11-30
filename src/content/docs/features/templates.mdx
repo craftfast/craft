@@ -1,0 +1,275 @@
+# Templates
+
+Templates provide pre-built starting points for common project types. Instead of starting from scratch, choose a template that matches your needs and customize from there.
+
+## Available Templates
+
+### Landing Page
+
+Perfect for marketing sites and product launches.
+
+**Includes:**
+
+- Hero section with CTA
+- Feature highlights
+- Testimonials section
+- Pricing table
+- FAQ accordion
+- Contact form
+- Footer with links
+
+**Best for:** Startups, product launches, portfolios
+
+### Dashboard
+
+Admin panels and data-driven applications.
+
+**Includes:**
+
+- Sidebar navigation
+- Header with user menu
+- Stats cards
+- Data tables
+- Charts and graphs
+- Settings page
+
+**Best for:** SaaS products, admin interfaces, analytics
+
+### E-commerce
+
+Online stores and product catalogs.
+
+**Includes:**
+
+- Product grid
+- Product detail pages
+- Shopping cart
+- Checkout flow
+- Order confirmation
+- User account pages
+
+**Best for:** Online stores, marketplaces, product catalogs
+
+### Blog
+
+Content-focused sites and publications.
+
+**Includes:**
+
+- Article list
+- Article detail page
+- Category filtering
+- Author pages
+- Newsletter signup
+- RSS feed support
+
+**Best for:** Blogs, news sites, documentation
+
+### Portfolio
+
+Showcase work and projects.
+
+**Includes:**
+
+- Project gallery
+- Project detail pages
+- About section
+- Contact form
+- Resume/CV page
+
+**Best for:** Designers, developers, agencies
+
+## Using Templates
+
+### Starting with a Template
+
+1. Click **"New Project"**
+2. Browse available templates
+3. Preview before selecting
+4. Click **"Use Template"**
+5. Customize to your needs
+
+### Template Customization
+
+After selecting a template:
+
+```
+Change the hero section to have a video background
+instead of the static image
+```
+
+```
+Update the color scheme to match my brand colors:
+- Primary: #4F46E5
+- Secondary: #10B981
+```
+
+```
+Replace the placeholder content with my actual
+product information
+```
+
+## Template Components
+
+Each template includes reusable components:
+
+### UI Components
+
+```
+components/
+├── ui/
+│   ├── Button.tsx
+│   ├── Card.tsx
+│   ├── Input.tsx
+│   ├── Modal.tsx
+│   └── ...
+```
+
+### Layout Components
+
+```
+components/
+├── layout/
+│   ├── Header.tsx
+│   ├── Footer.tsx
+│   ├── Sidebar.tsx
+│   └── Container.tsx
+```
+
+### Feature Components
+
+Template-specific components:
+
+```
+components/
+├── features/
+│   ├── PricingTable.tsx
+│   ├── Testimonials.tsx
+│   ├── FeatureGrid.tsx
+│   └── ...
+```
+
+## Customizing Templates
+
+### Styling Changes
+
+Update colors and fonts:
+
+```
+Change the primary color to purple and use
+Inter font instead of the default
+```
+
+### Layout Modifications
+
+Restructure as needed:
+
+```
+Move the testimonials section above the
+pricing table
+```
+
+### Adding Sections
+
+Extend with new features:
+
+```
+Add a team section between features and
+testimonials showing team members with
+photos and bios
+```
+
+### Removing Sections
+
+Simplify when needed:
+
+```
+Remove the FAQ section, I don't need it
+for this project
+```
+
+## Template Architecture
+
+### File Structure
+
+All templates follow consistent patterns:
+
+```
+src/
+├── app/
+│   ├── layout.tsx        # Root layout
+│   ├── page.tsx          # Home page
+│   └── [feature]/        # Feature pages
+├── components/
+│   ├── ui/               # Base components
+│   ├── layout/           # Layout components
+│   └── sections/         # Page sections
+├── lib/
+│   ├── utils.ts          # Utilities
+│   └── constants.ts      # Configuration
+└── styles/
+    └── globals.css       # Global styles
+```
+
+### Configuration
+
+Templates include sensible defaults:
+
+- **tailwind.config.ts** - Extended theme
+- **next.config.ts** - Optimized settings
+- **tsconfig.json** - Strict TypeScript
+
+## Creating Custom Templates
+
+> **Coming Soon**: Save your own templates
+
+Future features will include:
+
+- Save project as template
+- Share templates with team
+- Publish to template gallery
+- Import from GitHub
+
+## Template Best Practices
+
+### Start Right
+
+Choose the closest template to your needs:
+
+- Don't use e-commerce for a blog
+- Don't use dashboard for a landing page
+- Pick the right foundation
+
+### Customize Thoughtfully
+
+Make intentional changes:
+
+1. Update content first
+2. Adjust styling second
+3. Add features third
+4. Remove unused parts last
+
+### Maintain Structure
+
+Keep the organization:
+
+- Don't rename core folders randomly
+- Follow established patterns
+- Keep components modular
+
+## Template Updates
+
+Templates are regularly updated with:
+
+- New design trends
+- Performance improvements
+- Accessibility fixes
+- New components
+
+Your existing projects aren't affected by template updates.
+
+## Next Steps
+
+- [Code Generation](/docs/features/code-generation) - Add custom features
+- [Environment Variables](/docs/features/environment-variables) - Configure your app
+- [Deployment](/docs/features/deployment) - Launch your project

@@ -1,0 +1,206 @@
+# AI Chat
+
+The AI chat interface is your primary way of building with Craft. This guide helps you communicate effectively with the AI to get the best results.
+
+## How It Works
+
+The AI assistant in Craft is designed to:
+
+1. **Understand** your requirements from natural language
+2. **Generate** high-quality code that follows best practices
+3. **Explain** what it's doing and why
+4. **Iterate** based on your feedback
+
+## Starting a Conversation
+
+Begin with a clear description of what you want:
+
+```
+Create a contact form with name, email, and message fields.
+Include validation and a submit button that shows a success message.
+```
+
+The AI will:
+
+- Create the necessary component files
+- Add proper TypeScript types
+- Include form validation
+- Style with Tailwind CSS
+
+## Conversation Context
+
+The AI remembers your entire conversation, so you can build on previous messages:
+
+**Message 1:**
+
+```
+Create a navigation bar with a logo and menu items
+```
+
+**Message 2:**
+
+```
+Add a mobile hamburger menu that slides in from the right
+```
+
+**Message 3:**
+
+```
+Make the background blur when the mobile menu is open
+```
+
+## Effective Prompting
+
+### Be Specific
+
+❌ Vague:
+
+```
+Make a form
+```
+
+✅ Specific:
+
+```
+Create a newsletter signup form with an email input,
+submit button, and success/error states.
+Style it with a dark background and light text.
+```
+
+### Provide Context
+
+Include relevant details:
+
+```
+Create a pricing table for a SaaS product with:
+- 3 tiers: Starter ($9), Pro ($29), Enterprise ($99)
+- Monthly/yearly toggle
+- Feature comparison
+- "Most Popular" badge on Pro tier
+```
+
+### Reference Styles
+
+Mention designs you like:
+
+```
+Create a hero section inspired by Linear's website,
+with a gradient background and animated text.
+```
+
+### Break Down Complex Tasks
+
+For large features, work step by step:
+
+```
+Step 1: Create the basic layout structure
+Step 2: Add the header and navigation
+Step 3: Build the main content area
+Step 4: Add animations and polish
+```
+
+## Common Commands
+
+### Creating Components
+
+```
+Create a Button component with variants:
+primary, secondary, outline, and ghost
+```
+
+### Modifying Code
+
+```
+Update the Header component to include a search bar
+```
+
+### Fixing Issues
+
+```
+The form isn't submitting correctly, can you fix it?
+```
+
+### Styling
+
+```
+Change the color scheme to use blue as the primary color
+```
+
+### Adding Features
+
+```
+Add dark mode support to the entire application
+```
+
+## Understanding AI Responses
+
+The AI typically responds with:
+
+1. **Explanation** - What it's about to do
+2. **Code Changes** - Files being created or modified
+3. **Notes** - Important considerations or next steps
+
+### Example Response Structure
+
+> I'll create a contact form component with validation. This will include:
+>
+> - Form component with controlled inputs
+> - Validation using Zod schema
+> - Error message display
+> - Loading state during submission
+>
+> _[Files are created/modified]_
+>
+> The form is ready! You might want to add an API route to handle submissions.
+
+## Tips for Better Results
+
+### Use Technical Terms When Helpful
+
+The AI understands technical concepts:
+
+```
+Create a React component with useState for form data
+and useEffect to fetch initial values from the API
+```
+
+### Ask for Explanations
+
+If you want to learn:
+
+```
+Create a debounced search input and explain how debouncing works
+```
+
+### Request Alternatives
+
+Get multiple options:
+
+```
+Show me 3 different ways to style this card component
+```
+
+### Iterate Gradually
+
+Build complexity over time:
+
+1. Start with structure
+2. Add functionality
+3. Polish styling
+4. Add animations
+5. Optimize performance
+
+## Limitations
+
+Be aware that the AI:
+
+- Cannot access external APIs or databases directly
+- May need clarification for ambiguous requests
+- Works best with clear, specific instructions
+- Focuses on frontend development
+
+## Next Steps
+
+- [Live Preview](/docs/core-concepts/live-preview) - See your changes in real-time
+- [Code Generation](/docs/features/code-generation) - Advanced generation techniques
+- [Best Practices](/docs/guides/best-practices) - Maximize your productivity

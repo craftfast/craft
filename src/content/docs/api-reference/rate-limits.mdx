@@ -1,0 +1,310 @@
+# Rate Limits
+
+Rate limits protect the API from abuse and ensure fair usage for all users. This guide explains how rate limiting works and how to handle it.
+
+## Rate Limit Tiers
+
+### By Plan
+
+| Plan       | Requests/Minute | Requests/Hour | Requests/Day |
+| ---------- | --------------- | ------------- | ------------ |
+| Free       | 60              | 500           | 1,000        |
+| Pro        | 300             | 3,000         | 10,000       |
+| Enterprise | 1,000           | 10,000        | Unlimited    |
+
+### By Endpoint
+
+Some endpoints have specific limits:
+
+| Endpoint       | Limit | Window |
+| -------------- | ----- | ------ |
+| POST /projects | 10    | minute |
+| POST /files    | 100   | minute |
+| GET /projects  | 100   | minute |
+| Webhooks       | 1,000 | hour   |
+
+## Rate Limit Headers
+
+Every API response includes rate limit information:
+
+```
+HTTP/1.1 200 OK
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1699999999
+X-RateLimit-RetryAfter: 0
+```
+
+### Header Descriptions
+
+| Header                   | Description                        |
+| ------------------------ | ---------------------------------- |
+| `X-RateLimit-Limit`      | Maximum requests allowed in window |
+| `X-RateLimit-Remaining`  | Requests remaining in window       |
+| `X-RateLimit-Reset`      | Unix timestamp when window resets  |
+| `X-RateLimit-RetryAfter` | Seconds to wait before retrying    |
+
+## Exceeding Limits
+
+When you exceed the rate limit:
+
+### Response
+
+```
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 30
+
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests. Please wait before trying again.",
+    "retryAfter": 30
+  }
+}
+```
+
+## Handling Rate Limits
+
+### Check Headers
+
+Always check remaining requests:
+
+```typescript
+const response = await fetch("https://api.craft.fast/v1/projects", {
+  headers: { Authorization: `Bearer ${apiKey}` },
+});
+
+const remaining = parseInt(
+  response.headers.get("X-RateLimit-Remaining") || "0"
+);
+
+if (remaining < 10) {
+  console.warn("Approaching rate limit");
+}
+```
+
+### Implement Retry Logic
+
+Use exponential backoff:
+
+```typescript
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3
+) {
+  for (let i = 0; i < maxRetries; i++) {
+    const response = await fetch(url, options);
+
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get("Retry-After") || "60");
+      const delay = Math.min(retryAfter * 1000, Math.pow(2, i) * 1000);
+
+      console.log(`Rate limited. Retrying in ${delay}ms`);
+      await sleep(delay);
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error("Max retries exceeded");
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+```
+
+### SDK Handling
+
+Our SDKs handle rate limits automatically:
+
+```typescript
+import { CraftClient } from "@craft/sdk";
+
+const craft = new CraftClient({
+  apiKey: process.env.CRAFT_API_KEY,
+  // Automatic retry with exponential backoff
+  maxRetries: 3,
+});
+
+// This will automatically retry on 429
+const projects = await craft.projects.list();
+```
+
+## Best Practices
+
+### Batch Requests
+
+Combine multiple items in single requests:
+
+```typescript
+// ❌ Bad: Multiple requests
+for (const file of files) {
+  await craft.files.create(projectId, file);
+}
+
+// ✅ Good: Single batch request
+await craft.files.createMany(projectId, files);
+```
+
+### Use Pagination
+
+Don't fetch all data at once:
+
+```typescript
+// ❌ Bad: Request all items
+const allProjects = await craft.projects.list({ limit: 1000 });
+
+// ✅ Good: Paginate
+async function* getAllProjects() {
+  let page = 1;
+  while (true) {
+    const response = await craft.projects.list({ page, limit: 100 });
+    yield* response.data;
+    if (!response.pagination.hasMore) break;
+    page++;
+  }
+}
+```
+
+### Cache Responses
+
+Reduce unnecessary requests:
+
+```typescript
+import { LRUCache } from "lru-cache";
+
+const cache = new LRUCache({
+  max: 100,
+  ttl: 1000 * 60 * 5, // 5 minutes
+});
+
+async function getProject(id: string) {
+  const cached = cache.get(id);
+  if (cached) return cached;
+
+  const project = await craft.projects.get(id);
+  cache.set(id, project);
+  return project;
+}
+```
+
+### Use Webhooks
+
+For real-time updates, use webhooks instead of polling:
+
+```typescript
+// ❌ Bad: Polling every second
+setInterval(async () => {
+  const status = await craft.builds.getStatus(buildId);
+  if (status === "complete") {
+    handleComplete();
+  }
+}, 1000);
+
+// ✅ Good: Webhook handler
+app.post("/webhooks/craft", (req, res) => {
+  if (req.body.event === "build.completed") {
+    handleComplete();
+  }
+  res.status(200).end();
+});
+```
+
+## Rate Limit Increases
+
+### Temporary Increases
+
+For special events or migrations:
+
+1. Contact support at api-support@craft.fast
+2. Explain your use case
+3. Request a temporary increase
+
+### Permanent Increases
+
+For consistent high usage:
+
+1. Upgrade to a higher plan
+2. Contact Enterprise sales for custom limits
+
+## Monitoring
+
+### Dashboard
+
+View your API usage:
+
+1. Go to **Account Settings**
+2. Navigate to **API Usage**
+3. View requests over time
+
+### Alerts
+
+Set up alerts for:
+
+- Approaching limits (80% threshold)
+- Exceeded limits
+- Unusual patterns
+
+## Common Issues
+
+### Sudden Rate Limits
+
+Causes:
+
+- Infinite loops in code
+- Missing pagination
+- Concurrent requests
+
+Solutions:
+
+- Add proper error handling
+- Implement request queuing
+- Use rate limit libraries
+
+### Different Limits Than Expected
+
+Check:
+
+- Your current plan
+- Endpoint-specific limits
+- Time window alignment
+
+## Rate Limit Libraries
+
+### JavaScript
+
+```typescript
+import { RateLimiter } from "limiter";
+
+const limiter = new RateLimiter({
+  tokensPerInterval: 60,
+  interval: "minute",
+});
+
+async function makeRequest() {
+  await limiter.removeTokens(1);
+  return fetch("https://api.craft.fast/v1/projects");
+}
+```
+
+### Python
+
+```python
+from ratelimit import limits, sleep_and_retry
+
+@sleep_and_retry
+@limits(calls=60, period=60)
+def make_request():
+    return requests.get('https://api.craft.fast/v1/projects')
+```
+
+## Next Steps
+
+- [Authentication](/docs/api-reference/authentication) - API authentication
+- [Projects API](/docs/api-reference/projects-api) - Project endpoints
+- [API Overview](/docs/api-reference/overview) - General reference

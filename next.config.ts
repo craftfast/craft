@@ -18,6 +18,12 @@ const ContentSecurityPolicy = `
 `.replace(/\n/g, " ").trim();
 
 const nextConfig: NextConfig = {
+  // Enable MDX pages
+  pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
+  // MDX configuration for Turbopack
+  experimental: {
+    mdxRs: true,
+  },
   images: {
     remotePatterns: [
       {

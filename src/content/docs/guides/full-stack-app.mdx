@@ -1,0 +1,343 @@
+# Creating a Full-Stack App
+
+Learn how to build a complete full-stack application with Craft. This guide walks through creating a task management app with authentication, database, and API routes.
+
+## What We'll Build
+
+A complete task management application with:
+
+- User authentication
+- Task CRUD operations
+- Real-time updates
+- Team collaboration
+- Dashboard analytics
+
+## Step 1: Project Setup
+
+Initialize with the right foundation:
+
+```
+Create a full-stack task management app called "TaskFlow" with:
+- Next.js 15 App Router
+- TypeScript
+- Tailwind CSS
+- Prisma with PostgreSQL
+- Authentication setup
+```
+
+## Step 2: Database Schema
+
+Define the data model:
+
+```
+Set up a Prisma schema with these models:
+
+User:
+- id, email, name, passwordHash, createdAt, updatedAt
+- Relations: tasks (one-to-many), projects (many-to-many)
+
+Project:
+- id, name, description, color, createdAt, updatedAt
+- Relations: tasks, members (users)
+
+Task:
+- id, title, description, status (todo/in-progress/done)
+- priority (low/medium/high), dueDate
+- Relations: project, assignee (user), createdBy (user)
+
+Include proper indexes for common queries.
+```
+
+### Schema Best Practices
+
+- Use meaningful field names
+- Add timestamps to all models
+- Create indexes for filtered fields
+- Use enums for fixed values
+
+## Step 3: Authentication
+
+Implement secure authentication:
+
+```
+Create authentication with:
+- Registration page with email/password
+- Login page with form validation
+- Password hashing with bcrypt
+- JWT tokens stored in HTTP-only cookies
+- Protected route middleware
+- Logout functionality
+```
+
+### Auth Routes
+
+```tsx
+// app/api/auth/register/route.ts
+export async function POST(request: Request) {
+  const { email, password, name } = await request.json();
+
+  // Hash password
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  // Create user
+  const user = await prisma.user.create({
+    data: { email, passwordHash, name },
+  });
+
+  // Create session token
+  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET);
+
+  // Set cookie and return
+  return new Response(JSON.stringify({ user }), {
+    headers: {
+      "Set-Cookie": `token=${token}; HttpOnly; Path=/`,
+    },
+  });
+}
+```
+
+## Step 4: API Routes
+
+Create RESTful API endpoints:
+
+```
+Create API routes for tasks:
+
+GET /api/tasks - List all tasks (with filters)
+POST /api/tasks - Create new task
+GET /api/tasks/[id] - Get single task
+PATCH /api/tasks/[id] - Update task
+DELETE /api/tasks/[id] - Delete task
+
+Each route should:
+- Verify authentication
+- Validate input data
+- Return proper status codes
+- Handle errors gracefully
+```
+
+### Example API Route
+
+```tsx
+// app/api/tasks/route.ts
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { NextResponse } from "next/server";
+
+export async function GET(request: Request) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get("status");
+  const projectId = searchParams.get("projectId");
+
+  const tasks = await prisma.task.findMany({
+    where: {
+      assigneeId: session.userId,
+      ...(status && { status }),
+      ...(projectId && { projectId }),
+    },
+    include: {
+      project: true,
+      assignee: { select: { id: true, name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return NextResponse.json(tasks);
+}
+```
+
+## Step 5: Dashboard Layout
+
+Build the main interface:
+
+```
+Create a dashboard layout with:
+- Sidebar navigation (Projects, Tasks, Calendar, Settings)
+- Header with user menu and notifications
+- Main content area
+- Collapsible sidebar for mobile
+```
+
+### Layout Structure
+
+```
+app/
+├── (dashboard)/
+│   ├── layout.tsx      # Dashboard wrapper
+│   ├── dashboard/
+│   │   └── page.tsx    # Overview page
+│   ├── tasks/
+│   │   ├── page.tsx    # Task list
+│   │   └── [id]/
+│   │       └── page.tsx # Task detail
+│   └── projects/
+│       └── page.tsx    # Projects list
+```
+
+## Step 6: Task List Component
+
+Create an interactive task list:
+
+```
+Build a TaskList component with:
+- Filter by status, priority, project
+- Sort by date, priority, name
+- Search functionality
+- Drag-and-drop reordering
+- Inline status toggle
+- Bulk actions (complete, delete)
+```
+
+### Task Card Component
+
+```tsx
+function TaskCard({ task, onUpdate }: TaskCardProps) {
+  return (
+    <div className="p-4 bg-white rounded-xl border hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <StatusCheckbox
+            checked={task.status === "done"}
+            onChange={() =>
+              onUpdate({ status: task.status === "done" ? "todo" : "done" })
+            }
+          />
+          <div>
+            <h3 className="font-medium">{task.title}</h3>
+            <p className="text-sm text-neutral-500">{task.project.name}</p>
+          </div>
+        </div>
+        <PriorityBadge priority={task.priority} />
+      </div>
+      {task.dueDate && (
+        <div className="mt-3 flex items-center gap-2 text-sm text-neutral-500">
+          <CalendarIcon className="w-4 h-4" />
+          {formatDate(task.dueDate)}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Step 7: Task Creation Form
+
+Build a task creation modal:
+
+```
+Create a task creation form with:
+- Title input (required)
+- Description textarea (optional)
+- Project dropdown
+- Priority selector
+- Due date picker
+- Assignee selector
+- Form validation with helpful errors
+- Submit and cancel buttons
+```
+
+## Step 8: Real-Time Updates
+
+Add real-time functionality:
+
+```
+Implement real-time task updates:
+- When a task is created, add to list without refresh
+- When a task is updated, update in place
+- When a task is deleted, remove from list
+- Show optimistic updates while saving
+- Handle offline gracefully
+```
+
+### Using React Query
+
+```tsx
+// hooks/useTasks.ts
+export function useTasks(filters: TaskFilters) {
+  return useQuery({
+    queryKey: ["tasks", filters],
+    queryFn: () => fetchTasks(filters),
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+}
+
+export function useCreateTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createTask,
+    onMutate: async (newTask) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      const previous = queryClient.getQueryData(["tasks"]);
+      queryClient.setQueryData(["tasks"], (old) => [...old, newTask]);
+      return { previous };
+    },
+    onError: (err, newTask, context) => {
+      queryClient.setQueryData(["tasks"], context.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+```
+
+## Step 9: Dashboard Analytics
+
+Add an overview dashboard:
+
+```
+Create a dashboard page with:
+- Stats cards (Total tasks, Completed, In progress, Overdue)
+- Completion chart (last 7 days)
+- Tasks by priority pie chart
+- Upcoming deadlines list
+- Recent activity feed
+```
+
+## Step 10: Polish and Deploy
+
+Final touches:
+
+```
+Add finishing touches:
+1. Loading skeletons for all data-fetching states
+2. Error boundaries with friendly messages
+3. Toast notifications for actions
+4. Keyboard shortcuts (n for new task, etc.)
+5. Dark mode support
+6. Mobile responsive design
+```
+
+## Final Architecture
+
+```
+src/
+├── app/
+│   ├── (auth)/           # Auth pages
+│   ├── (dashboard)/      # Protected pages
+│   └── api/              # API routes
+├── components/
+│   ├── ui/               # Base components
+│   ├── tasks/            # Task components
+│   └── layout/           # Layout components
+├── lib/
+│   ├── prisma.ts         # Database client
+│   ├── auth.ts           # Auth utilities
+│   └── utils.ts          # Helpers
+└── hooks/
+    ├── useTasks.ts       # Task queries
+    └── useAuth.ts        # Auth state
+```
+
+## Next Steps
+
+- [Database Integration](/docs/features/database-integration) - Advanced queries
+- [Deployment](/docs/features/deployment) - Launch your app
+- [Working with APIs](/docs/guides/working-with-apis) - External integrations

@@ -1,0 +1,136 @@
+# Installation
+
+Craft is a web-based platform, so there's no local installation required. However, this guide covers everything you need to know about setting up your account and optional local development tools.
+
+## Getting Started with Craft
+
+### Creating Your Account
+
+1. Visit [craft.fast](https://craft.fast)
+2. Click **"Get Started"** or **"Sign Up"**
+3. Choose your sign-in method:
+   - **Google** - Quick sign-in with your Google account
+   - **GitHub** - Connect with your GitHub account
+   - **Email** - Traditional email and password
+
+### Choosing a Plan
+
+Craft offers several plans to fit your needs:
+
+| Feature        | Free     | Pro       | Team      |
+| -------------- | -------- | --------- | --------- |
+| Projects       | 3        | Unlimited | Unlimited |
+| AI Messages    | 50/month | Unlimited | Unlimited |
+| Live Preview   | ✓        | ✓         | ✓         |
+| Custom Domains | ✗        | ✓         | ✓         |
+| Collaboration  | ✗        | ✗         | ✓         |
+
+## Browser Requirements
+
+Craft works best on modern browsers:
+
+- **Chrome** 90+ (recommended)
+- **Firefox** 88+
+- **Safari** 14+
+- **Edge** 90+
+
+For the best experience, we recommend using Chrome or Firefox with hardware acceleration enabled.
+
+## Optional: Local Development
+
+While Craft handles everything in the browser, you can also export and run projects locally.
+
+### Exporting a Project
+
+1. Open your project in Craft
+2. Click the **Settings** icon
+3. Select **"Export Project"**
+4. Choose your export format (ZIP or GitHub)
+
+### Running Locally
+
+After exporting, you can run the project on your machine:
+
+```bash
+# Install dependencies
+npm install
+# or
+pnpm install
+
+# Start development server
+npm run dev
+# or
+pnpm dev
+```
+
+### Required Local Tools
+
+If you plan to run projects locally, you'll need:
+
+- **Node.js** 18.0 or later
+- **npm** 9+ or **pnpm** 8+
+- A code editor (VS Code recommended)
+
+## Environment Setup
+
+### Environment Variables
+
+Some features require environment variables. In Craft, you can set these in the project settings:
+
+1. Open Project Settings
+2. Navigate to **Environment Variables**
+3. Add your variables (e.g., `DATABASE_URL`, `API_KEY`)
+
+> **Note:** Environment variables are encrypted and stored securely.
+
+### Database Setup
+
+Craft supports various databases:
+
+- **PostgreSQL** (recommended)
+- **MySQL**
+- **SQLite** (development only)
+- **PlanetScale**
+- **Supabase**
+
+See [Database Integration](/docs/features/database-integration) for detailed setup instructions.
+
+## Verification
+
+To verify everything is set up correctly:
+
+1. Create a new project
+2. Ask the AI to create a simple component
+3. Check that the preview updates
+4. Try making a small change
+
+If all these work, you're ready to start building!
+
+## Troubleshooting
+
+### Preview Not Loading
+
+- Clear your browser cache
+- Disable browser extensions temporarily
+- Try a different browser
+- Check your internet connection
+
+### AI Not Responding
+
+- Verify you have remaining AI messages
+- Check your account status
+- Try refreshing the page
+
+### Export Issues
+
+- Ensure all files are saved
+- Check for any error notifications
+- Try exporting as ZIP instead of GitHub
+
+## Next Steps
+
+Now that you're set up:
+
+- [Quick Start Guide](/docs/getting-started/quick-start) - Build your first project
+- [Project Structure](/docs/core-concepts/projects) - Understand how projects work
+- [AI Chat Guide](/docs/core-concepts/ai-chat) - Master AI-assisted development
