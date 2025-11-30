@@ -735,6 +735,7 @@ model GitHubRepository {
   cloneUrl            String
   sshUrl              String?
   description         String?
+  lastSyncedAt        DateTime? // Last time files were synced to this repo
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   deployments         Deployment[]

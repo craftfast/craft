@@ -23,6 +23,7 @@ import {
     readFileFromSandbox,
     executeSandboxCommand,
 } from "@/lib/e2b/sandbox-manager";
+import { autoCommitAfterEdit, hasLinkedRepository } from "@/lib/services/git-versioning";
 
 // ============================================================================
 // CORE FILE OPERATIONS
@@ -1155,12 +1156,13 @@ export default config;
 });
 
 export const syncFilesToDB = tool({
-    description: 'Sync all files from E2B sandbox to database for persistence. Call this AFTER completing all changes to save the final state. This ensures files survive sandbox restarts and are available for future edits.',
+    description: 'Sync all files from E2B sandbox to database for persistence. Call this AFTER completing all changes to save the final state. This ensures files survive sandbox restarts and are available for future edits. If the project has a linked GitHub repository, changes will be auto-committed.',
     inputSchema: z.object({
         projectId: z.string().describe('The project ID'),
-        reason: z.string().optional().describe('Reason for syncing (e.g., "Next.js initialization complete")'),
+        reason: z.string().optional().describe('Reason for syncing (e.g., "Next.js initialization complete") - used as commit message for GitHub'),
+        userId: z.string().optional().describe('User ID for GitHub auto-commit (optional, if not provided GitHub sync is skipped)'),
     }),
-    execute: async ({ projectId, reason }) => {
+    execute: async ({ projectId, reason, userId }) => {
         console.log(`💾 Syncing sandbox to database${reason ? `: ${reason}` : ''}...`);
 
         try {
@@ -1265,12 +1267,47 @@ export const syncFilesToDB = tool({
 
             console.log(`✅ Synced ${readCount} files to database (skipped ${skippedBinary} binary files)`);
 
+            // Auto-commit to GitHub if user has linked repository
+            let gitCommit: { sha: string; url: string } | null = null;
+            if (userId) {
+                try {
+                    const hasRepo = await hasLinkedRepository(projectId);
+                    if (hasRepo) {
+                        console.log(`🔗 Auto-committing to GitHub...`);
+                        // Build list of changed files
+                        const changedFiles = Object.keys(filesData).map(path => ({
+                            path,
+                            action: 'updated' as const,
+                        }));
+
+                        gitCommit = await autoCommitAfterEdit(
+                            userId,
+                            projectId,
+                            changedFiles,
+                            reason || `Sync ${readCount} files to GitHub`
+                        );
+
+                        if (gitCommit) {
+                            console.log(`✅ Auto-committed to GitHub: ${gitCommit.sha.substring(0, 7)}`);
+                        }
+                    }
+                } catch (gitError) {
+                    // Don't fail the sync if git commit fails
+                    console.warn(`⚠️ Git auto-commit failed:`, gitError);
+                }
+            }
+
             return {
                 success: true,
                 filesSynced: readCount,
                 totalFiles: filePaths.length,
                 skipped: skippedBinary,
                 message: `Successfully synced ${readCount} files to database (skipped ${skippedBinary} binary files)`,
+                gitCommit: gitCommit ? {
+                    sha: gitCommit.sha,
+                    shortSha: gitCommit.sha.substring(0, 7),
+                    url: gitCommit.url,
+                } : null,
             };
         } catch (error) {
             console.error('❌ Error syncing to database:', error);

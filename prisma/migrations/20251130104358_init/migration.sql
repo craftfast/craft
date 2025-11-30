@@ -4,6 +4,9 @@ CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE', 'PAST_DUE', 'CANCELLED', 'TR
 -- CreateEnum
 CREATE TYPE "WebhookEventStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
 
+-- CreateEnum
+CREATE TYPE "BalanceTransactionType" AS ENUM ('TOPUP', 'AI_USAGE', 'SANDBOX_USAGE', 'STORAGE_USAGE', 'DATABASE_USAGE', 'DEPLOYMENT');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -13,8 +16,16 @@ CREATE TABLE "users" (
     "image" TEXT,
     "preferredChatPosition" TEXT NOT NULL DEFAULT 'left',
     "preferredTheme" TEXT NOT NULL DEFAULT 'system',
-    "referralCode" TEXT,
-    "referredById" TEXT,
+    "responseTone" TEXT,
+    "customInstructions" TEXT,
+    "occupation" TEXT,
+    "techStack" TEXT,
+    "enableMemory" BOOLEAN NOT NULL DEFAULT false,
+    "referenceChatHistory" BOOLEAN NOT NULL DEFAULT true,
+    "enableWebSearch" BOOLEAN NOT NULL DEFAULT false,
+    "enableImageGeneration" BOOLEAN NOT NULL DEFAULT false,
+    "preferredCodingModel" TEXT DEFAULT 'anthropic/claude-sonnet-4.5',
+    "enabledCodingModels" TEXT[] DEFAULT ARRAY['anthropic/claude-haiku-4.5', 'anthropic/claude-sonnet-4.5', 'openai/gpt-5-mini', 'openai/gpt-5.1', 'google/gemini-2.5-flash', 'google/gemini-3-pro-preview', 'x-ai/grok-code-fast-1']::TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'user',
@@ -25,8 +36,8 @@ CREATE TABLE "users" (
     "lastLoginMethod" TEXT,
     "deletionScheduledAt" TIMESTAMP(3),
     "deletedAt" TIMESTAMP(3),
-    "polarCustomerId" TEXT,
-    "polarCustomerExtId" TEXT,
+    "razorpayCustomerId" TEXT,
+    "accountBalance" DECIMAL(10,2) NOT NULL DEFAULT 0,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -121,6 +132,15 @@ CREATE TABLE "projects" (
     "generationStatus" TEXT NOT NULL DEFAULT 'template',
     "lastCodeUpdateAt" TIMESTAMP(3),
     "codeFiles" JSONB NOT NULL DEFAULT '{}',
+    "sandboxId" TEXT,
+    "sandboxPausedAt" TIMESTAMP(3),
+    "lastBackupAt" TIMESTAMP(3),
+    "previewImage" TEXT,
+    "previewImageCapturedAtVersion" INTEGER,
+    "environmentVariables" JSONB NOT NULL DEFAULT '{}',
+    "customViews" JSONB NOT NULL DEFAULT '[]',
+    "gitSettings" JSONB NOT NULL DEFAULT '{}',
+    "deploymentSettings" JSONB NOT NULL DEFAULT '{}',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -156,6 +176,7 @@ CREATE TABLE "chat_messages" (
     "role" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "fileChanges" JSONB,
+    "toolCalls" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "chat_messages_pkey" PRIMARY KEY ("id")
@@ -177,6 +198,134 @@ CREATE TABLE "project_versions" (
 );
 
 -- CreateTable
+CREATE TABLE "project_collaborators" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'viewer',
+    "addedBy" TEXT NOT NULL,
+    "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "project_collaborators_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "project_git_connections" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "repository" TEXT NOT NULL,
+    "branch" TEXT NOT NULL DEFAULT 'main',
+    "accessToken" TEXT NOT NULL,
+    "refreshToken" TEXT,
+    "username" TEXT,
+    "repoUrl" TEXT,
+    "connectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastSyncAt" TIMESTAMP(3),
+
+    CONSTRAINT "project_git_connections_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "project_deployments" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "deploymentId" TEXT,
+    "url" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "environment" TEXT NOT NULL DEFAULT 'production',
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "project_deployments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "knowledge_files" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "r2Key" TEXT NOT NULL,
+    "r2Url" TEXT NOT NULL,
+    "mimeType" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "description" TEXT,
+    "uploadedBy" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "knowledge_files_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "project_webhooks" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "secret" TEXT NOT NULL,
+    "events" JSONB NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "description" TEXT,
+    "lastTriggeredAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "project_webhooks_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "project_environment_variables" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "isSecret" BOOLEAN NOT NULL DEFAULT true,
+    "type" TEXT,
+    "description" TEXT,
+    "createdBy" TEXT NOT NULL,
+    "updatedBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "project_environment_variables_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "environment_variable_audits" (
+    "id" TEXT NOT NULL,
+    "envVarId" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "oldValue" TEXT,
+    "newValue" TEXT,
+    "performedBy" TEXT NOT NULL,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "environment_variable_audits_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "webhook_deliveries" (
+    "id" TEXT NOT NULL,
+    "webhookId" TEXT NOT NULL,
+    "eventType" TEXT NOT NULL,
+    "payload" JSONB NOT NULL,
+    "responseCode" INTEGER,
+    "responseBody" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "attemptCount" INTEGER NOT NULL DEFAULT 0,
+    "lastAttemptAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "webhook_deliveries_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "plans" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -188,8 +337,7 @@ CREATE TABLE "plans" (
     "monthlyCredits" INTEGER NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
-    "polarProductId" TEXT,
-    "polarPriceId" TEXT,
+    "razorpayPlanId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -206,10 +354,10 @@ CREATE TABLE "user_subscriptions" (
     "currentPeriodEnd" TIMESTAMP(3) NOT NULL,
     "cancelAtPeriodEnd" BOOLEAN NOT NULL DEFAULT false,
     "cancelledAt" TIMESTAMP(3),
-    "polarCheckoutId" TEXT,
-    "polarPaymentId" TEXT,
-    "polarSubscriptionId" TEXT,
-    "polarCustomerId" TEXT,
+    "razorpayOrderId" TEXT,
+    "razorpayPaymentId" TEXT,
+    "razorpaySubscriptionId" TEXT,
+    "razorpayCustomerId" TEXT,
     "monthlyCreditsUsed" DECIMAL(10,2) NOT NULL DEFAULT 0,
     "periodCreditsReset" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "gracePeriodEndsAt" TIMESTAMP(3),
@@ -231,9 +379,7 @@ CREATE TABLE "ai_credit_usage" (
     "inputTokens" INTEGER NOT NULL,
     "outputTokens" INTEGER NOT NULL,
     "totalTokens" INTEGER NOT NULL,
-    "costUsd" DOUBLE PRECISION NOT NULL,
-    "creditsUsed" DECIMAL(10,4) NOT NULL DEFAULT 0,
-    "modelMultiplier" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    "providerCostUsd" DOUBLE PRECISION NOT NULL,
     "endpoint" TEXT,
     "callType" TEXT NOT NULL DEFAULT 'agent',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -281,8 +427,8 @@ CREATE TABLE "invoices" (
     "taxUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "totalUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "currency" TEXT NOT NULL DEFAULT 'USD',
-    "polarCheckoutId" TEXT,
-    "polarPaymentId" TEXT,
+    "razorpayOrderId" TEXT,
+    "razorpayPaymentId" TEXT,
     "paidAt" TIMESTAMP(3),
     "dueDate" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -299,10 +445,10 @@ CREATE TABLE "payment_transactions" (
     "amount" DOUBLE PRECISION NOT NULL,
     "currency" TEXT NOT NULL DEFAULT 'USD',
     "status" TEXT NOT NULL,
-    "paymentMethod" TEXT NOT NULL DEFAULT 'polar',
-    "polarCheckoutId" TEXT,
-    "polarPaymentId" TEXT,
-    "polarSignature" TEXT,
+    "paymentMethod" TEXT NOT NULL DEFAULT 'razorpay',
+    "razorpayOrderId" TEXT,
+    "razorpayPaymentId" TEXT,
+    "razorpaySignature" TEXT,
     "failureReason" TEXT,
     "metadata" JSONB,
     "taxAmount" DOUBLE PRECISION,
@@ -314,6 +460,21 @@ CREATE TABLE "payment_transactions" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "payment_transactions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "balance_transactions" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" "BalanceTransactionType" NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
+    "balanceBefore" DECIMAL(10,2) NOT NULL,
+    "balanceAfter" DECIMAL(10,2) NOT NULL,
+    "description" TEXT NOT NULL,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "balance_transactions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -360,6 +521,8 @@ CREATE TABLE "github_integrations" (
     "accessToken" TEXT NOT NULL,
     "refreshToken" TEXT,
     "tokenExpiresAt" TIMESTAMP(3),
+    "refreshTokenExpiresAt" TIMESTAMP(3),
+    "installationId" INTEGER,
     "githubUserId" INTEGER NOT NULL,
     "login" TEXT NOT NULL,
     "email" TEXT,
@@ -390,6 +553,7 @@ CREATE TABLE "github_repositories" (
     "cloneUrl" TEXT NOT NULL,
     "sshUrl" TEXT,
     "description" TEXT,
+    "lastSyncedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -483,8 +647,7 @@ CREATE TABLE "sandbox_usage" (
     "startTime" TIMESTAMP(3) NOT NULL,
     "endTime" TIMESTAMP(3),
     "durationMin" INTEGER NOT NULL DEFAULT 0,
-    "creditsUsed" DECIMAL(10,4) NOT NULL DEFAULT 0,
-    "costUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "providerCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "metadata" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -499,8 +662,7 @@ CREATE TABLE "storage_usage" (
     "storageType" TEXT NOT NULL,
     "sizeGB" DECIMAL(10,6) NOT NULL,
     "operations" INTEGER NOT NULL DEFAULT 0,
-    "creditsUsed" DECIMAL(10,4) NOT NULL DEFAULT 0,
-    "costUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "providerCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "billingPeriod" TIMESTAMP(3) NOT NULL,
     "metadata" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -515,8 +677,7 @@ CREATE TABLE "deployment_usage" (
     "projectId" TEXT NOT NULL,
     "deploymentId" TEXT,
     "platform" TEXT NOT NULL DEFAULT 'vercel',
-    "creditsUsed" DECIMAL(10,4) NOT NULL DEFAULT 0,
-    "costUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "providerCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "buildDurationMin" INTEGER NOT NULL DEFAULT 0,
     "metadata" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -525,7 +686,7 @@ CREATE TABLE "deployment_usage" (
 );
 
 -- CreateTable
-CREATE TABLE "polar_webhook_events" (
+CREATE TABLE "razorpay_webhook_events" (
     "id" TEXT NOT NULL,
     "eventType" TEXT NOT NULL,
     "eventId" TEXT NOT NULL,
@@ -537,53 +698,91 @@ CREATE TABLE "polar_webhook_events" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "polar_webhook_events_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "razorpay_webhook_events_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "polar_usage_events" (
+CREATE TABLE "user_memories" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "externalCustomerId" TEXT NOT NULL,
-    "eventName" TEXT NOT NULL,
-    "metadata" JSONB NOT NULL,
-    "polarEventId" TEXT,
-    "sentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "polar_usage_events_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "referral_credits" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "referredUserId" TEXT NOT NULL,
-    "creditsAwarded" INTEGER NOT NULL DEFAULT 1,
-    "awardedForMonth" TIMESTAMP(3) NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "category" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "source" TEXT NOT NULL,
+    "projectId" TEXT,
+    "importance" INTEGER NOT NULL DEFAULT 5,
+    "confidence" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    "useCount" INTEGER NOT NULL DEFAULT 0,
+    "lastUsedAt" TIMESTAMP(3),
+    "metadata" JSONB,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "referral_credits_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_memories_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "memory_categories" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "icon" TEXT,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "memory_categories_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "agent_sessions" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "projectId" TEXT,
+    "sessionData" JSONB NOT NULL,
+    "messageCount" INTEGER NOT NULL DEFAULT 0,
+    "lastMessage" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastActive" TIMESTAMP(3) NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "agent_sessions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "tasks" (
+    "id" TEXT NOT NULL,
+    "sessionId" TEXT NOT NULL,
+    "projectId" TEXT,
+    "phase" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "assignedTo" TEXT NOT NULL DEFAULT 'coding-agent',
+    "tier" TEXT NOT NULL DEFAULT 'fast',
+    "dependsOn" TEXT[],
+    "result" JSONB,
+    "errorMessage" TEXT,
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "maxAttempts" INTEGER NOT NULL DEFAULT 3,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "startedAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
+
+    CONSTRAINT "tasks_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_referralCode_key" ON "users"("referralCode");
+CREATE UNIQUE INDEX "users_razorpayCustomerId_key" ON "users"("razorpayCustomerId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_polarCustomerId_key" ON "users"("polarCustomerId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "users_polarCustomerExtId_key" ON "users"("polarCustomerExtId");
-
--- CreateIndex
-CREATE INDEX "users_polarCustomerId_idx" ON "users"("polarCustomerId");
-
--- CreateIndex
-CREATE INDEX "users_polarCustomerExtId_idx" ON "users"("polarCustomerExtId");
+CREATE INDEX "users_razorpayCustomerId_idx" ON "users"("razorpayCustomerId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "accounts_userId_providerId_key" ON "accounts"("userId", "providerId");
@@ -620,6 +819,9 @@ CREATE INDEX "pending_account_links_email_idx" ON "pending_account_links"("email
 
 -- CreateIndex
 CREATE INDEX "pending_account_links_token_idx" ON "pending_account_links"("token");
+
+-- CreateIndex
+CREATE INDEX "projects_sandboxId_idx" ON "projects"("sandboxId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "files_r2Key_key" ON "files"("r2Key");
@@ -664,10 +866,88 @@ CREATE INDEX "project_versions_projectId_isPublished_idx" ON "project_versions"(
 CREATE UNIQUE INDEX "project_versions_projectId_version_key" ON "project_versions"("projectId", "version");
 
 -- CreateIndex
+CREATE INDEX "project_collaborators_projectId_idx" ON "project_collaborators"("projectId");
+
+-- CreateIndex
+CREATE INDEX "project_collaborators_userId_idx" ON "project_collaborators"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "project_collaborators_projectId_userId_key" ON "project_collaborators"("projectId", "userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "project_git_connections_projectId_key" ON "project_git_connections"("projectId");
+
+-- CreateIndex
+CREATE INDEX "project_git_connections_projectId_idx" ON "project_git_connections"("projectId");
+
+-- CreateIndex
+CREATE INDEX "project_git_connections_provider_idx" ON "project_git_connections"("provider");
+
+-- CreateIndex
+CREATE INDEX "project_deployments_projectId_idx" ON "project_deployments"("projectId");
+
+-- CreateIndex
+CREATE INDEX "project_deployments_provider_idx" ON "project_deployments"("provider");
+
+-- CreateIndex
+CREATE INDEX "project_deployments_status_idx" ON "project_deployments"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "knowledge_files_r2Key_key" ON "knowledge_files"("r2Key");
+
+-- CreateIndex
+CREATE INDEX "knowledge_files_projectId_idx" ON "knowledge_files"("projectId");
+
+-- CreateIndex
+CREATE INDEX "knowledge_files_r2Key_idx" ON "knowledge_files"("r2Key");
+
+-- CreateIndex
+CREATE INDEX "project_webhooks_projectId_idx" ON "project_webhooks"("projectId");
+
+-- CreateIndex
+CREATE INDEX "project_webhooks_isActive_idx" ON "project_webhooks"("isActive");
+
+-- CreateIndex
+CREATE INDEX "project_environment_variables_projectId_idx" ON "project_environment_variables"("projectId");
+
+-- CreateIndex
+CREATE INDEX "project_environment_variables_key_idx" ON "project_environment_variables"("key");
+
+-- CreateIndex
+CREATE INDEX "project_environment_variables_createdBy_idx" ON "project_environment_variables"("createdBy");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "project_environment_variables_projectId_key_key" ON "project_environment_variables"("projectId", "key");
+
+-- CreateIndex
+CREATE INDEX "environment_variable_audits_envVarId_idx" ON "environment_variable_audits"("envVarId");
+
+-- CreateIndex
+CREATE INDEX "environment_variable_audits_performedBy_idx" ON "environment_variable_audits"("performedBy");
+
+-- CreateIndex
+CREATE INDEX "environment_variable_audits_action_idx" ON "environment_variable_audits"("action");
+
+-- CreateIndex
+CREATE INDEX "environment_variable_audits_createdAt_idx" ON "environment_variable_audits"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "webhook_deliveries_webhookId_idx" ON "webhook_deliveries"("webhookId");
+
+-- CreateIndex
+CREATE INDEX "webhook_deliveries_eventType_idx" ON "webhook_deliveries"("eventType");
+
+-- CreateIndex
+CREATE INDEX "webhook_deliveries_status_idx" ON "webhook_deliveries"("status");
+
+-- CreateIndex
+CREATE INDEX "webhook_deliveries_createdAt_idx" ON "webhook_deliveries"("createdAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "plans_name_key" ON "plans"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "plans_polarProductId_key" ON "plans"("polarProductId");
+CREATE UNIQUE INDEX "plans_razorpayPlanId_key" ON "plans"("razorpayPlanId");
 
 -- CreateIndex
 CREATE INDEX "plans_name_idx" ON "plans"("name");
@@ -676,13 +956,13 @@ CREATE INDEX "plans_name_idx" ON "plans"("name");
 CREATE INDEX "plans_isActive_idx" ON "plans"("isActive");
 
 -- CreateIndex
-CREATE INDEX "plans_polarProductId_idx" ON "plans"("polarProductId");
+CREATE INDEX "plans_razorpayPlanId_idx" ON "plans"("razorpayPlanId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_subscriptions_userId_key" ON "user_subscriptions"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_subscriptions_polarSubscriptionId_key" ON "user_subscriptions"("polarSubscriptionId");
+CREATE UNIQUE INDEX "user_subscriptions_razorpaySubscriptionId_key" ON "user_subscriptions"("razorpaySubscriptionId");
 
 -- CreateIndex
 CREATE INDEX "user_subscriptions_userId_idx" ON "user_subscriptions"("userId");
@@ -700,10 +980,10 @@ CREATE INDEX "user_subscriptions_currentPeriodEnd_idx" ON "user_subscriptions"("
 CREATE INDEX "user_subscriptions_gracePeriodEndsAt_idx" ON "user_subscriptions"("gracePeriodEndsAt");
 
 -- CreateIndex
-CREATE INDEX "user_subscriptions_polarSubscriptionId_idx" ON "user_subscriptions"("polarSubscriptionId");
+CREATE INDEX "user_subscriptions_razorpaySubscriptionId_idx" ON "user_subscriptions"("razorpaySubscriptionId");
 
 -- CreateIndex
-CREATE INDEX "user_subscriptions_polarCustomerId_idx" ON "user_subscriptions"("polarCustomerId");
+CREATE INDEX "user_subscriptions_razorpayCustomerId_idx" ON "user_subscriptions"("razorpayCustomerId");
 
 -- CreateIndex
 CREATE INDEX "ai_credit_usage_userId_createdAt_idx" ON "ai_credit_usage"("userId", "createdAt");
@@ -757,13 +1037,19 @@ CREATE INDEX "payment_transactions_invoiceId_idx" ON "payment_transactions"("inv
 CREATE INDEX "payment_transactions_status_idx" ON "payment_transactions"("status");
 
 -- CreateIndex
-CREATE INDEX "payment_transactions_polarCheckoutId_idx" ON "payment_transactions"("polarCheckoutId");
+CREATE INDEX "payment_transactions_razorpayOrderId_idx" ON "payment_transactions"("razorpayOrderId");
 
 -- CreateIndex
-CREATE INDEX "payment_transactions_polarPaymentId_idx" ON "payment_transactions"("polarPaymentId");
+CREATE INDEX "payment_transactions_razorpayPaymentId_idx" ON "payment_transactions"("razorpayPaymentId");
 
 -- CreateIndex
 CREATE INDEX "payment_transactions_createdAt_idx" ON "payment_transactions"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "balance_transactions_userId_createdAt_idx" ON "balance_transactions"("userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "balance_transactions_type_createdAt_idx" ON "balance_transactions"("type", "createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "webhook_events_eventId_key" ON "webhook_events"("eventId");
@@ -794,6 +1080,9 @@ CREATE INDEX "github_integrations_userId_idx" ON "github_integrations"("userId")
 
 -- CreateIndex
 CREATE INDEX "github_integrations_githubUserId_idx" ON "github_integrations"("githubUserId");
+
+-- CreateIndex
+CREATE INDEX "github_integrations_installationId_idx" ON "github_integrations"("installationId");
 
 -- CreateIndex
 CREATE INDEX "github_integrations_isActive_idx" ON "github_integrations"("isActive");
@@ -895,46 +1184,67 @@ CREATE INDEX "deployment_usage_projectId_createdAt_idx" ON "deployment_usage"("p
 CREATE INDEX "deployment_usage_platform_idx" ON "deployment_usage"("platform");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "polar_webhook_events_eventId_key" ON "polar_webhook_events"("eventId");
+CREATE UNIQUE INDEX "razorpay_webhook_events_eventId_key" ON "razorpay_webhook_events"("eventId");
 
 -- CreateIndex
-CREATE INDEX "polar_webhook_events_eventType_idx" ON "polar_webhook_events"("eventType");
+CREATE INDEX "razorpay_webhook_events_eventType_idx" ON "razorpay_webhook_events"("eventType");
 
 -- CreateIndex
-CREATE INDEX "polar_webhook_events_status_idx" ON "polar_webhook_events"("status");
+CREATE INDEX "razorpay_webhook_events_status_idx" ON "razorpay_webhook_events"("status");
 
 -- CreateIndex
-CREATE INDEX "polar_webhook_events_createdAt_idx" ON "polar_webhook_events"("createdAt");
+CREATE INDEX "razorpay_webhook_events_createdAt_idx" ON "razorpay_webhook_events"("createdAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "polar_usage_events_polarEventId_key" ON "polar_usage_events"("polarEventId");
+CREATE INDEX "user_memories_userId_category_idx" ON "user_memories"("userId", "category");
 
 -- CreateIndex
-CREATE INDEX "polar_usage_events_userId_idx" ON "polar_usage_events"("userId");
+CREATE INDEX "user_memories_userId_isActive_idx" ON "user_memories"("userId", "isActive");
 
 -- CreateIndex
-CREATE INDEX "polar_usage_events_externalCustomerId_idx" ON "polar_usage_events"("externalCustomerId");
+CREATE INDEX "user_memories_userId_importance_idx" ON "user_memories"("userId", "importance");
 
 -- CreateIndex
-CREATE INDEX "polar_usage_events_sentAt_idx" ON "polar_usage_events"("sentAt");
+CREATE INDEX "user_memories_userId_lastUsedAt_idx" ON "user_memories"("userId", "lastUsedAt");
 
 -- CreateIndex
-CREATE INDEX "referral_credits_userId_awardedForMonth_idx" ON "referral_credits"("userId", "awardedForMonth");
+CREATE INDEX "user_memories_projectId_idx" ON "user_memories"("projectId");
 
 -- CreateIndex
-CREATE INDEX "referral_credits_referredUserId_idx" ON "referral_credits"("referredUserId");
+CREATE UNIQUE INDEX "memory_categories_name_key" ON "memory_categories"("name");
 
 -- CreateIndex
-CREATE INDEX "referral_credits_status_idx" ON "referral_credits"("status");
+CREATE INDEX "memory_categories_name_idx" ON "memory_categories"("name");
 
 -- CreateIndex
-CREATE INDEX "referral_credits_createdAt_idx" ON "referral_credits"("createdAt");
+CREATE INDEX "memory_categories_sortOrder_idx" ON "memory_categories"("sortOrder");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "referral_credits_userId_referredUserId_awardedForMonth_key" ON "referral_credits"("userId", "referredUserId", "awardedForMonth");
+CREATE INDEX "agent_sessions_userId_idx" ON "agent_sessions"("userId");
 
--- AddForeignKey
-ALTER TABLE "users" ADD CONSTRAINT "users_referredById_fkey" FOREIGN KEY ("referredById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- CreateIndex
+CREATE INDEX "agent_sessions_projectId_idx" ON "agent_sessions"("projectId");
+
+-- CreateIndex
+CREATE INDEX "agent_sessions_status_idx" ON "agent_sessions"("status");
+
+-- CreateIndex
+CREATE INDEX "agent_sessions_expiresAt_idx" ON "agent_sessions"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "agent_sessions_userId_status_idx" ON "agent_sessions"("userId", "status");
+
+-- CreateIndex
+CREATE INDEX "tasks_sessionId_idx" ON "tasks"("sessionId");
+
+-- CreateIndex
+CREATE INDEX "tasks_projectId_idx" ON "tasks"("projectId");
+
+-- CreateIndex
+CREATE INDEX "tasks_status_idx" ON "tasks"("status");
+
+-- CreateIndex
+CREATE INDEX "tasks_sessionId_status_idx" ON "tasks"("sessionId", "status");
 
 -- AddForeignKey
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -967,6 +1277,48 @@ ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_projectId_fkey" FOREIG
 ALTER TABLE "project_versions" ADD CONSTRAINT "project_versions_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "project_collaborators" ADD CONSTRAINT "project_collaborators_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_collaborators" ADD CONSTRAINT "project_collaborators_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_collaborators" ADD CONSTRAINT "project_collaborators_addedBy_fkey" FOREIGN KEY ("addedBy") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_git_connections" ADD CONSTRAINT "project_git_connections_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_deployments" ADD CONSTRAINT "project_deployments_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "knowledge_files" ADD CONSTRAINT "knowledge_files_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "knowledge_files" ADD CONSTRAINT "knowledge_files_uploadedBy_fkey" FOREIGN KEY ("uploadedBy") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_webhooks" ADD CONSTRAINT "project_webhooks_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_environment_variables" ADD CONSTRAINT "project_environment_variables_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_environment_variables" ADD CONSTRAINT "project_environment_variables_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_environment_variables" ADD CONSTRAINT "project_environment_variables_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "environment_variable_audits" ADD CONSTRAINT "environment_variable_audits_envVarId_fkey" FOREIGN KEY ("envVarId") REFERENCES "project_environment_variables"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "environment_variable_audits" ADD CONSTRAINT "environment_variable_audits_performedBy_fkey" FOREIGN KEY ("performedBy") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "webhook_deliveries" ADD CONSTRAINT "webhook_deliveries_webhookId_fkey" FOREIGN KEY ("webhookId") REFERENCES "project_webhooks"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "user_subscriptions" ADD CONSTRAINT "user_subscriptions_planId_fkey" FOREIGN KEY ("planId") REFERENCES "plans"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -982,6 +1334,9 @@ ALTER TABLE "invoices" ADD CONSTRAINT "invoices_subscriptionId_fkey" FOREIGN KEY
 ALTER TABLE "payment_transactions" ADD CONSTRAINT "payment_transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "balance_transactions" ADD CONSTRAINT "balance_transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "github_repositories" ADD CONSTRAINT "github_repositories_githubIntegrationId_fkey" FOREIGN KEY ("githubIntegrationId") REFERENCES "github_integrations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -994,4 +1349,16 @@ ALTER TABLE "deployments" ADD CONSTRAINT "deployments_vercelIntegrationId_fkey" 
 ALTER TABLE "two_factor" ADD CONSTRAINT "two_factor_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "referral_credits" ADD CONSTRAINT "referral_credits_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "user_memories" ADD CONSTRAINT "user_memories_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "agent_sessions" ADD CONSTRAINT "agent_sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "agent_sessions" ADD CONSTRAINT "agent_sessions_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "agent_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
