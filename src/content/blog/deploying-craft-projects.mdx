@@ -1,0 +1,315 @@
+---
+title: "Best Practices for Deploying Your Craft Projects"
+description: "Everything you need to know about taking your projects from development to production."
+date: "2025-11-08"
+readTime: "9 min read"
+category: "Tutorials"
+author:
+  name: "Craft Team"
+---
+
+# Best Practices for Deploying Your Craft Projects
+
+You've built an amazing application with Craft. Now it's time to share it with the world. This guide covers everything you need to know about deploying your project to production.
+
+## Deployment Options
+
+Craft projects can be deployed to any platform that supports Next.js. Here are our recommended options:
+
+### Vercel (Recommended)
+
+Vercel is the creators of Next.js, making it the ideal platform for deployment:
+
+**Pros:**
+
+- Zero-configuration deployment
+- Automatic HTTPS
+- Edge functions support
+- Built-in analytics
+- Excellent performance
+
+**Best for:** Most projects, especially those needing global performance
+
+### Netlify
+
+A popular alternative with great developer experience:
+
+**Pros:**
+
+- Simple deployment process
+- Form handling built-in
+- Split testing support
+- Great documentation
+
+**Best for:** Static sites and simpler applications
+
+### Railway / Render
+
+Full-featured platforms with database hosting:
+
+**Pros:**
+
+- Database hosting included
+- Easy environment management
+- Predictable pricing
+- Good for full-stack apps
+
+**Best for:** Applications needing databases and backend services
+
+## Pre-Deployment Checklist
+
+Before deploying, make sure you've addressed these items:
+
+### 1. Environment Variables
+
+Never commit secrets to your repository. Set these in your deployment platform:
+
+```bash
+# Required
+DATABASE_URL="postgresql://..."
+AUTH_SECRET="your-secret-key"
+
+# Optional (based on features used)
+RESEND_API_KEY="re_..."
+R2_ACCESS_KEY_ID="..."
+R2_SECRET_ACCESS_KEY="..."
+R2_BUCKET_NAME="..."
+OPENROUTER_API_KEY="sk-..."
+```
+
+### 2. Database Setup
+
+If your app uses a database, you have several options:
+
+| Provider    | Free Tier  | Best For            |
+| ----------- | ---------- | ------------------- |
+| Neon        | 0.5 GB     | Most projects       |
+| Supabase    | 500 MB     | Real-time features  |
+| PlanetScale | 5 GB reads | High-read workloads |
+| Railway     | $5/mo      | All-in-one solution |
+
+### 3. Error Tracking
+
+Add error monitoring to catch issues in production:
+
+```typescript
+// sentry.client.config.ts
+import * as Sentry from "@sentry/nextjs";
+
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
+```
+
+### 4. Analytics
+
+Understand how users interact with your app:
+
+```typescript
+// Using PostHog
+import posthog from "posthog-js";
+
+posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+  api_host: "https://app.posthog.com",
+});
+```
+
+## Step-by-Step: Deploying to Vercel
+
+### Step 1: Connect Your Repository
+
+1. Go to [vercel.com](https://vercel.com) and sign in
+2. Click "New Project"
+3. Import your Git repository
+4. Vercel auto-detects Next.js settings
+
+### Step 2: Configure Environment Variables
+
+1. Go to Settings → Environment Variables
+2. Add each required variable
+3. Make sure to set them for Production environment
+
+### Step 3: Deploy
+
+1. Click "Deploy"
+2. Wait for the build to complete (usually 1-2 minutes)
+3. Your app is live!
+
+### Step 4: Configure Custom Domain
+
+1. Go to Settings → Domains
+2. Add your domain
+3. Update DNS records as instructed
+4. SSL is automatically configured
+
+## Performance Optimization
+
+### Image Optimization
+
+Use Next.js Image component for automatic optimization:
+
+```typescript
+import Image from "next/image";
+
+<Image
+  src="/hero-image.jpg"
+  alt="Hero"
+  width={1200}
+  height={600}
+  priority // Load immediately for above-fold images
+/>;
+```
+
+### Code Splitting
+
+Next.js automatically splits your code, but you can optimize further:
+
+```typescript
+import dynamic from "next/dynamic";
+
+// Load heavy components only when needed
+const HeavyChart = dynamic(() => import("./HeavyChart"), {
+  loading: () => <div>Loading chart...</div>,
+  ssr: false, // Disable server rendering if not needed
+});
+```
+
+### Caching Strategies
+
+Implement proper caching for API routes:
+
+```typescript
+// app/api/products/route.ts
+export async function GET() {
+  const products = await getProducts();
+
+  return Response.json(products, {
+    headers: {
+      "Cache-Control": "s-maxage=60, stale-while-revalidate=300",
+    },
+  });
+}
+```
+
+## Security Best Practices
+
+### Content Security Policy
+
+Configure CSP headers in `next.config.ts`:
+
+```typescript
+const securityHeaders = [
+  {
+    key: "Content-Security-Policy",
+    value: "default-src 'self'; script-src 'self' 'unsafe-inline';",
+  },
+];
+```
+
+### Rate Limiting
+
+Protect your API routes from abuse:
+
+```typescript
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, "10 s"),
+});
+
+export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for");
+  const { success } = await ratelimit.limit(ip || "anonymous");
+
+  if (!success) {
+    return new Response("Too Many Requests", { status: 429 });
+  }
+
+  // Process request...
+}
+```
+
+### Input Validation
+
+Always validate user input:
+
+```typescript
+import { z } from "zod";
+
+const schema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2).max(100),
+});
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const result = schema.safeParse(body);
+
+  if (!result.success) {
+    return Response.json({ error: result.error }, { status: 400 });
+  }
+
+  // Process validated data...
+}
+```
+
+## Monitoring and Maintenance
+
+### Health Checks
+
+Add a health check endpoint:
+
+```typescript
+// app/api/health/route.ts
+export async function GET() {
+  try {
+    // Check database connection
+    await prisma.$queryRaw`SELECT 1`;
+
+    return Response.json({ status: "healthy" });
+  } catch (error) {
+    return Response.json({ status: "unhealthy" }, { status: 500 });
+  }
+}
+```
+
+### Logging
+
+Implement structured logging for debugging:
+
+```typescript
+const log = {
+  info: (message: string, data?: object) => {
+    console.log(JSON.stringify({ level: "info", message, ...data }));
+  },
+  error: (message: string, error?: Error) => {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message,
+        error: error?.message,
+      })
+    );
+  },
+};
+```
+
+## Conclusion
+
+Deploying your Craft project is straightforward when you follow these best practices. Remember:
+
+1. ✅ Set up environment variables properly
+2. ✅ Configure your database for production
+3. ✅ Implement error tracking
+4. ✅ Optimize performance
+5. ✅ Follow security best practices
+6. ✅ Set up monitoring
+
+With these foundations in place, your application will be ready to handle real users and scale as needed.
+
+---
+
+_Need help with deployment? Check our [documentation](/docs) or ask in the community Discord!_

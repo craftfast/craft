@@ -1,0 +1,251 @@
+---
+title: "Understanding Craft's Template System"
+description: "Deep dive into how Craft generates and manages project templates for maximum flexibility and customization."
+date: "2025-11-15"
+readTime: "10 min read"
+category: "Technical"
+author:
+  name: "Craft Team"
+---
+
+# Understanding Craft's Template System
+
+Ever wondered what happens behind the scenes when you create a new project in Craft? In this technical deep dive, we'll explore the template system that powers every Craft project.
+
+## The Foundation
+
+Every Craft project starts with a carefully crafted template that includes:
+
+- **Next.js 15** with App Router
+- **React 19** with the latest features
+- **TypeScript** for type safety
+- **Tailwind CSS v4** for styling
+- **shadcn/ui** for accessible components
+- **Prisma** for database operations
+
+But it's not just about the technologies – it's about how they're configured to work together seamlessly.
+
+## Project Structure
+
+When you create a new project, here's what gets generated:
+
+```
+my-project/
+├── src/
+│   ├── app/                 # Next.js App Router pages
+│   │   ├── layout.tsx       # Root layout with providers
+│   │   ├── page.tsx         # Home page
+│   │   └── globals.css      # Global styles
+│   ├── components/          # Reusable components
+│   │   ├── ui/              # shadcn/ui components
+│   │   └── providers/       # Context providers
+│   └── lib/                 # Utilities and configurations
+│       ├── prisma.ts        # Database client
+│       ├── auth/            # Authentication helpers
+│       └── utils.ts         # Utility functions
+├── prisma/
+│   └── schema.prisma        # Database schema
+├── public/                  # Static assets
+├── package.json             # Dependencies
+├── tailwind.config.ts       # Tailwind configuration
+├── tsconfig.json            # TypeScript config
+└── .env.example             # Environment template
+```
+
+## The Technology Stack Explained
+
+### Why Next.js 15?
+
+Next.js provides the perfect foundation for modern web applications:
+
+- **Server Components** – Better performance and SEO
+- **App Router** – Intuitive file-based routing
+- **API Routes** – Backend functionality built-in
+- **Streaming** – Progressive page rendering
+- **Caching** – Intelligent request optimization
+
+### Why Tailwind CSS v4?
+
+The latest version of Tailwind offers significant improvements:
+
+```css
+/* Global styles with CSS variables */
+@import "tailwindcss";
+
+:root {
+  --background: oklch(100% 0 0);
+  --foreground: oklch(0% 0 0);
+}
+
+.dark {
+  --background: oklch(14.9% 0 0);
+  --foreground: oklch(100% 0 0);
+}
+```
+
+Benefits include:
+
+- **Native CSS** – No JavaScript runtime needed
+- **OKLCH colors** – Better color consistency
+- **Container queries** – Component-level responsiveness
+- **Smaller bundle** – Faster page loads
+
+### Why TypeScript?
+
+Type safety catches errors before they reach production:
+
+```typescript
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  inStock: boolean;
+}
+
+function displayPrice(product: Product): string {
+  // TypeScript ensures product has all required fields
+  return `$${product.price.toFixed(2)}`;
+}
+```
+
+## Pre-configured Services
+
+Each template comes with optional integrations ready to use:
+
+### Database (Prisma)
+
+```typescript
+import { prisma } from "@/lib/prisma";
+
+// Query users with their posts
+const users = await prisma.user.findMany({
+  include: { posts: true },
+});
+```
+
+### Authentication
+
+```typescript
+import { auth } from "@/lib/auth";
+
+// Get current session
+const session = await auth();
+if (session?.user) {
+  // User is authenticated
+}
+```
+
+### Email (Resend)
+
+```typescript
+import { sendEmail } from "@/lib/email";
+
+await sendEmail({
+  to: "user@example.com",
+  subject: "Welcome!",
+  html: "<h1>Welcome to our platform</h1>",
+});
+```
+
+### File Storage (R2)
+
+```typescript
+import { uploadFile } from "@/lib/storage";
+
+const url = await uploadFile("images/profile.jpg", fileBuffer, "image/jpeg");
+```
+
+## How AI Modifies Templates
+
+When you describe features to Craft's AI, it makes intelligent modifications:
+
+1. **Analyzes existing code** – Understands the current structure
+2. **Plans changes** – Determines what needs to be added or modified
+3. **Generates code** – Creates new components or modifies existing ones
+4. **Maintains consistency** – Follows the project's established patterns
+
+### Example: Adding a Feature
+
+You ask: _"Add a pricing section with three tiers"_
+
+The AI will:
+
+1. Create a new `PricingSection` component
+2. Add it to the appropriate page
+3. Style it consistently with existing components
+4. Include proper TypeScript types
+5. Ensure responsive design
+
+## Environment Variables
+
+Templates include a comprehensive `.env.example`:
+
+```bash
+# Database
+DATABASE_URL="postgresql://..."
+
+# Authentication
+AUTH_SECRET="your-secret-key"
+
+# Services
+RESEND_API_KEY="re_..."
+R2_ACCESS_KEY_ID="..."
+OPENROUTER_API_KEY="sk-..."
+```
+
+This makes it easy to configure services when deploying.
+
+## Extending the Template
+
+The template is designed to be extended. Common additions include:
+
+### Adding shadcn/ui Components
+
+```bash
+npx shadcn@latest add button card dialog
+```
+
+### Adding Prisma Models
+
+```prisma
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  price       Float
+  description String?
+  createdAt   DateTime @default(now())
+}
+```
+
+### Adding API Routes
+
+```typescript
+// src/app/api/products/route.ts
+export async function GET() {
+  const products = await prisma.product.findMany();
+  return Response.json(products);
+}
+```
+
+## Best Practices Built In
+
+Our templates include best practices by default:
+
+| Practice         | Implementation               |
+| ---------------- | ---------------------------- |
+| Type Safety      | TypeScript strict mode       |
+| Styling          | Tailwind with design tokens  |
+| State Management | React context + Zustand      |
+| Form Handling    | React Hook Form + Zod        |
+| Error Handling   | Error boundaries + try/catch |
+| Accessibility    | semantic HTML + ARIA         |
+
+## Conclusion
+
+The template system is the foundation that makes Craft projects maintainable, scalable, and production-ready from day one. By combining the best modern tools with sensible defaults, we enable you to focus on building features instead of configuration.
+
+Understanding these internals helps you make the most of the platform, whether you're using natural language prompts or making direct modifications.
+
+---
+
+_Want to explore the template yourself? [Create a project](/login) and see the generated code in action._

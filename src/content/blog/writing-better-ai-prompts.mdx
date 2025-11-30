@@ -1,0 +1,169 @@
+---
+title: "5 Tips for Writing Better AI Prompts"
+description: "Learn how to communicate effectively with Craft to get exactly the results you want. Master the art of prompt engineering for faster, more accurate code generation."
+date: "2025-11-25"
+readTime: "8 min read"
+category: "Tips & Tricks"
+author:
+  name: "Craft Team"
+---
+
+# 5 Tips for Writing Better AI Prompts
+
+The quality of your AI-generated code depends heavily on how well you communicate your requirements. In this guide, we'll share five proven techniques to help you get the most out of Craft's AI assistant.
+
+## Tip 1: Be Specific About Design Details
+
+Instead of vague descriptions, provide specific details about colors, spacing, and layout.
+
+### ❌ Don't say:
+
+```text
+"Make a nice button"
+```
+
+### ✅ Do say:
+
+```text
+"Create a rounded button with a dark background, white text,
+and a subtle hover effect that slightly lightens the background.
+Make it full-width on mobile and auto-width on desktop."
+```
+
+The more specific you are, the closer the result will be to your vision.
+
+## Tip 2: Provide Context and Purpose
+
+Explain the purpose of what you're building. This helps the AI make better decisions about implementation details.
+
+### ❌ Don't say:
+
+```text
+"Add a form"
+```
+
+### ✅ Do say:
+
+```text
+"Add a contact form for a consulting business that collects
+the user's name, email, company, and a message. Include
+validation for required fields and email format. Show a
+success message after submission."
+```
+
+Understanding the context helps the AI choose appropriate validation rules, error messages, and user experience patterns.
+
+## Tip 3: Reference Existing Patterns
+
+When you want consistency with existing elements, reference them explicitly.
+
+### ❌ Don't say:
+
+```text
+"Add another section"
+```
+
+### ✅ Do say:
+
+```text
+"Add a testimonials section below the features section,
+using the same card style and spacing as the pricing cards.
+Include a photo, name, role, and quote for each testimonial."
+```
+
+This ensures visual consistency throughout your application.
+
+## Tip 4: Break Complex Tasks Into Steps
+
+For complex features, break them down into smaller, manageable pieces.
+
+### Instead of:
+
+```text
+"Build a complete e-commerce checkout system"
+```
+
+### Try:
+
+```text
+Step 1: "Create a cart page that displays items with
+quantities, prices, and a subtotal"
+
+Step 2: "Add a shipping address form with autocomplete
+and validation"
+
+Step 3: "Create an order summary component showing items,
+shipping, taxes, and total"
+
+Step 4: "Add a payment section with card input fields"
+```
+
+Building incrementally allows you to review and refine each piece before moving on.
+
+## Tip 5: Describe the User Experience
+
+Focus on how users will interact with your application, not just what it looks like.
+
+### ❌ Don't say:
+
+```text
+"Make a dropdown menu"
+```
+
+### ✅ Do say:
+
+```text
+"Create a dropdown menu that opens on click, closes when
+clicking outside, highlights items on hover, and supports
+keyboard navigation. Include a smooth fade-in animation
+when opening."
+```
+
+Describing interactions ensures the AI implements proper behavior and accessibility features.
+
+## Bonus: Use Iteration to Refine
+
+Don't expect perfection on the first try. Use follow-up prompts to refine:
+
+```text
+"Make the header sticky with a subtle shadow"
+"Increase the padding on the cards"
+"Change the accent color to a warmer tone"
+"Make the text slightly larger on mobile"
+```
+
+Small, focused adjustments are often more effective than trying to specify everything upfront.
+
+## Putting It All Together
+
+Here's an example of a well-crafted prompt that incorporates all these tips:
+
+```text
+"Create a pricing section for a SaaS product with three tiers:
+Starter ($9/mo), Pro ($29/mo), and Enterprise (custom pricing).
+
+Each card should display:
+- Tier name and price
+- A short description
+- A bullet list of 5-6 features
+- A CTA button (primary style for Pro, secondary for others)
+
+The Pro tier should be highlighted as the recommended option
+with a 'Most Popular' badge. Use the same card styling as
+the features section. On mobile, cards should stack vertically
+with the Pro card first."
+```
+
+This prompt is:
+
+- ✅ Specific about content and styling
+- ✅ Provides business context
+- ✅ References existing patterns
+- ✅ Describes the user experience
+- ✅ Clear and well-organized
+
+## Practice Makes Perfect
+
+The more you use Craft, the better you'll become at writing effective prompts. Pay attention to what works well and build your own library of prompt patterns.
+
+Happy building! 🚀
