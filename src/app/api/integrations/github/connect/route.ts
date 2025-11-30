@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
+import { getInstallationUrl } from "@/lib/github-app";
 
 /**
  * GET /api/integrations/github/connect
- * Initiates GitHub OAuth flow
+ * Initiates GitHub App installation flow
+ * 
+ * GitHub App flow:
+ * 1. User clicks "Connect GitHub" 
+ * 2. Redirect to GitHub App installation page
+ * 3. User installs app (selects repos)
+ * 4. GitHub redirects back with installation_id
+ * 5. We also get OAuth authorization (if "Request user authorization" is enabled)
  */
 export async function GET() {
     try {
@@ -13,30 +21,13 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // GitHub OAuth configuration
-        const githubClientId = process.env.GITHUB_CLIENT_ID;
-        const redirectUri = `${process.env.BETTER_AUTH_URL}/api/integrations/github/callback`;
+        // Get the GitHub App installation URL
+        // State includes user ID for verification on callback
+        const installUrl = getInstallationUrl(session.user.id);
 
-        if (!githubClientId) {
-            return NextResponse.json(
-                { error: "GitHub integration not configured" },
-                { status: 500 }
-            );
-        }
-
-        // Build GitHub OAuth URL
-        const params = new URLSearchParams({
-            client_id: githubClientId,
-            redirect_uri: redirectUri,
-            scope: "repo user:email", // Request necessary scopes
-            state: session.user.id, // Use user ID as state for security
-        });
-
-        const authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
-
-        return NextResponse.json({ url: authUrl });
+        return NextResponse.json({ url: installUrl });
     } catch (error) {
-        console.error("GitHub OAuth initiation error:", error);
+        console.error("GitHub App connect error:", error);
         return NextResponse.json(
             { error: "Failed to initiate GitHub connection" },
             { status: 500 }

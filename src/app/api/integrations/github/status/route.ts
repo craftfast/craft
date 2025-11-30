@@ -25,6 +25,7 @@ export async function GET() {
                 isActive: true,
                 lastSyncAt: true,
                 createdAt: true,
+                installationId: true,
             },
         });
 
@@ -34,7 +35,9 @@ export async function GET() {
 
         return NextResponse.json({
             connected: true,
+            installed: !!integration.installationId,
             login: integration.login,
+            username: integration.login,
             email: integration.email,
             name: integration.name,
             avatarUrl: integration.avatarUrl,

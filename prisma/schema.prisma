@@ -694,26 +694,29 @@ model VercelIntegration {
 }
 
 model GitHubIntegration {
-  id             String             @id @default(cuid())
-  userId         String             @unique
-  accessToken    String
-  refreshToken   String?
-  tokenExpiresAt DateTime?
-  githubUserId   Int
-  login          String
-  email          String?
-  name           String?
-  avatarUrl      String?
-  scopes         String[]
-  isActive       Boolean            @default(true)
-  lastSyncAt     DateTime?
-  metadata       Json?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  repositories   GitHubRepository[]
+  id                    String             @id @default(cuid())
+  userId                String             @unique
+  accessToken           String
+  refreshToken          String?
+  tokenExpiresAt        DateTime?
+  refreshTokenExpiresAt DateTime?
+  installationId        Int? // GitHub App installation ID
+  githubUserId          Int
+  login                 String
+  email                 String?
+  name                  String?
+  avatarUrl             String?
+  scopes                String[]
+  isActive              Boolean            @default(true)
+  lastSyncAt            DateTime?
+  metadata              Json?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  repositories          GitHubRepository[]
 
   @@index([userId])
   @@index([githubUserId])
+  @@index([installationId])
   @@index([isActive])
   @@map("github_integrations")
 }

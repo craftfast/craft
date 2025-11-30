@@ -229,6 +229,23 @@ export default function CodingInterface({
     loadProjectFiles();
   }, [project.id]);
 
+  // Function to refresh project files from backend
+  const refreshProjectFiles = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/files?projectId=${project.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const loadedFiles = data.codeFiles || data.files || {};
+        setProjectFiles(loadedFiles);
+        console.log(
+          `🔄 Refreshed ${Object.keys(loadedFiles).length} files for project`
+        );
+      }
+    } catch (error) {
+      console.error("Error refreshing project files:", error);
+    }
+  }, [project.id]);
+
   // Function to refresh project data
   const refreshProject = async () => {
     try {
@@ -1299,6 +1316,7 @@ export default function CodingInterface({
           open={isSyncGitDialogOpen}
           onOpenChange={setIsSyncGitDialogOpen}
           projectId={project.id}
+          onFilesUpdated={refreshProjectFiles}
         />
 
         {/* Database Connection Dialog */}
