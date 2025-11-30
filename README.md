@@ -156,11 +156,9 @@ All required environment variables are documented in `.env.example`. Critical va
 - **AI Providers**: API keys for Anthropic, OpenAI, Google, xAI
 - **Payments**: Razorpay credentials
 - **E2B Sandbox**: `E2B_API_KEY` for live preview
-- **Error Tracking**: `SENTRY_DSN` for production monitoring
 
 ### Monitoring
 
-- **Sentry**: Error tracking and performance monitoring (add `SENTRY_DSN`)
 - **Vercel Analytics**: Built-in performance metrics
 - **Rate Limiting**: Configured via Upstash Redis
 

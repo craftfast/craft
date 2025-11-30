@@ -13,7 +13,6 @@ import {
     logWebhookEvent,
     updateWebhookEventStatus,
 } from "@/lib/razorpay/webhooks";
-import { captureError } from "@/lib/sentry";
 
 // Import event handlers
 import {
@@ -150,14 +149,6 @@ export async function POST(req: NextRequest) {
         }
     } catch (error) {
         console.error("Error processing webhook:", error);
-
-        // Report to Sentry - payment webhooks are critical
-        if (error instanceof Error) {
-            await captureError(error, {
-                tags: { route: "webhooks/razorpay", type: "payment_webhook_error" },
-                extra: { endpoint: "/api/webhooks/razorpay" },
-            });
-        }
 
         return NextResponse.json(
             {

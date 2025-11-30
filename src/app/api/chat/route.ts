@@ -6,7 +6,6 @@ import { checkUserBalance, trackAIUsage } from "@/lib/ai-usage";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createOrchestrator } from "@/lib/ai/orchestrator/orchestrator-agent";
 import { chatRateLimiter, checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
-import { captureError } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 
 // Allow streaming responses up to 30 seconds
@@ -411,14 +410,6 @@ export async function POST(req: Request) {
         });
     } catch (error) {
         logger.ai.error("Chat Error:", error);
-
-        // Report to Sentry for production monitoring
-        if (error instanceof Error) {
-            await captureError(error, {
-                tags: { route: "api/chat", type: "ai_chat_error" },
-                extra: { endpoint: "/api/chat" },
-            });
-        }
 
         return new Response(
             JSON.stringify({
