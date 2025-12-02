@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import SettingsModal from "./SettingsModal";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -81,15 +80,6 @@ export default function CraftInput() {
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<
-    | "general"
-    | "billing"
-    | "usage"
-    | "account"
-    | "integrations"
-    | "model-preferences"
-  >("general");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBillingError, setIsBillingError] = useState(false);
   const { balance } = useCreditBalance();
@@ -583,8 +573,7 @@ export default function CraftInput() {
               {balance?.totalAvailable.toLocaleString()} credits remaining.{" "}
               <button
                 onClick={() => {
-                  setSettingsInitialTab("billing");
-                  setShowSettingsModal(true);
+                  router.push("/settings/billing");
                 }}
                 className="text-foreground underline hover:no-underline font-medium"
               >
@@ -601,8 +590,7 @@ export default function CraftInput() {
               Out of credits.{" "}
               <button
                 onClick={() => {
-                  setSettingsInitialTab("billing");
-                  setShowSettingsModal(true);
+                  router.push("/settings/billing");
                 }}
                 className="text-foreground underline hover:no-underline font-medium"
               >
@@ -738,8 +726,7 @@ export default function CraftInput() {
                 selectedModel={selectedModel || undefined}
                 onModelChange={setSelectedModel}
                 onOpenSettings={() => {
-                  setSettingsInitialTab("model-preferences");
-                  setShowSettingsModal(true);
+                  router.push("/settings/models");
                 }}
               />
             )}
@@ -978,8 +965,7 @@ export default function CraftInput() {
                   onClick={() => {
                     setErrorMessage(null);
                     setIsBillingError(false);
-                    setSettingsInitialTab("billing");
-                    setShowSettingsModal(true);
+                    router.push("/settings/billing");
                   }}
                   className="flex-1 rounded-full"
                 >
@@ -1000,13 +986,6 @@ export default function CraftInput() {
           </div>
         </div>
       )}
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        initialTab={settingsInitialTab}
-      />
     </div>
   );
 }

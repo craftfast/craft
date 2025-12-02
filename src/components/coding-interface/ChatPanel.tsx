@@ -9,7 +9,6 @@ import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.min.css";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
-import SettingsModal from "../SettingsModal";
 import { ModelSelector } from "@/components/ModelSelector";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -159,15 +158,6 @@ export default function ChatPanel({
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<
-    | "general"
-    | "billing"
-    | "usage"
-    | "account"
-    | "integrations"
-    | "model-preferences"
-  >("general");
   const { balance } = useCreditBalance();
 
   // Initialize selected model from user preferences
@@ -630,8 +620,7 @@ export default function ChatPanel({
 
     // Check if tokens are exhausted
     if (isTokensExhausted) {
-      setSettingsInitialTab("billing");
-      setShowSettingsModal(true);
+      router.push("/settings/billing");
       return;
     }
 
@@ -1730,8 +1719,7 @@ export default function ChatPanel({
                   {balance?.totalAvailable.toLocaleString()} credits remaining.{" "}
                   <button
                     onClick={() => {
-                      setSettingsInitialTab("billing");
-                      setShowSettingsModal(true);
+                      router.push("/settings/billing");
                     }}
                     className="text-foreground underline hover:no-underline font-medium"
                   >
@@ -1748,8 +1736,7 @@ export default function ChatPanel({
                   Out of credits.{" "}
                   <button
                     onClick={() => {
-                      setSettingsInitialTab("billing");
-                      setShowSettingsModal(true);
+                      router.push("/settings/billing");
                     }}
                     className="text-foreground underline hover:no-underline font-medium"
                   >
@@ -1876,8 +1863,7 @@ export default function ChatPanel({
                     selectedModel={selectedModel || undefined}
                     onModelChange={setSelectedModel}
                     onOpenSettings={() => {
-                      setSettingsInitialTab("model-preferences");
-                      setShowSettingsModal(true);
+                      router.push("/settings/models");
                     }}
                   />
                 )}
@@ -2029,13 +2015,6 @@ export default function ChatPanel({
           </div>
         </div>
       )}
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        initialTab={settingsInitialTab}
-      />
     </div>
   );
 }

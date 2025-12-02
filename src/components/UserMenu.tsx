@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import Image from "next/image";
-import SettingsModal from "./SettingsModal";
 import FeedbackModal from "./FeedbackModal";
 import ProjectsModal from "./ProjectsModal";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -31,10 +30,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const { chatPosition, setChatPosition } = useChatPosition();
   const { balance, isLoading } = useCreditBalance();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<
-    "general" | "billing" | "usage" | "account" | "integrations"
-  >("general");
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -143,8 +138,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
             <button
               onClick={() => {
                 setIsUserMenuOpen(false);
-                setSettingsInitialTab("general");
-                setIsSettingsModalOpen(true);
+                router.push("/settings");
               }}
               className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
             >
@@ -266,8 +260,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
             <button
               onClick={() => {
                 setIsUserMenuOpen(false);
-                setSettingsInitialTab("billing");
-                setIsSettingsModalOpen(true);
+                router.push("/settings/billing");
               }}
               className="w-full px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 text-accent-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5"
             >
@@ -499,15 +492,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Settings Modal */}
-      {isSettingsModalOpen && (
-        <SettingsModal
-          isOpen={isSettingsModalOpen}
-          onClose={() => setIsSettingsModalOpen(false)}
-          initialTab={settingsInitialTab}
-        />
       )}
 
       {/* Projects Modal */}

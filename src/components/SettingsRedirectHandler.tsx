@@ -2,34 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import SettingsModal from "./SettingsModal";
 import { parseSettingsParams } from "@/lib/url-params";
 
-type SettingsTab =
-  | "general"
-  | "billing"
-  | "usage"
-  | "account"
-  | "integrations"
-  | "personalization"
-  | "model-preferences";
-
 /**
- * URL Query Parameter Handler for Settings Modal
+ * URL Query Parameter Handler for Settings Page Redirect
  *
- * Handles opening settings modal based on URL parameters:
- * - ?settings=general - Open settings with General tab
- * - ?settings=billing - Open settings with Billing tab
- * - ?settings=usage - Open settings with Usage tab
- * - ?settings=account - Open settings with Account tab
- * - ?settings=integrations - Open settings with Integrations tab
- * - ?settings=personalization - Open settings with Personalization tab
- * - ?settings=model-preferences - Open settings with Model Preferences tab
+ * Redirects to settings pages based on URL parameters:
+ * - ?settings=general - Redirect to /settings
+ * - ?settings=billing - Redirect to /settings/billing
+ * - ?settings=usage - Redirect to /settings/usage
+ * - ?settings=account - Redirect to /settings/account
+ * - ?settings=integrations - Redirect to /settings/integrations
+ * - ?settings=personalization - Redirect to /settings/personalization
+ * - ?settings=model-preferences - Redirect to /settings/models
  */
 export default function SettingsRedirectHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [hasProcessed, setHasProcessed] = useState(false);
 
   useEffect(() => {
@@ -37,29 +26,21 @@ export default function SettingsRedirectHandler() {
 
     const params = parseSettingsParams(searchParams);
     if (params?.tab) {
-      setSettingsTab(params.tab as SettingsTab);
       setHasProcessed(true);
+      // Map tab names to paths
+      const tabToPath: Record<string, string> = {
+        general: "/settings",
+        billing: "/settings/billing",
+        usage: "/settings/usage",
+        account: "/settings/account",
+        integrations: "/settings/integrations",
+        personalization: "/settings/personalization",
+        "model-preferences": "/settings/models",
+      };
+      const targetPath = tabToPath[params.tab] || "/settings";
+      router.push(targetPath);
     }
-  }, [searchParams, hasProcessed]);
+  }, [searchParams, hasProcessed, router]);
 
-  const handleClose = () => {
-    setSettingsTab(null);
-    setHasProcessed(false);
-    // Clean up URL params
-    const url = new URL(window.location.href);
-    url.searchParams.delete("settings");
-    router.replace(url.pathname + url.search);
-  };
-
-  if (!settingsTab) {
-    return null;
-  }
-
-  return (
-    <SettingsModal
-      isOpen={true}
-      onClose={handleClose}
-      initialTab={settingsTab}
-    />
-  );
+  return null;
 }

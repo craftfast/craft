@@ -8,4 +8,3 @@ export { default as PersonalizationTab } from "./PersonalizationTab";
 export { default as ModelPreferencesTab } from "./ModelPreferencesTab";
 export { default as PasswordSetupModal } from "./PasswordSetupModal";
 export { default as DeleteAccountModal } from "./DeleteAccountModal";
-export type * from "./types";

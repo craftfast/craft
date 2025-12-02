@@ -7,7 +7,6 @@ import UserMenu from "./UserMenu";
 import Logo from "./Logo";
 import CreditCounter from "./CreditCounter";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
-import SettingsModal from "./SettingsModal";
 
 interface DashboardHeaderProps {
   userId?: string;
@@ -21,41 +20,27 @@ export default function DashboardHeader({
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<
-    | "general"
-    | "billing"
-    | "usage"
-    | "account"
-    | "integrations"
-    | "personalization"
-    | "model-preferences"
-  >("general");
   const { balance } = useCreditBalance(); // Only for mobile menu detailed breakdown
 
-  // Check URL parameters to auto-open settings modal with specific tab
+  // Check URL parameters to redirect to settings page with specific tab
   useEffect(() => {
     const settings = searchParams.get("settings");
     const tab = searchParams.get("tab");
 
     if (settings === "true") {
-      if (
-        tab &&
-        [
-          "general",
-          "billing",
-          "usage",
-          "account",
-          "integrations",
-          "personalization",
-          "model-preferences",
-        ].includes(tab)
-      ) {
-        setSettingsTab(tab as typeof settingsTab);
-      }
-      setIsSettingsOpen(true);
+      const tabToPath: Record<string, string> = {
+        general: "/settings",
+        billing: "/settings/billing",
+        usage: "/settings/usage",
+        account: "/settings/account",
+        integrations: "/settings/integrations",
+        personalization: "/settings/personalization",
+        "model-preferences": "/settings/models",
+      };
+      const targetPath = tab && tabToPath[tab] ? tabToPath[tab] : "/settings";
+      router.push(targetPath);
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   // Format credits for display (only for mobile menu)
   const formatCredits = (credits: number): string => {
@@ -94,9 +79,8 @@ export default function DashboardHeader({
         <div className="flex items-center gap-2 justify-end">
           <CreditCounter
             onClickAction={() => {
-              // Open settings modal to billing tab
-              setSettingsTab("billing");
-              setIsSettingsOpen(true);
+              // Navigate to settings billing page
+              router.push("/settings/billing");
             }}
           />
           {session?.user && <UserMenu user={session.user} />}
@@ -115,9 +99,8 @@ export default function DashboardHeader({
         <div className="flex items-center gap-2">
           <CreditCounter
             onClickAction={() => {
-              // Open settings modal to billing tab
-              setSettingsTab("billing");
-              setIsSettingsOpen(true);
+              // Navigate to settings billing page
+              router.push("/settings/billing");
             }}
           />
           {session?.user && <UserMenu user={session.user} />}
@@ -299,7 +282,7 @@ export default function DashboardHeader({
                 </button>
                 <button
                   onClick={() => {
-                    setIsSettingsOpen(true);
+                    router.push("/settings/billing");
                     setIsMobileMenuOpen(false);
                   }}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors text-left"
@@ -357,21 +340,6 @@ export default function DashboardHeader({
           </nav>
         </div>
       )}
-
-      {/* Settings Modal (for billing/tier changes) */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => {
-          setIsSettingsOpen(false);
-          // Clear URL parameters when closing
-          const url = new URL(window.location.href);
-          url.searchParams.delete("settings");
-          url.searchParams.delete("tab");
-          url.searchParams.delete("payment");
-          window.history.replaceState({}, "", url.toString());
-        }}
-        initialTab={settingsTab}
-      />
     </>
   );
 }
