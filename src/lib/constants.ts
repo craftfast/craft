@@ -28,6 +28,8 @@ export const LINKS = {
     GITHUB_REPO: "https://github.com/craftfast/craft",
     TWITTER_CRAFT: "https://x.com/craftdotfast",
     TWITTER_SUDHEER: "https://x.com/sudheerdotai",
+    DISCORD: "https://discord.gg/YvPKxcCV",
+    YOUTUBE: "https://www.youtube.com/channel/UCImqQGc8t8t0koAsw7pscnQ",
 } as const;
 
 // App metadata
