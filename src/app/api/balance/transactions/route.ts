@@ -19,6 +19,7 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get("limit") || "10");
         const offset = parseInt(searchParams.get("offset") || "0");
+        const type = searchParams.get("type"); // Optional filter by type (e.g., TOPUP)
 
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
@@ -29,10 +30,16 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
+        // Build where clause with optional type filter
+        const whereClause: { userId: string; type?: string } = { userId: user.id };
+        if (type) {
+            whereClause.type = type;
+        }
+
         // Fetch transactions
         const [transactions, total] = await Promise.all([
             prisma.balanceTransaction.findMany({
-                where: { userId: user.id },
+                where: whereClause,
                 orderBy: { createdAt: "desc" },
                 take: limit,
                 skip: offset,
@@ -48,7 +55,7 @@ export async function GET(request: Request) {
                 },
             }),
             prisma.balanceTransaction.count({
-                where: { userId: user.id },
+                where: whereClause,
             }),
         ]);
 

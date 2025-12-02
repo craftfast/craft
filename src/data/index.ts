@@ -10,6 +10,18 @@
 
 import aiModelsData from "./ai-models.json";
 
+// Export country data
+export {
+    COUNTRIES,
+    STATES_BY_COUNTRY,
+    TAX_ID_INFO,
+    getTaxIdInfo,
+    getCountryName,
+    getStatesForCountry,
+    countryHasStates,
+    type CountryCode,
+} from "./countries";
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================

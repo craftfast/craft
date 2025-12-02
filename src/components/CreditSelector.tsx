@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   SUGGESTED_TOPUP_AMOUNTS,
   PLATFORM_FEE_PERCENT,
+  GST_PERCENT,
 } from "@/lib/pricing-constants";
 
 interface CreditSelectorProps {
@@ -42,7 +43,8 @@ export default function CreditSelector({
   };
 
   const getTotalWithFee = (amount: number) => {
-    return amount * (1 + PLATFORM_FEE_PERCENT);
+    const withFee = amount * (1 + PLATFORM_FEE_PERCENT);
+    return withFee * (1 + GST_PERCENT);
   };
 
   const handleSelect = (amount: number) => {

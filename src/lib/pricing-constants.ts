@@ -15,28 +15,54 @@ export { USAGE_LIMITS };
 // ============================================================================
 
 export const PLATFORM_FEE_PERCENT = 0.10; // 10% platform fee on top-ups
+export const GST_PERCENT = 0.18; // 18% GST (India)
 export const MINIMUM_BALANCE_AMOUNT = 10; // Minimum $10 balance top-up
 export const MINIMUM_CHECKOUT_AMOUNT = 11; // $10 + 10% fee
 export const MINIMUM_BALANCE_THRESHOLD = 0.50; // Block operations below $0.50
 export const LOW_BALANCE_WARNING_THRESHOLD = 5.00; // Warn when balance < $5
 
 // Suggested top-up amounts (what user sees)
-export const SUGGESTED_TOPUP_AMOUNTS = [25, 50, 100, 250];
+export const SUGGESTED_TOPUP_AMOUNTS = [25, 50, 100, 250, 500, 1000];
 
 /**
- * Calculate checkout amount from desired balance (includes 10% fee)
- * Example: $100 desired balance = $110 checkout amount
+ * Calculate checkout amount from desired balance (includes 10% platform fee + 18% GST)
+ * Example: $100 desired balance = $100 + $10 fee + $19.80 GST = $129.80 checkout amount
  */
 export function getCheckoutAmount(desiredBalance: number): number {
-    return Math.ceil(desiredBalance * (1 + PLATFORM_FEE_PERCENT) * 100) / 100;
+    const withFee = desiredBalance * (1 + PLATFORM_FEE_PERCENT);
+    const withGST = withFee * (1 + GST_PERCENT);
+    return Math.ceil(withGST * 100) / 100;
 }
 
 /**
- * Calculate balance from checkout amount (removes 10% fee)
- * Example: $110 checkout = $100 balance credited
+ * Get breakdown of fees for a given balance amount
+ */
+export function getFeeBreakdown(desiredBalance: number): {
+    balance: number;
+    platformFee: number;
+    gst: number;
+    total: number;
+} {
+    const platformFee = desiredBalance * PLATFORM_FEE_PERCENT;
+    const subtotal = desiredBalance + platformFee;
+    const gst = subtotal * GST_PERCENT;
+    const total = Math.ceil((subtotal + gst) * 100) / 100;
+    return {
+        balance: desiredBalance,
+        platformFee: Math.ceil(platformFee * 100) / 100,
+        gst: Math.ceil(gst * 100) / 100,
+        total,
+    };
+}
+
+/**
+ * Calculate balance from checkout amount (removes 10% fee + 18% GST)
+ * Example: $129.80 checkout = $100 balance credited
  */
 export function getBalanceFromCheckout(checkoutAmount: number): number {
-    return Math.floor((checkoutAmount / (1 + PLATFORM_FEE_PERCENT)) * 100) / 100;
+    const withoutGST = checkoutAmount / (1 + GST_PERCENT);
+    const balance = withoutGST / (1 + PLATFORM_FEE_PERCENT);
+    return Math.floor(balance * 100) / 100;
 }
 
 // ============================================================================
