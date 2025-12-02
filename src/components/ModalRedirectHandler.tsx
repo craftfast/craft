@@ -1,26 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import ProjectsModal from "./ProjectsModal";
+import { useSearchParams, useRouter } from "next/navigation";
 import FeedbackModal from "./FeedbackModal";
 import { parseModalType } from "@/lib/url-params";
 
 /**
  * Professional URL Query Parameter Handler for Non-Settings Modals
  *
- * Handles opening modals based on URL parameters:
- * - ?modal=projects&view=grid&sort=recent - Open projects modal with grid view sorted by recent
- * - ?modal=projects&view=list&sort=name&search=test - Open projects modal with list view, sorted by name, filtered by search
+ * Handles opening modals or redirecting based on URL parameters:
+ * - ?modal=projects - Redirect to /projects page
  * - ?modal=feedback - Open feedback modal
  *
- * Settings modal is handled separately by SettingsRedirectHandler due to its complexity
+ * Settings are handled separately by SettingsRedirectHandler
  */
 export default function ModalRedirectHandler() {
   const searchParams = useSearchParams();
-  const [modalType, setModalType] = useState<"projects" | "feedback" | null>(
-    null
-  );
+  const router = useRouter();
+  const [modalType, setModalType] = useState<"feedback" | null>(null);
   const [hasProcessed, setHasProcessed] = useState(false);
 
   useEffect(() => {
@@ -32,15 +29,22 @@ export default function ModalRedirectHandler() {
     // Parse modal type
     const type = parseModalType(searchParams);
 
-    // Only handle projects and feedback modals (settings handled separately)
+    // Redirect projects to /projects page
     if (type === "projects") {
-      setModalType("projects");
       setHasProcessed(true);
+      // Preserve sort and search params
+      const sort = searchParams.get("sort");
+      const search = searchParams.get("search");
+      const params = new URLSearchParams();
+      if (sort) params.set("sort", sort);
+      if (search) params.set("search", search);
+      const queryString = params.toString();
+      router.push(`/projects${queryString ? `?${queryString}` : ""}`);
     } else if (type === "feedback") {
       setModalType("feedback");
       setHasProcessed(true);
     }
-  }, [searchParams, hasProcessed]);
+  }, [searchParams, hasProcessed, router]);
 
   const handleClose = () => {
     setModalType(null);
@@ -53,9 +57,6 @@ export default function ModalRedirectHandler() {
 
   return (
     <>
-      {modalType === "projects" && (
-        <ProjectsModal isOpen={true} onClose={handleClose} />
-      )}
       {modalType === "feedback" && (
         <FeedbackModal isOpen={true} onClose={handleClose} />
       )}

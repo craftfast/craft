@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import Image from "next/image";
 import FeedbackModal from "./FeedbackModal";
-import ProjectsModal from "./ProjectsModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
 import { useCreditBalance } from "@/contexts/CreditBalanceContext";
@@ -31,7 +30,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const { balance, isLoading } = useCreditBalance();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
@@ -167,7 +165,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
             <button
               onClick={() => {
                 setIsUserMenuOpen(false);
-                setIsProjectsModalOpen(true);
+                router.push("/projects");
               }}
               className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
             >
@@ -492,14 +490,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Projects Modal */}
-      {isProjectsModalOpen && (
-        <ProjectsModal
-          isOpen={isProjectsModalOpen}
-          onClose={() => setIsProjectsModalOpen(false)}
-        />
       )}
 
       {/* Feedback Modal */}
