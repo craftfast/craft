@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { withCsrfProtection } from "@/lib/csrf";
+import { envVarRateLimiter, checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import {
     encryptValue,
     decryptValue,
@@ -92,6 +94,15 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // Rate limiting
+        const rateLimitResult = await checkRateLimit(envVarRateLimiter, session.user.id);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: "Too many requests. Please try again later." },
+                { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+            );
+        }
+
         const { id: projectId, varId } = await params;
 
         // Check project access
@@ -151,12 +162,25 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string; varId: string }> }
 ) {
     try {
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(req);
+        if (csrfCheck) return csrfCheck;
+
         const session = await auth.api.getSession({
             headers: req.headers,
         });
 
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Rate limiting
+        const rateLimitResult = await checkRateLimit(envVarRateLimiter, session.user.id);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: "Too many requests. Please try again later." },
+                { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+            );
         }
 
         const { id: projectId, varId } = await params;
@@ -271,12 +295,25 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string; varId: string }> }
 ) {
     try {
+        // CSRF Protection
+        const csrfCheck = await withCsrfProtection(req);
+        if (csrfCheck) return csrfCheck;
+
         const session = await auth.api.getSession({
             headers: req.headers,
         });
 
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Rate limiting
+        const rateLimitResult = await checkRateLimit(envVarRateLimiter, session.user.id);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: "Too many requests. Please try again later." },
+                { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+            );
         }
 
         const { id: projectId, varId } = await params;

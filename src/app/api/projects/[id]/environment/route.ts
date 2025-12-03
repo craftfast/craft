@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
+import { envVarRateLimiter, checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import {
     encryptValue,
     validateEnvVarName,
@@ -95,6 +96,15 @@ export async function POST(
 
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Rate limiting
+        const rateLimitResult = await checkRateLimit(envVarRateLimiter, session.user.id);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: "Too many requests. Please try again later." },
+                { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+            );
         }
 
         const { id: projectId } = await params;
@@ -220,6 +230,15 @@ export async function GET(
 
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Rate limiting
+        const rateLimitResult = await checkRateLimit(envVarRateLimiter, session.user.id);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: "Too many requests. Please try again later." },
+                { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+            );
         }
 
         const { id: projectId } = await params;

@@ -72,6 +72,17 @@ export const authRateLimiter = new Ratelimit({
 });
 
 /**
+ * Rate limiter for environment variable operations (sensitive data)
+ * Allows 30 requests per minute per user to prevent enumeration attacks
+ */
+export const envVarRateLimiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(30, "1 m"),
+    analytics: true,
+    prefix: "craft:ratelimit:envvar",
+});
+
+/**
  * Check if rate limit is exceeded for a given identifier
  * 
  * @param limiter - The rate limiter to use

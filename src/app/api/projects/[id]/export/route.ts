@@ -318,6 +318,8 @@ export async function GET(
 
         // JSON format (legacy support)
         if (format === 'json') {
+            // NOTE: Environment variables are intentionally NOT exported for security
+            // They contain sensitive secrets and should be configured separately
             const exportData = {
                 metadata: {
                     name: project.name,
@@ -328,7 +330,7 @@ export async function GET(
                     updatedAt: project.updatedAt,
                 },
                 codeFiles: project.codeFiles,
-                environmentVariables: project.environmentVariables,
+                // environmentVariables intentionally excluded - contains secrets
                 customViews: project.customViews,
             };
 

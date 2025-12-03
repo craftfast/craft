@@ -2,18 +2,27 @@ import { createCipheriv, createDecipheriv, randomBytes, createHash } from "crypt
 
 // Encryption key must be 32 bytes for AES-256
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const IS_TEST = process.env.NODE_ENV === "test";
 const ENCRYPTION_KEY = process.env.ENV_VAR_ENCRYPTION_KEY;
 
-// Validate encryption key in production
-if (IS_PRODUCTION && !ENCRYPTION_KEY) {
-    throw new Error(
-        "ENV_VAR_ENCRYPTION_KEY environment variable is required in production. " +
-        "Generate a secure 32-character key for AES-256 encryption."
-    );
+// Validate encryption key - required in all environments except test
+// Generate a key using: openssl rand -hex 32
+if (!ENCRYPTION_KEY && !IS_TEST) {
+    if (IS_PRODUCTION) {
+        throw new Error(
+            "ENV_VAR_ENCRYPTION_KEY environment variable is required. " +
+            "Generate a secure 32-character key using: openssl rand -hex 32"
+        );
+    } else {
+        console.warn(
+            "⚠️ ENV_VAR_ENCRYPTION_KEY is not set. Environment variables will not be properly encrypted. " +
+            "Generate a key using: openssl rand -hex 32"
+        );
+    }
 }
 
-// Use default key only in development
-const EFFECTIVE_KEY = ENCRYPTION_KEY || "default-32-byte-key-for-dev-use";
+// Use encryption key or fallback for development (with warning above)
+const EFFECTIVE_KEY = ENCRYPTION_KEY || "dev-fallback-key-not-secure-32c";
 const IV_LENGTH = 16;
 
 /**
