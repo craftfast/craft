@@ -1,13 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Globe, Link2, Lock, Copy, Download, Trash2 } from "lucide-react";
+import {
+  Globe,
+  Link2,
+  Lock,
+  Copy,
+  Download,
+  Trash2,
+  Check,
+  Loader2,
+} from "lucide-react";
 
 type Visibility = "public" | "secret" | "private";
 
@@ -18,26 +27,47 @@ export default function ProjectGeneralSettingsPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
+    "idle"
+  );
 
   // General settings
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("private");
 
-  // Load project settings
-  useEffect(() => {
-    loadProjectSettings();
-  }, [projectId]);
+  // Track initial values to detect changes
+  const initialValuesRef = useRef({
+    name: "",
+    description: "",
+    visibility: "private" as Visibility,
+  });
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialLoadRef = useRef(true);
 
-  const loadProjectSettings = async () => {
+  const loadProjectSettings = useCallback(async () => {
+    if (!projectId) return;
+
     setIsLoading(true);
     try {
       const response = await fetch(`/api/projects/${projectId}`);
       if (response.ok) {
         const data = await response.json();
-        setProjectName(data.name || "");
-        setProjectDescription(data.description || "");
-        setVisibility(data.visibility || "private");
+        const project = data.project;
+        if (project) {
+          setProjectName(project.name || "");
+          setProjectDescription(project.description || "");
+          setVisibility(project.visibility || "private");
+          // Store initial values
+          initialValuesRef.current = {
+            name: project.name || "",
+            description: project.description || "",
+            visibility: project.visibility || "private",
+          };
+          isInitialLoadRef.current = false;
+        }
+      } else {
+        toast.error("Failed to load project settings");
       }
     } catch (error) {
       console.error("Failed to load project settings:", error);
@@ -45,32 +75,80 @@ export default function ProjectGeneralSettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [projectId]);
 
-  const handleSaveGeneral = async () => {
-    setIsSaving(true);
-    try {
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: projectName,
-          description: projectDescription,
-          visibility,
-        }),
-      });
+  // Load project settings
+  useEffect(() => {
+    loadProjectSettings();
+  }, [loadProjectSettings]);
 
-      if (response.ok) {
-        toast.success("Project settings updated");
-      } else {
-        toast.error("Failed to update settings");
+  // Autosave function
+  const autoSave = useCallback(
+    async (name: string, description: string, vis: Visibility) => {
+      // Don't save if values haven't changed from initial
+      if (
+        name === initialValuesRef.current.name &&
+        description === initialValuesRef.current.description &&
+        vis === initialValuesRef.current.visibility
+      ) {
+        return;
       }
-    } catch (error) {
-      toast.error("Failed to update settings");
-    } finally {
-      setIsSaving(false);
+
+      setSaveStatus("saving");
+      setIsSaving(true);
+      try {
+        const response = await fetch(`/api/projects/${projectId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            description,
+            visibility: vis,
+          }),
+        });
+
+        if (response.ok) {
+          // Update initial values after successful save
+          initialValuesRef.current = { name, description, visibility: vis };
+          setSaveStatus("saved");
+          // Reset to idle after showing "saved" for a moment
+          setTimeout(() => setSaveStatus("idle"), 2000);
+        } else {
+          toast.error("Failed to update settings");
+          setSaveStatus("idle");
+        }
+      } catch (error) {
+        toast.error("Failed to update settings");
+        setSaveStatus("idle");
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [projectId]
+  );
+
+  // Debounced autosave effect
+  useEffect(() => {
+    // Skip autosave during initial load
+    if (isInitialLoadRef.current || isLoading) return;
+
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
-  };
+
+    // Set new timeout for debounced save (800ms delay)
+    saveTimeoutRef.current = setTimeout(() => {
+      autoSave(projectName, projectDescription, visibility);
+    }, 800);
+
+    // Cleanup
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [projectName, projectDescription, visibility, autoSave, isLoading]);
 
   const handleDuplicateProject = async () => {
     try {
@@ -145,8 +223,23 @@ export default function ProjectGeneralSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="pb-4 border-b border-border">
-        <h2 className="text-2xl font-semibold">General Settings</h2>
+      <div className="pb-4 border-b border-border flex items-center justify-between">
+        <h2 className="text-2xl font-semibold">General</h2>
+        {/* Autosave Status Indicator */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          {saveStatus === "saving" && (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Saving...</span>
+            </>
+          )}
+          {saveStatus === "saved" && (
+            <>
+              <Check className="w-4 h-4 text-green-600" />
+              <span className="text-green-600">Saved</span>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -263,17 +356,6 @@ export default function ProjectGeneralSettingsPage() {
               Delete Project
             </Button>
           </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end pt-4">
-          <Button
-            onClick={handleSaveGeneral}
-            disabled={isSaving}
-            className="rounded-full"
-          >
-            {isSaving ? "Saving..." : "Save Changes"}
-          </Button>
         </div>
       </div>
     </div>
