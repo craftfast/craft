@@ -46,14 +46,9 @@ export async function GET(
             (updatedViews[viewIndex] as any).enabled = enabled;
         } else {
             // Create new view
+            // Only include functional views
             const viewLabels: Record<string, string> = {
-                database: "Database",
-                storage: "Storage",
-                logs: "Logs",
-                auth: "Auth",
-                dashboard: "Dashboard",
-                chat: "Chat",
-                deployment: "Deployment",
+                git: "Git Version History",
             };
 
             const newView = {

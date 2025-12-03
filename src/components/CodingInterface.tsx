@@ -19,12 +19,7 @@ import {
   Maximize,
   Minimize,
   Github,
-  Database,
-  HardDrive,
-  FileText,
-  BarChart3,
-  MessageCircle,
-  Cloud,
+  GitBranch,
 } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
@@ -451,18 +446,12 @@ export default function CodingInterface({
   // Ref to trigger PreviewPanel actions
   const previewPanelRef = useRef<PreviewPanelRef | null>(null);
 
-  // View icon mapping
+  // View icon mapping - only include functional views
   const viewIconMap: Record<
     string,
     React.ComponentType<{ className?: string }>
   > = {
-    database: Database,
-    storage: HardDrive,
-    logs: FileText,
-    auth: Lock,
-    dashboard: BarChart3,
-    chat: MessageCircle,
-    deployment: Cloud,
+    git: GitBranch,
   };
 
   const allViews = [

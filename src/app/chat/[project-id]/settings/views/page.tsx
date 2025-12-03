@@ -7,14 +7,12 @@ import { toast } from "sonner";
 import {
   Eye,
   Code2,
-  Database,
-  HardDrive,
-  FileText,
-  Lock,
   GitBranch,
+  Database,
+  FileText,
   BarChart3,
-  MessageCircle,
   Cloud,
+  Terminal,
 } from "lucide-react";
 
 interface CustomView {
@@ -25,15 +23,19 @@ interface CustomView {
   order: number;
 }
 
+// View types with their implementation status
 const viewTypes = [
-  { id: "database", label: "Database", icon: Database },
-  { id: "storage", label: "Storage", icon: HardDrive },
-  { id: "logs", label: "Logs", icon: FileText },
-  { id: "auth", label: "Auth", icon: Lock },
-  { id: "git", label: "Git", icon: GitBranch },
-  { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-  { id: "chat", label: "Chat", icon: MessageCircle },
-  { id: "deployment", label: "Deployment", icon: Cloud },
+  {
+    id: "git",
+    label: "Git Version History",
+    icon: GitBranch,
+    comingSoon: true,
+  },
+  { id: "database", label: "Database", icon: Database, comingSoon: true },
+  { id: "logs", label: "Logs", icon: FileText, comingSoon: true },
+  { id: "terminal", label: "Terminal", icon: Terminal, comingSoon: true },
+  { id: "analytics", label: "Analytics", icon: BarChart3, comingSoon: true },
+  { id: "deployment", label: "Deployment", icon: Cloud, comingSoon: true },
 ];
 
 export default function ProjectViewsSettingsPage() {
@@ -156,18 +158,25 @@ export default function ProjectViewsSettingsPage() {
             return (
               <div
                 key={viewType.id}
-                className="flex items-center justify-between p-4 rounded-xl border"
+                className={`flex items-center justify-between p-4 rounded-xl border ${
+                  viewType.comingSoon ? "opacity-60" : ""
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <Icon className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">{viewType.label}</span>
+                  {viewType.comingSoon && (
+                    <span className="px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-full">
+                      Coming Soon
+                    </span>
+                  )}
                 </div>
                 <Switch
                   checked={view.enabled}
                   onCheckedChange={(checked) =>
                     handleToggleCustomView(viewType.id, checked)
                   }
-                  disabled={isSaving}
+                  disabled={isSaving || viewType.comingSoon}
                 />
               </div>
             );
