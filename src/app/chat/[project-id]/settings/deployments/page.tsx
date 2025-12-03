@@ -3,9 +3,16 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Cloud, Zap, Rocket, Server, Box, ExternalLink } from "lucide-react";
+import {
+  ExternalLink,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Loader2,
+  TriangleIcon,
+} from "lucide-react";
 
 interface Deployment {
   id: string;
@@ -19,20 +26,25 @@ interface Deployment {
   duration?: number;
 }
 
+interface VercelProject {
+  id: string;
+  name: string;
+  url?: string;
+}
+
 export default function ProjectDeploymentsSettingsPage() {
   const params = useParams();
   const projectId = params["project-id"] as string;
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
-  // Deployments
+  // Vercel connection state
   const [vercelConnected, setVercelConnected] = useState(false);
-  const [netlifyConnected, setNetlifyConnected] = useState(false);
-  const [railwayConnected, setRailwayConnected] = useState(false);
-  const [renderConnected, setRenderConnected] = useState(false);
-  const [awsConnected, setAwsConnected] = useState(false);
-  const [digitalOceanConnected, setDigitalOceanConnected] = useState(false);
-  const [herokuConnected, setHerokuConnected] = useState(false);
+  const [vercelProject, setVercelProject] = useState<VercelProject | null>(
+    null
+  );
 
   // Deployment History
   const [deploymentHistory, setDeploymentHistory] = useState<Deployment[]>([]);
@@ -52,20 +64,19 @@ export default function ProjectDeploymentsSettingsPage() {
 
       if (settingsRes.ok) {
         const data = await settingsRes.json();
-        if (data.deployments) {
-          setVercelConnected(data.deployments.vercel || false);
-          setNetlifyConnected(data.deployments.netlify || false);
-          setRailwayConnected(data.deployments.railway || false);
-          setRenderConnected(data.deployments.render || false);
-          setAwsConnected(data.deployments.aws || false);
-          setDigitalOceanConnected(data.deployments.digitalOcean || false);
-          setHerokuConnected(data.deployments.heroku || false);
+        if (data.deployments?.vercel) {
+          setVercelConnected(true);
+          setVercelProject(data.deployments.vercelProject || null);
         }
       }
 
       if (deploymentsRes.ok) {
         const data = await deploymentsRes.json();
-        if (data.deployments) setDeploymentHistory(data.deployments);
+        if (data.deployments) {
+          setDeploymentHistory(
+            data.deployments.filter((d: Deployment) => d.platform === "vercel")
+          );
+        }
       }
     } catch (error) {
       console.error("Failed to load deployment settings:", error);
@@ -74,6 +85,98 @@ export default function ProjectDeploymentsSettingsPage() {
       setIsLoading(false);
     }
   };
+
+  const handleConnectVercel = async () => {
+    // Redirect to Vercel OAuth or show connection modal
+    toast.info("Connecting to Vercel...");
+    // TODO: Implement Vercel OAuth connection
+    window.open(
+      `/api/integrations/vercel/connect?projectId=${projectId}`,
+      "_blank"
+    );
+  };
+
+  const handleDisconnect = async () => {
+    setIsDisconnecting(true);
+    try {
+      const res = await fetch(
+        `/api/integrations/vercel/disconnect?projectId=${projectId}`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (res.ok) {
+        setVercelConnected(false);
+        setVercelProject(null);
+        toast.success("Disconnected from Vercel");
+      } else {
+        toast.error("Failed to disconnect from Vercel");
+      }
+    } catch (error) {
+      console.error("Failed to disconnect:", error);
+      toast.error("Failed to disconnect from Vercel");
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
+
+  const handleDeploy = async () => {
+    setIsDeploying(true);
+    try {
+      const res = await fetch(`/api/integrations/deploy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, platform: "vercel" }),
+      });
+
+      if (res.ok) {
+        toast.success("Deployment started!");
+        // Refresh deployment history
+        loadDeploymentSettings();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to start deployment");
+      }
+    } catch (error) {
+      console.error("Failed to deploy:", error);
+      toast.error("Failed to start deployment");
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "ready":
+        return <CheckCircle2 className="w-4 h-4 text-green-600" />;
+      case "error":
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      case "building":
+        return <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />;
+      default:
+        return <Clock className="w-4 h-4 text-neutral-500" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const baseClasses = "text-xs px-2 py-0.5 rounded-full font-medium";
+    switch (status) {
+      case "ready":
+        return `${baseClasses} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400`;
+      case "error":
+        return `${baseClasses} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400`;
+      case "building":
+        return `${baseClasses} bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400`;
+      default:
+        return `${baseClasses} bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-400`;
+    }
+  };
+
+  const latestDeployment = deploymentHistory[0];
+  const latestSuccessfulDeployment = deploymentHistory.find(
+    (d) => d.status === "ready" && d.vercelUrl
+  );
 
   if (isLoading) {
     return (
@@ -93,359 +196,230 @@ export default function ProjectDeploymentsSettingsPage() {
       <div className="pb-4 border-b border-border">
         <h2 className="text-2xl font-semibold">Deployments</h2>
         <p className="text-muted-foreground text-sm mt-1">
-          Deploy and sync your project with external services
+          Deploy your project to production with Vercel
         </p>
       </div>
 
+      {/* Vercel Connection Card */}
+      <div className="p-6 rounded-xl border bg-card">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-black dark:bg-white">
+              <TriangleIcon className="w-5 h-5 text-white dark:text-black fill-current" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Vercel</h3>
+              <p className="text-sm text-muted-foreground">
+                Deploy with automatic builds, preview deployments, and global
+                CDN
+              </p>
+            </div>
+          </div>
+          {vercelConnected && (
+            <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              Connected
+            </span>
+          )}
+        </div>
+
+        {!vercelConnected ? (
+          <div className="mt-6">
+            <Button
+              onClick={handleConnectVercel}
+              className="rounded-full"
+              size="lg"
+            >
+              Connect to Vercel
+            </Button>
+            <p className="text-xs text-muted-foreground mt-3">
+              Connect your Vercel account to deploy this project
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 space-y-4">
+            {/* Project Info */}
+            {vercelProject && (
+              <div className="p-4 rounded-xl bg-muted/50 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Project</span>
+                  <span className="font-medium">{vercelProject.name}</span>
+                </div>
+                {latestSuccessfulDeployment?.vercelUrl && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Production URL
+                    </span>
+                    <a
+                      href={`https://${latestSuccessfulDeployment.vercelUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground hover:underline flex items-center gap-1"
+                    >
+                      {latestSuccessfulDeployment.vercelUrl}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Latest Deployment Status */}
+            {latestDeployment && (
+              <div className="p-4 rounded-xl border space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Latest Deployment</span>
+                  <span className={getStatusBadge(latestDeployment.status)}>
+                    {latestDeployment.status === "ready"
+                      ? "Ready"
+                      : latestDeployment.status === "building"
+                      ? "Building..."
+                      : latestDeployment.status === "error"
+                      ? "Failed"
+                      : latestDeployment.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>
+                    {new Date(latestDeployment.createdAt).toLocaleDateString()}{" "}
+                    at{" "}
+                    {new Date(latestDeployment.createdAt).toLocaleTimeString()}
+                  </span>
+                  {latestDeployment.duration && (
+                    <>
+                      <span>•</span>
+                      <span>{latestDeployment.duration}s</span>
+                    </>
+                  )}
+                </div>
+                {latestDeployment.status === "error" &&
+                  latestDeployment.errorMessage && (
+                    <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
+                      {latestDeployment.errorMessage}
+                    </p>
+                  )}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleDeploy}
+                disabled={isDeploying}
+                className="rounded-full flex-1"
+              >
+                {isDeploying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Deploying...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Deploy Now
+                  </>
+                )}
+              </Button>
+              {latestSuccessfulDeployment?.vercelUrl && (
+                <Button
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() =>
+                    window.open(
+                      `https://${latestSuccessfulDeployment.vercelUrl}`,
+                      "_blank"
+                    )
+                  }
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View Site
+                </Button>
+              )}
+            </div>
+
+            {/* Disconnect */}
+            <div className="pt-4 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-red-600 rounded-lg"
+                onClick={handleDisconnect}
+                disabled={isDisconnecting}
+              >
+                {isDisconnecting
+                  ? "Disconnecting..."
+                  : "Disconnect from Vercel"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Deployment History */}
-      {deploymentHistory.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-medium mb-3">Recent Deployments</h3>
+      {vercelConnected && deploymentHistory.length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium mb-3">Deployment History</h3>
           <div className="space-y-2">
-            {deploymentHistory.slice(0, 5).map((deployment) => (
+            {deploymentHistory.slice(0, 10).map((deployment) => (
               <div
                 key={deployment.id}
-                className="p-4 rounded-xl border flex items-center justify-between"
+                className="p-4 rounded-xl border flex items-center justify-between hover:bg-muted/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      deployment.status === "ready"
-                        ? "bg-green-500"
-                        : deployment.status === "error"
-                        ? "bg-red-500"
-                        : deployment.status === "building"
-                        ? "bg-yellow-500 animate-pulse"
-                        : "bg-neutral-400"
-                    }`}
-                  />
+                  {getStatusIcon(deployment.status)}
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium capitalize">
-                        {deployment.platform}
+                      <span className={getStatusBadge(deployment.status)}>
+                        {deployment.status === "ready"
+                          ? "Ready"
+                          : deployment.status === "building"
+                          ? "Building"
+                          : deployment.status === "error"
+                          ? "Failed"
+                          : deployment.status}
                       </span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          deployment.status === "ready"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : deployment.status === "error"
-                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                            : deployment.status === "building"
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                            : "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-400"
-                        }`}
-                      >
-                        {deployment.status}
-                      </span>
+                      {deployment.vercelUrl && (
+                        <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                          {deployment.vercelUrl}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {new Date(deployment.createdAt).toLocaleDateString()} at{" "}
                       {new Date(deployment.createdAt).toLocaleTimeString()}
                       {deployment.duration && ` • ${deployment.duration}s`}
                     </p>
                   </div>
                 </div>
-                {deployment.vercelUrl && deployment.status === "ready" && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-lg"
-                    onClick={() =>
-                      window.open(`https://${deployment.vercelUrl}`, "_blank")
-                    }
-                  >
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    View
-                  </Button>
-                )}
-                {deployment.status === "error" && deployment.errorMessage && (
-                  <span className="text-xs text-red-500 max-w-[200px] truncate">
-                    {deployment.errorMessage}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {deployment.vercelUrl && deployment.status === "ready" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-lg"
+                      onClick={() =>
+                        window.open(`https://${deployment.vercelUrl}`, "_blank")
+                      }
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="space-y-4">
-        {/* Vercel */}
-        <div className="p-6 rounded-xl border">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Cloud className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Vercel</h3>
-                <p className="text-sm text-muted-foreground">
-                  Deploy to Vercel with automatic builds and preview deployments
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={vercelConnected}
-              onCheckedChange={setVercelConnected}
-            />
-          </div>
-
-          {vercelConnected && (
-            <div className="space-y-3 mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Status</span>
-                <span className="text-green-600 font-medium">Connected</span>
-              </div>
-              {deploymentHistory.find(
-                (d) => d.platform === "vercel" && d.vercelUrl
-              ) && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Latest URL</span>
-                  <a
-                    href={`https://${
-                      deploymentHistory.find(
-                        (d) => d.platform === "vercel" && d.vercelUrl
-                      )?.vercelUrl
-                    }`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline truncate max-w-[200px]"
-                  >
-                    {
-                      deploymentHistory.find(
-                        (d) => d.platform === "vercel" && d.vercelUrl
-                      )?.vercelUrl
-                    }
-                  </a>
-                </div>
-              )}
-              <Button variant="outline" size="sm" className="w-full rounded-lg">
-                Configure Deployment
-              </Button>
-            </div>
-          )}
+      {/* Empty State */}
+      {vercelConnected && deploymentHistory.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>
+            No deployments yet. Click "Deploy Now" to create your first
+            deployment.
+          </p>
         </div>
-
-        {/* Netlify */}
-        <div className="p-6 rounded-xl border">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Zap className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Netlify</h3>
-                <p className="text-sm text-muted-foreground">
-                  Deploy with Netlify's global CDN and continuous deployment
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={netlifyConnected}
-              onCheckedChange={setNetlifyConnected}
-            />
-          </div>
-
-          {netlifyConnected && (
-            <div className="space-y-3 mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Status</span>
-                <span className="text-green-600 font-medium">Connected</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Site ID</span>
-                <span>site-abc-123</span>
-              </div>
-              <Button variant="outline" size="sm" className="w-full rounded-lg">
-                View Site Dashboard
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Railway */}
-        <div className="p-6 rounded-xl border">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Rocket className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Railway</h3>
-                <p className="text-sm text-muted-foreground">
-                  Deploy full-stack apps with Railway's instant deployments
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={railwayConnected}
-              onCheckedChange={setRailwayConnected}
-            />
-          </div>
-
-          {railwayConnected && (
-            <div className="space-y-3 mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Status</span>
-                <span className="text-green-600 font-medium">Connected</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Environment</span>
-                <span>production</span>
-              </div>
-              <Button variant="outline" size="sm" className="w-full rounded-lg">
-                Open Railway Dashboard
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Render */}
-        <div className="p-6 rounded-xl border">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Server className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Render</h3>
-                <p className="text-sm text-muted-foreground">
-                  Deploy web services and static sites on Render's
-                  infrastructure
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={renderConnected}
-              onCheckedChange={setRenderConnected}
-            />
-          </div>
-
-          {renderConnected && (
-            <div className="space-y-3 mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Status</span>
-                <span className="text-green-600 font-medium">Connected</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Service Type</span>
-                <span>Web Service</span>
-              </div>
-              <Button variant="outline" size="sm" className="w-full rounded-lg">
-                Manage Service
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* AWS */}
-        <div className="p-6 rounded-xl border">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Box className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">AWS Amplify</h3>
-                <p className="text-sm text-muted-foreground">
-                  Deploy to AWS Amplify with CI/CD and hosting
-                </p>
-              </div>
-            </div>
-            <Switch checked={awsConnected} onCheckedChange={setAwsConnected} />
-          </div>
-
-          {awsConnected && (
-            <div className="space-y-3 mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Status</span>
-                <span className="text-green-600 font-medium">Connected</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Region</span>
-                <span>us-east-1</span>
-              </div>
-              <Button variant="outline" size="sm" className="w-full rounded-lg">
-                View AWS Console
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* DigitalOcean */}
-        <div className="p-6 rounded-xl border">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Cloud className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">DigitalOcean App Platform</h3>
-                <p className="text-sm text-muted-foreground">
-                  Deploy apps on DigitalOcean's App Platform with auto-scaling
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={digitalOceanConnected}
-              onCheckedChange={setDigitalOceanConnected}
-            />
-          </div>
-
-          {digitalOceanConnected && (
-            <div className="space-y-3 mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Status</span>
-                <span className="text-green-600 font-medium">Connected</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">App ID</span>
-                <span>app-do-xyz</span>
-              </div>
-              <Button variant="outline" size="sm" className="w-full rounded-lg">
-                Open App Console
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Heroku */}
-        <div className="p-6 rounded-xl border">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Server className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Heroku</h3>
-                <p className="text-sm text-muted-foreground">
-                  Deploy to Heroku with Git-based deployments and add-ons
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={herokuConnected}
-              onCheckedChange={setHerokuConnected}
-            />
-          </div>
-
-          {herokuConnected && (
-            <div className="space-y-3 mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Status</span>
-                <span className="text-green-600 font-medium">Connected</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">App Name</span>
-                <span>my-heroku-app</span>
-              </div>
-              <Button variant="outline" size="sm" className="w-full rounded-lg">
-                Manage Heroku App
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
