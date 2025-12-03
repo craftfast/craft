@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   ExternalLink,
   RefreshCw,
@@ -12,6 +13,8 @@ import {
   Clock,
   Loader2,
   TriangleIcon,
+  Unlink,
+  Rocket,
 } from "lucide-react";
 
 interface Deployment {
@@ -149,27 +152,17 @@ export default function ProjectDeploymentsSettingsPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "ready":
-        return <CheckCircle2 className="w-4 h-4 text-green-600" />;
+        return (
+          <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500" />
+        );
       case "error":
-        return <XCircle className="w-4 h-4 text-red-600" />;
+        return <XCircle className="w-4 h-4 text-red-600 dark:text-red-500" />;
       case "building":
-        return <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />;
+        return (
+          <Loader2 className="w-4 h-4 text-amber-600 dark:text-amber-500 animate-spin" />
+        );
       default:
-        return <Clock className="w-4 h-4 text-neutral-500" />;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const baseClasses = "text-xs px-2 py-0.5 rounded-full font-medium";
-    switch (status) {
-      case "ready":
-        return `${baseClasses} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400`;
-      case "error":
-        return `${baseClasses} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400`;
-      case "building":
-        return `${baseClasses} bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400`;
-      default:
-        return `${baseClasses} bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-400`;
+        return <Clock className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -185,7 +178,7 @@ export default function ProjectDeploymentsSettingsPage() {
           <h2 className="text-2xl font-semibold">Deployments</h2>
         </div>
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground" />
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
       </div>
     );
@@ -200,226 +193,260 @@ export default function ProjectDeploymentsSettingsPage() {
         </p>
       </div>
 
-      {/* Vercel Connection Card */}
-      <div className="p-6 rounded-xl border bg-card">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-black dark:bg-white">
-              <TriangleIcon className="w-5 h-5 text-white dark:text-black fill-current" />
+      <div className="space-y-4">
+        {/* Vercel Connection Status */}
+        <div className="p-6 rounded-xl border">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-neutral-900 dark:bg-white">
+                <TriangleIcon className="w-5 h-5 text-white dark:text-neutral-900 fill-current" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Vercel</h3>
+                <p className="text-sm text-muted-foreground">
+                  {vercelConnected
+                    ? "Deploy with automatic builds and preview deployments"
+                    : "Connect your Vercel account to deploy"}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-lg">Vercel</h3>
-              <p className="text-sm text-muted-foreground">
-                Deploy with automatic builds, preview deployments, and global
-                CDN
-              </p>
-            </div>
+            {vercelConnected && (
+              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-500" />
+            )}
           </div>
-          {vercelConnected && (
-            <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 font-medium">
-              <CheckCircle2 className="w-4 h-4" />
-              Connected
-            </span>
+
+          {!vercelConnected ? (
+            <Button onClick={handleConnectVercel} className="w-full rounded-lg">
+              <Rocket className="w-4 h-4 mr-2" />
+              Connect Vercel Account
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={handleDisconnect}
+              disabled={isDisconnecting}
+              className="w-full rounded-lg text-destructive hover:text-destructive"
+            >
+              {isDisconnecting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Unlink className="w-4 h-4 mr-2" />
+              )}
+              Disconnect Vercel
+            </Button>
           )}
         </div>
 
-        {!vercelConnected ? (
-          <div className="mt-6">
-            <Button
-              onClick={handleConnectVercel}
-              className="rounded-full"
-              size="lg"
-            >
-              Connect to Vercel
-            </Button>
-            <p className="text-xs text-muted-foreground mt-3">
-              Connect your Vercel account to deploy this project
-            </p>
-          </div>
-        ) : (
-          <div className="mt-6 space-y-4">
-            {/* Project Info */}
-            {vercelProject && (
-              <div className="p-4 rounded-xl bg-muted/50 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Project</span>
-                  <span className="font-medium">{vercelProject.name}</span>
-                </div>
+        {/* Deployment Management - Only show when connected */}
+        {vercelConnected && (
+          <>
+            {/* Project Info & Deploy */}
+            <div className="p-6 rounded-xl border space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Deployment</h3>
                 {latestSuccessfulDeployment?.vercelUrl && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Production URL
-                    </span>
-                    <a
-                      href={`https://${latestSuccessfulDeployment.vercelUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-foreground hover:underline flex items-center gap-1"
-                    >
-                      {latestSuccessfulDeployment.vercelUrl}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-lg"
+                    onClick={() =>
+                      window.open(
+                        `https://${latestSuccessfulDeployment.vercelUrl}`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    View Site
+                  </Button>
+                )}
+              </div>
+
+              {/* Project Info */}
+              {(vercelProject || latestSuccessfulDeployment?.vercelUrl) && (
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
+                  <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                    <TriangleIcon className="w-5 h-5 text-muted-foreground fill-current" />
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Latest Deployment Status */}
-            {latestDeployment && (
-              <div className="p-4 rounded-xl border space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Latest Deployment</span>
-                  <span className={getStatusBadge(latestDeployment.status)}>
-                    {latestDeployment.status === "ready"
-                      ? "Ready"
-                      : latestDeployment.status === "building"
-                      ? "Building..."
-                      : latestDeployment.status === "error"
-                      ? "Failed"
-                      : latestDeployment.status}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>
-                    {new Date(latestDeployment.createdAt).toLocaleDateString()}{" "}
-                    at{" "}
-                    {new Date(latestDeployment.createdAt).toLocaleTimeString()}
-                  </span>
-                  {latestDeployment.duration && (
-                    <>
-                      <span>•</span>
-                      <span>{latestDeployment.duration}s</span>
-                    </>
-                  )}
-                </div>
-                {latestDeployment.status === "error" &&
-                  latestDeployment.errorMessage && (
-                    <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
-                      {latestDeployment.errorMessage}
-                    </p>
-                  )}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={handleDeploy}
-                disabled={isDeploying}
-                className="rounded-full flex-1"
-              >
-                {isDeploying ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Deploying...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Deploy Now
-                  </>
-                )}
-              </Button>
-              {latestSuccessfulDeployment?.vercelUrl && (
-                <Button
-                  variant="outline"
-                  className="rounded-full"
-                  onClick={() =>
-                    window.open(
-                      `https://${latestSuccessfulDeployment.vercelUrl}`,
-                      "_blank"
-                    )
-                  }
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  View Site
-                </Button>
-              )}
-            </div>
-
-            {/* Disconnect */}
-            <div className="pt-4 border-t">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-red-600 rounded-lg"
-                onClick={handleDisconnect}
-                disabled={isDisconnecting}
-              >
-                {isDisconnecting
-                  ? "Disconnecting..."
-                  : "Disconnect from Vercel"}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Deployment History */}
-      {vercelConnected && deploymentHistory.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium mb-3">Deployment History</h3>
-          <div className="space-y-2">
-            {deploymentHistory.slice(0, 10).map((deployment) => (
-              <div
-                key={deployment.id}
-                className="p-4 rounded-xl border flex items-center justify-between hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {getStatusIcon(deployment.status)}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className={getStatusBadge(deployment.status)}>
-                        {deployment.status === "ready"
-                          ? "Ready"
-                          : deployment.status === "building"
-                          ? "Building"
-                          : deployment.status === "error"
-                          ? "Failed"
-                          : deployment.status}
-                      </span>
-                      {deployment.vercelUrl && (
-                        <span className="text-xs text-muted-foreground truncate max-w-[200px]">
-                          {deployment.vercelUrl}
+                  <div className="flex-1 min-w-0">
+                    {vercelProject && (
+                      <h4 className="font-medium text-sm truncate">
+                        {vercelProject.name}
+                      </h4>
+                    )}
+                    {latestSuccessfulDeployment?.vercelUrl && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="truncate">
+                          {latestSuccessfulDeployment.vercelUrl}
                         </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(deployment.createdAt).toLocaleDateString()} at{" "}
-                      {new Date(deployment.createdAt).toLocaleTimeString()}
-                      {deployment.duration && ` • ${deployment.duration}s`}
-                    </p>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {deployment.vercelUrl && deployment.status === "ready" && (
+                  {latestSuccessfulDeployment?.vercelUrl && (
                     <Button
                       variant="ghost"
-                      size="sm"
-                      className="rounded-lg"
+                      size="icon"
+                      className="h-8 w-8 rounded-lg"
                       onClick={() =>
-                        window.open(`https://${deployment.vercelUrl}`, "_blank")
+                        window.open(
+                          `https://${latestSuccessfulDeployment.vercelUrl}`,
+                          "_blank"
+                        )
                       }
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Button>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              )}
 
-      {/* Empty State */}
-      {vercelConnected && deploymentHistory.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>
-            No deployments yet. Click "Deploy Now" to create your first
-            deployment.
-          </p>
-        </div>
-      )}
+              {/* Latest Deployment Status */}
+              {latestDeployment && (
+                <div
+                  className={cn(
+                    "flex items-center gap-2 p-3 rounded-lg text-sm",
+                    latestDeployment.status === "ready" &&
+                      "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400",
+                    latestDeployment.status === "error" &&
+                      "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400",
+                    latestDeployment.status === "building" &&
+                      "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400",
+                    !["ready", "error", "building"].includes(
+                      latestDeployment.status
+                    ) && "bg-neutral-100 dark:bg-neutral-800"
+                  )}
+                >
+                  {getStatusIcon(latestDeployment.status)}
+                  <span>
+                    {latestDeployment.status === "ready"
+                      ? "Deployment ready"
+                      : latestDeployment.status === "building"
+                      ? "Building deployment..."
+                      : latestDeployment.status === "error"
+                      ? latestDeployment.errorMessage || "Deployment failed"
+                      : latestDeployment.status}
+                  </span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleDeploy}
+                  disabled={isDeploying}
+                  className="flex-1 rounded-lg"
+                >
+                  {isDeploying ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Rocket className="w-4 h-4 mr-2" />
+                  )}
+                  Deploy Now
+                </Button>
+                <Button
+                  onClick={loadDeploymentSettings}
+                  variant="outline"
+                  className="rounded-lg"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Last Deployment Info */}
+              {latestDeployment && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Last deployment:{" "}
+                  {new Date(latestDeployment.createdAt).toLocaleString()}
+                  {latestDeployment.duration &&
+                    ` • ${latestDeployment.duration}s`}
+                </p>
+              )}
+            </div>
+
+            {/* Deployment History */}
+            {deploymentHistory.length > 1 && (
+              <div className="p-6 rounded-xl border space-y-4">
+                <h3 className="font-semibold">Deployment History</h3>
+                <div className="space-y-2">
+                  {deploymentHistory.slice(1, 6).map((deployment) => (
+                    <div
+                      key={deployment.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        {getStatusIcon(deployment.status)}
+                        <div>
+                          <p className="text-sm font-medium">
+                            {deployment.status === "ready"
+                              ? "Ready"
+                              : deployment.status === "building"
+                              ? "Building"
+                              : deployment.status === "error"
+                              ? "Failed"
+                              : deployment.status}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(
+                              deployment.createdAt
+                            ).toLocaleDateString()}{" "}
+                            at{" "}
+                            {new Date(
+                              deployment.createdAt
+                            ).toLocaleTimeString()}
+                            {deployment.duration &&
+                              ` • ${deployment.duration}s`}
+                          </p>
+                        </div>
+                      </div>
+                      {deployment.vercelUrl &&
+                        deployment.status === "ready" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-lg"
+                            onClick={() =>
+                              window.open(
+                                `https://${deployment.vercelUrl}`,
+                                "_blank"
+                              )
+                            }
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                        )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Features List */}
+            <div className="p-6 rounded-xl border bg-muted/30 space-y-3">
+              <p className="text-sm font-medium">
+                With Vercel deployment you get:
+              </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-500 shrink-0" />
+                  <span>Automatic builds on every push</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-500 shrink-0" />
+                  <span>Preview deployments for branches</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-500 shrink-0" />
+                  <span>Global CDN with edge functions</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-500 shrink-0" />
+                  <span>Automatic HTTPS and custom domains</span>
+                </li>
+              </ul>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
