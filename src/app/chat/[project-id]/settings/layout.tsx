@@ -46,14 +46,14 @@ const menuItems: {
     path: "/collaborators",
     icon: Users,
   },
-  { id: "git", label: "Git & Version Control", path: "/git", icon: GitBranch },
+  { id: "versions", label: "Version History", path: "/versions", icon: Clock },
+  { id: "git", label: "GitHub", path: "/git", icon: GitBranch },
   {
     id: "deployments",
     label: "Deployments",
     path: "/deployments",
     icon: Cloud,
   },
-  { id: "versions", label: "Versions", path: "/versions", icon: Clock },
   { id: "knowledge", label: "Knowledge", path: "/knowledge", icon: FolderOpen },
   {
     id: "usage-billing",
