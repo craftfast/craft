@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.min.css";
+import { RefreshCw } from "lucide-react";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { ModelSelector } from "@/components/ModelSelector";
@@ -1691,14 +1692,10 @@ export default function ChatPanel({
           {isLoading && !messages.some((m) => m.isStreaming) && (
             <div className="flex gap-4 justify-start">
               <div className="px-4 py-3 w-full">
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                    <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.4s]" />
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    Working...
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
+                  <span className="text-xs text-muted-foreground">
+                    Thinking
                   </span>
                 </div>
               </div>

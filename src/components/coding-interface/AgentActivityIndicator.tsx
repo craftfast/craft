@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import {
-  Loader2,
   CheckCircle2,
   XCircle,
   Terminal,
   FileCode,
   Wrench,
+  Package,
+  FolderOpen,
+  Search,
+  Eye,
+  Play,
+  RefreshCw,
 } from "lucide-react";
 
 interface ToolCall {
@@ -28,19 +33,51 @@ const TOOL_ICONS: Record<
   React.ComponentType<{ className?: string }>
 > = {
   runSandboxCommand: Terminal,
+  runCommand: Terminal,
   generateFiles: FileCode,
   editFile: FileCode,
   readFile: FileCode,
+  writeFile: FileCode,
+  writeSandboxFile: FileCode,
+  readSandboxFile: FileCode,
+  installPackages: Package,
+  listFiles: FolderOpen,
+  listDirectory: FolderOpen,
+  getProjectStructure: FolderOpen,
+  searchFiles: Search,
+  triggerPreview: Eye,
+  initializeNextApp: Play,
+  createProjectSandbox: Play,
+  validateProject: RefreshCw,
+  syncFilesToDB: RefreshCw,
+  checkProjectEmpty: Search,
+  deleteFile: FileCode,
+  getLogs: Terminal,
   default: Wrench,
 };
 
 const TOOL_LABELS: Record<string, string> = {
   runSandboxCommand: "Running command",
+  runCommand: "Running command",
   generateFiles: "Generating files",
   editFile: "Editing file",
   readFile: "Reading file",
+  writeFile: "Writing file",
+  writeSandboxFile: "Writing file",
+  readSandboxFile: "Reading file",
   searchFiles: "Searching files",
+  listFiles: "Listing files",
   listDirectory: "Listing directory",
+  getProjectStructure: "Getting project structure",
+  installPackages: "Installing packages",
+  triggerPreview: "Starting preview",
+  initializeNextApp: "Initializing Next.js app",
+  createProjectSandbox: "Creating sandbox",
+  validateProject: "Validating project",
+  syncFilesToDB: "Syncing files",
+  checkProjectEmpty: "Checking project",
+  deleteFile: "Deleting file",
+  getLogs: "Getting logs",
 };
 
 export function AgentActivityIndicator({
@@ -66,7 +103,7 @@ export function AgentActivityIndicator({
     const completed = Array.from(toolCalls.values())
       .filter((tc) => tc.status !== "running")
       .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
-      .slice(0, 3); // Keep last 3 activities
+      .slice(0, 5); // Keep last 5 activities
 
     setRecentActivities(completed);
   }, [toolCalls]);
@@ -92,71 +129,71 @@ export function AgentActivityIndicator({
     return `${(duration / 1000).toFixed(1)}s`;
   };
 
+  // Calculate elapsed time for running activities
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    if (currentActivity) {
+      const interval = setInterval(() => forceUpdate((n) => n + 1), 100);
+      return () => clearInterval(interval);
+    }
+  }, [currentActivity]);
+
   return (
-    <div className="border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 px-4 py-3">
-      {/* Current Activity */}
+    <div className="space-y-1.5">
+      {/* Current Activity - Highlighted */}
       {currentActivity && (
-        <div className="flex items-center gap-3 mb-3">
-          <Loader2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400 animate-spin" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              {(() => {
-                const Icon = getToolIcon(currentActivity.name);
-                return (
-                  <Icon className="w-4 h-4 text-neutral-600 dark:text-neutral-400 flex-shrink-0" />
-                );
-              })()}
-              <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                {getToolLabel(currentActivity.name)}
-              </span>
-            </div>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
-              Running for {formatDuration(currentActivity.startedAt)}
-            </p>
-          </div>
+        <div className="flex items-center gap-2 py-1.5 px-3 rounded-lg bg-neutral-100 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700">
+          {/* Spinning loader */}
+          <RefreshCw className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400 animate-spin flex-shrink-0" />
+          {/* Tool icon */}
+          {(() => {
+            const Icon = getToolIcon(currentActivity.name);
+            return (
+              <Icon className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400 flex-shrink-0" />
+            );
+          })()}
+          {/* Tool name */}
+          <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+            {getToolLabel(currentActivity.name)}
+          </span>
+          {/* Running time */}
+          <span className="text-xs text-neutral-500 dark:text-neutral-500 ml-auto tabular-nums">
+            Running for {formatDuration(currentActivity.startedAt)}
+          </span>
         </div>
       )}
 
-      {/* Recent Activities */}
+      {/* Recent Activities - Collapsed view */}
       {recentActivities.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {recentActivities.map((activity) => {
             const Icon = getToolIcon(activity.name);
-            const StatusIcon =
-              activity.status === "success" ? CheckCircle2 : XCircle;
-            const statusColor =
-              activity.status === "success"
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400";
+            const isSuccess = activity.status === "success";
 
             return (
               <div
                 key={activity.id}
-                className="flex items-center gap-3 opacity-60"
+                className="flex items-center gap-2 py-1 px-3 rounded-lg"
               >
-                <StatusIcon
-                  className={`w-3.5 h-3.5 ${statusColor} flex-shrink-0`}
-                />
-                <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <Icon className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400 flex-shrink-0" />
-                  <span className="text-xs text-neutral-700 dark:text-neutral-300 truncate">
-                    {getToolLabel(activity.name)}
-                  </span>
-                  <span className="text-xs text-neutral-500 dark:text-neutral-500 flex-shrink-0">
-                    {formatDuration(activity.startedAt, activity.completedAt)}
-                  </span>
-                </div>
+                {/* Status icon */}
+                {isSuccess ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-500 flex-shrink-0" />
+                ) : (
+                  <XCircle className="w-3.5 h-3.5 text-red-500 dark:text-red-400 flex-shrink-0" />
+                )}
+                {/* Tool icon */}
+                <Icon className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 flex-shrink-0" />
+                {/* Tool name */}
+                <span className="text-xs text-neutral-500 dark:text-neutral-500">
+                  {getToolLabel(activity.name)}
+                </span>
+                {/* Duration */}
+                <span className="text-xs text-neutral-400 dark:text-neutral-600 ml-auto tabular-nums">
+                  {formatDuration(activity.startedAt, activity.completedAt)}
+                </span>
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Idle state - only show when streaming but no active tools */}
-      {isStreaming && !currentActivity && recentActivities.length === 0 && (
-        <div className="flex items-center gap-3 text-neutral-600 dark:text-neutral-400">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-sm">Agent is thinking...</span>
         </div>
       )}
     </div>

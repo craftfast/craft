@@ -562,25 +562,53 @@ export async function writeFilesToSandbox(
  * This function extends the sandbox timeout to prevent auto-pause.
  * Useful for keeping sandboxes alive during active user sessions.
  * 
+ * ⚠️ PERFORMANCE NOTE: When passing a sandbox ID string, this creates a new
+ * connection to E2B API. For better performance, pass an existing Sandbox instance
+ * when available, or use the cached connection approach.
+ * 
  * @param sandbox - Sandbox instance or sandbox ID
  * @param timeoutMs - Timeout in milliseconds (default: 10 minutes)
+ * @returns True if timeout was extended, false if failed
  */
 export async function keepSandboxAlive(
     sandbox: Sandbox | string,
     timeoutMs = 10 * 60 * 1000
-): Promise<void> {
+): Promise<boolean> {
+    const sandboxId = typeof sandbox === 'string' ? sandbox : sandbox.sandboxId;
+
     try {
-        const sandboxInstance = typeof sandbox === 'string'
-            ? await Sandbox.connect(sandbox)
-            : sandbox;
+        let sandboxInstance: Sandbox;
+
+        if (typeof sandbox === 'string') {
+            // When only sandbox ID is provided, we need to connect
+            // Use a shorter timeout for the connection attempt to fail fast
+            const connectTimeoutMs = 15000; // 15 seconds
+
+            const connectPromise = Sandbox.connect(sandbox);
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error('Connection timeout')), connectTimeoutMs);
+            });
+
+            sandboxInstance = await Promise.race([connectPromise, timeoutPromise]);
+        } else {
+            sandboxInstance = sandbox;
+        }
 
         await sandboxInstance.setTimeout(timeoutMs);
-
-        const sandboxId = typeof sandbox === 'string' ? sandbox : sandboxInstance.sandboxId;
         console.log(`⏰ Extended sandbox ${sandboxId} timeout by ${timeoutMs / 1000}s`);
+        return true;
     } catch (error) {
-        const sandboxId = typeof sandbox === 'string' ? sandbox : sandbox.sandboxId;
-        console.warn(`⚠️ Failed to extend timeout for ${sandboxId}:`, error);
+        // Log at warn level - heartbeat failures are usually transient network issues
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        // Don't log full stack trace for common transient errors
+        if (errorMessage.includes('timeout') || errorMessage.includes('CONNECT_TIMEOUT')) {
+            console.warn(`⚠️ Heartbeat timeout for ${sandboxId} (transient - will retry on next interval)`);
+        } else {
+            console.warn(`⚠️ Failed to extend timeout for ${sandboxId}: ${errorMessage}`);
+        }
+
+        return false;
     }
 }
 

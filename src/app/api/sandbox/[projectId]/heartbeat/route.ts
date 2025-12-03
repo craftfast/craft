@@ -13,6 +13,11 @@ import { keepSandboxAlive } from "@/lib/e2b/sandbox-manager";
  * - Seamless experience - no sandbox pauses while user is working
  * - Only extends timeout when user is actually active
  * - Automatic cleanup when user leaves (sandbox auto-pauses after 10 minutes of no heartbeat)
+ * 
+ * Error Handling:
+ * - Returns success even if timeout extension fails (transient network issues are common)
+ * - The sandbox has a 10-minute timeout, so missing one heartbeat is fine
+ * - Logs warnings for failed extensions to help debug persistent issues
  */
 export async function POST(
     request: NextRequest,
@@ -51,13 +56,18 @@ export async function POST(
 
         // Extend the sandbox timeout by 10 minutes (600,000ms)
         // This is called every 5 minutes, so sandbox will always have 10 minutes remaining
-        await keepSandboxAlive(project.sandboxId, 10 * 60 * 1000);
+        // Returns false if extension failed (transient network issue)
+        const success = await keepSandboxAlive(project.sandboxId, 10 * 60 * 1000);
 
-        console.log(`💓 Heartbeat received for project ${projectId}, sandbox ${project.sandboxId} - timeout extended`);
+        console.log(`💓 Heartbeat received for project ${projectId}, sandbox ${project.sandboxId} - timeout ${success ? 'extended' : 'extension failed (will retry)'}`);
 
+        // Always return success to the client - even if extension failed,
+        // the sandbox won't pause immediately (has 10 min timeout)
+        // The next heartbeat in 5 min will likely succeed
         return NextResponse.json({
             success: true,
-            message: "Sandbox timeout extended",
+            extended: success,
+            message: success ? "Sandbox timeout extended" : "Heartbeat received (extension will retry)",
             sandboxId: project.sandboxId,
             nextHeartbeatIn: 5 * 60 * 1000, // 5 minutes in ms
         });
@@ -65,7 +75,7 @@ export async function POST(
         console.error("❌ Heartbeat error:", error);
         return NextResponse.json(
             {
-                error: "Failed to extend sandbox timeout",
+                error: "Failed to process heartbeat",
                 details: error instanceof Error ? error.message : "Unknown error",
             },
             { status: 500 }
