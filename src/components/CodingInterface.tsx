@@ -66,7 +66,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
-import ProjectSettingsModal from "@/components/ProjectSettingsModal";
 
 type TabType = "preview" | "code" | string;
 
@@ -119,7 +118,6 @@ export default function CodingInterface({
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
-  const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [_isVisibilitySubmenuOpen, _setIsVisibilitySubmenuOpen] =
     useState(false);
@@ -766,7 +764,7 @@ export default function CodingInterface({
                 <DropdownMenuItem
                   className="rounded-lg"
                   onClick={() => {
-                    setIsProjectSettingsOpen(true);
+                    router.push(`/chat/${project.id}/settings`);
                     setIsProjectMenuOpen(false);
                   }}
                 >
@@ -1299,16 +1297,6 @@ export default function CodingInterface({
           open={isDatabaseDialogOpen}
           onOpenChange={setIsDatabaseDialogOpen}
           projectId={project.id}
-        />
-
-        {/* Project Settings Modal */}
-        <ProjectSettingsModal
-          isOpen={isProjectSettingsOpen}
-          onClose={() => setIsProjectSettingsOpen(false)}
-          projectId={project.id}
-          projectName={project.name}
-          projectDescription={project.description}
-          projectVisibility={projectVisibility}
         />
       </div>
     </TooltipProvider>
