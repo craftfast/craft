@@ -1203,6 +1203,7 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
                     className="w-full h-full border-none"
                     title="Preview"
                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                    allow="clipboard-read; clipboard-write"
                     onLoad={() => {
                       console.log("✅ Iframe loaded successfully!");
                       // Capture screenshot on first successful load
