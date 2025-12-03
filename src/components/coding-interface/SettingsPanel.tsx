@@ -14,7 +14,6 @@ export default function SettingsPanel({
 }: SettingsPanelProps) {
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "private">("private");
   const [autoSave, setAutoSave] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,9 +121,7 @@ export default function SettingsPanel({
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
-        <div className="text-sm text-muted-foreground">
-          Loading settings...
-        </div>
+        <div className="text-sm text-muted-foreground">Loading settings...</div>
       </div>
     );
   }
@@ -133,9 +130,7 @@ export default function SettingsPanel({
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
       <div className="h-14 border-b border-border flex items-center justify-between px-6">
-        <h2 className="text-sm font-semibold text-foreground">
-          App Settings
-        </h2>
+        <h2 className="text-sm font-semibold text-foreground">App Settings</h2>
         <button
           onClick={handleSave}
           disabled={isSaving}
@@ -191,33 +186,6 @@ export default function SettingsPanel({
                 <p className="mt-1 text-xs text-muted-foreground">
                   Add a description to generate an AI-powered project name
                 </p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                  Visibility
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setVisibility("public")}
-                    className={`flex-1 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                      visibility === "public"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                    }`}
-                  >
-                    Public
-                  </button>
-                  <button
-                    onClick={() => setVisibility("private")}
-                    className={`flex-1 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                      visibility === "private"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                    }`}
-                  >
-                    Private
-                  </button>
-                </div>
               </div>
             </div>
           </section>

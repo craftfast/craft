@@ -9,8 +9,6 @@ import {
   Copy,
   Download,
   Eye,
-  Globe,
-  Link2,
   Lock,
   Code2,
   Monitor,
@@ -73,7 +71,6 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
-  visibility?: "public" | "secret" | "private";
   version?: number; // v0 = template, v1+ = AI updates
   generationStatus?: string; // "template" | "generating" | "ready"
   previewImage?: string | null; // Screenshot/preview image URL
@@ -119,11 +116,6 @@ export default function CodingInterface({
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
-  const [_isVisibilitySubmenuOpen, _setIsVisibilitySubmenuOpen] =
-    useState(false);
-  const [projectVisibility, setProjectVisibility] = useState<
-    "public" | "secret" | "private"
-  >(project.visibility || "private");
   const [previewUrl, setPreviewUrl] = useState("/");
   const [deviceMode, setDeviceMode] = useState<"desktop" | "mobile">("desktop");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -136,8 +128,6 @@ export default function CodingInterface({
   const [newProjectName, setNewProjectName] = useState("");
   const [isRenaming, setIsRenaming] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [shareUrlCopied, setShareUrlCopied] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [versions, setVersions] = useState<
     Array<{
@@ -337,42 +327,6 @@ export default function CodingInterface({
     URL.revokeObjectURL(url);
   };
 
-  // Function to handle visibility change
-  const handleVisibilityChange = async (
-    newVisibility: "public" | "secret" | "private"
-  ) => {
-    const previousVisibility = projectVisibility;
-    setProjectVisibility(newVisibility);
-
-    try {
-      const response = await fetch(`/api/projects/${project.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ visibility: newVisibility }),
-      });
-
-      if (!response.ok) {
-        // Revert on error
-        setProjectVisibility(previousVisibility);
-        console.error("Failed to update visibility");
-      }
-    } catch (error) {
-      // Revert on error
-      setProjectVisibility(previousVisibility);
-      console.error("Error updating visibility:", error);
-    }
-  };
-
-  // Function to copy share URL
-  const handleCopyShareUrl = () => {
-    const shareUrl = `${window.location.origin}/project/${project.id}`;
-    navigator.clipboard.writeText(shareUrl);
-    setShareUrlCopied(true);
-    setTimeout(() => setShareUrlCopied(false), 2000);
-  };
-
   // Function to load version history
   const loadVersionHistory = async () => {
     setIsLoadingVersions(true);
@@ -555,16 +509,6 @@ export default function CodingInterface({
                   <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
                     {project.name}
                   </h1>
-                  {/* Visibility Icon */}
-                  {projectVisibility === "private" && (
-                    <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                  )}
-                  {projectVisibility === "secret" && (
-                    <Link2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                  )}
-                  {projectVisibility === "public" && (
-                    <Globe className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                  )}
                   <ChevronDown
                     className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ${
                       isProjectMenuOpen ? "rotate-180" : ""
@@ -623,60 +567,6 @@ export default function CodingInterface({
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="rounded-lg">
-                    <Eye className="w-4 h-4 mr-3" />
-                    <div className="flex-1 flex items-center justify-between">
-                      <span>Visibility</span>
-                      <span className="text-xs text-muted-foreground capitalize ml-2">
-                        {projectVisibility}
-                      </span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="w-64 rounded-xl">
-                    <DropdownMenuItem
-                      onClick={() => handleVisibilityChange("public")}
-                      className="rounded-lg flex-col items-start gap-1"
-                    >
-                      <div className="flex items-center gap-3 w-full">
-                        <Globe className="w-4 h-4 text-muted-foreground" />
-                        <div className="text-sm font-medium">Public</div>
-                      </div>
-                      <div className="text-xs text-muted-foreground ml-7">
-                        Everyone can view
-                      </div>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem
-                      onClick={() => handleVisibilityChange("secret")}
-                      className="rounded-lg flex-col items-start gap-1"
-                    >
-                      <div className="flex items-center gap-3 w-full">
-                        <Link2 className="w-4 h-4 text-muted-foreground" />
-                        <div className="text-sm font-medium">Secret</div>
-                      </div>
-                      <div className="text-xs text-muted-foreground ml-7">
-                        Accessible via shared URL
-                      </div>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem
-                      onClick={() => handleVisibilityChange("private")}
-                      className="rounded-lg flex-col items-start gap-1"
-                    >
-                      <div className="flex items-center gap-3 w-full">
-                        <Lock className="w-4 h-4 text-muted-foreground" />
-                        <div className="text-sm font-medium">Private</div>
-                      </div>
-                      <div className="text-xs text-muted-foreground ml-7">
-                        Only owner can access
-                      </div>
-                    </DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-
-                <DropdownMenuSeparator />
-
                 <DropdownMenuItem
                   className="rounded-lg"
                   onClick={() => {
@@ -698,31 +588,6 @@ export default function CodingInterface({
                     />
                   </svg>
                   <span>Connect Database</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  className="rounded-lg"
-                  onClick={() => {
-                    setIsShareDialogOpen(true);
-                    setIsProjectMenuOpen(false);
-                  }}
-                >
-                  <svg
-                    className="w-4 h-4 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                    />
-                  </svg>
-                  <span>Share</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -1147,55 +1012,6 @@ export default function CodingInterface({
                 className="rounded-lg"
               >
                 {isRenaming ? "Renaming..." : "Rename"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Share Project Dialog */}
-        <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-          <DialogContent className="rounded-2xl sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Share project</DialogTitle>
-              <DialogDescription>
-                Anyone with this link can view your project.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="flex items-center gap-2">
-                <Input
-                  value={`${
-                    typeof window !== "undefined" ? window.location.origin : ""
-                  }/project/${project.id}`}
-                  readOnly
-                  className="rounded-lg flex-1"
-                />
-                <Button
-                  onClick={handleCopyShareUrl}
-                  className="rounded-lg"
-                  variant={shareUrlCopied ? "secondary" : "default"}
-                >
-                  {shareUrlCopied ? "Copied!" : "Copy"}
-                </Button>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Current visibility:{" "}
-                <span className="capitalize font-medium">
-                  {projectVisibility}
-                </span>
-                {projectVisibility === "private" && (
-                  <span className="block mt-1">
-                    This project is private. Change visibility to share it.
-                  </span>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                onClick={() => setIsShareDialogOpen(false)}
-                className="rounded-lg"
-              >
-                Done
               </Button>
             </DialogFooter>
           </DialogContent>

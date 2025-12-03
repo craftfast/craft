@@ -64,11 +64,6 @@ export default async function ProjectCodingPage({ params }: PageProps) {
   // Serialize project data (convert any Decimal fields in nested user object)
   const serializedProject = {
     ...project,
-    visibility: project.visibility as
-      | "public"
-      | "secret"
-      | "private"
-      | undefined,
     user: project.user
       ? {
           ...project.user,
