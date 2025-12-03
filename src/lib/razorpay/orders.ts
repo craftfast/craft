@@ -23,7 +23,7 @@ export async function createRazorpayOrder(params: CreateOrderParams) {
     const { userId, userName, userEmail, amount, description, notes = {} } = params;
 
     try {
-        // Ensure customer exists
+        // Try to get or create customer (may return null if customer already exists but can't be fetched)
         const customer = await getOrCreateRazorpayCustomer({
             userId,
             name: userName,
@@ -35,16 +35,22 @@ export async function createRazorpayOrder(params: CreateOrderParams) {
         const userIdShort = userId.slice(0, 8); // Use first 8 chars of userId
         const receipt = `rcpt_${userIdShort}_${timestamp}`.slice(0, 40);
 
+        // Build notes - customer_id is optional
+        const orderNotes: Record<string, string> = {
+            user_id: userId,
+            description,
+            ...notes,
+        };
+
+        if (customer?.id) {
+            orderNotes.customer_id = customer.id;
+        }
+
         const order = await razorpayClient.orders.create({
             amount: toSmallestUnit(amount),
             currency: RAZORPAY_CURRENCY,
             receipt,
-            notes: {
-                user_id: userId,
-                customer_id: customer.id,
-                description,
-                ...notes,
-            },
+            notes: orderNotes,
         });
 
         console.log(`Created Razorpay order ${order.id} for user ${userId} - Amount: ${amount} ${RAZORPAY_CURRENCY}`);
@@ -53,7 +59,7 @@ export async function createRazorpayOrder(params: CreateOrderParams) {
             orderId: order.id,
             amount: order.amount,
             currency: order.currency,
-            customerId: customer.id,
+            customerId: customer?.id || null,
         };
     } catch (error) {
         console.error("Error creating Razorpay order:", error);

@@ -116,7 +116,7 @@ export function BalanceTopUp({
         />
         <p className="text-sm text-neutral-500">
           You&apos;ll be charged ${(amount * 1.1).toFixed(2)} (includes 10%
-          platform fee)
+          platform fee). Indian customers: additional 18% GST applies.
         </p>
       </div>
 

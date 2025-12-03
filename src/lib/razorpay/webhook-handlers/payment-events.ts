@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { PaymentCapturedEvent, PaymentFailedEvent, OrderPaidEvent } from "../webhook-types";
 import { getUserByRazorpayInfo } from "../webhooks";
 import { fromSmallestUnit } from "../index";
+import { sendPaymentReceipt } from "../receipts";
 
 /**
  * Handle payment.captured event
@@ -23,17 +24,26 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
         const userId = payment.notes?.user_id;
 
         // Try to get user by ID first, then fall back to email
-        let user;
+        let user: { id: string; email: string; name?: string | null; razorpayCustomerId: string | null; billingCountry?: string | null } | null = null;
+
         if (userId) {
             user = await prisma.user.findUnique({
                 where: { id: userId },
-                select: { id: true, email: true, razorpayCustomerId: true },
+                select: { id: true, email: true, name: true, razorpayCustomerId: true, billingCountry: true },
             });
         }
 
         // Fall back to email lookup if user not found by ID
         if (!user) {
-            user = await getUserByRazorpayInfo(undefined, payment.email);
+            const basicUser = await getUserByRazorpayInfo(undefined, payment.email);
+            if (basicUser) {
+                // Fetch additional fields needed for invoice
+                const fullUser = await prisma.user.findUnique({
+                    where: { id: basicUser.id },
+                    select: { id: true, email: true, name: true, razorpayCustomerId: true, billingCountry: true },
+                });
+                user = fullUser;
+            }
         }
 
         if (!user) {
@@ -49,6 +59,9 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
         // Handle balance top-up
         if (purchaseType === "balance_topup") {
             const requestedBalance = parseFloat(payment.notes?.requested_balance || "0");
+            const platformFee = parseFloat(payment.notes?.platform_fee || "0");
+            const gst = parseFloat(payment.notes?.gst || "0");
+            const billingCountry = payment.notes?.billing_country || user.billingCountry;
             const amount = fromSmallestUnit(payment.amount);
 
             if (requestedBalance > 0) {
@@ -83,11 +96,34 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
                             orderId: payment.order_id,
                             totalCharged: amount,
                             platformFee: payment.notes?.platform_fee,
+                            gst: payment.notes?.gst,
                         },
                     },
                 });
 
                 console.log(`Added $${requestedBalance} balance to user ${user.id} (payment ${payment.id})`);
+
+                // Send payment receipt email (async, don't block payment processing)
+                sendPaymentReceipt({
+                    userId: user.id,
+                    userEmail: user.email,
+                    userName: user.name || undefined,
+                    paymentId: payment.id,
+                    orderId: payment.order_id,
+                    credits: requestedBalance,
+                    platformFee,
+                    gst,
+                    totalAmount: amount,
+                    currency: payment.currency.toUpperCase(),
+                }).then(result => {
+                    if (result.success) {
+                        console.log(`Receipt email processed for payment ${payment.id}`);
+                    } else {
+                        console.error(`Failed to send receipt for payment ${payment.id}:`, result.error);
+                    }
+                }).catch(err => {
+                    console.error(`Error sending receipt for payment ${payment.id}:`, err);
+                });
             }
         }
 

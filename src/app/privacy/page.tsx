@@ -31,7 +31,7 @@ export default function PrivacyPolicy() {
         <div className="prose prose-neutral dark:prose-invert max-w-none">
           <h1 className="text-4xl font-bold mb-2">Privacy Policy</h1>
           <p className="text-neutral-600 dark:text-neutral-400 mb-8">
-            Last updated: October 22, 2025
+            Last updated: December 3, 2025
           </p>
 
           <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-6 mb-8">
@@ -60,8 +60,8 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Payment Information:</strong> Billing details, payment
-                card information (processed securely through Razorpay), and
-                transaction history for Pro and Enterprise subscriptions.
+                card information (processed securely through Razorpay in USD),
+                and transaction history for balance top-ups and usage.
               </li>
               <li>
                 <strong>Profile Information:</strong> Optional information such

@@ -2,6 +2,13 @@
  * Pricing Constants
  * OpenRouter-style transparent pay-as-you-go pricing
  * Users top up balance with 10% platform fee, then pay exact provider costs
+ * 
+ * Tax Rules:
+ * - India: 18% GST applies on PLATFORM FEE ONLY (not on credits)
+ * - International: 0% GST (export of services is zero-rated under Indian GST)
+ * 
+ * Legal basis: Credits are pass-through costs to AI providers (pure agent).
+ * GST applies only to our service charge (platform fee), not the underlying transaction.
  */
 
 import { AVAILABLE_MODELS } from "@/lib/models/config";
@@ -15,7 +22,7 @@ export { USAGE_LIMITS };
 // ============================================================================
 
 export const PLATFORM_FEE_PERCENT = 0.10; // 10% platform fee on top-ups
-export const GST_PERCENT = 0.18; // 18% GST (India)
+export const GST_PERCENT = 0.18; // 18% GST on platform fee (India only)
 export const MINIMUM_BALANCE_AMOUNT = 10; // Minimum $10 balance top-up
 export const MINIMUM_CHECKOUT_AMOUNT = 11; // $10 + 10% fee
 export const MINIMUM_BALANCE_THRESHOLD = 0.50; // Block operations below $0.50
@@ -25,43 +32,65 @@ export const LOW_BALANCE_WARNING_THRESHOLD = 5.00; // Warn when balance < $5
 export const SUGGESTED_TOPUP_AMOUNTS = [25, 50, 100, 250, 500, 1000];
 
 /**
- * Calculate checkout amount from desired balance (includes 10% platform fee + 18% GST)
- * Example: $100 desired balance = $100 + $10 fee + $19.80 GST = $129.80 checkout amount
+ * Check if a country is India (for GST purposes)
  */
-export function getCheckoutAmount(desiredBalance: number): number {
-    const withFee = desiredBalance * (1 + PLATFORM_FEE_PERCENT);
-    const withGST = withFee * (1 + GST_PERCENT);
-    return Math.ceil(withGST * 100) / 100;
+export function isIndianCustomer(countryCode: string | null | undefined): boolean {
+    return countryCode?.toUpperCase() === 'IN';
+}
+
+/**
+ * Calculate checkout amount from desired balance
+ * - India: credits + platform fee + GST on platform fee only
+ * - International: credits + platform fee only
+ * 
+ * Example (India): $100 credits + $10 fee + $1.80 GST (on fee) = $111.80
+ * Example (International): $100 credits + $10 fee = $110.00
+ */
+export function getCheckoutAmount(desiredBalance: number, countryCode?: string | null): number {
+    const platformFee = desiredBalance * PLATFORM_FEE_PERCENT;
+    const gstOnFee = isIndianCustomer(countryCode) ? platformFee * GST_PERCENT : 0;
+    const total = desiredBalance + platformFee + gstOnFee;
+    return Math.ceil(total * 100) / 100;
 }
 
 /**
  * Get breakdown of fees for a given balance amount
+ * GST applies only to platform fee for Indian customers
  */
-export function getFeeBreakdown(desiredBalance: number): {
+export function getFeeBreakdown(desiredBalance: number, countryCode?: string | null): {
     balance: number;
     platformFee: number;
     gst: number;
     total: number;
+    isIndian: boolean;
 } {
+    const isIndian = isIndianCustomer(countryCode);
     const platformFee = desiredBalance * PLATFORM_FEE_PERCENT;
-    const subtotal = desiredBalance + platformFee;
-    const gst = subtotal * GST_PERCENT;
-    const total = Math.ceil((subtotal + gst) * 100) / 100;
+    const gst = isIndian ? platformFee * GST_PERCENT : 0;
+    const total = Math.ceil((desiredBalance + platformFee + gst) * 100) / 100;
     return {
         balance: desiredBalance,
         platformFee: Math.ceil(platformFee * 100) / 100,
         gst: Math.ceil(gst * 100) / 100,
         total,
+        isIndian,
     };
 }
 
 /**
- * Calculate balance from checkout amount (removes 10% fee + 18% GST)
- * Example: $129.80 checkout = $100 balance credited
+ * Calculate balance from checkout amount (removes fees based on country)
+ * - India: removes platform fee + GST on fee
+ * - International: removes platform fee only
  */
-export function getBalanceFromCheckout(checkoutAmount: number): number {
-    const withoutGST = checkoutAmount / (1 + GST_PERCENT);
-    const balance = withoutGST / (1 + PLATFORM_FEE_PERCENT);
+export function getBalanceFromCheckout(checkoutAmount: number, countryCode?: string | null): number {
+    // Formula: total = balance + fee + gst_on_fee
+    // total = balance + (balance * 0.1) + (balance * 0.1 * 0.18) for India
+    // total = balance * (1 + 0.1 + 0.018) = balance * 1.118 for India
+    // total = balance * 1.1 for International
+    const feeMultiplier = isIndianCustomer(countryCode)
+        ? (1 + PLATFORM_FEE_PERCENT + PLATFORM_FEE_PERCENT * GST_PERCENT)
+        : (1 + PLATFORM_FEE_PERCENT);
+    const balance = checkoutAmount / feeMultiplier;
     return Math.floor(balance * 100) / 100;
 }
 

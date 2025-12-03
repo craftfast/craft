@@ -58,6 +58,7 @@ export async function POST(request: Request) {
                 id: true,
                 email: true,
                 name: true,
+                billingCountry: true,
             },
         });
 
@@ -65,21 +66,29 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Calculate total checkout amount (includes 10% fee)
-        const checkoutAmount = getCheckoutAmount(amount);
-        const platformFee = checkoutAmount - amount;
+        // Calculate total checkout amount (includes 10% fee + GST on fee for Indian customers)
+        const checkoutAmount = getCheckoutAmount(amount, user.billingCountry);
+        const platformFee = amount * 0.1; // 10% platform fee
+        const gst = user.billingCountry === "IN" ? platformFee * 0.18 : 0; // GST on fee only
+        const isIndian = user.billingCountry === "IN";
 
         // Create Razorpay order
+        const description = isIndian
+            ? `Balance Top-Up: $${amount} + $${platformFee.toFixed(2)} fee + $${gst.toFixed(2)} GST`
+            : `Balance Top-Up: $${amount} + $${platformFee.toFixed(2)} fee`;
+
         const order = await createRazorpayOrder({
             userId: user.id,
             userName: user.name || user.email,
             userEmail: user.email,
             amount: checkoutAmount,
-            description: `Balance Top-Up: $${amount} + $${platformFee.toFixed(2)} fee`,
+            description,
             notes: {
                 purchase_type: "balance_topup",
                 requested_balance: amount.toString(),
                 platform_fee: platformFee.toFixed(2),
+                gst: gst.toFixed(2),
+                billing_country: user.billingCountry || "unknown",
                 total_charged: checkoutAmount.toFixed(2),
             },
         });
@@ -89,6 +98,8 @@ export async function POST(request: Request) {
             requestedBalance: amount,
             checkoutAmount,
             platformFee,
+            gst,
+            billingCountry: user.billingCountry,
             orderId: order.orderId,
         });
 
@@ -100,6 +111,8 @@ export async function POST(request: Request) {
             keyId: RAZORPAY_CONFIG.keyId,
             requestedBalance: amount,
             platformFee: platformFee.toFixed(2),
+            gst: gst.toFixed(2),
+            isIndian,
             totalCharged: checkoutAmount.toFixed(2),
         });
     } catch (error) {

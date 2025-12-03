@@ -155,14 +155,6 @@ export default function PricingPage() {
     },
   ];
 
-  // Top-up examples
-  const topupExamples = [
-    { balance: 25, checkout: 27.5 },
-    { balance: 50, checkout: 55.0 },
-    { balance: 100, checkout: 110.0 },
-    { balance: 250, checkout: 275.0 },
-  ];
-
   const faqs = [
     {
       question: "How do I top up my balance?",
@@ -170,9 +162,9 @@ export default function PricingPage() {
         "Go to your Dashboard → Click on your balance → Choose an amount → Pay securely via Razorpay. Your balance is credited instantly and you can start using it right away.",
     },
     {
-      question: "What is the 10% service fee?",
+      question: "What is the 10% service fee? Are there any taxes?",
       answer:
-        "We charge a 10% platform fee on top-ups to cover payment processing, platform maintenance, and support. For example, to get $100 in credits, you pay $110. This allows us to pass through AI costs at zero markup.",
+        "We charge a 10% platform fee on top-ups to cover payment processing, platform maintenance, and support. For Indian customers, 18% GST is additionally applicable as per Indian tax regulations. This allows us to pass through AI costs at zero markup.",
     },
     {
       question: "Do my credits expire?",
@@ -286,8 +278,8 @@ export default function PricingPage() {
                   Top Up Your Balance
                 </h3>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  Add credits starting from $10. We charge a 10% service fee on
-                  top-ups. Credits are valid for 1 year.
+                  Add credits starting from $10. We charge a 10% service fee.
+                  Credits are valid for 1 year.
                 </p>
               </div>
 
@@ -351,36 +343,74 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* Top-Up Calculator */}
+          {/* Top-Up Examples */}
           <div className="mb-20">
             <div className="bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-8">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="flex flex-col gap-6">
+                {/* Header */}
                 <div>
                   <h2 className="text-2xl font-bold text-foreground mb-2">
                     Top-Up Examples
                   </h2>
                   <p className="text-neutral-600 dark:text-neutral-400">
-                    10% service fee on all top-ups • Minimum $10 • Credits valid
-                    for 1 year
+                    10% service fee • Min $10 • Additional taxes applicable
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  {topupExamples.map((example, idx) => (
+
+                {/* Pricing Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { credits: 10, fee: 1, total: 11 },
+                    { credits: 25, fee: 2.5, total: 27.5 },
+                    { credits: 50, fee: 5, total: 55 },
+                    { credits: 100, fee: 10, total: 110 },
+                  ].map((example, idx) => (
                     <div
                       key={idx}
-                      className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-3 text-center min-w-[100px]"
+                      className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4"
                     >
-                      <div className="text-lg font-bold text-foreground">
-                        ${example.balance}
+                      <div className="text-2xl font-bold text-foreground mb-1">
+                        ${example.credits}
                       </div>
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
                         credits
                       </div>
-                      <div className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                        Pay ${example.checkout.toFixed(2)}
+                      <div className="space-y-1 text-xs text-neutral-500 dark:text-neutral-400 border-t border-neutral-200 dark:border-neutral-700 pt-3">
+                        <div className="flex justify-between">
+                          <span>Service fee (10%)</span>
+                          <span>${example.fee.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-neutral-200 dark:border-neutral-700">
+                          <span>Total</span>
+                          <span>${example.total.toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* GST Note for Indian customers */}
+                <div className="flex items-start gap-2 p-3 bg-neutral-200/50 dark:bg-neutral-700/50 rounded-lg">
+                  <svg
+                    className="w-5 h-5 text-neutral-600 dark:text-neutral-400 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    <strong className="text-foreground">
+                      Note for Indian customers:
+                    </strong>{" "}
+                    18% GST is additionally applicable as per Indian tax
+                    regulations.
+                  </p>
                 </div>
               </div>
             </div>

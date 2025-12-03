@@ -31,7 +31,7 @@ export default function TermsOfService() {
         <div className="prose prose-neutral dark:prose-invert max-w-none">
           <h1 className="text-4xl font-bold mb-2">Terms of Service</h1>
           <p className="text-neutral-600 dark:text-neutral-400 mb-8">
-            Last updated: October 22, 2025
+            Last updated: December 3, 2025
           </p>
 
           <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-6 mb-8">
@@ -163,7 +163,7 @@ export default function TermsOfService() {
             <ul className="space-y-2">
               <li>
                 <strong>Payment Processing:</strong> All payments are processed
-                securely through Razorpay
+                securely through Razorpay in USD
               </li>
               <li>
                 <strong>Balance Top-ups:</strong> Top up your account balance
@@ -180,12 +180,18 @@ export default function TermsOfService() {
                 cards, UPI, net banking, and other methods supported by Razorpay
               </li>
               <li>
-                <strong>Taxes:</strong> You are responsible for all applicable
-                taxes
+                <strong>Taxes:</strong> GST (18%) applies to platform fees for
+                Indian customers. International customers are exempt (zero-rated
+                export of services).
               </li>
               <li>
-                <strong>Currency:</strong> Prices are in USD as displayed during
-                purchase
+                <strong>Currency:</strong> All prices, payments, and balances
+                are in USD
+              </li>
+              <li>
+                <strong>Payment Receipts:</strong> Payment confirmation receipts
+                are sent via email if you enable this option in your account
+                settings
               </li>
             </ul>
 

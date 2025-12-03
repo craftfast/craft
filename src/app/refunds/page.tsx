@@ -33,7 +33,7 @@ export default function RefundPolicy() {
             Cancellation &amp; Refund Policy
           </h1>
           <p className="text-neutral-600 dark:text-neutral-400 mb-8">
-            Last updated: October 22, 2025
+            Last updated: December 3, 2025
           </p>
 
           <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-6 mb-8">
@@ -380,8 +380,10 @@ export default function RefundPolicy() {
 
             <h3 className="text-xl font-semibold mb-3">6.1 Payment Gateway</h3>
             <p className="mb-3">
-              All payments are securely processed through Razorpay. We do not
-              store your complete payment information on our servers.
+              All payments are securely processed through Razorpay in USD. We do
+              not store your complete payment information on our servers.
+              Payment receipts are sent via email if you have enabled this
+              option in your account settings.
             </p>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">
@@ -399,18 +401,15 @@ export default function RefundPolicy() {
               </li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">
-              6.3 Currency &amp; Conversion
-            </h3>
+            <h3 className="text-xl font-semibold mb-3 mt-6">6.3 Currency</h3>
             <ul className="space-y-2">
-              <li>Refunds are issued in the original transaction currency</li>
+              <li>All transactions and refunds are processed in USD</li>
               <li>
-                Any currency conversion fees charged by your bank are not
-                refundable
+                Any currency conversion fees charged by your bank for
+                international transactions are not refundable
               </li>
               <li>
-                Exchange rate differences between charge and refund dates are
-                not compensated
+                Razorpay handles forex conversion for non-USD payment methods
               </li>
             </ul>
           </section>

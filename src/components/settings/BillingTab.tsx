@@ -14,7 +14,6 @@ import CustomCheckoutModal from "@/components/CustomCheckoutModal";
 import {
   MINIMUM_BALANCE_AMOUNT,
   PLATFORM_FEE_PERCENT,
-  GST_PERCENT,
 } from "@/lib/pricing-constants";
 
 interface Transaction {
@@ -134,10 +133,10 @@ export function BillingTab() {
         <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/50">
           <div className="text-xs text-muted-foreground">
             <span className="font-medium text-foreground">
-              {(PLATFORM_FEE_PERCENT * 100).toFixed(0)}% fee +{" "}
-              {(GST_PERCENT * 100).toFixed(0)}% GST
+              {(PLATFORM_FEE_PERCENT * 100).toFixed(0)}% service fee
             </span>{" "}
-            on top-ups • Min ${MINIMUM_BALANCE_AMOUNT} • No subscriptions
+            on top-ups • Min ${MINIMUM_BALANCE_AMOUNT} • Additional taxes
+            applicable
           </div>
           <a
             href="/pricing"

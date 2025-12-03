@@ -225,6 +225,13 @@ export default function CustomCheckoutModal({
       return;
     }
 
+    // Require billing country for tax calculation
+    if (!billingInfo?.billingCountry) {
+      toast.error("Please add your billing address to continue");
+      setShowBillingForm(true);
+      return;
+    }
+
     setLoading(true);
     try {
       // Create Razorpay order
@@ -305,7 +312,8 @@ export default function CustomCheckoutModal({
     platformFee,
     gst,
     total: checkoutAmount,
-  } = getFeeBreakdown(amount);
+    isIndian,
+  } = getFeeBreakdown(amount, billingInfo.billingCountry);
 
   // Helper to format billing address for display
   const formatBillingAddress = () => {
@@ -757,11 +765,9 @@ export default function CustomCheckoutModal({
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-neutral-400">
-                GST ({(GST_PERCENT * 100).toFixed(0)}%)
-              </span>
+              <span className="text-neutral-400">GST</span>
               <span className="font-mono text-neutral-200">
-                {gst > 0 ? `$${gst.toFixed(2)}` : "N/A"}
+                {isIndian ? `$${gst.toFixed(2)}` : "N/A"}
               </span>
             </div>
             <div className="h-px bg-neutral-700" />
@@ -779,7 +785,11 @@ export default function CustomCheckoutModal({
             disabled={loading || amount < MINIMUM_BALANCE_AMOUNT}
             className="w-full h-12 rounded-xl bg-neutral-700 hover:bg-neutral-600 text-white font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {loading ? "Opening checkout..." : "Purchase"}
+            {loading
+              ? "Opening checkout..."
+              : !billingInfo?.billingCountry
+              ? "Add Billing Address to Continue"
+              : "Purchase"}
           </Button>
 
           {/* Error Message */}
