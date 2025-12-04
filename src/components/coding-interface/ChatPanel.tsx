@@ -10,6 +10,7 @@ import "highlight.js/styles/github-dark.min.css";
 import { RefreshCw } from "lucide-react";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { ModelSelector } from "@/components/ModelSelector";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { notifyCreditUpdate } from "@/lib/credit-events";
 import { toast } from "sonner";
 import { OrchestratorProgress } from "./OrchestratorProgress";
 import { AgentActivityIndicator } from "./AgentActivityIndicator";
+import { SuggestionChips } from "./SuggestionChips";
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -160,6 +162,7 @@ export default function ChatPanel({
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { balance } = useCreditBalance();
+  const { playNotificationSound, suggestionsEnabled } = useUserSettings();
 
   // Initialize selected model from user preferences
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
@@ -1236,6 +1239,9 @@ export default function ChatPanel({
 
         // Trigger credit balance update after successful response
         notifyCreditUpdate();
+
+        // Play notification sound when response is complete and window is not focused
+        playNotificationSound();
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -1701,6 +1707,34 @@ export default function ChatPanel({
               </div>
             </div>
           )}
+
+          {/* Suggestion Chips - Show after last assistant message */}
+          {suggestionsEnabled &&
+            messages.length > 0 &&
+            (() => {
+              const lastMessage = messages[messages.length - 1];
+              if (
+                lastMessage?.role === "assistant" &&
+                !lastMessage.isStreaming &&
+                !isLoading
+              ) {
+                return (
+                  <SuggestionChips
+                    lastAssistantMessage={lastMessage.content}
+                    projectDescription={projectDescription}
+                    fileChanges={lastMessage.fileChanges}
+                    onSuggestionClick={(suggestion) => {
+                      setInput(suggestion);
+                      // Auto-focus the textarea
+                      textareaRef.current?.focus();
+                    }}
+                    isLoading={isLoading}
+                  />
+                );
+              }
+              return null;
+            })()}
+
           <div ref={messagesEndRef} />
         </div>
       </div>

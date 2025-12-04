@@ -6,6 +6,7 @@ import { SessionProvider } from "@/components/SessionProvider";
 import { CreditBalanceProvider } from "@/contexts/CreditBalanceContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ChatPositionProvider } from "@/contexts/ChatPositionContext";
+import { UserSettingsProvider } from "@/contexts/UserSettingsContext";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -105,7 +106,9 @@ export default function RootLayout({
         <SessionProvider>
           <ThemeProvider>
             <ChatPositionProvider>
-              <CreditBalanceProvider>{children}</CreditBalanceProvider>
+              <UserSettingsProvider>
+                <CreditBalanceProvider>{children}</CreditBalanceProvider>
+              </UserSettingsProvider>
             </ChatPositionProvider>
           </ThemeProvider>
         </SessionProvider>

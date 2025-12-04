@@ -20,6 +20,8 @@ export async function GET(_req: NextRequest) {
             select: {
                 preferredChatPosition: true,
                 preferredTheme: true,
+                suggestionsEnabled: true,
+                soundNotifications: true,
             },
         });
 
@@ -30,6 +32,8 @@ export async function GET(_req: NextRequest) {
         return NextResponse.json({
             preferredChatPosition: user.preferredChatPosition || "left",
             preferredTheme: user.preferredTheme || "system",
+            suggestionsEnabled: user.suggestionsEnabled ?? true,
+            soundNotifications: user.soundNotifications ?? false,
         });
     } catch (error) {
         console.error("Error fetching user settings:", error);
@@ -58,11 +62,11 @@ export async function PATCH(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { preferredChatPosition, preferredTheme } = body;
+        const { preferredChatPosition, preferredTheme, suggestionsEnabled, soundNotifications } = body;
 
         // Validate preferredChatPosition
         if (
-            preferredChatPosition &&
+            preferredChatPosition !== undefined &&
             preferredChatPosition !== "left" &&
             preferredChatPosition !== "right"
         ) {
@@ -74,7 +78,7 @@ export async function PATCH(req: NextRequest) {
 
         // Validate preferredTheme
         if (
-            preferredTheme &&
+            preferredTheme !== undefined &&
             preferredTheme !== "light" &&
             preferredTheme !== "dark" &&
             preferredTheme !== "system"
@@ -85,12 +89,39 @@ export async function PATCH(req: NextRequest) {
             );
         }
 
-        const updateData: { preferredChatPosition?: string; preferredTheme?: string } = {};
-        if (preferredChatPosition) {
+        // Validate suggestionsEnabled
+        if (suggestionsEnabled !== undefined && typeof suggestionsEnabled !== "boolean") {
+            return NextResponse.json(
+                { error: "Invalid suggestionsEnabled. Must be a boolean" },
+                { status: 400 }
+            );
+        }
+
+        // Validate soundNotifications
+        if (soundNotifications !== undefined && typeof soundNotifications !== "boolean") {
+            return NextResponse.json(
+                { error: "Invalid soundNotifications. Must be a boolean" },
+                { status: 400 }
+            );
+        }
+
+        const updateData: {
+            preferredChatPosition?: string;
+            preferredTheme?: string;
+            suggestionsEnabled?: boolean;
+            soundNotifications?: boolean;
+        } = {};
+        if (preferredChatPosition !== undefined) {
             updateData.preferredChatPosition = preferredChatPosition;
         }
-        if (preferredTheme) {
+        if (preferredTheme !== undefined) {
             updateData.preferredTheme = preferredTheme;
+        }
+        if (suggestionsEnabled !== undefined) {
+            updateData.suggestionsEnabled = suggestionsEnabled;
+        }
+        if (soundNotifications !== undefined) {
+            updateData.soundNotifications = soundNotifications;
         }
 
         const user = await prisma.user.update({
@@ -99,6 +130,8 @@ export async function PATCH(req: NextRequest) {
             select: {
                 preferredChatPosition: true,
                 preferredTheme: true,
+                suggestionsEnabled: true,
+                soundNotifications: true,
             },
         });
 
@@ -106,6 +139,8 @@ export async function PATCH(req: NextRequest) {
             success: true,
             preferredChatPosition: user.preferredChatPosition,
             preferredTheme: user.preferredTheme,
+            suggestionsEnabled: user.suggestionsEnabled,
+            soundNotifications: user.soundNotifications,
         });
     } catch (error) {
         console.error("Error updating user settings:", error);

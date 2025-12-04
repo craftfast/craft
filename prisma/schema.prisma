@@ -35,6 +35,8 @@ model User {
   // Custom Craft fields
   preferredChatPosition String                       @default("left")
   preferredTheme        String                       @default("system")
+  suggestionsEnabled    Boolean                      @default(true)
+  soundNotifications    Boolean                      @default(false)
   // Personalization settings
   responseTone          String? // default, concise, detailed, encouraging, professional
   customInstructions    String?                      @db.Text

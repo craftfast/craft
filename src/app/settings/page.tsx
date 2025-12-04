@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { GeneralTab } from "@/components/settings";
 
 export default function GeneralSettingsPage() {
   const { theme, setTheme } = useTheme();
   const { chatPosition, setChatPosition } = useChatPosition();
-  const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
-  const [soundNotifications, setSoundNotifications] = useState(false);
+  const {
+    suggestionsEnabled,
+    setSuggestionsEnabled,
+    soundNotifications,
+    setSoundNotifications,
+  } = useUserSettings();
 
   return (
     <div className="space-y-6">
