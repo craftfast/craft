@@ -6,14 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import {
-  MessageSquare,
-  User,
-  Code2,
-  Sparkles,
-  Check,
-  Loader2,
-} from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 export default function PersonalizationTab() {
   const [customInstructions, setCustomInstructions] = useState("");
@@ -169,18 +162,13 @@ export default function PersonalizationTab() {
 
       {/* Response Style Section */}
       <section className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-muted">
-            <MessageSquare className="w-5 h-5 text-foreground" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-foreground">
-              Response Style
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Choose how Craft AI communicates with you
-            </p>
-          </div>
+        <div>
+          <h3 className="text-base font-semibold text-foreground">
+            Response Style
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Choose how Craft AI communicates with you
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -217,18 +205,13 @@ export default function PersonalizationTab() {
 
       {/* Developer Profile Section */}
       <section className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-muted">
-            <User className="w-5 h-5 text-foreground" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-foreground">
-              Developer Profile
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Help AI understand your background for better assistance
-            </p>
-          </div>
+        <div>
+          <h3 className="text-base font-semibold text-foreground">
+            Developer Profile
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Help AI understand your background for better assistance
+          </p>
         </div>
 
         <div className="space-y-4">
@@ -271,18 +254,13 @@ export default function PersonalizationTab() {
 
       {/* Custom Instructions Section */}
       <section className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-muted">
-            <Sparkles className="w-5 h-5 text-foreground" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-foreground">
-              Custom Instructions
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Specific preferences for AI behavior
-            </p>
-          </div>
+        <div>
+          <h3 className="text-base font-semibold text-foreground">
+            Custom Instructions
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Specific preferences for AI behavior
+          </p>
         </div>
 
         <Textarea
@@ -303,18 +281,13 @@ export default function PersonalizationTab() {
 
       {/* Context & Features Section */}
       <section className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-muted">
-            <Code2 className="w-5 h-5 text-foreground" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-foreground">
-              Context & Features
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Control AI context awareness
-            </p>
-          </div>
+        <div>
+          <h3 className="text-base font-semibold text-foreground">
+            Context & Features
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Control AI context awareness
+          </p>
         </div>
 
         <div className="space-y-3">
