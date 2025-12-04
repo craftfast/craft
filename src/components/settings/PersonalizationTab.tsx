@@ -11,6 +11,7 @@ import { Check, Loader2 } from "lucide-react";
 export default function PersonalizationTab() {
   const [customInstructions, setCustomInstructions] = useState("");
   const [selectedTone, setSelectedTone] = useState<string | null>("default");
+  const [customTone, setCustomTone] = useState("");
   const [occupation, setOccupation] = useState("");
   const [techStack, setTechStack] = useState("");
 
@@ -39,7 +40,22 @@ export default function PersonalizationTab() {
 
       const data = await response.json();
       setCustomInstructions(data.customInstructions || "");
-      setSelectedTone(data.responseTone || "default");
+      const tone = data.responseTone || "default";
+      // Check if it's a predefined tone or custom
+      const predefinedTones = [
+        "default",
+        "concise",
+        "detailed",
+        "encouraging",
+        "professional",
+      ];
+      if (predefinedTones.includes(tone)) {
+        setSelectedTone(tone);
+        setCustomTone("");
+      } else {
+        setSelectedTone("custom");
+        setCustomTone(tone);
+      }
       setOccupation(data.occupation || "");
       setTechStack(data.techStack || "");
       setEnableMemory(data.enableMemory ?? false);
@@ -64,7 +80,10 @@ export default function PersonalizationTab() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          responseTone: selectedTone,
+          responseTone:
+            selectedTone === "custom"
+              ? customTone.trim() || "default"
+              : selectedTone,
           customInstructions,
           occupation,
           techStack,
@@ -99,6 +118,7 @@ export default function PersonalizationTab() {
   }, [
     customInstructions,
     selectedTone,
+    customTone,
     occupation,
     techStack,
     enableMemory,
@@ -135,6 +155,11 @@ export default function PersonalizationTab() {
       id: "professional",
       label: "Professional",
       description: "Formal and technical",
+    },
+    {
+      id: "custom",
+      label: "Custom",
+      description: "Define your own style",
     },
   ];
 
@@ -199,6 +224,24 @@ export default function PersonalizationTab() {
             </button>
           ))}
         </div>
+
+        {/* Custom tone input */}
+        {selectedTone === "custom" && (
+          <div className="space-y-2">
+            <Input
+              value={customTone}
+              onChange={(e) => {
+                setCustomTone(e.target.value);
+                handleChange();
+              }}
+              placeholder="e.g., Friendly and casual, Technical but approachable"
+              className="rounded-xl"
+            />
+            <p className="text-xs text-muted-foreground">
+              Describe how you want the AI to communicate
+            </p>
+          </div>
+        )}
       </section>
 
       <hr className="border-border" />

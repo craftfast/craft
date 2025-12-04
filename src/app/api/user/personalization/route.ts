@@ -83,15 +83,12 @@ export async function PATCH(req: NextRequest) {
             enableCodeExecution,
         } = body;
 
-        // Validate responseTone
-        if (responseTone) {
-            const validTones = ["default", "concise", "detailed", "encouraging", "professional"];
-            if (!validTones.includes(responseTone)) {
-                return NextResponse.json(
-                    { error: `Invalid responseTone. Must be one of: ${validTones.join(", ")}` },
-                    { status: 400 }
-                );
-            }
+        // Validate responseTone - allow predefined tones or custom strings (max 100 chars)
+        if (responseTone && typeof responseTone === "string" && responseTone.length > 100) {
+            return NextResponse.json(
+                { error: "Response tone must be 100 characters or less" },
+                { status: 400 }
+            );
         }
 
         // Build update data object
