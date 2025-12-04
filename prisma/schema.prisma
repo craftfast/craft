@@ -365,6 +365,7 @@ model KnowledgeFile {
   mimeType    String
   size        Int
   description String?
+  textContent String?  @db.Text // Extracted text content for AI context
   uploadedBy  String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -729,6 +730,28 @@ model GitHubIntegration {
   @@index([installationId])
   @@index([isActive])
   @@map("github_integrations")
+}
+
+model FigmaIntegration {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  figmaUserId    String
+  email          String?
+  handle         String? // Figma username/handle
+  imgUrl         String? // Profile image URL
+  isActive       Boolean   @default(true)
+  lastSyncAt     DateTime?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([figmaUserId])
+  @@index([isActive])
+  @@map("figma_integrations")
 }
 
 model GitHubRepository {

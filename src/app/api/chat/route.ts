@@ -7,6 +7,7 @@ import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createOrchestrator } from "@/lib/ai/orchestrator/orchestrator-agent";
 import { chatRateLimiter, checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
+import { getProjectKnowledge, formatKnowledgeForPrompt } from "@/lib/knowledge/service";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -227,12 +228,30 @@ export async function POST(req: Request) {
             enableImageGeneration: user.enableImageGeneration,
         };
 
-        // Get environment-aware system prompt with projectId, memory, and personalization
+        // Load project knowledge base (PRDs, design docs, etc.)
+        let knowledgeContext = '';
+        try {
+            const knowledge = await getProjectKnowledge(projectId);
+            const hasKnowledge = knowledge.textFiles.length > 0 ||
+                knowledge.imageFiles.length > 0 ||
+                knowledge.documentFiles.length > 0;
+            if (hasKnowledge) {
+                knowledgeContext = formatKnowledgeForPrompt(knowledge);
+                logger.ai.debug(`📚 Including ${knowledge.textFiles.length} text files, ${knowledge.imageFiles.length} images in context`);
+            }
+        } catch (error) {
+            logger.ai.warn('⚠️ Could not load project knowledge:', error);
+        }
+
+        // Combine memory and knowledge context
+        const additionalContext = [userMemoryContext, knowledgeContext].filter(Boolean).join('\n\n');
+
+        // Get environment-aware system prompt with projectId, memory, knowledge, and personalization
         const systemPrompt = getSystemPrompt(
             taskType || 'coding',
             projectFiles,
             projectId,
-            userMemoryContext,
+            additionalContext,
             personalization
         );
 

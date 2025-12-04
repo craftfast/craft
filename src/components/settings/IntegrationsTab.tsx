@@ -9,6 +9,8 @@ interface IntegrationStatus {
   login?: string;
   username?: string;
   email?: string;
+  handle?: string;
+  imgUrl?: string;
 }
 
 export default function IntegrationsTab() {
@@ -16,6 +18,9 @@ export default function IntegrationsTab() {
     null
   );
   const [vercelStatus, setVercelStatus] = useState<IntegrationStatus | null>(
+    null
+  );
+  const [figmaStatus, setFigmaStatus] = useState<IntegrationStatus | null>(
     null
   );
   const [isLoading, setIsLoading] = useState(true);
@@ -31,9 +36,10 @@ export default function IntegrationsTab() {
   const checkIntegrationStatus = async () => {
     setIsLoading(true);
     try {
-      const [githubRes, vercelRes] = await Promise.all([
+      const [githubRes, vercelRes, figmaRes] = await Promise.all([
         fetch("/api/integrations/github/status"),
         fetch("/api/integrations/vercel/status"),
+        fetch("/api/integrations/figma/status"),
       ]);
 
       if (githubRes.ok) {
@@ -44,6 +50,10 @@ export default function IntegrationsTab() {
         const data = await vercelRes.json();
         setVercelStatus(data);
       }
+      if (figmaRes.ok) {
+        const data = await figmaRes.json();
+        setFigmaStatus(data);
+      }
     } catch (error) {
       console.error("Failed to check integration status:", error);
     } finally {
@@ -51,7 +61,7 @@ export default function IntegrationsTab() {
     }
   };
 
-  const handleConnect = async (provider: "github" | "vercel") => {
+  const handleConnect = async (provider: "github" | "vercel" | "figma") => {
     setConnectingTo(provider);
     try {
       const res = await fetch(`/api/integrations/${provider}/connect`);
@@ -106,7 +116,7 @@ export default function IntegrationsTab() {
     }
   };
 
-  const handleDisconnect = async (provider: "github" | "vercel") => {
+  const handleDisconnect = async (provider: "github" | "vercel" | "figma") => {
     try {
       const res = await fetch(`/api/integrations/${provider}/disconnect`, {
         method: "POST",
@@ -116,6 +126,7 @@ export default function IntegrationsTab() {
         toast.success(`Disconnected from ${provider}`);
         if (provider === "github") setGithubStatus(null);
         if (provider === "vercel") setVercelStatus(null);
+        if (provider === "figma") setFigmaStatus(null);
       } else {
         toast.error(`Failed to disconnect from ${provider}`);
       }
@@ -302,11 +313,11 @@ export default function IntegrationsTab() {
           {/* Coming Soon Section */}
           <div className="mt-6 pt-4 border-t border-border">
             <h4 className="text-sm font-medium text-muted-foreground mb-3">
-              Coming Soon
+              Design Tools
             </h4>
-            <div className="space-y-3 opacity-60">
-              {/* Figma - Coming Soon */}
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-input/50">
+            <div className="space-y-3">
+              {/* Figma - Functional */}
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-input">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-white dark:bg-neutral-900 flex items-center justify-center border border-input">
                     <svg className="w-6 h-6" viewBox="0 0 38 57" fill="none">
@@ -335,13 +346,41 @@ export default function IntegrationsTab() {
                   <div>
                     <p className="text-sm font-medium text-foreground">Figma</p>
                     <p className="text-xs text-muted-foreground">
-                      Import designs and export code
+                      {figmaStatus?.connected
+                        ? `Connected as @${
+                            figmaStatus.handle || figmaStatus.email
+                          }`
+                        : "Import designs to project knowledge"}
                     </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 text-xs font-medium bg-muted text-muted-foreground rounded-full">
-                  Coming Soon
-                </span>
+                <div className="flex items-center gap-2">
+                  {figmaStatus?.connected && (
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-500" />
+                  )}
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  ) : figmaStatus?.connected ? (
+                    <button
+                      onClick={() => handleDisconnect("figma")}
+                      className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
+                    >
+                      Disconnect
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleConnect("figma")}
+                      disabled={connectingTo === "figma"}
+                      className="px-4 py-2 text-sm font-medium bg-accent text-foreground rounded-lg hover:bg-accent/80 transition-colors disabled:opacity-50"
+                    >
+                      {connectingTo === "figma" ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Connect"
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
+import { uploadFile, deleteFile } from "@/lib/r2-storage";
 
 // GET /api/projects/[id]/knowledge - Get all knowledge files
 export async function GET(
@@ -146,21 +147,45 @@ export async function POST(
             );
         }
 
-        // For now, store file metadata (actual upload would go to R2/Blob storage)
-        // TODO: Implement actual file upload to R2 or Vercel Blob
-        const r2Key = `knowledge/${projectId}/${Date.now()}-${file.name}`;
-        const r2Url = `https://storage.example.com/${r2Key}`; // Placeholder
+        // Convert file to buffer for upload
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-        // Save to database
+        // Extract text content for text-based files (for AI context)
+        let textContent: string | null = null;
+        const textMimeTypes = [
+            'text/plain', 'text/markdown', 'text/csv',
+            'application/json', 'text/html', 'text/css',
+        ];
+        const isTextFile = textMimeTypes.some(t => file.type.startsWith(t)) ||
+            file.name.endsWith('.md') || file.name.endsWith('.txt') ||
+            file.name.endsWith('.json') || file.name.endsWith('.csv');
+
+        if (isTextFile && buffer.length < 500 * 1024) { // Only store text for files < 500KB
+            textContent = buffer.toString('utf-8');
+        }
+
+        // Upload to R2 storage
+        const uploadResult = await uploadFile({
+            userId: session.user.id,
+            fileName: file.name,
+            fileContent: buffer,
+            mimeType: file.type || 'application/octet-stream',
+            purpose: 'upload',
+            projectId,
+        });
+
+        // Save to database with text content for AI context
         const knowledgeFile = await prisma.knowledgeFile.create({
             data: {
                 projectId,
                 name: file.name,
-                r2Key,
-                r2Url,
-                mimeType: file.type || "application/octet-stream",
-                size: file.size,
+                r2Key: uploadResult.r2Key,
+                r2Url: uploadResult.r2Url,
+                mimeType: uploadResult.mimeType,
+                size: uploadResult.size,
                 description: description || null,
+                textContent, // Store extracted text for AI context
                 uploadedBy: session.user.id,
             },
             include: {

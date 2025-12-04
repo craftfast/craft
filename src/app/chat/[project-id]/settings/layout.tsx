@@ -16,7 +16,6 @@ import {
   Cloud,
   Clock,
   FolderOpen,
-  BarChart3,
   ChevronRight,
 } from "lucide-react";
 
@@ -28,8 +27,7 @@ type ProjectSettingsSection =
   | "git"
   | "deployments"
   | "versions"
-  | "knowledge"
-  | "usage-billing";
+  | "knowledge";
 
 const menuItems: {
   id: ProjectSettingsSection;
@@ -55,12 +53,6 @@ const menuItems: {
     icon: Cloud,
   },
   { id: "knowledge", label: "Knowledge", path: "/knowledge", icon: FolderOpen },
-  {
-    id: "usage-billing",
-    label: "Usage & Billing",
-    path: "/usage-billing",
-    icon: BarChart3,
-  },
 ];
 
 export default function ProjectSettingsLayout({
@@ -105,7 +97,6 @@ export default function ProjectSettingsLayout({
     if (pathname === `${basePath}/deployments`) return "deployments";
     if (pathname === `${basePath}/versions`) return "versions";
     if (pathname === `${basePath}/knowledge`) return "knowledge";
-    if (pathname === `${basePath}/usage-billing`) return "usage-billing";
     return "general";
   };
 
