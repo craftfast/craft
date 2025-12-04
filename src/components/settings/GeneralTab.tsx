@@ -156,7 +156,7 @@ export default function GeneralTab({
               Sound Notifications
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              A new sound will play when v0 is finished responding and the
+              A new sound will play when Craft is finished responding and the
               window is not focused.
             </p>
           </div>
