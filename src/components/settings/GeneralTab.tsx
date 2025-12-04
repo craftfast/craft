@@ -1,8 +1,11 @@
 "use client";
 
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Volume2, VolumeX } from "lucide-react";
+import { toast } from "sonner";
 
 interface GeneralTabProps {
   theme: "light" | "dark" | "system";
@@ -25,6 +28,68 @@ export default function GeneralTab({
   soundNotifications,
   setSoundNotifications,
 }: GeneralTabProps) {
+  const [isTestingSound, setIsTestingSound] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Test sound playback and check if audio is allowed
+  const testSound = async () => {
+    setIsTestingSound(true);
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio("/sounds/notification.mp3");
+        audioRef.current.volume = 0.5;
+      }
+      audioRef.current.currentTime = 0;
+      await audioRef.current.play();
+      toast.success("Sound is working!");
+    } catch (error) {
+      console.error("Audio playback failed:", error);
+      toast.error(
+        "Sound blocked by browser. Please allow audio for this site in your browser settings.",
+        {
+          duration: 5000,
+          action: {
+            label: "Learn more",
+            onClick: () => {
+              window.open(
+                "https://support.google.com/chrome/answer/114662",
+                "_blank"
+              );
+            },
+          },
+        }
+      );
+    } finally {
+      setIsTestingSound(false);
+    }
+  };
+
+  // Handle sound notification toggle with permission check
+  const handleSoundToggle = async (enabled: boolean) => {
+    if (enabled) {
+      // Try to play a test sound to trigger permission prompt
+      try {
+        const testAudio = new Audio("/sounds/notification.mp3");
+        testAudio.volume = 0.5;
+        await testAudio.play();
+        testAudio.pause();
+        testAudio.currentTime = 0;
+        setSoundNotifications(true);
+        toast.success("Sound notifications enabled!");
+      } catch (error) {
+        console.error("Audio permission check failed:", error);
+        // Still enable the setting, but warn the user
+        setSoundNotifications(true);
+        toast.warning(
+          "Sound notifications enabled, but your browser may be blocking audio. Click 'Test Sound' to check.",
+          { duration: 5000 }
+        );
+      }
+    } else {
+      setSoundNotifications(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="">
@@ -156,15 +221,38 @@ export default function GeneralTab({
               Sound Notifications
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              A new sound will play when Craft is finished responding and the
-              window is not focused.
+              A sound will play when Craft is finished responding and the window
+              is not focused.
             </p>
           </div>
           <Switch
             checked={soundNotifications}
-            onCheckedChange={setSoundNotifications}
+            onCheckedChange={handleSoundToggle}
           />
         </div>
+        {soundNotifications && (
+          <div className="flex items-center gap-3 mt-3 p-3 bg-muted/50 rounded-xl">
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">
+                Make sure your browser allows audio for this site.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={testSound}
+              disabled={isTestingSound}
+              className="rounded-lg gap-2"
+            >
+              {isTestingSound ? (
+                <VolumeX className="w-4 h-4" />
+              ) : (
+                <Volume2 className="w-4 h-4" />
+              )}
+              Test Sound
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
