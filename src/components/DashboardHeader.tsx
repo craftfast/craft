@@ -33,7 +33,7 @@ export default function DashboardHeader({
         billing: "/settings/billing",
         usage: "/settings/usage",
         account: "/settings/account",
-        integrations: "/settings/integrations",
+        integrations: "/integrations",
         personalization: "/settings/personalization",
         "model-preferences": "/settings/models",
       };

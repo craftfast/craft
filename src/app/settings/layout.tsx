@@ -10,8 +10,7 @@ type SettingsSection =
   | "models"
   | "billing"
   | "usage"
-  | "account"
-  | "integrations";
+  | "account";
 
 const menuItems: { id: SettingsSection; label: string; path: string }[] = [
   { id: "general", label: "General", path: "/settings" },
@@ -24,7 +23,6 @@ const menuItems: { id: SettingsSection; label: string; path: string }[] = [
   { id: "billing", label: "Billing", path: "/settings/billing" },
   { id: "usage", label: "Usage", path: "/settings/usage" },
   { id: "account", label: "Account", path: "/settings/account" },
-  { id: "integrations", label: "Integrations", path: "/settings/integrations" },
 ];
 
 const getMenuIcon = (itemId: SettingsSection) => {
@@ -100,22 +98,6 @@ const getMenuIcon = (itemId: SettingsSection) => {
           />
         </svg>
       );
-    case "integrations":
-      return (
-        <svg
-          className={iconClass}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"
-          />
-        </svg>
-      );
     case "personalization":
       return (
         <svg
@@ -169,7 +151,6 @@ export default function SettingsLayout({
     if (pathname === "/settings/billing") return "billing";
     if (pathname === "/settings/usage") return "usage";
     if (pathname === "/settings/account") return "account";
-    if (pathname === "/settings/integrations") return "integrations";
     return "general";
   };
 
@@ -191,20 +172,20 @@ export default function SettingsLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
       {/* Header - Same as dashboard/chat */}
       <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">
-        <div className="px-3 sm:px-4 py-2">
+        <div className="px-3 sm:px-4 h-12 items-center flex">
           <DashboardHeader userId={session.user.id} showLogoText={true} />
         </div>
       </header>
 
       {/* Main Content - with padding for fixed header */}
-      <div className="flex-1 flex pt-14">
+      <div className="flex-1 flex pt-10 overflow-hidden">
         {/* Left Sidebar - Menu (Fixed) */}
         <div className="w-64 flex-shrink-0 fixed top-14 left-0 bottom-0 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
           {/* Settings Title */}
-          <div className="px-4 pt-6 pb-2">
+          <div className="px-4 pt-2 pb-2">
             <h1 className="text-xl font-semibold text-foreground">Settings</h1>
           </div>
           <nav className="p-4 pt-2 space-y-1">
@@ -228,8 +209,10 @@ export default function SettingsLayout({
         </div>
 
         {/* Right Panel - Content (with left margin for fixed sidebar) */}
-        <div className="flex-1 ml-64 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
-          <div className="max-w-3xl mx-auto p-8 pt-14">{children}</div>
+        <div className="flex-1 ml-64 bg-background p-2 overflow-hidden">
+          <div className="h-full border border-border rounded-2xl overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+            <div className="max-w-3xl mx-auto p-8 pt-14">{children}</div>
+          </div>
         </div>
       </div>
     </div>

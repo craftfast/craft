@@ -12,7 +12,7 @@ import { parseSettingsParams } from "@/lib/url-params";
  * - ?settings=billing - Redirect to /settings/billing
  * - ?settings=usage - Redirect to /settings/usage
  * - ?settings=account - Redirect to /settings/account
- * - ?settings=integrations - Redirect to /settings/integrations
+ * - ?settings=integrations - Redirect to /integrations (standalone page)
  * - ?settings=personalization - Redirect to /settings/personalization
  * - ?settings=model-preferences - Redirect to /settings/models
  */
@@ -33,7 +33,7 @@ export default function SettingsRedirectHandler() {
         billing: "/settings/billing",
         usage: "/settings/usage",
         account: "/settings/account",
-        integrations: "/settings/integrations",
+        integrations: "/integrations",
         personalization: "/settings/personalization",
         "model-preferences": "/settings/models",
       };

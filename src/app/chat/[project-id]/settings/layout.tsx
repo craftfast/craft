@@ -118,10 +118,10 @@ export default function ProjectSettingsLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
       {/* Header - Same as dashboard/chat */}
       <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">
-        <div className="px-3 sm:px-4 py-2">
+        <div className="px-3 sm:px-4 h-12 items-center flex">
           <div className="flex items-center justify-between w-full">
             {/* Left - Logo and Project Name */}
             <div className="flex items-center">
@@ -154,11 +154,11 @@ export default function ProjectSettingsLayout({
       </header>
 
       {/* Main Content - with padding for fixed header */}
-      <div className="flex-1 flex pt-14">
+      <div className="flex-1 flex pt-10 overflow-hidden">
         {/* Left Sidebar - Menu (Fixed) */}
         <div className="w-64 flex-shrink-0 fixed top-14 left-0 bottom-0 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
           {/* Settings Title */}
-          <div className="px-4 pt-4 pb-2">
+          <div className="px-4 pt-2 pb-2">
             <h1 className="text-xl font-semibold text-foreground">
               Project Settings
             </h1>
@@ -185,8 +185,10 @@ export default function ProjectSettingsLayout({
         </div>
 
         {/* Right Panel - Content (with left margin for fixed sidebar) */}
-        <div className="flex-1 ml-64 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
-          <div className="max-w-3xl mx-auto p-8 pt-14">{children}</div>
+        <div className="flex-1 ml-64 bg-background p-2 overflow-hidden">
+          <div className="h-full border border-border rounded-2xl overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+            <div className="max-w-3xl mx-auto p-8 pt-14">{children}</div>
+          </div>
         </div>
       </div>
     </div>
