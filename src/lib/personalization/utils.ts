@@ -11,9 +11,8 @@ export interface UserPersonalization {
     referenceChatHistory?: boolean;
     enableWebSearch?: boolean;
     enableImageGeneration?: boolean;
-}
-
-/**
+    enableCodeExecution?: boolean;
+}/**
  * Format user personalization settings into a system prompt section
  */
 export function formatPersonalizationForPrompt(

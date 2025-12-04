@@ -42,8 +42,9 @@ model User {
   techStack             String?                      @db.Text
   enableMemory          Boolean                      @default(false) // Disabled for cost optimization (was adding 44k tokens per request)
   referenceChatHistory  Boolean                      @default(true)
-  enableWebSearch       Boolean                      @default(false)
-  enableImageGeneration Boolean                      @default(false)
+  enableWebSearch       Boolean                      @default(true)
+  enableImageGeneration Boolean                      @default(true)
+  enableCodeExecution   Boolean                      @default(true) // Allow users to disable sandbox execution for code review mode
   // Model preferences
   preferredCodingModel  String?                      @default("anthropic/claude-sonnet-4.5") // User's preferred coding model
   enabledCodingModels   String[]                     @default(["anthropic/claude-haiku-4.5", "anthropic/claude-sonnet-4.5", "openai/gpt-5-mini", "openai/gpt-5.1", "google/gemini-2.5-flash", "google/gemini-3-pro-preview", "x-ai/grok-code-fast-1"]) // Models user has enabled

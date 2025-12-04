@@ -28,6 +28,7 @@ interface PreviewPanelProps {
   deviceMode?: "desktop" | "mobile"; // Device mode from parent
   previewUrl?: string; // URL from parent
   onUrlChange?: (url: string) => void; // Callback when URL changes
+  enableCodeExecution?: boolean; // Whether to enable sandbox execution (from user settings)
 }
 
 export interface PreviewPanelRef {
@@ -65,6 +66,7 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
       deviceMode: parentDeviceMode,
       previewUrl: parentPreviewUrl,
       onUrlChange,
+      enableCodeExecution = true,
     },
     ref
   ) => {
@@ -295,6 +297,13 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
         // Only run once on mount
         if (hasInitialized.current) return;
 
+        // Skip if code execution is disabled
+        if (!enableCodeExecution) {
+          console.log(`⏭️ Skipping auto-start - code execution is disabled`);
+          hasInitialized.current = true;
+          return;
+        }
+
         // Wait a bit for props to load from parent
         await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -332,7 +341,16 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
         version,
         fileCount: Object.keys(projectFiles).length,
         sandboxStatus,
+        enableCodeExecution,
       });
+
+      // Skip if code execution is disabled
+      if (!enableCodeExecution) {
+        console.log(
+          `⏭️ Skipping auto-start/update - code execution is disabled`
+        );
+        return;
+      }
 
       // Skip if we've already processed this version
       if (lastProcessedVersionRef.current === version) {
@@ -1061,8 +1079,40 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
         {/* Preview Frame */}
         <div className="flex-1 bg-background overflow-auto">
           <div className="h-full flex items-center justify-center">
+            {/* Show message when code execution is disabled */}
+            {!enableCodeExecution && sandboxStatus !== "running" && (
+              <div className="text-center max-w-md px-6">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                  <svg
+                    className="w-8 h-8 text-muted-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-sm font-medium text-foreground mb-1">
+                  Code Review Mode
+                </h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Code execution is disabled. You can review the code in the
+                  Code tab.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Enable code execution in Settings → Personalization to preview
+                  your project.
+                </p>
+              </div>
+            )}
+
             {/* Show state when preview is not running */}
-            {sandboxStatus === "inactive" && (
+            {enableCodeExecution && sandboxStatus === "inactive" && (
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                   {isGeneratingFiles ? (

@@ -40,7 +40,7 @@ export default async function ProjectCodingPage({ params }: PageProps) {
     redirect("/");
   }
 
-  // Fetch user data with accountBalance (need to serialize Decimal)
+  // Fetch user data with accountBalance and personalization (need to serialize Decimal)
   const userData = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
@@ -49,6 +49,7 @@ export default async function ProjectCodingPage({ params }: PageProps) {
       email: true,
       image: true,
       accountBalance: true,
+      enableCodeExecution: true,
     },
   });
 
@@ -59,6 +60,7 @@ export default async function ProjectCodingPage({ params }: PageProps) {
     accountBalance: userData?.accountBalance
       ? Number(userData.accountBalance)
       : 0,
+    enableCodeExecution: userData?.enableCodeExecution ?? true,
   };
 
   // Serialize project data (convert any Decimal fields in nested user object)

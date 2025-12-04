@@ -80,6 +80,7 @@ interface User {
   name?: string | null;
   email?: string | null;
   image?: string | null;
+  enableCodeExecution?: boolean;
 }
 
 interface CodingInterfaceProps {
@@ -869,6 +870,7 @@ export default function CodingInterface({
                     deviceMode={deviceMode}
                     previewUrl={previewUrl}
                     onUrlChange={setPreviewUrl}
+                    enableCodeExecution={user.enableCodeExecution ?? true}
                     onScreenshotCaptured={(data) => {
                       // Update local project state with new preview image data
                       setProject((prev) => ({

@@ -26,6 +26,7 @@ export async function GET(_req: NextRequest) {
                 referenceChatHistory: true,
                 enableWebSearch: true,
                 enableImageGeneration: true,
+                enableCodeExecution: true,
             },
         });
 
@@ -42,6 +43,7 @@ export async function GET(_req: NextRequest) {
             referenceChatHistory: user.referenceChatHistory,
             enableWebSearch: user.enableWebSearch,
             enableImageGeneration: user.enableImageGeneration,
+            enableCodeExecution: user.enableCodeExecution,
         });
     } catch (error) {
         console.error("Error fetching user personalization:", error);
@@ -78,6 +80,7 @@ export async function PATCH(req: NextRequest) {
             referenceChatHistory,
             enableWebSearch,
             enableImageGeneration,
+            enableCodeExecution,
         } = body;
 
         // Validate responseTone
@@ -101,6 +104,7 @@ export async function PATCH(req: NextRequest) {
             referenceChatHistory?: boolean;
             enableWebSearch?: boolean;
             enableImageGeneration?: boolean;
+            enableCodeExecution?: boolean;
         } = {};
 
         if (responseTone !== undefined) {
@@ -127,6 +131,9 @@ export async function PATCH(req: NextRequest) {
         if (enableImageGeneration !== undefined) {
             updateData.enableImageGeneration = enableImageGeneration;
         }
+        if (enableCodeExecution !== undefined) {
+            updateData.enableCodeExecution = enableCodeExecution;
+        }
 
         const user = await prisma.user.update({
             where: { email: session.user.email },
@@ -140,6 +147,7 @@ export async function PATCH(req: NextRequest) {
                 referenceChatHistory: true,
                 enableWebSearch: true,
                 enableImageGeneration: true,
+                enableCodeExecution: true,
             },
         });
 
@@ -154,6 +162,7 @@ export async function PATCH(req: NextRequest) {
                 referenceChatHistory: user.referenceChatHistory,
                 enableWebSearch: user.enableWebSearch,
                 enableImageGeneration: user.enableImageGeneration,
+                enableCodeExecution: user.enableCodeExecution,
             },
         });
     } catch (error) {

@@ -58,43 +58,51 @@ export async function extractMemoriesFromConversation(params: {
         // Use Grok 4 Fast for memory extraction (cheap, fast)
         const model = xai("grok-4-fast");
 
-        const extractionPrompt = `Analyze this conversation and extract any memorable information about the user that would help improve future AI assistance.
+        const extractionPrompt = `Analyze this conversation and extract ONLY truly important, long-lasting information about the user.
 
 User message: ${userMessage}
 ${assistantResponse ? `Assistant response: ${assistantResponse}` : ""}
 
-Extract memories in the following categories:
-- **preference**: UI/workflow/style preferences (e.g., "prefers dark mode", "likes minimal designs")
-- **skill**: Technical skills or expertise (e.g., "experienced with React", "learning TypeScript")
-- **project_context**: Project-specific info (e.g., "building e-commerce site", "prefers Next.js")
-- **workflow**: How they work (e.g., "prefers TDD", "likes to iterate quickly")
-- **style**: Coding/design style (e.g., "functional programming", "uses Tailwind")
-- **technical**: Tech stack (e.g., "uses PostgreSQL", "deploys to Vercel")
-- **personal**: Personal info they shared (e.g., "works at startup", "timezone PST")
+**VERY STRICT CRITERIA - Only extract if ALL conditions are met:**
+1. Information is PERMANENT (not temporary preferences)
+2. Information is UNIQUE and SPECIFIC to this user
+3. Information would SIGNIFICANTLY improve future interactions
+4. Information was EXPLICITLY stated by the user (not inferred)
+5. Information is about their CORE identity, skills, or long-term preferences
 
-Respond with JSON array:
+**Categories (only use if truly applicable):**
+- **skill**: Deep expertise or professional skills (e.g., "10 years React experience", "expert in ML")
+- **technical**: Core tech stack they ALWAYS use (e.g., "exclusively uses TypeScript")
+- **personal**: Important personal context (e.g., "works at Google", "runs a startup")
+- **style**: Strong, consistent preferences (e.g., "always uses functional programming")
+
+**DO NOT EXTRACT:**
+- Temporary project decisions
+- One-time requests
+- Common preferences (dark mode, etc.)
+- Things most developers would say
+- Vague or general statements
+- Anything uncertain or inferred
+
+Respond with JSON array (usually EMPTY - only add if truly exceptional):
 [
   {
-    "category": "preference|skill|project_context|workflow|style|technical|personal",
+    "category": "skill|technical|personal|style",
     "title": "Brief title (3-5 words)",
-    "content": "Detailed memory (1-2 sentences)",
-    "importance": 1-10,
-    "confidence": 0.0-1.0,
-    "reason": "Why this is worth remembering"
+    "content": "Specific, factual memory (1 sentence)",
+    "importance": 8-10,
+    "confidence": 0.9-1.0,
+    "reason": "Why this is CRITICAL to remember"
   }
 ]
 
-ONLY extract if:
-1. Information is specific and actionable
-2. Would help improve future interactions
-3. Is not temporary/transient information
-
-If nothing worth remembering, return: []`;
+**Default response should be: []**
+Only return memories for truly exceptional, permanent user information.`;
 
         const result = await generateText({
             model,
             prompt: extractionPrompt,
-            maxOutputTokens: 1000,
+            maxOutputTokens: 500,
         });
 
         // Parse AI response
@@ -105,15 +113,16 @@ If nothing worth remembering, return: []`;
 
         const extractedMemories = JSON.parse(jsonMatch[0]);
 
-        // Filter and structure memories
+        // VERY strict filtering - only high confidence, high importance
         const memories = extractedMemories
-            .filter((m: { confidence: number }) => m.confidence >= 0.6) // Only confident memories
+            .filter((m: { confidence: number; importance: number }) =>
+                m.confidence >= 0.9 && m.importance >= 8) // Much stricter thresholds
             .map((m: { category: string; title: string; content: string; importance: number; confidence: number }) => ({
                 category: m.category,
                 title: m.title,
                 content: m.content,
-                importance: Math.min(10, Math.max(1, m.importance)),
-                confidence: Math.min(1, Math.max(0, m.confidence)),
+                importance: Math.min(10, Math.max(8, m.importance)),
+                confidence: Math.min(1, Math.max(0.9, m.confidence)),
                 source: "inferred",
             }));
 

@@ -70,6 +70,7 @@ export async function POST(req: Request) {
                 referenceChatHistory: true,
                 enableWebSearch: true,
                 enableImageGeneration: true,
+                enableCodeExecution: true,
                 preferredCodingModel: true,
                 enabledCodingModels: true,
             },
@@ -195,26 +196,24 @@ export async function POST(req: Request) {
         // STANDARD MODE (Direct Coding Agent - Phase 1 & 2)
         // ============================================================================
 
-        // 🚫 MEMORY DISABLED FOR COST OPTIMIZATION
-        // Previous: Loading 10 memories added 44k tokens ($0.09/request)
-        // Savings: ~70% reduction in token usage
-        const userMemoryContext = '';
-        // if (user.enableMemory) {
-        //     try {
-        //         const { getRelevantMemories, formatMemoriesForPrompt } = await import('@/lib/memory/service');
-        //         const memories = await getRelevantMemories({
-        //             userId: user.id,
-        //             projectId,
-        //             limit: 10,
-        //         });
-        //         if (memories.length > 0) {
-        //             userMemoryContext = formatMemoriesForPrompt(memories);
-        //             console.log(`🧠 Including ${memories.length} user memories in context`);
-        //         }
-        //     } catch (error) {
-        //         console.warn('⚠️ Could not load user memories:', error);
-        //     }
-        // }
+        // Load user memories if enabled (very selective - only important info)
+        let userMemoryContext = '';
+        if (user.enableMemory) {
+            try {
+                const { getRelevantMemories, formatMemoriesForPrompt } = await import('@/lib/memory/service');
+                const memories = await getRelevantMemories({
+                    userId: user.id,
+                    projectId,
+                    limit: 5, // Reduced limit since memories are now very selective
+                });
+                if (memories.length > 0) {
+                    userMemoryContext = formatMemoriesForPrompt(memories);
+                    logger.ai.debug(`🧠 Including ${memories.length} user memories in context`);
+                }
+            } catch (error) {
+                logger.ai.warn('⚠️ Could not load user memories:', error);
+            }
+        }
 
         // Prepare personalization settings
         const personalization = {
@@ -226,7 +225,85 @@ export async function POST(req: Request) {
             referenceChatHistory: user.referenceChatHistory,
             enableWebSearch: user.enableWebSearch,
             enableImageGeneration: user.enableImageGeneration,
+            enableCodeExecution: user.enableCodeExecution,
         };
+
+        // ============================================================================
+        // FEATURE DETECTION & PERMISSION CHECK
+        // ============================================================================
+        // Detect what features are needed and check if user has them enabled
+
+        // Get the last user message for analysis
+        const lastMessage = messages[messages.length - 1];
+        const lastMessageContent = typeof lastMessage?.content === 'string'
+            ? lastMessage.content
+            : Array.isArray(lastMessage?.content)
+                ? lastMessage.content.find((c: { type: string }) => c.type === 'text')?.text || ''
+                : '';
+
+        // Check if message contains images
+        const hasImages = messages.some((m: { content: MessageContent }) => {
+            if (Array.isArray(m.content)) {
+                return m.content.some((c) => c.type === 'image_url' && (c as ImageUrlContent).image_url?.url);
+            }
+            return false;
+        });
+
+        // Check if message likely needs web search (simple keyword detection)
+        const webSearchKeywords = [
+            'search the web', 'search online', 'look up', 'find online',
+            'latest news', 'current', 'recent updates', 'what is happening',
+            'search for', 'google', 'look online', 'find information about'
+        ];
+        const needsWebSearch = webSearchKeywords.some(keyword =>
+            lastMessageContent.toLowerCase().includes(keyword.toLowerCase())
+        );
+
+        // Check if message likely needs image generation
+        const imageGenKeywords = [
+            'generate image', 'create image', 'make an image', 'draw',
+            'generate a picture', 'create a picture', 'design an image',
+            'generate artwork', 'create artwork', 'make artwork',
+            'generate illustration', 'create illustration'
+        ];
+        const needsImageGeneration = imageGenKeywords.some(keyword =>
+            lastMessageContent.toLowerCase().includes(keyword.toLowerCase())
+        );
+
+        // Build list of disabled features that are needed
+        const disabledFeatures: string[] = [];
+
+        if (needsWebSearch && !user.enableWebSearch) {
+            disabledFeatures.push('**Web Search** - Enable this to search the web for current information');
+        }
+
+        if (needsImageGeneration && !user.enableImageGeneration) {
+            disabledFeatures.push('**Image Generation** - Enable this to generate images and artwork');
+        }
+
+        // If required features are disabled, return a helpful message
+        if (disabledFeatures.length > 0) {
+            const sseWriter = new SSEStreamWriter();
+
+            const suggestionStream = new ReadableStream({
+                start(controller) {
+                    sseWriter.setController(controller);
+
+                    const message = `I'd love to help with that! However, this request requires features that are currently disabled in your settings.\n\n**Features needed:**\n${disabledFeatures.map(f => `- ${f}`).join('\n')}\n\n**To enable these features:**\n1. Go to **Settings** → **Personalization**\n2. Enable the required features\n3. Try your request again\n\nOnce enabled, I'll be able to fully assist you with this request! 🚀`;
+
+                    sseWriter.writeTextDelta(message);
+                    sseWriter.writeDone({ totalTokens: 0, inputTokens: 0, outputTokens: 0 });
+                }
+            });
+
+            return new Response(suggestionStream, {
+                headers: {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                },
+            });
+        }
 
         // Load project knowledge base (PRDs, design docs, etc.)
         let knowledgeContext = '';
@@ -362,27 +439,25 @@ export async function POST(req: Request) {
                                 logger.ai.error('Failed to track usage:', trackingError);
                             }
 
-                            // 🚫 MEMORY CAPTURE DISABLED FOR COST OPTIMIZATION
-                            // Previous: Used AI to extract memories from every message
-                            // Now: Disabled to reduce costs
-                            // if (userMessageText && user.enableMemory) {
-                            //     try {
-                            //         const { captureMemoriesFromConversation } = await import('@/lib/memory/service');
-                            //         captureMemoriesFromConversation({
-                            //             userId: user.id,
-                            //             userMessage: userMessageText,
-                            //             projectId,
-                            //         }).then((count) => {
-                            //             if (count > 0) {
-                            //                 console.log(`🧠 Captured ${count} new memories from conversation`);
-                            //             }
-                            //         }).catch((err) => {
-                            //             console.warn('⚠️ Memory capture failed:', err);
-                            //         });
-                            //     } catch (importError) {
-                            //         console.warn('⚠️ Could not import memory service:', importError);
-                            //     }
-                            // }
+                            // Capture memories if enabled (very selective - only important info)
+                            if (userMessageText && user.enableMemory) {
+                                try {
+                                    const { captureMemoriesFromConversation } = await import('@/lib/memory/service');
+                                    captureMemoriesFromConversation({
+                                        userId: user.id,
+                                        userMessage: userMessageText,
+                                        projectId,
+                                    }).then((count) => {
+                                        if (count > 0) {
+                                            logger.ai.debug(`🧠 Captured ${count} new memories from conversation`);
+                                        }
+                                    }).catch((err) => {
+                                        logger.ai.warn('⚠️ Memory capture failed:', err);
+                                    });
+                                } catch (importError) {
+                                    logger.ai.warn('⚠️ Could not import memory service:', importError);
+                                }
+                            }
 
                             // Emit done event
                             sseWriter.writeDone({
