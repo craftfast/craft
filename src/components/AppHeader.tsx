@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import UserMenu from "./UserMenu";
-import CreditCounter from "./CreditCounter";
 import Logo from "./Logo";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { Menu } from "lucide-react";
@@ -22,8 +21,6 @@ interface AppHeaderProps {
   beforeCredits?: ReactNode;
   /** Whether to use fixed positioning instead of sticky */
   fixed?: boolean;
-  /** Custom credit counter click action */
-  onCreditClick?: () => void;
 }
 
 export default function AppHeader({
@@ -32,13 +29,10 @@ export default function AppHeader({
   centerContent,
   beforeCredits,
   fixed = false,
-  onCreditClick,
 }: AppHeaderProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const { setIsExpanded } = useSidebar();
-
-  const defaultCreditClick = () => router.push("/settings/billing");
 
   return (
     <header
@@ -84,12 +78,7 @@ export default function AppHeader({
         <div className="flex items-center justify-end gap-2">
           {beforeCredits}
           {session?.user ? (
-            <>
-              <CreditCounter
-                onClickAction={onCreditClick || defaultCreditClick}
-              />
-              <UserMenu user={session.user} />
-            </>
+            <UserMenu user={session.user} />
           ) : (
             <>
               <Button

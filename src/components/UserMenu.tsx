@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import Image from "next/image";
-import FeedbackModal from "./FeedbackModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useChatPosition } from "@/contexts/ChatPositionContext";
 import { useCreditBalance } from "@/contexts/CreditBalanceContext";
@@ -29,7 +28,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   const { chatPosition, setChatPosition } = useChatPosition();
   const { balance, isLoading } = useCreditBalance();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
@@ -131,33 +129,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
               )}
             </div>
           </div>
-
-          <div className="py-1">
-            <button
-              onClick={() => {
-                setIsUserMenuOpen(false);
-                setIsFeedbackModalOpen(true);
-              }}
-              className="w-full px-4 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Feedback
-            </button>
-          </div>
-
-          <div className="border-t border-border"></div>
 
           {/* Credits Section */}
           <div className="px-4 py-3 border-b border-border space-y-2.5">
@@ -329,14 +300,6 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
             </button>
           </div>
         </div>
-      )}
-
-      {/* Feedback Modal */}
-      {isFeedbackModalOpen && (
-        <FeedbackModal
-          isOpen={isFeedbackModalOpen}
-          onClose={() => setIsFeedbackModalOpen(false)}
-        />
       )}
     </div>
   );

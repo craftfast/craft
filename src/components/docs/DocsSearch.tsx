@@ -128,12 +128,12 @@ export function DocsSearch() {
         onClick={() => setIsOpen(true)}
         className="relative flex items-center w-full"
       >
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-          <div className="w-full pl-10 pr-16 py-2 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full text-sm text-neutral-500 text-left cursor-pointer hover:border-neutral-300 dark:hover:border-neutral-600 transition-colors">
+        <div className="flex-1 flex items-center bg-muted/50 border border-input rounded-lg overflow-hidden">
+          <Search className="w-4 h-4 text-muted-foreground ml-3" />
+          <span className="flex-1 px-3 py-1.5 text-sm text-muted-foreground text-left">
             Search docs...
-          </div>
-          <kbd className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 text-xs rounded">
+          </span>
+          <kbd className="hidden sm:flex items-center gap-0.5 px-2 py-1 mr-1 text-xs text-muted-foreground">
             {isMac ? "⌘K" : "Ctrl+K"}
           </kbd>
         </div>
@@ -141,31 +141,31 @@ export function DocsSearch() {
 
       {/* Search Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-white/80 dark:bg-neutral-950/80 min-h-screen">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-background/80 backdrop-blur-sm min-h-screen">
           {/* Backdrop */}
           <div className="absolute inset-0" onClick={closeModal} />
 
           {/* Modal Content */}
           <div
-            className="relative w-full max-w-xl mx-4 bg-background border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-xl mx-4 bg-background border border-border rounded-xl shadow-2xl overflow-hidden"
             onKeyDown={handleKeyDownInModal}
           >
             {/* Search Input */}
-            <div className="relative flex items-center border-b border-neutral-200 dark:border-neutral-700">
-              <Search className="absolute left-4 w-5 h-5 text-neutral-400" />
+            <div className="relative flex items-center border-b border-border">
+              <Search className="absolute left-4 w-5 h-5 text-muted-foreground" />
               <input
                 ref={inputRef}
                 type="text"
                 placeholder="Search documentation..."
                 value={query}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full pl-12 pr-12 py-4 bg-transparent text-foreground placeholder-neutral-500 focus:outline-none text-base"
+                className="w-full pl-12 pr-12 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-base"
               />
               <button
                 onClick={closeModal}
-                className="absolute right-3 p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                className="absolute right-3 p-1 rounded-lg hover:bg-muted transition-colors"
               >
-                <X className="w-5 h-5 text-neutral-400" />
+                <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
 
@@ -177,19 +177,17 @@ export function DocsSearch() {
                     <button
                       onClick={() => handleSelect(result)}
                       className={`w-full px-4 py-3 text-left transition-colors ${
-                        index === selectedIndex
-                          ? "bg-neutral-100 dark:bg-neutral-800"
-                          : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                        index === selectedIndex ? "bg-muted" : "hover:bg-muted"
                       }`}
                     >
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+                      <div className="text-xs text-muted-foreground mb-1">
                         {result.sectionTitle}
                       </div>
                       <div className="font-medium text-foreground">
                         {result.title}
                       </div>
                       {result.description && (
-                        <div className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-1">
+                        <div className="text-sm text-muted-foreground line-clamp-1">
                           {result.description}
                         </div>
                       )}
@@ -201,7 +199,7 @@ export function DocsSearch() {
 
             {/* No Results */}
             {query && results.length === 0 && (
-              <div className="p-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
+              <div className="p-8 text-center text-sm text-muted-foreground">
                 No results found for &quot;{query}&quot;
               </div>
             )}
@@ -209,7 +207,7 @@ export function DocsSearch() {
             {/* Empty State with Recommended Searches */}
             {!query && (
               <div className="p-6">
-                <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
                   Recommended
                 </p>
                 <div className="space-y-1">
@@ -246,9 +244,9 @@ export function DocsSearch() {
                         router.push(`/docs/${item.section}/${item.slug}`);
                         closeModal();
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-lg hover:bg-muted transition-colors group"
                     >
-                      <Search className="w-4 h-4 text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300" />
+                      <Search className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
                       <span className="text-sm text-foreground">
                         {item.title}
                       </span>
@@ -259,26 +257,26 @@ export function DocsSearch() {
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/50 text-xs text-muted-foreground">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-700 rounded text-[10px]">
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
                     ↑
                   </kbd>
-                  <kbd className="px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-700 rounded text-[10px]">
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
                     ↓
                   </kbd>
                   <span className="ml-1">to navigate</span>
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-700 rounded text-[10px]">
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
                     ↵
                   </kbd>
                   <span className="ml-1">to select</span>
                 </span>
               </div>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-700 rounded text-[10px]">
+                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
                   esc
                 </kbd>
                 <span className="ml-1">to close</span>

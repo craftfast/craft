@@ -799,11 +799,7 @@ function CodingInterfaceContent({
     <TooltipProvider>
       <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
         {/* Header */}
-        <AppHeader
-          afterLogo={projectDropdown}
-          centerContent={urlBarContent}
-          onCreditClick={() => setIsPricingModalOpen(true)}
-        />
+        <AppHeader afterLogo={projectDropdown} centerContent={urlBarContent} />
 
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden bg-background px-2 pb-2 gap-2">

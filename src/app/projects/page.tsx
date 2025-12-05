@@ -349,10 +349,10 @@ export default function ProjectsPage() {
 
   // New Project button before credits
   const newProjectButton = (
-    <Button asChild size="sm" className="rounded-full">
+    <Button asChild variant="outline" size="sm" className="rounded-full">
       <Link href="/" className="flex items-center justify-center gap-1.5">
         <Plus className="w-4 h-4" />
-        <span className="hidden sm:inline text-sm">Create</span>
+        <span className="hidden sm:inline">Create</span>
       </Link>
     </Button>
   );

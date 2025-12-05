@@ -17,6 +17,7 @@ const mainNavItems = [
 
 const footerLinks = [
   { href: "/about", label: "About" },
+  { href: "/blog", label: "Blog" },
   { href: "/docs", label: "Docs" },
   { href: "/pricing", label: "Pricing" },
   { href: "/support", label: "Support" },

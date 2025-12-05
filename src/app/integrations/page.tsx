@@ -690,11 +690,12 @@ export default function IntegrationsPage() {
   const requestButton = (
     <Button
       onClick={() => setShowRequestModal(true)}
+      variant="outline"
       size="sm"
       className="rounded-full"
     >
       <Plus className="w-4 h-4" />
-      <span className="hidden sm:inline text-sm">Request</span>
+      <span className="hidden sm:inline ml-1.5">Request</span>
     </Button>
   );
 

@@ -6,8 +6,9 @@ import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
 import SidebarLayout from "@/components/SidebarLayout";
 import AppHeader from "@/components/AppHeader";
+import FeedbackModal from "@/components/FeedbackModal";
 import { Button } from "@/components/ui/button";
-import { Search, HelpCircle, X } from "lucide-react";
+import { Search, MessageCircleQuestion, X } from "lucide-react";
 
 type SettingsSection =
   | "general"
@@ -219,6 +220,7 @@ export default function SettingsLayout({
   const { data: session, isPending } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Determine active section from pathname
@@ -424,17 +426,21 @@ export default function SettingsLayout({
           }
           beforeCredits={
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="rounded-full w-8 h-8 p-0"
-              onClick={() => {
-                // TODO: Open help chat
-                console.log("Open help chat");
-              }}
+              className="rounded-full"
+              onClick={() => setIsFeedbackModalOpen(true)}
             >
-              <HelpCircle className="w-4 h-4" />
+              <MessageCircleQuestion className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1.5">Feedback</span>
             </Button>
           }
+        />
+
+        {/* Feedback Modal */}
+        <FeedbackModal
+          isOpen={isFeedbackModalOpen}
+          onClose={() => setIsFeedbackModalOpen(false)}
         />
 
         {/* Main Content */}
