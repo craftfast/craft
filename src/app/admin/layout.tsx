@@ -31,7 +31,7 @@ export default async function AdminLayout({
   // Check admin role
   const hasAdminRole = await isAdmin(session.user.id);
   if (!hasAdminRole) {
-    redirect("/chat");
+    redirect("/");
   }
 
   return (

@@ -1,17 +1,8 @@
-import { Metadata } from "next";
-import Link from "next/link";
-import Logo from "@/components/Logo";
-import HeaderNav from "@/components/HeaderNav";
-import { DocsSidebar, MobileDocsSidebar, DocsSearch } from "@/components/docs";
+"use client";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Documentation",
-    template: "%s | Craft Docs",
-  },
-  description:
-    "Learn how to build amazing projects with Craft - the AI-powered development platform.",
-};
+import SidebarLayout from "@/components/SidebarLayout";
+import AppHeader from "@/components/AppHeader";
+import { DocsSidebar, MobileDocsSidebar, DocsSearch } from "@/components/docs";
 
 export default function DocsLayout({
   children,
@@ -19,53 +10,40 @@ export default function DocsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">
-        <div className="px-3 sm:px-6 py-2">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Logo
-                variant="extended"
-                className="text-white dark:text-white"
-                href="/"
-              />
-            </div>
-
-            <div className="flex items-center gap-4">
-              {/* Search - Desktop */}
-              <div className="hidden lg:block w-64">
-                <DocsSearch />
-              </div>
-
-              <HeaderNav />
-            </div>
-          </div>
-        </div>
+    <SidebarLayout>
+      <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+        {/* Header */}
+        <AppHeader />
 
         {/* Search - Mobile/Tablet */}
-        <div className="lg:hidden px-4 pb-3">
+        <div className="lg:hidden px-4 py-3 border-b border-border">
           <DocsSearch />
         </div>
-      </header>
 
-      <div className="pt-[88px] lg:pt-14">
-        {/* Left Sidebar - Desktop */}
-        <aside className="hidden lg:block fixed left-0 top-14 bottom-0 w-64 overflow-y-auto bg-background minimalist-scrollbar">
-          <div className="p-6">
-            <DocsSidebar />
-          </div>
-        </aside>
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Sidebar - Desktop - Fixed with own scrollbar */}
+          <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="p-6">
+              {/* Search - Desktop */}
+              <div className="mb-6">
+                <DocsSearch />
+              </div>
+              <DocsSidebar />
+            </div>
+          </aside>
 
-        {/* Right Sidebar Spacer - Desktop (for TOC) */}
-        <aside className="hidden xl:block fixed right-0 top-14 bottom-0 w-64 bg-background" />
+          {/* Main Content Area */}
+          <main className="flex-1 min-w-0 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {children}
+          </main>
 
-        {/* Main Content Area - Centered between sidebars */}
-        <main className="lg:ml-64 xl:mr-64">{children}</main>
+          {/* Right Sidebar Spacer - Desktop (for TOC) */}
+          <aside className="hidden xl:block w-64 flex-shrink-0" />
+        </div>
+
+        {/* Mobile Sidebar */}
+        <MobileDocsSidebar />
       </div>
-
-      {/* Mobile Sidebar */}
-      <MobileDocsSidebar />
-    </div>
+    </SidebarLayout>
   );
 }

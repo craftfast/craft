@@ -107,7 +107,7 @@ export default function RecentProjects() {
       await fetchRecentProjects();
 
       // Navigate to the duplicated project
-      router.push(`/chat/${data.project.id}`);
+      router.push(`/project/${data.project.id}`);
     } catch (error) {
       console.error("Error duplicating project:", error);
       alert("Failed to duplicate project. Please try again.");
@@ -177,7 +177,7 @@ export default function RecentProjects() {
               className="group relative bg-card/50 rounded-xl border border-border/50 hover:border-border hover:bg-card transition-all cursor-pointer overflow-hidden"
             >
               {/* Main Card Content - Clickable Link */}
-              <Link href={`/chat/${project.id}`} className="block">
+              <Link href={`/project/${project.id}`} className="block">
                 {/* Thumbnail or Icon Header */}
                 {project.previewImage ? (
                   <div className="relative w-full h-32 bg-muted overflow-hidden">

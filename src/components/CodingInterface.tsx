@@ -20,10 +20,13 @@ import {
   Minimize,
   Github,
   GitBranch,
+  Menu,
 } from "lucide-react";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
 import CreditCounter from "./CreditCounter";
+import SidebarLayout from "./SidebarLayout";
+import { useSidebar } from "@/contexts/SidebarContext";
 import ChatPanel from "./coding-interface/ChatPanel";
 import PreviewPanel, { PreviewPanelRef } from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
@@ -100,7 +103,19 @@ export default function CodingInterface({
   project: initialProject,
   user,
 }: CodingInterfaceProps) {
+  return (
+    <SidebarLayout>
+      <CodingInterfaceContent project={initialProject} user={user} />
+    </SidebarLayout>
+  );
+}
+
+function CodingInterfaceContent({
+  project: initialProject,
+  user,
+}: CodingInterfaceProps) {
   const router = useRouter();
+  const { setIsExpanded } = useSidebar();
 
   // Keep sandbox alive while user has project page open
   useSandboxHeartbeat(initialProject.id);
@@ -286,7 +301,7 @@ export default function CodingInterface({
       if (response.ok) {
         const data = await response.json();
         // Redirect to the duplicated project
-        router.push(`/chat/${data.project.id}`);
+        router.push(`/project/${data.project.id}`);
       } else {
         console.error("Failed to duplicate project");
       }
@@ -481,8 +496,18 @@ export default function CodingInterface({
       <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
         {/* Header */}
         <header className="h-12 bg-background grid grid-cols-3 items-center px-4 flex-shrink-0">
-          {/* Left Side - Logo and Project Name */}
+          {/* Left Side - Menu, Logo and Project Name */}
           <div className="flex items-center justify-start">
+            {/* Menu Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-xl mr-2"
+              onClick={() => setIsExpanded(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+
             <Logo variant="extended" className="!h-5" href="/" />
             <Separator orientation="vertical" className="h-6 mx-1 ml-3" />
 
@@ -619,7 +644,7 @@ export default function CodingInterface({
                 <DropdownMenuItem
                   className="rounded-lg"
                   onClick={() => {
-                    router.push(`/chat/${project.id}/settings`);
+                    router.push(`/project/${project.id}/settings`);
                     setIsProjectMenuOpen(false);
                   }}
                 >

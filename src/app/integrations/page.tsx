@@ -3,8 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
-import DashboardHeader from "@/components/DashboardHeader";
+import SidebarLayout from "@/components/SidebarLayout";
+import AppHeader from "@/components/AppHeader";
+import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
   Loader2,
@@ -394,16 +397,60 @@ export default function IntegrationsPage() {
   // Loading state
   if (isPending) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground" />
-      </div>
+      <SidebarLayout>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground" />
+        </div>
+      </SidebarLayout>
     );
   }
 
-  // Redirect to signin if not authenticated
+  // Show sign-in prompt for unauthenticated users
   if (!session) {
-    router.push("/auth/signin");
-    return null;
+    return (
+      <SidebarLayout>
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+          {/* Header */}
+          <AppHeader />
+
+          {/* Auth Required Message */}
+          <main className="flex-1 flex items-center justify-center pb-12">
+            <div className="text-center max-w-md mx-auto px-4">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-muted flex items-center justify-center">
+                <svg
+                  className="w-8 h-8 text-muted-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold mb-2">
+                Sign in to manage integrations
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Create an account or sign in to connect GitHub, Vercel, and
+                other services.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Button variant="outline" asChild className="rounded-full">
+                  <Link href="/auth/signin">Log in</Link>
+                </Button>
+                <Button asChild className="rounded-full">
+                  <Link href="/auth/signup">Sign up</Link>
+                </Button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </SidebarLayout>
+    );
   }
 
   const renderIntegrationCard = (integration: Integration) => {
@@ -557,225 +604,224 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">
-        <div className="px-3 sm:px-4 py-2">
-          <DashboardHeader userId={session.user.id} showLogoText={true} />
-        </div>
-      </header>
+    <SidebarLayout>
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        {/* Header */}
+        <AppHeader userId={session.user.id} />
 
-      {/* Main Content */}
-      <main className="flex-1 pt-16 pb-12">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Page Header */}
-          <div className="py-8 border-b border-border">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
-                  Integrations
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Connect third-party services to enhance your workflow across
-                  all projects
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {connectedCount}
-                  </span>{" "}
-                  connected
+        {/* Main Content */}
+        <main className="flex-1 pb-12">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Page Header */}
+            <div className="py-8 border-b border-border">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    Integrations
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Connect third-party services to enhance your workflow across
+                    all projects
+                  </p>
                 </div>
-                <button
-                  onClick={() => setShowRequestModal(true)}
-                  className="px-4 py-2 text-sm font-medium bg-foreground text-background rounded-full hover:bg-foreground/90 transition-colors flex items-center gap-2"
-                >
-                  <MessageSquarePlus className="w-4 h-4" />
-                  Request Integration
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Search and Filters */}
-          <div className="py-6 space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search integrations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-muted/50 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
-                />
-              </div>
-
-              {/* View Toggle */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-input">
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {connectedCount}
+                    </span>{" "}
+                    connected
+                  </div>
                   <button
-                    onClick={() => setViewMode("grid")}
-                    className={`p-1.5 rounded-md transition-colors ${
-                      viewMode === "grid"
-                        ? "bg-background shadow-sm text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
+                    onClick={() => setShowRequestModal(true)}
+                    className="px-4 py-2 text-sm font-medium bg-foreground text-background rounded-full hover:bg-foreground/90 transition-colors flex items-center gap-2"
                   >
-                    <Grid3X3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`p-1.5 rounded-md transition-colors ${
-                      viewMode === "list"
-                        ? "bg-background shadow-sm text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <List className="w-4 h-4" />
+                    <MessageSquarePlus className="w-4 h-4" />
+                    Request Integration
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Category Filters */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                    selectedCategory === category.id
-                      ? "bg-foreground text-background"
-                      : "bg-muted/50 text-muted-foreground hover:bg-muted border border-input"
-                  }`}
-                >
-                  {category.label}
-                </button>
-              ))}
+            {/* Search and Filters */}
+            <div className="py-6 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Search */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search integrations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-muted/50 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+                  />
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-input">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`p-1.5 rounded-md transition-colors ${
+                        viewMode === "grid"
+                          ? "bg-background shadow-sm text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Grid3X3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`p-1.5 rounded-md transition-colors ${
+                        viewMode === "list"
+                          ? "bg-background shadow-sm text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <List className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Filters */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                      selectedCategory === category.id
+                        ? "bg-foreground text-background"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted border border-input"
+                    }`}
+                  >
+                    {category.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Integrations Grid/List */}
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                  : "space-y-3"
+              }
+            >
+              {filteredIntegrations.length > 0 ? (
+                filteredIntegrations.map(renderIntegrationCard)
+              ) : (
+                <div className="col-span-full py-12 text-center">
+                  <p className="text-muted-foreground">
+                    No integrations found matching your search.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedCategory("all");
+                    }}
+                    className="mt-2 text-sm text-foreground underline hover:no-underline"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Info Section */}
+            <div className="mt-12 p-6 bg-muted/30 rounded-2xl border border-input">
+              <h3 className="text-sm font-semibold text-foreground mb-2">
+                About Integrations
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Integrations you connect here are available across all your
+                projects. Once connected, you can use them for deployment,
+                version control, design imports, and more. Your integration
+                credentials are securely stored and can be disconnected at any
+                time.
+              </p>
             </div>
           </div>
+        </main>
 
-          {/* Integrations Grid/List */}
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 gap-4"
-                : "space-y-3"
-            }
-          >
-            {filteredIntegrations.length > 0 ? (
-              filteredIntegrations.map(renderIntegrationCard)
-            ) : (
-              <div className="col-span-full py-12 text-center">
-                <p className="text-muted-foreground">
-                  No integrations found matching your search.
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSelectedCategory("all");
-                  }}
-                  className="mt-2 text-sm text-foreground underline hover:no-underline"
-                >
-                  Clear filters
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Info Section */}
-          <div className="mt-12 p-6 bg-muted/30 rounded-2xl border border-input">
-            <h3 className="text-sm font-semibold text-foreground mb-2">
-              About Integrations
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Integrations you connect here are available across all your
-              projects. Once connected, you can use them for deployment, version
-              control, design imports, and more. Your integration credentials
-              are securely stored and can be disconnected at any time.
-            </p>
-          </div>
-        </div>
-      </main>
-
-      {/* Request Integration Modal */}
-      {showRequestModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">
-                Request an Integration
-              </h2>
-              <button
-                onClick={() => setShowRequestModal(false)}
-                className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Can&apos;t find the integration you need? Let us know and
-              we&apos;ll consider adding it.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Integration Name *
-                </label>
-                <input
-                  type="text"
-                  value={requestIntegrationName}
-                  onChange={(e) => setRequestIntegrationName(e.target.value)}
-                  placeholder="e.g., Jira, Stripe, AWS"
-                  className="w-full px-4 py-2.5 text-sm bg-muted/50 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Description (Optional)
-                </label>
-                <textarea
-                  value={requestIntegrationDescription}
-                  onChange={(e) =>
-                    setRequestIntegrationDescription(e.target.value)
-                  }
-                  placeholder="Tell us how you'd use this integration..."
-                  rows={3}
-                  className="w-full px-4 py-2.5 text-sm bg-muted/50 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground resize-none"
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
+        {/* Request Integration Modal */}
+        {showRequestModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+            <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-foreground">
+                  Request an Integration
+                </h2>
                 <button
                   onClick={() => setShowRequestModal(false)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-colors"
+                  className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent transition-colors"
                 >
-                  Cancel
+                  <X className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={handleRequestIntegration}
-                  disabled={
-                    isSubmittingRequest || !requestIntegrationName.trim()
-                  }
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-foreground text-background rounded-xl hover:bg-foreground/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isSubmittingRequest ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4" />
-                      Submit Request
-                    </>
-                  )}
-                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Can&apos;t find the integration you need? Let us know and
+                we&apos;ll consider adding it.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
+                    Integration Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={requestIntegrationName}
+                    onChange={(e) => setRequestIntegrationName(e.target.value)}
+                    placeholder="e.g., Jira, Stripe, AWS"
+                    className="w-full px-4 py-2.5 text-sm bg-muted/50 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    value={requestIntegrationDescription}
+                    onChange={(e) =>
+                      setRequestIntegrationDescription(e.target.value)
+                    }
+                    placeholder="Tell us how you'd use this integration..."
+                    rows={3}
+                    className="w-full px-4 py-2.5 text-sm bg-muted/50 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground resize-none"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowRequestModal(false)}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRequestIntegration}
+                    disabled={
+                      isSubmittingRequest || !requestIntegrationName.trim()
+                    }
+                    className="flex-1 px-4 py-2.5 text-sm font-medium bg-foreground text-background rounded-xl hover:bg-foreground/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingRequest ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Submit Request
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </SidebarLayout>
   );
 }

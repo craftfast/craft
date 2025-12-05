@@ -177,7 +177,7 @@ export function useProjectSettings({
                 toast.success("Project duplicated successfully");
                 // Navigate to the duplicated project
                 if (data.project?.id) {
-                    router.push(`/chat/${data.project.id}`);
+                    router.push(`/project/${data.project.id}`);
                 }
             } else {
                 const error = await response.json();

@@ -139,7 +139,7 @@ export default function DocsPage() {
             Join Discord
           </Link>
           <Link
-            href="/help"
+            href="/support"
             className="px-8 py-3 bg-transparent border border-neutral-300 dark:border-neutral-700 text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors font-medium"
           >
             Visit Help Center

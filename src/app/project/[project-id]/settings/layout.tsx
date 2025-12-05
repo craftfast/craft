@@ -6,7 +6,10 @@ import { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import UserMenu from "@/components/UserMenu";
 import CreditCounter from "@/components/CreditCounter";
+import SidebarLayout from "@/components/SidebarLayout";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import {
   Settings,
   Lock,
@@ -17,6 +20,7 @@ import {
   Clock,
   FolderOpen,
   ChevronRight,
+  Menu,
 } from "lucide-react";
 
 type ProjectSettingsSection =
@@ -67,7 +71,7 @@ export default function ProjectSettingsLayout({
   const [projectName, setProjectName] = useState<string>("");
 
   const projectId = params["project-id"] as string;
-  const basePath = `/chat/${projectId}/settings`;
+  const basePath = `/project/${projectId}/settings`;
 
   // Fetch project name
   useEffect(() => {
@@ -118,17 +122,67 @@ export default function ProjectSettingsLayout({
   }
 
   return (
+    <SidebarLayout>
+      <ProjectSettingsContent
+        projectId={projectId}
+        projectName={projectName}
+        basePath={basePath}
+        activeSection={activeSection}
+        session={session}
+      >
+        {children}
+      </ProjectSettingsContent>
+    </SidebarLayout>
+  );
+}
+
+function ProjectSettingsContent({
+  projectId,
+  projectName,
+  basePath,
+  activeSection,
+  session,
+  children,
+}: {
+  projectId: string;
+  projectName: string;
+  basePath: string;
+  activeSection: ProjectSettingsSection;
+  session: {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    };
+  };
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const { setIsExpanded } = useSidebar();
+
+  return (
     <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
       {/* Header - Same as dashboard/chat */}
       <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">
         <div className="px-3 sm:px-4 h-12 items-center flex">
           <div className="flex items-center justify-between w-full">
-            {/* Left - Logo and Project Name */}
+            {/* Left - Menu, Logo and Project Name */}
             <div className="flex items-center">
-              <Logo variant="extended" className="!h-5" href="/chat" />
+              {/* Menu Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-xl mr-2"
+                onClick={() => setIsExpanded(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+
+              <Logo variant="extended" className="!h-5" href="/" />
               <Separator orientation="vertical" className="h-6 mx-1 ml-3" />
               <button
-                onClick={() => router.push(`/chat/${projectId}`)}
+                onClick={() => router.push(`/project/${projectId}`)}
                 className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
               >
                 {projectName ? (

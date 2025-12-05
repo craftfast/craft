@@ -75,7 +75,7 @@ function Verify2FAContent() {
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950 px-4">
       {/* Logo at top left */}
       <div className="absolute top-4 left-4">
-        <Link href="/home">
+        <Link href="/">
           <Logo variant="extended" />
         </Link>
       </div>
@@ -151,7 +151,7 @@ function Verify2FAContent() {
         <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
           Lost access to your authenticator?{" "}
           <Link
-            href="/help"
+            href="/support"
             className="text-neutral-900 dark:text-neutral-100 hover:underline"
           >
             Contact support

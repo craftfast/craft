@@ -452,7 +452,7 @@ export default function CraftInput() {
 
         // Redirect to the coding interface
         if (data.project && data.project.id) {
-          router.push(`/chat/${data.project.id}`);
+          router.push(`/project/${data.project.id}`);
         } else {
           console.error("Project ID not found in response:", data);
           setIsCreating(false);

@@ -124,7 +124,7 @@ function SignInContent() {
     <div className="min-h-screen bg-background flex flex-col p-8">
       {/* Logo at top left */}
       <div className="absolute top-4 left-4">
-        <Link href="/home">
+        <Link href="/">
           <Logo variant="extended" />
         </Link>
       </div>

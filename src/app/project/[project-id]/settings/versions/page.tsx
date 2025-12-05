@@ -261,7 +261,7 @@ export default function ProjectVersionsSettingsPage() {
               variant="ghost"
               size="sm"
               className="rounded-lg text-xs"
-              onClick={() => router.push(`/chat/${projectId}/settings/git`)}
+              onClick={() => router.push(`/project/${projectId}/settings/git`)}
             >
               Manage
               <ArrowRight className="w-3 h-3 ml-1" />
@@ -282,7 +282,7 @@ export default function ProjectVersionsSettingsPage() {
               variant="outline"
               size="sm"
               className="rounded-lg text-xs"
-              onClick={() => router.push(`/chat/${projectId}/settings/git`)}
+              onClick={() => router.push(`/project/${projectId}/settings/git`)}
             >
               <Cloud className="w-3 h-3 mr-1" />
               Connect GitHub
@@ -520,7 +520,7 @@ export default function ProjectVersionsSettingsPage() {
             variant="outline"
             size="sm"
             className="w-full rounded-lg"
-            onClick={() => router.push(`/chat/${projectId}/settings/git`)}
+            onClick={() => router.push(`/project/${projectId}/settings/git`)}
           >
             <Github className="w-4 h-4 mr-2" />
             Connect GitHub Repository

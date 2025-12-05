@@ -2,7 +2,10 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
-import DashboardHeader from "@/components/DashboardHeader";
+import Link from "next/link";
+import SidebarLayout from "@/components/SidebarLayout";
+import AppHeader from "@/components/AppHeader";
+import { Button } from "@/components/ui/button";
 
 type SettingsSection =
   | "general"
@@ -159,62 +162,112 @@ export default function SettingsLayout({
   // Show loading state
   if (isPending) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground" />
-      </div>
+      <SidebarLayout>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground" />
+        </div>
+      </SidebarLayout>
     );
   }
 
-  // Redirect to signin if not authenticated
+  // Show sign-in prompt for unauthenticated users
   if (!session) {
-    router.push("/auth/signin");
-    return null;
+    return (
+      <SidebarLayout>
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+          {/* Header */}
+          <AppHeader />
+
+          {/* Auth Required Message */}
+          <main className="flex-1 flex items-center justify-center pb-12">
+            <div className="text-center max-w-md mx-auto px-4">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-muted flex items-center justify-center">
+                <svg
+                  className="w-8 h-8 text-muted-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold mb-2">
+                Sign in to access settings
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Create an account or sign in to customize your preferences and
+                manage your account.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Button variant="outline" asChild className="rounded-full">
+                  <Link href="/auth/signin">Log in</Link>
+                </Button>
+                <Button asChild className="rounded-full">
+                  <Link href="/auth/signup">Sign up</Link>
+                </Button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </SidebarLayout>
+    );
   }
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Header - Same as dashboard/chat */}
-      <header className="fixed top-0 left-0 right-0 z-[40] bg-background/80 backdrop-blur-md">
-        <div className="px-3 sm:px-4 h-12 items-center flex">
-          <DashboardHeader userId={session.user.id} showLogoText={true} />
-        </div>
-      </header>
+    <SidebarLayout>
+      <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+        {/* Header */}
+        <AppHeader userId={session.user.id} />
 
-      {/* Main Content - with padding for fixed header */}
-      <div className="flex-1 flex pt-10 overflow-hidden">
-        {/* Left Sidebar - Menu (Fixed) */}
-        <div className="w-64 flex-shrink-0 fixed top-14 left-0 bottom-0 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
-          {/* Settings Title */}
-          <div className="px-4 pt-2 pb-2">
-            <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+        {/* Main Content */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Sidebar - Menu */}
+          <div className="w-64 flex-shrink-0 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {/* Settings Title */}
+            <div className="px-4 pt-2 pb-2">
+              <h1 className="text-xl font-semibold text-foreground">
+                Settings
+              </h1>
+            </div>
+            <nav className="p-4 pt-2 space-y-1">
+              {menuItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => router.push(item.path)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors ${
+                    activeSection === item.id
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    {getMenuIcon(item.id)}
+                  </div>
+                  <span className="text-sm font-medium">{item.label}</span>
+                </button>
+              ))}
+            </nav>
           </div>
-          <nav className="p-4 pt-2 space-y-1">
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => router.push(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors ${
-                  activeSection === item.id
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:bg-muted/50"
-                }`}
-              >
-                <div className="w-4 h-4 flex items-center justify-center">
-                  {getMenuIcon(item.id)}
-                </div>
-                <span className="text-sm font-medium">{item.label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
 
-        {/* Right Panel - Content (with left margin for fixed sidebar) */}
-        <div className="flex-1 ml-64 bg-background p-2 overflow-hidden">
-          <div className="h-full border border-border rounded-2xl overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
-            <div className="max-w-3xl mx-auto p-8 pt-14">{children}</div>
+          {/* Right Panel - Content */}
+          <div className="flex-1 bg-background p-2 overflow-hidden">
+            <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+              <div className="max-w-4xl mx-auto p-8 pt-14">{children}</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </SidebarLayout>
   );
 }

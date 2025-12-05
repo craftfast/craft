@@ -86,7 +86,7 @@ function AuthErrorContent() {
               Try again
             </Link>
             <Link
-              href="/home"
+              href="/"
               className="block w-full bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 py-3 rounded-full font-medium hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors"
             >
               Back to home
@@ -98,7 +98,7 @@ function AuthErrorContent() {
         <p className="text-center mt-6 text-sm text-neutral-500 dark:text-neutral-400">
           Need help?{" "}
           <Link
-            href="/help"
+            href="/support"
             className="text-neutral-900 dark:text-neutral-100 hover:underline"
           >
             Contact support

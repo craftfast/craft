@@ -171,7 +171,7 @@ export default function AdminSidebar() {
         {/* Footer */}
         <div className="border-t border-neutral-200 p-4 dark:border-neutral-800">
           <Link
-            href="/chat"
+            href="/"
             className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100"
           >
             <ChevronLeft className="h-4 w-4" />
