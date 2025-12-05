@@ -10,14 +10,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import SidebarLayout from "@/components/SidebarLayout";
 import AppHeader from "@/components/AppHeader";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Search,
   Plus,
-  Grid3X3,
-  List,
   Clock,
   ArrowUpAZ,
   ArrowDownAZ,
-  Filter,
+  ChevronDown,
+  Grid3X3,
+  List,
 } from "lucide-react";
 import type { ProjectsSortOption } from "@/lib/url-params";
 
@@ -247,126 +253,213 @@ export default function ProjectsPage() {
     );
   }
 
+  // Projects title after logo
+  const projectsTitle = (
+    <Link
+      href="/projects"
+      className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
+    >
+      <span className="text-md font-semibold text-foreground">Projects</span>
+    </Link>
+  );
+
+  // Integrated search bar with filter dropdown and view toggle
+  const searchAndFilters = (
+    <div className="hidden md:flex items-center gap-2 w-full max-w-xl">
+      {/* Search with integrated filter */}
+      <div className="flex-1 flex items-center bg-muted/50 border border-input rounded-lg overflow-hidden">
+        <Search className="w-4 h-4 text-muted-foreground ml-3" />
+        <input
+          type="text"
+          placeholder="Search projects..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            updateUrlParams({ search: e.target.value });
+          }}
+          className="flex-1 px-3 py-1.5 text-sm bg-transparent border-none focus:outline-none placeholder:text-muted-foreground"
+        />
+        {/* Sort dropdown integrated in search bar */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border-l border-input transition-colors">
+              {sortOptions.find((o) => o.id === sortBy)?.icon && (
+                <>
+                  {(() => {
+                    const Icon = sortOptions.find((o) => o.id === sortBy)?.icon;
+                    return Icon ? <Icon className="w-3.5 h-3.5" /> : null;
+                  })()}
+                </>
+              )}
+              <span>{sortOptions.find((o) => o.id === sortBy)?.label}</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36 rounded-xl">
+            {sortOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.id}
+                onClick={() => {
+                  setSortBy(option.id);
+                  updateUrlParams({ sort: option.id });
+                }}
+                className={`rounded-lg text-xs ${
+                  sortBy === option.id ? "font-medium" : ""
+                }`}
+              >
+                <option.icon className="w-3.5 h-3.5 mr-2" />
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* View Toggle */}
+      <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-input">
+        <button
+          onClick={() => {
+            setViewMode("grid");
+            updateUrlParams({ view: "grid" });
+          }}
+          className={`p-1.5 rounded-md transition-colors ${
+            viewMode === "grid"
+              ? "bg-background shadow-sm text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Grid3X3 className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => {
+            setViewMode("list");
+            updateUrlParams({ view: "list" });
+          }}
+          className={`p-1.5 rounded-md transition-colors ${
+            viewMode === "list"
+              ? "bg-background shadow-sm text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <List className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+
+  // New Project button before credits
+  const newProjectButton = (
+    <Button asChild size="sm" className="rounded-full">
+      <Link href="/" className="flex items-center justify-center gap-1.5">
+        <Plus className="w-4 h-4" />
+        <span className="hidden sm:inline text-sm">Create</span>
+      </Link>
+    </Button>
+  );
+
   return (
     <SidebarLayout>
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
         {/* Header */}
-        <AppHeader userId={session.user.id} />
+        <AppHeader
+          afterLogo={projectsTitle}
+          centerContent={searchAndFilters}
+          beforeCredits={newProjectButton}
+        />
 
-        {/* Main Content */}
-        <main className="flex-1 pb-12">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Page Header */}
-            <div className="py-8 border-b border-border">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
-                    Projects
-                  </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Manage and access all your projects in one place
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      {projects.length}
-                    </span>{" "}
-                    {projects.length === 1 ? "project" : "projects"}
-                  </div>
-                  <Button asChild className="rounded-full">
-                    <Link
-                      href="/"
-                      className="flex items-center justify-center gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      New Project
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="py-6 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Search */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      updateUrlParams({ search: e.target.value });
-                    }}
-                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-muted/50 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
-                  />
-                </div>
-
-                {/* View Toggle */}
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-input">
-                    <button
-                      onClick={() => {
-                        setViewMode("grid");
-                        updateUrlParams({ view: "grid" });
-                      }}
-                      className={`p-1.5 rounded-md transition-colors ${
-                        viewMode === "grid"
-                          ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Grid3X3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setViewMode("list");
-                        updateUrlParams({ view: "list" });
-                      }}
-                      className={`p-1.5 rounded-md transition-colors ${
-                        viewMode === "list"
-                          ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <List className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sort Filters */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Filter className="w-4 h-4 text-muted-foreground" />
-                {sortOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => {
-                      setSortBy(option.id);
-                      updateUrlParams({ sort: option.id });
-                    }}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                      sortBy === option.id
-                        ? "bg-foreground text-background"
-                        : "bg-muted/50 text-muted-foreground hover:bg-muted border border-input"
-                    }`}
-                  >
-                    {option.label}
+        {/* Mobile Search and Filters */}
+        <div className="md:hidden px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            {/* Search with filter */}
+            <div className="flex-1 flex items-center bg-muted/50 border border-input rounded-lg overflow-hidden">
+              <Search className="w-4 h-4 text-muted-foreground ml-3" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  updateUrlParams({ search: e.target.value });
+                }}
+                className="flex-1 px-2 py-2 text-sm bg-transparent border-none focus:outline-none placeholder:text-muted-foreground"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-1 px-2 py-2 text-xs text-muted-foreground border-l border-input">
+                    {sortOptions.find((o) => o.id === sortBy)?.icon && (
+                      <>
+                        {(() => {
+                          const Icon = sortOptions.find(
+                            (o) => o.id === sortBy
+                          )?.icon;
+                          return Icon ? <Icon className="w-3.5 h-3.5" /> : null;
+                        })()}
+                      </>
+                    )}
+                    <ChevronDown className="w-3 h-3" />
                   </button>
-                ))}
-              </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-36 rounded-xl">
+                  {sortOptions.map((option) => (
+                    <DropdownMenuItem
+                      key={option.id}
+                      onClick={() => {
+                        setSortBy(option.id);
+                        updateUrlParams({ sort: option.id });
+                      }}
+                      className={`rounded-lg text-xs ${
+                        sortBy === option.id ? "font-medium" : ""
+                      }`}
+                    >
+                      <option.icon className="w-3.5 h-3.5 mr-2" />
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+            {/* View Toggle */}
+            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-input">
+              <button
+                onClick={() => {
+                  setViewMode("grid");
+                  updateUrlParams({ view: "grid" });
+                }}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === "grid"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode("list");
+                  updateUrlParams({ view: "list" });
+                }}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === "list"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
 
+        {/* Main Content - Full page scrollable */}
+        <main className="flex-1 overflow-y-auto pb-8 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="px-4 sm:px-6 lg:px-8 pt-6">
             {/* Projects Grid/List */}
             {!loading && !error && filteredProjects.length > 0 && (
               <div
                 className={
                   viewMode === "grid"
                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                    : "space-y-3"
+                    : "flex flex-col gap-2"
                 }
               >
                 {filteredProjects.map((project) =>
@@ -431,17 +524,17 @@ export default function ProjectsPage() {
                     <Link
                       key={project.id}
                       href={`/project/${project.id}`}
-                      className="flex items-center gap-4 p-4 bg-muted/50 rounded-xl border border-input hover:border-foreground/20 transition-all"
+                      className="group flex items-center gap-4 p-3 bg-card rounded-xl border border-border hover:border-muted-foreground/50 hover:shadow-sm transition-all cursor-pointer"
                     >
                       {/* Thumbnail */}
-                      <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                      <div className="relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
                         {project.previewImage ? (
                           <Image
                             src={project.previewImage}
                             alt={project.name}
-                            width={80}
-                            height={56}
-                            className="object-cover w-full h-full"
+                            fill
+                            className="object-cover"
+                            sizes="96px"
                           />
                         ) : (
                           <div
@@ -465,16 +558,21 @@ export default function ProjectsPage() {
                           </div>
                         )}
                       </div>
-
-                      {/* Info */}
+                      {/* Project Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-foreground truncate">
+                        <h3 className="font-medium text-foreground truncate group-hover:text-foreground/90">
                           {project.name}
                         </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {getRelativeTime(project.createdAt)}
-                        </p>
+                        {project.description && (
+                          <p className="text-sm text-muted-foreground truncate mt-0.5">
+                            {project.description}
+                          </p>
+                        )}
                       </div>
+                      {/* Time */}
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                        {getRelativeTime(project.createdAt)}
+                      </span>
                     </Link>
                   )
                 )}
@@ -487,7 +585,7 @@ export default function ProjectsPage() {
                 className={
                   viewMode === "grid"
                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                    : "space-y-3"
+                    : "flex flex-col gap-2"
                 }
               >
                 {Array.from({ length: 8 }).map((_, index) =>
@@ -507,13 +605,14 @@ export default function ProjectsPage() {
                   ) : (
                     <div
                       key={index}
-                      className="flex items-center gap-4 p-4 bg-muted/50 rounded-xl border border-input"
+                      className="flex items-center gap-4 p-3 bg-card rounded-xl border border-border"
                     >
-                      <Skeleton className="w-20 h-14 rounded-lg" />
-                      <div className="flex-1">
-                        <Skeleton className="h-5 w-3/4 mb-2" />
-                        <Skeleton className="h-3 w-1/4" />
+                      <Skeleton className="w-24 h-16 rounded-lg flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-3 w-1/2" />
                       </div>
+                      <Skeleton className="h-3 w-16 flex-shrink-0" />
                     </div>
                   )
                 )}

@@ -20,13 +20,9 @@ import {
   Minimize,
   Github,
   GitBranch,
-  Menu,
 } from "lucide-react";
-import Logo from "./Logo";
-import UserMenu from "./UserMenu";
-import CreditCounter from "./CreditCounter";
+import AppHeader from "./AppHeader";
 import SidebarLayout from "./SidebarLayout";
-import { useSidebar } from "@/contexts/SidebarContext";
 import ChatPanel from "./coding-interface/ChatPanel";
 import PreviewPanel, { PreviewPanelRef } from "./coding-interface/PreviewPanel";
 import CodeEditor from "./coding-interface/CodeEditor";
@@ -42,9 +38,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -115,7 +108,6 @@ function CodingInterfaceContent({
   user,
 }: CodingInterfaceProps) {
   const router = useRouter();
-  const { setIsExpanded } = useSidebar();
 
   // Keep sandbox alive while user has project page open
   useSandboxHeartbeat(initialProject.id);
@@ -491,361 +483,327 @@ function CodingInterfaceContent({
       })),
   ];
 
+  // Project dropdown menu content
+  const projectDropdown = (
+    <DropdownMenu open={isProjectMenuOpen} onOpenChange={setIsProjectMenuOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 px-2 py-1 h-auto rounded-lg"
+        >
+          <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
+            {project.name}
+          </h1>
+          <ChevronDown
+            className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ${
+              isProjectMenuOpen ? "rotate-180" : ""
+            }`}
+          />
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="start" className="w-64 rounded-xl">
+        <DropdownMenuItem
+          className="rounded-lg"
+          onClick={() => {
+            loadVersionHistory();
+            setIsVersionHistoryOpen(true);
+            setIsProjectMenuOpen(false);
+          }}
+        >
+          <History className="w-4 h-4 mr-3" />
+          <span>Version history</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="rounded-lg"
+          onClick={() => {
+            setNewProjectName(project.name);
+            setIsRenameDialogOpen(true);
+            setIsProjectMenuOpen(false);
+          }}
+        >
+          <Edit className="w-4 h-4 mr-3" />
+          <span>Rename...</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="rounded-lg"
+          onClick={() => {
+            handleDuplicateProject();
+            setIsProjectMenuOpen(false);
+          }}
+          disabled={isDuplicating}
+        >
+          <Copy className="w-4 h-4 mr-3" />
+          <span>{isDuplicating ? "Duplicating..." : "Duplicate"}</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="rounded-lg"
+          onClick={() => {
+            handleExportProject();
+            setIsProjectMenuOpen(false);
+          }}
+        >
+          <Download className="w-4 h-4 mr-3" />
+          <span>Export</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          className="rounded-lg"
+          onClick={() => {
+            setIsDatabaseDialogOpen(true);
+            setIsProjectMenuOpen(false);
+          }}
+        >
+          <svg
+            className="w-4 h-4 mr-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+            />
+          </svg>
+          <span>Connect Database</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="rounded-lg"
+          onClick={() => {
+            setIsSyncGitDialogOpen(true);
+            setIsProjectMenuOpen(false);
+          }}
+        >
+          <Github className="w-4 h-4 mr-3" />
+          <span>Sync with Git</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="rounded-lg"
+          onClick={() => {
+            setIsDeployDialogOpen(true);
+            setIsProjectMenuOpen(false);
+          }}
+        >
+          <svg
+            className="w-4 h-4 mr-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            />
+          </svg>
+          <span>Deploy</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          className="rounded-lg"
+          onClick={() => {
+            router.push(`/project/${project.id}/settings`);
+            setIsProjectMenuOpen(false);
+          }}
+        >
+          <Settings className="w-4 h-4 mr-3" />
+          <span>Project Settings</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  // URL Bar with View Switcher content
+  const urlBarContent = (
+    <div className="flex items-center gap-2 max-w-xl w-full px-8">
+      <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-2 py-1">
+        {/* View Switcher - Left side of URL bar */}
+        <DropdownMenu open={isViewMenuOpen} onOpenChange={setIsViewMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="px-2 py-1 text-xs font-medium h-auto rounded-md flex items-center gap-1.5"
+            >
+              {/* Show current view icon */}
+              {allViews.find((view) => view.id === activeTab)?.icon && (
+                <>
+                  {(() => {
+                    const Icon = allViews.find(
+                      (view) => view.id === activeTab
+                    )?.icon;
+                    return Icon ? <Icon className="w-3 h-3" /> : null;
+                  })()}
+                </>
+              )}
+              <span className="text-xs">
+                {allViews.find((view) => view.id === activeTab)?.label ||
+                  "View"}
+              </span>
+              <ChevronDown
+                className={`w-3 h-3 transition-transform ${
+                  isViewMenuOpen ? "rotate-180" : ""
+                }`}
+              />
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="start" className="w-40 rounded-xl">
+            {allViews.map((view) => (
+              <div key={view.id}>
+                <DropdownMenuItem
+                  onClick={() => setActiveTab(view.id)}
+                  className={`rounded-lg text-xs ${
+                    activeTab === view.id ? "font-medium" : ""
+                  }`}
+                >
+                  {view.icon && <view.icon className="w-3.5 h-3.5 mr-2" />}
+                  <span>{view.label}</span>
+                </DropdownMenuItem>
+              </div>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Separator */}
+        <Separator orientation="vertical" className="h-4" />
+
+        <Input
+          type="text"
+          value={previewUrl}
+          onChange={(e) => setPreviewUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && activeTab === "preview") {
+              // Navigate to the new URL
+              e.preventDefault();
+            }
+          }}
+          placeholder="/"
+          disabled={activeTab !== "preview"}
+          className="flex-1 bg-transparent text-xs border-none shadow-none focus-visible:ring-0 min-w-0 h-auto p-0 disabled:opacity-50"
+        />
+
+        {/* Preview Controls - Inside URL Bar */}
+        <div className="flex items-center gap-0.5 pl-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => {
+                  if (previewPanelRef.current) {
+                    previewPanelRef.current.refresh();
+                  }
+                }}
+                disabled={activeTab !== "preview"}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Reload</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => {
+                  if (previewPanelRef.current) {
+                    const url = previewPanelRef.current.getPreviewUrl();
+                    if (url) {
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    }
+                  }
+                }}
+                disabled={activeTab !== "preview"}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Open in new tab</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => {
+                  setDeviceMode(
+                    deviceMode === "desktop" ? "mobile" : "desktop"
+                  );
+                }}
+                disabled={activeTab !== "preview"}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md"
+              >
+                {deviceMode === "desktop" ? (
+                  <Monitor className="w-3.5 h-3.5" />
+                ) : (
+                  <Smartphone className="w-3.5 h-3.5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                {deviceMode.charAt(0).toUpperCase() + deviceMode.slice(1)} -
+                Click to switch
+              </p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => {
+                  setIsFullscreen(!isFullscreen);
+                }}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md"
+              >
+                {isFullscreen ? (
+                  <Minimize className="w-3.5 h-3.5" />
+                ) : (
+                  <Maximize className="w-3.5 h-3.5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isFullscreen ? "Exit fullscreen" : "Fullscreen"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <TooltipProvider>
       <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
         {/* Header */}
-        <header className="h-12 bg-background grid grid-cols-3 items-center px-4 flex-shrink-0">
-          {/* Left Side - Menu, Logo and Project Name */}
-          <div className="flex items-center justify-start">
-            {/* Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-xl mr-2"
-              onClick={() => setIsExpanded(true)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-
-            <Logo variant="extended" className="!h-5" href="/" />
-            <Separator orientation="vertical" className="h-6 mx-1 ml-3" />
-
-            {/* Project Name with Dropdown */}
-            <DropdownMenu
-              open={isProjectMenuOpen}
-              onOpenChange={setIsProjectMenuOpen}
-            >
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-2 px-2 py-1 h-auto rounded-lg"
-                >
-                  <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
-                    {project.name}
-                  </h1>
-                  <ChevronDown
-                    className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ${
-                      isProjectMenuOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent align="start" className="w-64 rounded-xl">
-                <DropdownMenuItem
-                  className="rounded-lg"
-                  onClick={() => {
-                    loadVersionHistory();
-                    setIsVersionHistoryOpen(true);
-                    setIsProjectMenuOpen(false);
-                  }}
-                >
-                  <History className="w-4 h-4 mr-3" />
-                  <span>Version history</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="rounded-lg"
-                  onClick={() => {
-                    setNewProjectName(project.name);
-                    setIsRenameDialogOpen(true);
-                    setIsProjectMenuOpen(false);
-                  }}
-                >
-                  <Edit className="w-4 h-4 mr-3" />
-                  <span>Rename...</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="rounded-lg"
-                  onClick={() => {
-                    handleDuplicateProject();
-                    setIsProjectMenuOpen(false);
-                  }}
-                  disabled={isDuplicating}
-                >
-                  <Copy className="w-4 h-4 mr-3" />
-                  <span>{isDuplicating ? "Duplicating..." : "Duplicate"}</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="rounded-lg"
-                  onClick={() => {
-                    handleExportProject();
-                    setIsProjectMenuOpen(false);
-                  }}
-                >
-                  <Download className="w-4 h-4 mr-3" />
-                  <span>Export</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  className="rounded-lg"
-                  onClick={() => {
-                    setIsDatabaseDialogOpen(true);
-                    setIsProjectMenuOpen(false);
-                  }}
-                >
-                  <svg
-                    className="w-4 h-4 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
-                    />
-                  </svg>
-                  <span>Connect Database</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="rounded-lg"
-                  onClick={() => {
-                    setIsSyncGitDialogOpen(true);
-                    setIsProjectMenuOpen(false);
-                  }}
-                >
-                  <Github className="w-4 h-4 mr-3" />
-                  <span>Sync with Git</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="rounded-lg"
-                  onClick={() => {
-                    setIsDeployDialogOpen(true);
-                    setIsProjectMenuOpen(false);
-                  }}
-                >
-                  <svg
-                    className="w-4 h-4 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  <span>Deploy</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  className="rounded-lg"
-                  onClick={() => {
-                    router.push(`/project/${project.id}/settings`);
-                    setIsProjectMenuOpen(false);
-                  }}
-                >
-                  <Settings className="w-4 h-4 mr-3" />
-                  <span>Project Settings</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* Center - URL Bar with View Switcher */}
-          <div className="flex items-center justify-center px-8">
-            {/* URL Bar - Always visible */}
-            <div className="flex items-center gap-2 max-w-xl w-full">
-              <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-2 py-1">
-                {/* View Switcher - Left side of URL bar */}
-                <DropdownMenu
-                  open={isViewMenuOpen}
-                  onOpenChange={setIsViewMenuOpen}
-                >
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="px-2 py-1 text-xs font-medium h-auto rounded-md flex items-center gap-1.5"
-                    >
-                      {/* Show current view icon */}
-                      {allViews.find((view) => view.id === activeTab)?.icon && (
-                        <>
-                          {(() => {
-                            const Icon = allViews.find(
-                              (view) => view.id === activeTab
-                            )?.icon;
-                            return Icon ? <Icon className="w-3 h-3" /> : null;
-                          })()}
-                        </>
-                      )}
-                      <span className="text-xs">
-                        {allViews.find((view) => view.id === activeTab)
-                          ?.label || "View"}
-                      </span>
-                      <ChevronDown
-                        className={`w-3 h-3 transition-transform ${
-                          isViewMenuOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </Button>
-                  </DropdownMenuTrigger>
-
-                  <DropdownMenuContent
-                    align="start"
-                    className="w-40 rounded-xl"
-                  >
-                    {allViews.map((view) => (
-                      <div key={view.id}>
-                        <DropdownMenuItem
-                          onClick={() => setActiveTab(view.id)}
-                          className={`rounded-lg text-xs ${
-                            activeTab === view.id ? "font-medium" : ""
-                          }`}
-                        >
-                          {view.icon && (
-                            <view.icon className="w-3.5 h-3.5 mr-2" />
-                          )}
-                          <span>{view.label}</span>
-                        </DropdownMenuItem>
-                      </div>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Separator */}
-                <Separator orientation="vertical" className="h-4" />
-
-                <Input
-                  type="text"
-                  value={previewUrl}
-                  onChange={(e) => setPreviewUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && activeTab === "preview") {
-                      // Navigate to the new URL
-                      e.preventDefault();
-                    }
-                  }}
-                  placeholder="/"
-                  disabled={activeTab !== "preview"}
-                  className="flex-1 bg-transparent text-xs border-none shadow-none focus-visible:ring-0 min-w-0 h-auto p-0 disabled:opacity-50"
-                />
-
-                {/* Preview Controls - Inside URL Bar */}
-                <div className="flex items-center gap-0.5 pl-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => {
-                          if (previewPanelRef.current) {
-                            previewPanelRef.current.refresh();
-                          }
-                        }}
-                        disabled={activeTab !== "preview"}
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-md"
-                      >
-                        <RotateCw className="w-3.5 h-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Reload</p>
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => {
-                          if (previewPanelRef.current) {
-                            const url = previewPanelRef.current.getPreviewUrl();
-                            if (url) {
-                              window.open(url, "_blank", "noopener,noreferrer");
-                            }
-                          }
-                        }}
-                        disabled={activeTab !== "preview"}
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-md"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Open in new tab</p>
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => {
-                          setDeviceMode(
-                            deviceMode === "desktop" ? "mobile" : "desktop"
-                          );
-                        }}
-                        disabled={activeTab !== "preview"}
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-md"
-                      >
-                        {deviceMode === "desktop" ? (
-                          <Monitor className="w-3.5 h-3.5" />
-                        ) : (
-                          <Smartphone className="w-3.5 h-3.5" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {deviceMode.charAt(0).toUpperCase() +
-                          deviceMode.slice(1)}{" "}
-                        - Click to switch
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => {
-                          setIsFullscreen(!isFullscreen);
-                        }}
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-md"
-                      >
-                        {isFullscreen ? (
-                          <Minimize className="w-3.5 h-3.5" />
-                        ) : (
-                          <Maximize className="w-3.5 h-3.5" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{isFullscreen ? "Exit fullscreen" : "Fullscreen"}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
-            </div>
-
-            {/* Spacer removed - URL bar always visible */}
-          </div>
-
-          {/* Right Side - Credit Counter and User Profile */}
-          <div className="flex items-center justify-end gap-2">
-            {/* Credit Counter */}
-            <CreditCounter onClickAction={() => setIsPricingModalOpen(true)} />
-
-            {/* User Profile Menu */}
-            {user && <UserMenu user={user} />}
-          </div>
-        </header>
+        <AppHeader
+          afterLogo={projectDropdown}
+          centerContent={urlBarContent}
+          onCreditClick={() => setIsPricingModalOpen(true)}
+        />
 
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden bg-background px-2 pb-2 gap-2">

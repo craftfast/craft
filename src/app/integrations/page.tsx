@@ -9,6 +9,12 @@ import SidebarLayout from "@/components/SidebarLayout";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   CheckCircle2,
   Loader2,
   Key,
@@ -16,10 +22,10 @@ import {
   Search,
   Plus,
   MessageSquarePlus,
-  Filter,
   Grid3X3,
   List,
   X,
+  ChevronDown,
 } from "lucide-react";
 
 interface IntegrationStatus {
@@ -603,106 +609,173 @@ export default function IntegrationsPage() {
     );
   };
 
+  // Integrations title after logo
+  const integrationsTitle = (
+    <Link
+      href="/integrations"
+      className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
+    >
+      <span className="text-md font-semibold text-foreground">
+        Integrations
+      </span>
+    </Link>
+  );
+
+  // Integrated search bar with category filter dropdown and view toggle
+  const searchAndFilters = (
+    <div className="hidden md:flex items-center gap-2 w-full max-w-xl">
+      {/* Search with integrated category filter */}
+      <div className="flex-1 flex items-center bg-muted/50 border border-input rounded-lg overflow-hidden">
+        <Search className="w-4 h-4 text-muted-foreground ml-3" />
+        <input
+          type="text"
+          placeholder="Search integrations..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 px-3 py-1.5 text-sm bg-transparent border-none focus:outline-none placeholder:text-muted-foreground"
+        />
+        {/* Category dropdown integrated in search bar */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border-l border-input transition-colors">
+              <span>
+                {categories.find((c) => c.id === selectedCategory)?.label}
+              </span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36 rounded-xl">
+            {categories.map((category) => (
+              <DropdownMenuItem
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`rounded-lg text-xs ${
+                  selectedCategory === category.id ? "font-medium" : ""
+                }`}
+              >
+                {category.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* View Toggle */}
+      <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-input">
+        <button
+          onClick={() => setViewMode("grid")}
+          className={`p-1.5 rounded-md transition-colors ${
+            viewMode === "grid"
+              ? "bg-background shadow-sm text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Grid3X3 className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => setViewMode("list")}
+          className={`p-1.5 rounded-md transition-colors ${
+            viewMode === "list"
+              ? "bg-background shadow-sm text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <List className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+
+  // Request Integration button before credits
+  const requestButton = (
+    <Button
+      onClick={() => setShowRequestModal(true)}
+      size="sm"
+      className="rounded-full"
+    >
+      <Plus className="w-4 h-4" />
+      <span className="hidden sm:inline text-sm">Request</span>
+    </Button>
+  );
+
   return (
     <SidebarLayout>
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
         {/* Header */}
-        <AppHeader userId={session.user.id} />
+        <AppHeader
+          afterLogo={integrationsTitle}
+          centerContent={searchAndFilters}
+          beforeCredits={requestButton}
+        />
 
-        {/* Main Content */}
-        <main className="flex-1 pb-12">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Page Header */}
-            <div className="py-8 border-b border-border">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
-                    Integrations
-                  </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Connect third-party services to enhance your workflow across
-                    all projects
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      {connectedCount}
-                    </span>{" "}
-                    connected
-                  </div>
-                  <button
-                    onClick={() => setShowRequestModal(true)}
-                    className="px-4 py-2 text-sm font-medium bg-foreground text-background rounded-full hover:bg-foreground/90 transition-colors flex items-center gap-2"
-                  >
-                    <MessageSquarePlus className="w-4 h-4" />
-                    Request Integration
+        {/* Mobile Search and Filters */}
+        <div className="md:hidden px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            {/* Search with filter */}
+            <div className="flex-1 flex items-center bg-muted/50 border border-input rounded-lg overflow-hidden">
+              <Search className="w-4 h-4 text-muted-foreground ml-3" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 px-2 py-2 text-sm bg-transparent border-none focus:outline-none placeholder:text-muted-foreground"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-1 px-2 py-2 text-xs text-muted-foreground border-l border-input">
+                    <span>
+                      {categories
+                        .find((c) => c.id === selectedCategory)
+                        ?.label?.substring(0, 3)}
+                    </span>
+                    <ChevronDown className="w-3 h-3" />
                   </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="py-6 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Search */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search integrations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-muted/50 border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
-                  />
-                </div>
-
-                {/* View Toggle */}
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-input">
-                    <button
-                      onClick={() => setViewMode("grid")}
-                      className={`p-1.5 rounded-md transition-colors ${
-                        viewMode === "grid"
-                          ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-36 rounded-xl">
+                  {categories.map((category) => (
+                    <DropdownMenuItem
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className={`rounded-lg text-xs ${
+                        selectedCategory === category.id ? "font-medium" : ""
                       }`}
                     >
-                      <Grid3X3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode("list")}
-                      className={`p-1.5 rounded-md transition-colors ${
-                        viewMode === "list"
-                          ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <List className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Category Filters */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Filter className="w-4 h-4 text-muted-foreground" />
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                      selectedCategory === category.id
-                        ? "bg-foreground text-background"
-                        : "bg-muted/50 text-muted-foreground hover:bg-muted border border-input"
-                    }`}
-                  >
-                    {category.label}
-                  </button>
-                ))}
-              </div>
+                      {category.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+            {/* View Toggle */}
+            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-input">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === "grid"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === "list"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
 
+        {/* Main Content - Full page scrollable */}
+        <main className="flex-1 overflow-y-auto pb-8 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="px-4 sm:px-6 lg:px-8 pt-6">
             {/* Integrations Grid/List */}
             <div
               className={
@@ -732,7 +805,7 @@ export default function IntegrationsPage() {
             </div>
 
             {/* Info Section */}
-            <div className="mt-12 p-6 bg-muted/30 rounded-2xl border border-input">
+            <div className="mt-8 p-6 bg-muted/30 rounded-2xl border border-input max-w-3xl">
               <h3 className="text-sm font-semibold text-foreground mb-2">
                 About Integrations
               </h3>

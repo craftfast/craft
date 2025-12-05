@@ -1,11 +1,13 @@
 "use client";
 
+import { useState, useMemo, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
 import SidebarLayout from "@/components/SidebarLayout";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
+import { Search, HelpCircle, X } from "lucide-react";
 
 type SettingsSection =
   | "general"
@@ -15,17 +17,88 @@ type SettingsSection =
   | "usage"
   | "account";
 
-const menuItems: { id: SettingsSection; label: string; path: string }[] = [
-  { id: "general", label: "General", path: "/settings" },
+const menuItems: {
+  id: SettingsSection;
+  label: string;
+  path: string;
+  keywords: string[];
+}[] = [
+  {
+    id: "general",
+    label: "General",
+    path: "/settings",
+    keywords: [
+      "theme",
+      "dark",
+      "light",
+      "appearance",
+      "chat position",
+      "sound",
+      "notifications",
+      "suggestions",
+    ],
+  },
   {
     id: "personalization",
     label: "Personalization",
     path: "/settings/personalization",
+    keywords: [
+      "profile",
+      "name",
+      "bio",
+      "custom",
+      "instructions",
+      "preferences",
+    ],
   },
-  { id: "models", label: "Models", path: "/settings/models" },
-  { id: "billing", label: "Billing", path: "/settings/billing" },
-  { id: "usage", label: "Usage", path: "/settings/usage" },
-  { id: "account", label: "Account", path: "/settings/account" },
+  {
+    id: "models",
+    label: "Models",
+    path: "/settings/models",
+    keywords: [
+      "ai",
+      "gpt",
+      "claude",
+      "llm",
+      "default",
+      "chat",
+      "agent",
+      "reasoning",
+    ],
+  },
+  {
+    id: "billing",
+    label: "Billing",
+    path: "/settings/billing",
+    keywords: [
+      "payment",
+      "subscription",
+      "plan",
+      "credit card",
+      "invoice",
+      "upgrade",
+      "pro",
+    ],
+  },
+  {
+    id: "usage",
+    label: "Usage",
+    path: "/settings/usage",
+    keywords: [
+      "credits",
+      "tokens",
+      "cost",
+      "history",
+      "consumption",
+      "spending",
+    ],
+  },
+  {
+    id: "account",
+    label: "Account",
+    path: "/settings/account",
+    keywords: ["email", "password", "security", "delete", "logout", "sign out"],
+  },
 ];
 
 const getMenuIcon = (itemId: SettingsSection) => {
@@ -144,6 +217,9 @@ export default function SettingsLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, isPending } = useSession();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Determine active section from pathname
   const getActiveSection = (): SettingsSection => {
@@ -158,6 +234,43 @@ export default function SettingsLayout({
   };
 
   const activeSection = getActiveSection();
+
+  // Filter menu items based on search query
+  const filteredMenuItems = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    return menuItems.filter(
+      (item) =>
+        item.label.toLowerCase().includes(query) ||
+        item.keywords.some((keyword) => keyword.toLowerCase().includes(query))
+    );
+  }, [searchQuery]);
+
+  // Get matching keyword for display
+  const getMatchingKeyword = (item: (typeof menuItems)[0]) => {
+    if (!searchQuery.trim()) return null;
+    const query = searchQuery.toLowerCase();
+    if (item.label.toLowerCase().includes(query)) return null;
+    return item.keywords.find((keyword) =>
+      keyword.toLowerCase().includes(query)
+    );
+  };
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const showSearchResults = isSearchFocused && searchQuery.trim().length > 0;
 
   // Show loading state
   if (isPending) {
@@ -228,19 +341,107 @@ export default function SettingsLayout({
     <SidebarLayout>
       <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
         {/* Header */}
-        <AppHeader userId={session.user.id} />
+        <AppHeader
+          afterLogo={
+            <Link
+              href="/settings"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
+            >
+              <span className="text-md font-semibold text-foreground">
+                Settings
+              </span>
+            </Link>
+          }
+          centerContent={
+            <div
+              ref={searchContainerRef}
+              className="hidden md:flex items-center w-full max-w-md relative"
+            >
+              <div className="flex-1 flex items-center bg-muted/50 border border-input rounded-lg overflow-hidden">
+                <Search className="w-4 h-4 text-muted-foreground ml-3" />
+                <input
+                  type="text"
+                  placeholder="Search settings..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  className="flex-1 px-3 py-1.5 text-sm bg-transparent border-none focus:outline-none placeholder:text-muted-foreground"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="p-1.5 mr-1 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Search Results Dropdown */}
+              {showSearchResults && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                  {filteredMenuItems.length > 0 ? (
+                    <div className="py-1">
+                      {filteredMenuItems.map((item) => {
+                        const matchingKeyword = getMatchingKeyword(item);
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              router.push(item.path);
+                              setSearchQuery("");
+                              setIsSearchFocused(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted transition-colors text-left"
+                          >
+                            <div className="w-5 h-5 flex items-center justify-center text-muted-foreground">
+                              {getMenuIcon(item.id)}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-foreground">
+                                {item.label}
+                              </span>
+                              {matchingKeyword && (
+                                <span className="text-xs text-muted-foreground">
+                                  {matchingKeyword}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-6 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        No settings found for &quot;{searchQuery}&quot;
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          }
+          beforeCredits={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full w-8 h-8 p-0"
+              onClick={() => {
+                // TODO: Open help chat
+                console.log("Open help chat");
+              }}
+            >
+              <HelpCircle className="w-4 h-4" />
+            </Button>
+          }
+        />
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar - Menu */}
           <div className="w-64 flex-shrink-0 overflow-y-auto bg-background [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {/* Settings Title */}
-            <div className="px-4 pt-2 pb-2">
-              <h1 className="text-xl font-semibold text-foreground">
-                Settings
-              </h1>
-            </div>
-            <nav className="p-4 pt-2 space-y-1">
+            <nav className="p-4 space-y-1">
               {menuItems.map((item) => (
                 <button
                   key={item.id}
@@ -262,7 +463,7 @@ export default function SettingsLayout({
 
           {/* Right Panel - Content */}
           <div className="flex-1 bg-background p-2 overflow-hidden">
-            <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
+            <div className="h-full border border-border rounded-2xl overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50">
               <div className="max-w-4xl mx-auto p-8 pt-14">{children}</div>
             </div>
           </div>

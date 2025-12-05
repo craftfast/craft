@@ -4,16 +4,35 @@ import SidebarLayout from "@/components/SidebarLayout";
 import AppHeader from "@/components/AppHeader";
 import { DocsSidebar, MobileDocsSidebar, DocsSearch } from "@/components/docs";
 
+import Link from "next/link";
+
 export default function DocsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Docs title after logo (styled like project name button)
+  const docsTitle = (
+    <Link
+      href="/docs"
+      className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
+    >
+      <span className="text-md font-semibold text-foreground">Docs</span>
+    </Link>
+  );
+
+  // Search in center (desktop only)
+  const searchContent = (
+    <div className="hidden lg:block w-full max-w-md">
+      <DocsSearch />
+    </div>
+  );
+
   return (
     <SidebarLayout>
       <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
         {/* Header */}
-        <AppHeader />
+        <AppHeader afterLogo={docsTitle} centerContent={searchContent} />
 
         {/* Search - Mobile/Tablet */}
         <div className="lg:hidden px-4 py-3 border-b border-border">
@@ -24,10 +43,6 @@ export default function DocsLayout({
           {/* Left Sidebar - Desktop - Fixed with own scrollbar */}
           <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
             <div className="p-6">
-              {/* Search - Desktop */}
-              <div className="mb-6">
-                <DocsSearch />
-              </div>
               <DocsSidebar />
             </div>
           </aside>
