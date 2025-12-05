@@ -25,10 +25,12 @@ export const ASSETS = {
 
 // External links
 export const LINKS = {
+    GITHUB: "https://github.com/craftfast",
     GITHUB_REPO: "https://github.com/craftfast/craft",
-    TWITTER_CRAFT: "https://x.com/craftdotfast",
+    TWITTER: "https://x.com/craftdotfast",
     TWITTER_SUDHEER: "https://x.com/sudheerdotai",
     DISCORD: "https://discord.gg/YvPKxcCV",
+    LINKEDIN: "https://linkedin.com/company/craftfast",
     YOUTUBE: "https://www.youtube.com/channel/UCImqQGc8t8t0koAsw7pscnQ",
 } as const;
 
