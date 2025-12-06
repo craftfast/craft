@@ -29,6 +29,7 @@ import CodeEditor from "./coding-interface/CodeEditor";
 import DeploymentDialog from "./coding-interface/DeploymentDialog";
 import GitHubSyncDialog from "./coding-interface/GitHubSyncDialog";
 import DatabaseConnectionDialog from "./coding-interface/DatabaseConnectionDialog";
+import ProjectSettingsDialog from "./coding-interface/ProjectSettingsDialog";
 import { useSandboxHeartbeat } from "@/hooks/useSandboxHeartbeat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,6 +148,7 @@ function CodingInterfaceContent({
   const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false);
   const [isSyncGitDialogOpen, setIsSyncGitDialogOpen] = useState(false);
   const [isDatabaseDialogOpen, setIsDatabaseDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const chatWidth = 30; // Fixed at 30%
 
   // Load custom views from project settings
@@ -614,7 +616,7 @@ function CodingInterfaceContent({
         <DropdownMenuItem
           className="rounded-lg"
           onClick={() => {
-            router.push(`/project/${project.id}/settings`);
+            setIsSettingsDialogOpen(true);
             setIsProjectMenuOpen(false);
           }}
         >
@@ -799,7 +801,43 @@ function CodingInterfaceContent({
     <TooltipProvider>
       <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
         {/* Header */}
-        <AppHeader afterLogo={projectDropdown} centerContent={urlBarContent} />
+        <AppHeader
+          afterLogo={projectDropdown}
+          centerContent={urlBarContent}
+          beforeCredits={
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-lg h-8"
+                onClick={() => setIsSettingsDialogOpen(true)}
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-lg h-8"
+                onClick={() => setIsSyncGitDialogOpen(true)}
+              >
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
+                </svg>
+              </Button>
+              <Button
+                variant="default"
+                className="rounded-lg h-8"
+                onClick={() => setIsDeployDialogOpen(true)}
+              >
+                Publish
+              </Button>
+            </div>
+          }
+        />
 
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden bg-background px-2 pb-2 gap-2">
@@ -1083,6 +1121,18 @@ function CodingInterfaceContent({
           open={isDatabaseDialogOpen}
           onOpenChange={setIsDatabaseDialogOpen}
           projectId={project.id}
+        />
+
+        {/* Project Settings Dialog */}
+        <ProjectSettingsDialog
+          open={isSettingsDialogOpen}
+          onOpenChange={setIsSettingsDialogOpen}
+          projectId={project.id}
+          onProjectDeleted={() => router.push("/")}
+          onVersionRestored={() => {
+            refreshProject();
+            refreshProjectFiles();
+          }}
         />
       </div>
     </TooltipProvider>
