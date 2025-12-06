@@ -8,6 +8,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
+import { Skeleton } from "./ui/skeleton";
 import { ReactNode } from "react";
 
 interface AppHeaderProps {
@@ -31,7 +32,7 @@ export default function AppHeader({
   fixed = false,
 }: AppHeaderProps) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const { setIsExpanded } = useSidebar();
 
   return (
@@ -75,9 +76,11 @@ export default function AppHeader({
         )}
 
         {/* Right - Custom content, Credits, and user menu OR Sign in buttons */}
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end mr-2 gap-2">
           {beforeCredits}
-          {session?.user ? (
+          {isPending ? (
+            <Skeleton className="w-8 h-8 rounded-full" />
+          ) : session?.user ? (
             <UserMenu user={session.user} />
           ) : (
             <>

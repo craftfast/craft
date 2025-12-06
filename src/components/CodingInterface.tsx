@@ -118,7 +118,6 @@ function CodingInterfaceContent({
   const [customViews, setCustomViews] = useState<CustomView[]>([]);
   const [projectFiles, setProjectFiles] = useState<Record<string, string>>({});
   const [isGeneratingFiles, setIsGeneratingFiles] = useState(false); // Track AI file generation
-  const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("/");
   const [deviceMode, setDeviceMode] = useState<"desktop" | "mobile">("desktop");
@@ -485,146 +484,17 @@ function CodingInterfaceContent({
       })),
   ];
 
-  // Project dropdown menu content
-  const projectDropdown = (
-    <DropdownMenu open={isProjectMenuOpen} onOpenChange={setIsProjectMenuOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex items-center gap-2 px-2 py-1 h-auto rounded-lg"
-        >
-          <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
-            {project.name}
-          </h1>
-          <ChevronDown
-            className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ${
-              isProjectMenuOpen ? "rotate-180" : ""
-            }`}
-          />
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="start" className="w-64 rounded-xl">
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => {
-            loadVersionHistory();
-            setIsVersionHistoryOpen(true);
-            setIsProjectMenuOpen(false);
-          }}
-        >
-          <History className="w-4 h-4 mr-3" />
-          <span>Version history</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => {
-            setNewProjectName(project.name);
-            setIsRenameDialogOpen(true);
-            setIsProjectMenuOpen(false);
-          }}
-        >
-          <Edit className="w-4 h-4 mr-3" />
-          <span>Rename...</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => {
-            handleDuplicateProject();
-            setIsProjectMenuOpen(false);
-          }}
-          disabled={isDuplicating}
-        >
-          <Copy className="w-4 h-4 mr-3" />
-          <span>{isDuplicating ? "Duplicating..." : "Duplicate"}</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => {
-            handleExportProject();
-            setIsProjectMenuOpen(false);
-          }}
-        >
-          <Download className="w-4 h-4 mr-3" />
-          <span>Export</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => {
-            setIsDatabaseDialogOpen(true);
-            setIsProjectMenuOpen(false);
-          }}
-        >
-          <svg
-            className="w-4 h-4 mr-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
-            />
-          </svg>
-          <span>Connect Database</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => {
-            setIsSyncGitDialogOpen(true);
-            setIsProjectMenuOpen(false);
-          }}
-        >
-          <Github className="w-4 h-4 mr-3" />
-          <span>Sync with Git</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => {
-            setIsDeployDialogOpen(true);
-            setIsProjectMenuOpen(false);
-          }}
-        >
-          <svg
-            className="w-4 h-4 mr-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-            />
-          </svg>
-          <span>Deploy</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          className="rounded-lg"
-          onClick={() => {
-            setIsSettingsDialogOpen(true);
-            setIsProjectMenuOpen(false);
-          }}
-        >
-          <Settings className="w-4 h-4 mr-3" />
-          <span>Project Settings</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+  // Project name button that opens settings dialog
+  const projectNameDisplay = (
+    <Button
+      variant="ghost"
+      className="px-2 py-1 h-auto rounded-lg"
+      onClick={() => setIsSettingsDialogOpen(true)}
+    >
+      <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
+        {project.name}
+      </h1>
+    </Button>
   );
 
   // URL Bar with View Switcher content
@@ -802,7 +672,7 @@ function CodingInterfaceContent({
       <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
         {/* Header */}
         <AppHeader
-          afterLogo={projectDropdown}
+          afterLogo={projectNameDisplay}
           centerContent={urlBarContent}
           beforeCredits={
             <div className="flex items-center gap-1">

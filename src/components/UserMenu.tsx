@@ -73,7 +73,7 @@ export default function UserMenu({ user, className = "" }: UserMenuProps) {
   }, [isUserMenuOpen]);
 
   return (
-    <div ref={menuRef} className={`relative mr-2 ${className}`}>
+    <div ref={menuRef} className={`relative ${className}`}>
       <button
         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
         className="flex items-center justify-center hover:opacity-80 transition-opacity"

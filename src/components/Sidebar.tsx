@@ -19,6 +19,7 @@ import {
   Shield,
   RefreshCcw,
   Info,
+  ExternalLink,
 } from "lucide-react";
 
 // Navigation items
@@ -239,14 +240,15 @@ export default function Sidebar() {
                   rel="noopener noreferrer"
                   onClick={closeSidebar}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors group",
                     "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                   )}
                 >
                   <item.icon />
-                  <span className="text-sm font-medium truncate">
+                  <span className="text-sm font-medium truncate flex-1">
                     {item.label}
                   </span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
                 </a>
               ))}
             </Section>

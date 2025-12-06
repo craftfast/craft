@@ -426,13 +426,13 @@ export default function SettingsLayout({
           }
           beforeCredits={
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
-              className="rounded-full"
+              className="rounded-lg"
               onClick={() => setIsFeedbackModalOpen(true)}
             >
               <MessageCircleQuestion className="w-4 h-4" />
-              <span className="hidden sm:inline ml-1.5">Feedback</span>
+              <span className="hidden sm:inline">Feedback</span>
             </Button>
           }
         />

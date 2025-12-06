@@ -349,7 +349,7 @@ export default function ProjectsPage() {
 
   // New Project button before credits
   const newProjectButton = (
-    <Button asChild variant="outline" size="sm" className="rounded-full">
+    <Button asChild variant="secondary" size="sm" className="rounded-lg">
       <Link href="/" className="flex items-center justify-center gap-1.5">
         <Plus className="w-4 h-4" />
         <span className="hidden sm:inline">Create</span>
@@ -452,7 +452,7 @@ export default function ProjectsPage() {
 
         {/* Main Content - Full page scrollable */}
         <main className="flex-1 overflow-y-auto pb-8 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
-          <div className="px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="px-4 pt-4">
             {/* Projects Grid/List */}
             {!loading && !error && filteredProjects.length > 0 && (
               <div

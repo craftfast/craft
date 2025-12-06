@@ -690,12 +690,12 @@ export default function IntegrationsPage() {
   const requestButton = (
     <Button
       onClick={() => setShowRequestModal(true)}
-      variant="outline"
+      variant="secondary"
       size="sm"
-      className="rounded-full"
+      className="rounded-lg"
     >
       <Plus className="w-4 h-4" />
-      <span className="hidden sm:inline ml-1.5">Request</span>
+      <span className="hidden sm:inline">Request</span>
     </Button>
   );
 
@@ -776,7 +776,7 @@ export default function IntegrationsPage() {
 
         {/* Main Content - Full page scrollable */}
         <main className="flex-1 overflow-y-auto pb-8 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
-          <div className="px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="px-4 pt-4">
             {/* Integrations Grid/List */}
             <div
               className={
@@ -803,20 +803,6 @@ export default function IntegrationsPage() {
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* Info Section */}
-            <div className="mt-8 p-6 bg-muted/30 rounded-2xl border border-input max-w-3xl">
-              <h3 className="text-sm font-semibold text-foreground mb-2">
-                About Integrations
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Integrations you connect here are available across all your
-                projects. Once connected, you can use them for deployment,
-                version control, design imports, and more. Your integration
-                credentials are securely stored and can be disconnected at any
-                time.
-              </p>
             </div>
           </div>
         </main>
