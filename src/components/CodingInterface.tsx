@@ -484,17 +484,28 @@ function CodingInterfaceContent({
       })),
   ];
 
-  // Project name button that opens settings dialog
+  // Project name display - just shows the name with a tooltip showing project info
   const projectNameDisplay = (
-    <Button
-      variant="ghost"
-      className="px-2 py-1 h-auto rounded-lg"
-      onClick={() => setIsSettingsDialogOpen(true)}
-    >
-      <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
-        {project.name}
-      </h1>
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          className="px-2 py-1 h-auto rounded-lg cursor-default"
+        >
+          <h1 className="text-sm font-semibold text-foreground truncate max-w-[200px]">
+            {project.name}
+          </h1>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent className="space-y-1">
+        <p className="text-xs">
+          Created: {new Date(project.createdAt).toLocaleDateString()}
+        </p>
+        {project.version !== undefined && (
+          <p className="text-xs">Version: {project.version}</p>
+        )}
+      </TooltipContent>
+    </Tooltip>
   );
 
   // URL Bar with View Switcher content
