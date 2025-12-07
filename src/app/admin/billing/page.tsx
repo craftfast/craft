@@ -263,7 +263,7 @@ export default function AdminBillingPage() {
       )}
 
       {/* Transactions Table */}
-      <Card className="rounded-2xl border-neutral-200 dark:border-neutral-800">
+      <Card className="overflow-hidden rounded-2xl border-neutral-200 dark:border-neutral-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />

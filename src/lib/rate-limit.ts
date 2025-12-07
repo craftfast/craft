@@ -72,6 +72,17 @@ export const authRateLimiter = new Ratelimit({
 });
 
 /**
+ * Rate limiter for public/open endpoints (prevent abuse)
+ * Allows 10 requests per minute per IP - restrictive for unauthenticated access
+ */
+export const publicRateLimiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+    analytics: true,
+    prefix: "craft:ratelimit:public",
+});
+
+/**
  * Rate limiter for environment variable operations (sensitive data)
  * Allows 30 requests per minute per user to prevent enumeration attacks
  */

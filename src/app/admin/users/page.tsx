@@ -237,7 +237,7 @@ export default function AdminUsersPage() {
       </Card>
 
       {/* Users Table */}
-      <Card className="rounded-2xl border-neutral-200 dark:border-neutral-800">
+      <Card className="overflow-hidden rounded-2xl border-neutral-200 dark:border-neutral-800">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">

@@ -1269,3 +1269,19 @@ model AIModelAuditLog {
   @@index([createdAt])
   @@map("ai_model_audit_logs")
 }
+
+// ============================================================================
+// SYSTEM SETTINGS (for self-hosting configuration)
+// ============================================================================
+// Key-value store for admin-configurable system settings
+// Persists across server restarts, ideal for self-hosted instances
+
+model SystemSetting {
+  key         String   @id // Unique setting key (e.g., "maintenanceMode", "signupsEnabled")
+  value       String   @db.Text // JSON-serialized value
+  description String? // Human-readable description for self-hosters
+  updatedAt   DateTime @updatedAt
+  updatedBy   String? // Admin user ID who last updated
+
+  @@map("system_settings")
+}

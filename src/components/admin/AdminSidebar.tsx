@@ -1,7 +1,9 @@
 /**
  * Admin Sidebar Navigation
  *
- * Sidebar with navigation links for admin panel sections
+ * Streamlined sidebar for self-hosted Craft instances
+ * Focus: User management, support, and system operations
+ * Analytics/metrics go to /open page (public transparency)
  */
 
 "use client";
@@ -17,52 +19,54 @@ import {
   Shield,
   Webhook,
   CreditCard,
-  Activity,
   Settings,
   ChevronLeft,
-  BarChart3,
   MessageCircle,
   History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/Logo";
 
+// Navigation items grouped by function
 const navItems = [
+  // Core Management
   {
     name: "Dashboard",
     href: "/admin",
     icon: LayoutDashboard,
-    description: "Overview & KPIs",
-  },
-  {
-    name: "Analytics",
-    href: "/admin/analytics",
-    icon: BarChart3,
-    description: "Charts & trends",
+    description: "Overview",
   },
   {
     name: "Users",
     href: "/admin/users",
     icon: Users,
-    description: "User management",
+    description: "Manage users",
   },
   {
     name: "Projects",
     href: "/admin/projects",
     icon: FolderKanban,
-    description: "Project management",
+    description: "Debug projects",
   },
+  // AI & Billing
   {
     name: "AI Models",
     href: "/admin/ai-models",
     icon: Cpu,
-    description: "Model configuration",
+    description: "Configure models",
   },
   {
-    name: "Support Chat",
+    name: "Billing",
+    href: "/admin/billing",
+    icon: CreditCard,
+    description: "Transactions",
+  },
+  // Support
+  {
+    name: "Support",
     href: "/admin/support",
     icon: MessageSquare,
-    description: "Chat with users",
+    description: "User chat",
   },
   {
     name: "Feedback",
@@ -70,41 +74,30 @@ const navItems = [
     icon: MessageCircle,
     description: "User feedback",
   },
+  // System & Security
   {
-    name: "Security Events",
+    name: "Security",
     href: "/admin/security-events",
     icon: Shield,
-    description: "Security logs",
+    description: "Auth events",
   },
   {
     name: "Audit Logs",
     href: "/admin/audit-logs",
     icon: History,
-    description: "Model changes",
+    description: "Change history",
   },
   {
     name: "Webhooks",
     href: "/admin/webhooks",
     icon: Webhook,
-    description: "Webhook monitoring",
-  },
-  {
-    name: "Billing",
-    href: "/admin/billing",
-    icon: CreditCard,
-    description: "Payments & subscriptions",
-  },
-  {
-    name: "Usage",
-    href: "/admin/usage",
-    icon: Activity,
-    description: "System usage stats",
+    description: "Queue status",
   },
   {
     name: "Settings",
     href: "/admin/settings",
     icon: Settings,
-    description: "Admin settings",
+    description: "Instance config",
   },
 ];
 

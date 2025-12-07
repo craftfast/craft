@@ -218,7 +218,7 @@ export default function AdminAuditLogsPage() {
       </Card>
 
       {/* Logs Table */}
-      <Card className="rounded-2xl border-neutral-200 dark:border-neutral-800">
+      <Card className="overflow-hidden rounded-2xl border-neutral-200 dark:border-neutral-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />

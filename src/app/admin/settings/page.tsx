@@ -1,7 +1,8 @@
 /**
  * Admin Settings Page
  *
- * Admin-specific settings and configuration
+ * Self-hosting configuration and system settings
+ * Designed for indie hackers and open-source deployments
  */
 
 "use client";
@@ -10,15 +11,16 @@ import { useState, useEffect } from "react";
 import {
   Settings,
   Shield,
-  Bell,
   Database,
   Trash2,
   RefreshCw,
   AlertTriangle,
   Download,
-  Upload,
   CheckCircle,
   XCircle,
+  Users,
+  FolderKanban,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,9 +38,6 @@ import { toast } from "sonner";
 
 interface SystemSettings {
   maintenanceMode: boolean;
-  debugMode: boolean;
-  emailNotifications: boolean;
-  securityAlerts: boolean;
   signupsEnabled: boolean;
   maxProjectsPerUser: number;
   defaultBalance: number;
@@ -54,9 +53,6 @@ interface SystemHealth {
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SystemSettings>({
     maintenanceMode: false,
-    debugMode: false,
-    emailNotifications: true,
-    securityAlerts: true,
     signupsEnabled: true,
     maxProjectsPerUser: 50,
     defaultBalance: 0,
@@ -114,7 +110,7 @@ export default function AdminSettingsPage() {
       });
 
       if (response.ok) {
-        toast.success("Settings saved successfully");
+        toast.success("Settings saved to database");
       } else {
         toast.error("Failed to save settings");
       }
@@ -126,29 +122,13 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handleClearCache = async () => {
-    setCleanupLoading(true);
-    try {
-      const response = await fetch("/api/admin/cache", {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(data.message || "Cache cleared successfully");
-      } else {
-        toast.error("Failed to clear cache");
-      }
-    } catch (error) {
-      console.error("Error clearing cache:", error);
-      toast.error("Failed to clear cache");
-    } finally {
-      setCleanupLoading(false);
-    }
-  };
-
   const handleDatabaseCleanup = async () => {
-    if (!confirm("This will remove old/orphaned records. Continue?")) return;
+    if (
+      !confirm(
+        "This will remove expired sessions, old security events, and orphaned files. Continue?"
+      )
+    )
+      return;
 
     setCleanupLoading(true);
     try {
@@ -158,7 +138,7 @@ export default function AdminSettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        toast.success(data.message || "Database cleanup completed");
+        toast.success(data.message || "Cleanup completed");
       } else {
         toast.error("Failed to cleanup database");
       }
@@ -187,13 +167,13 @@ export default function AdminSettingsPage() {
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
-        toast.success(`${type} data exported successfully`);
+        toast.success(`Exported ${type} data`);
       } else {
-        toast.error(`Failed to export ${type} data`);
+        toast.error(`Failed to export ${type}`);
       }
     } catch (error) {
       console.error("Error exporting data:", error);
-      toast.error("Failed to export data");
+      toast.error("Export failed");
     } finally {
       setExportLoading(false);
     }
@@ -242,7 +222,7 @@ export default function AdminSettingsPage() {
             Settings
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 mt-1">
-            Admin panel configuration and system settings
+            Configure your self-hosted Craft instance
           </p>
         </div>
         <Button
@@ -262,7 +242,7 @@ export default function AdminSettingsPage() {
             <Shield className="h-5 w-5" />
             System Health
           </CardTitle>
-          <CardDescription>Current status of system components</CardDescription>
+          <CardDescription>Status of external services</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-4">
@@ -290,7 +270,7 @@ export default function AdminSettingsPage() {
             <div className="flex items-center justify-between rounded-xl bg-neutral-50 dark:bg-neutral-900 p-4">
               <div className="flex items-center gap-3">
                 {getHealthIcon(health.storage)}
-                <span className="font-medium">Storage (R2)</span>
+                <span className="font-medium">Storage</span>
               </div>
               {getHealthBadge(health.storage)}
             </div>
@@ -298,23 +278,26 @@ export default function AdminSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* System Settings */}
+      {/* Instance Settings */}
       <Card className="rounded-2xl border-neutral-200 dark:border-neutral-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            System Settings
+            Instance Settings
           </CardTitle>
           <CardDescription>
-            Configure system-wide settings and modes
+            Settings persist in database and survive restarts
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <div className="font-medium">Maintenance Mode</div>
+              <div className="font-medium flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                Maintenance Mode
+              </div>
               <div className="text-sm text-neutral-500">
-                When enabled, users will see a maintenance page
+                Only admins can access the platform when enabled
               </div>
             </div>
             <Switch
@@ -327,22 +310,10 @@ export default function AdminSettingsPage() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <div className="font-medium">Debug Mode</div>
-              <div className="text-sm text-neutral-500">
-                Enable verbose logging for debugging
+              <div className="font-medium flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                New Signups
               </div>
-            </div>
-            <Switch
-              checked={settings.debugMode}
-              onCheckedChange={(v) =>
-                setSettings({ ...settings, debugMode: v })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="font-medium">New Signups Enabled</div>
               <div className="text-sm text-neutral-500">
                 Allow new user registrations
               </div>
@@ -357,7 +328,10 @@ export default function AdminSettingsPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Max Projects Per User</Label>
+              <Label className="flex items-center gap-2">
+                <FolderKanban className="h-4 w-4" />
+                Max Projects Per User
+              </Label>
               <Input
                 type="number"
                 value={settings.maxProjectsPerUser}
@@ -367,11 +341,16 @@ export default function AdminSettingsPage() {
                     maxProjectsPerUser: parseInt(e.target.value) || 50,
                   })
                 }
-                className="rounded-full"
+                className="rounded-xl"
+                placeholder="0 = unlimited"
               />
+              <p className="text-xs text-neutral-500">Set to 0 for unlimited</p>
             </div>
             <div className="space-y-2">
-              <Label>Default Balance (USD)</Label>
+              <Label className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Default Starting Balance (USD)
+              </Label>
               <Input
                 type="number"
                 step="0.01"
@@ -382,53 +361,13 @@ export default function AdminSettingsPage() {
                     defaultBalance: parseFloat(e.target.value) || 0,
                   })
                 }
-                className="rounded-full"
+                className="rounded-xl"
+                placeholder="0.00"
               />
+              <p className="text-xs text-neutral-500">
+                Credits given to new users
+              </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notification Settings */}
-      <Card className="rounded-2xl border-neutral-200 dark:border-neutral-800">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notification Settings
-          </CardTitle>
-          <CardDescription>
-            Configure admin notification preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="font-medium">Email Notifications</div>
-              <div className="text-sm text-neutral-500">
-                Receive email alerts for important events
-              </div>
-            </div>
-            <Switch
-              checked={settings.emailNotifications}
-              onCheckedChange={(v) =>
-                setSettings({ ...settings, emailNotifications: v })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="font-medium">Security Alerts</div>
-              <div className="text-sm text-neutral-500">
-                Get notified about security-related events
-              </div>
-            </div>
-            <Switch
-              checked={settings.securityAlerts}
-              onCheckedChange={(v) =>
-                setSettings({ ...settings, securityAlerts: v })
-              }
-            />
           </div>
         </CardContent>
       </Card>
@@ -440,9 +379,11 @@ export default function AdminSettingsPage() {
             <Download className="h-5 w-5" />
             Data Export
           </CardTitle>
-          <CardDescription>Export data for backup or analysis</CardDescription>
+          <CardDescription>
+            Export data as CSV for backup or migration
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
@@ -450,7 +391,7 @@ export default function AdminSettingsPage() {
               disabled={exportLoading}
               className="rounded-full"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Users className="h-4 w-4 mr-2" />
               Export Users
             </Button>
             <Button
@@ -459,7 +400,7 @@ export default function AdminSettingsPage() {
               disabled={exportLoading}
               className="rounded-full"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <DollarSign className="h-4 w-4 mr-2" />
               Export Transactions
             </Button>
             <Button
@@ -468,50 +409,31 @@ export default function AdminSettingsPage() {
               disabled={exportLoading}
               className="rounded-full"
             >
-              <Download className="h-4 w-4 mr-2" />
-              Export Usage Data
+              <Database className="h-4 w-4 mr-2" />
+              Export AI Usage
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Database Actions */}
+      {/* Database Maintenance */}
       <Card className="rounded-2xl border-neutral-200 dark:border-neutral-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
-            Database Actions
+            Database Maintenance
           </CardTitle>
-          <CardDescription>Database maintenance and cleanup</CardDescription>
+          <CardDescription>
+            Clean up old data to keep your instance fast
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div className="flex items-center justify-between rounded-xl bg-neutral-50 dark:bg-neutral-900 p-4">
             <div>
-              <div className="font-medium">Clear Cache</div>
+              <div className="font-medium">Cleanup Old Records</div>
               <div className="text-sm text-neutral-500">
-                Clear application cache and temporary data
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              onClick={handleClearCache}
-              disabled={cleanupLoading}
-              className="rounded-full"
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${
-                  cleanupLoading ? "animate-spin" : ""
-                }`}
-              />
-              Clear
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-between rounded-xl bg-neutral-50 dark:bg-neutral-900 p-4">
-            <div>
-              <div className="font-medium">Database Cleanup</div>
-              <div className="text-sm text-neutral-500">
-                Remove orphaned records and optimize database
+                Removes: expired sessions, old security events (90d+), deleted
+                files
               </div>
             </div>
             <Button
@@ -520,8 +442,12 @@ export default function AdminSettingsPage() {
               disabled={cleanupLoading}
               className="rounded-full"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Cleanup
+              {cleanupLoading ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Run Cleanup
             </Button>
           </div>
         </CardContent>
@@ -530,20 +456,16 @@ export default function AdminSettingsPage() {
       {/* Environment Info */}
       <Card className="rounded-2xl border-neutral-200 dark:border-neutral-800">
         <CardHeader>
-          <CardTitle>Environment Information</CardTitle>
-          <CardDescription>Current deployment configuration</CardDescription>
+          <CardTitle>Instance Information</CardTitle>
+          <CardDescription>Current deployment details</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-xl bg-neutral-50 dark:bg-neutral-900 p-4">
               <div className="text-sm text-neutral-500">Environment</div>
               <div className="font-medium">
                 {process.env.NODE_ENV || "development"}
               </div>
-            </div>
-            <div className="rounded-xl bg-neutral-50 dark:bg-neutral-900 p-4">
-              <div className="text-sm text-neutral-500">Version</div>
-              <div className="font-medium">Beta</div>
             </div>
             <div className="rounded-xl bg-neutral-50 dark:bg-neutral-900 p-4">
               <div className="text-sm text-neutral-500">Database</div>

@@ -494,7 +494,7 @@ export default function AdminModelsPage() {
         </Select>
 
         <Select value={filterUseCase} onValueChange={setFilterUseCase}>
-          <SelectTrigger className="w-[160px] rounded-full">
+          <SelectTrigger className="w-40 rounded-full">
             <SelectValue placeholder="Use Case" />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
