@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Security Headers Middleware
+ * Security Headers Proxy
  * 
  * Adds comprehensive security headers to all responses.
  * Provides defense-in-depth against various web attacks.
@@ -17,7 +17,7 @@ import type { NextRequest } from "next/server";
  * - Content-Security-Policy: Controls resource loading (optional)
  */
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const response = NextResponse.next();
 
     // X-Frame-Options: Prevent clickjacking

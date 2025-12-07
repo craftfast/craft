@@ -482,7 +482,7 @@ export default function ProjectsPage() {
                             />
                           ) : (
                             <div
-                              className={`w-full h-full bg-gradient-to-br ${getPlaceholderGradient(
+                              className={`w-full h-full bg-linear-to-br ${getPlaceholderGradient(
                                 project.name
                               )} flex items-center justify-center`}
                             >
@@ -502,12 +502,12 @@ export default function ProjectsPage() {
                             </div>
                           )}
                           {/* Gradient Overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
                         </div>
 
                         {/* Project Info Overlay */}
                         <div className="absolute bottom-0 left-0 right-0 p-4">
-                          <h3 className="font-semibold text-white line-clamp-2 break-words drop-shadow-lg">
+                          <h3 className="font-semibold text-white line-clamp-2 wrap-break-word drop-shadow-lg">
                             {project.name}
                           </h3>
                         </div>
@@ -527,7 +527,7 @@ export default function ProjectsPage() {
                       className="group flex items-center gap-4 p-3 bg-card rounded-xl border border-border hover:border-muted-foreground/50 hover:shadow-sm transition-all cursor-pointer"
                     >
                       {/* Thumbnail */}
-                      <div className="relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                      <div className="relative w-24 h-16 shrink-0 rounded-lg overflow-hidden bg-muted">
                         {project.previewImage ? (
                           <Image
                             src={project.previewImage}
@@ -538,7 +538,7 @@ export default function ProjectsPage() {
                           />
                         ) : (
                           <div
-                            className={`w-full h-full bg-gradient-to-br ${getPlaceholderGradient(
+                            className={`w-full h-full bg-linear-to-br ${getPlaceholderGradient(
                               project.name
                             )} flex items-center justify-center`}
                           >
@@ -570,7 +570,7 @@ export default function ProjectsPage() {
                         )}
                       </div>
                       {/* Time */}
-                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                      <span className="text-xs text-muted-foreground shrink-0">
                         {getRelativeTime(project.createdAt)}
                       </span>
                     </Link>
@@ -607,12 +607,12 @@ export default function ProjectsPage() {
                       key={index}
                       className="flex items-center gap-4 p-3 bg-card rounded-xl border border-border"
                     >
-                      <Skeleton className="w-24 h-16 rounded-lg flex-shrink-0" />
+                      <Skeleton className="w-24 h-16 rounded-lg shrink-0" />
                       <div className="flex-1 space-y-2">
                         <Skeleton className="h-4 w-2/3" />
                         <Skeleton className="h-3 w-1/2" />
                       </div>
-                      <Skeleton className="h-3 w-16 flex-shrink-0" />
+                      <Skeleton className="h-3 w-16 shrink-0" />
                     </div>
                   )
                 )}

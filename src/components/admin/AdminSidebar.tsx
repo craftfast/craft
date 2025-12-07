@@ -117,7 +117,7 @@ export default function AdminSidebar() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-4 dark:border-neutral-800">
           <div className="flex items-center gap-4 px-2">
-            <Logo variant="icon" className="!h-6" href="/admin" />
+            <Logo variant="icon" className="h-6!" href="/admin" />
             <span className="font-semibold text-neutral-900 dark:text-neutral-100">
               Admin Panel
             </span>
