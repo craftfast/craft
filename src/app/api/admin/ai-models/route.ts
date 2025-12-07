@@ -134,15 +134,27 @@ export async function GET(request: NextRequest) {
             _count: true,
         });
 
-        // Get user preferences
-        const modelPreferences = await prisma.user.groupBy({
-            by: ["preferredCodingModel"],
+        // Get user preferences from modelPreferences JSON field
+        // We need to count users who have each model as their preferred coding model
+        const usersWithPreferences = await prisma.user.findMany({
             where: {
-                preferredCodingModel: { not: null },
+                modelPreferences: { not: null },
                 deletedAt: null,
             },
-            _count: true,
+            select: {
+                modelPreferences: true,
+            },
         });
+
+        // Count preferences per model
+        const preferenceCountMap: Record<string, number> = {};
+        for (const user of usersWithPreferences) {
+            const prefs = user.modelPreferences as { coding?: string } | null;
+            const codingModel = prefs?.coding;
+            if (codingModel) {
+                preferenceCountMap[codingModel] = (preferenceCountMap[codingModel] || 0) + 1;
+            }
+        }
 
         // Build response
         const models = dbModels.map(model => {
@@ -150,7 +162,7 @@ export async function GET(request: NextRequest) {
                 _count: 0,
                 _sum: { inputTokens: 0, outputTokens: 0, totalTokens: 0, providerCostUsd: 0 },
             };
-            const preference = modelPreferences.find(p => p.preferredCodingModel === model.id) || { _count: 0 };
+            const preferenceCount = preferenceCountMap[model.id] || 0;
 
             return {
                 id: model.id,
@@ -203,7 +215,7 @@ export async function GET(request: NextRequest) {
                     outputTokens: usage._sum.outputTokens || 0,
                     totalTokens: usage._sum.totalTokens || 0,
                     totalCost: usage._sum.providerCostUsd || 0,
-                    usersPreferring: preference._count,
+                    usersPreferring: preferenceCount,
                 },
                 createdAt: model.createdAt,
                 updatedAt: model.updatedAt,

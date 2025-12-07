@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ModelSelector } from "@/components/ModelSelector";
 import { useSession } from "@/lib/auth-client";
 
 interface ImageAttachment {
@@ -83,37 +82,15 @@ export default function CraftInput() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBillingError, setIsBillingError] = useState(false);
   const { balance } = useCreditBalance();
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [isLoadingModel, setIsLoadingModel] = useState(true);
   const { data: session } = useSession();
+
+  // Note: Model selection is now done in Settings -> AI Models
+  // The backend uses modelService.getCodingModel(userId) to get the user's preferred coding model
 
   // Check if tokens are low or exhausted
   const isLowTokens =
     balance && balance.totalAvailable > 0 && balance.totalAvailable <= 10;
   const isTokensExhausted = balance && balance.totalAvailable === 0;
-
-  // Load user's preferred model on mount
-  useEffect(() => {
-    const loadPreferredModel = async () => {
-      try {
-        const response = await fetch("/api/user/model-preferences");
-        if (response.ok) {
-          const data = await response.json();
-          setSelectedModel(
-            data.preferredCodingModel || "anthropic/claude-sonnet-4.5"
-          );
-        } else {
-          setSelectedModel("anthropic/claude-sonnet-4.5");
-        }
-      } catch (error) {
-        console.error("Failed to load model preferences:", error);
-        setSelectedModel("anthropic/claude-sonnet-4.5");
-      } finally {
-        setIsLoadingModel(false);
-      }
-    };
-    loadPreferredModel();
-  }, []);
 
   // Restore pending project data after login
   useEffect(() => {
@@ -138,13 +115,8 @@ export default function CraftInput() {
         setSelectedImages(pendingProject.images);
       }
 
-      // Validate and restore model selection
-      if (
-        pendingProject.selectedModel &&
-        typeof pendingProject.selectedModel === "string"
-      ) {
-        setSelectedModel(pendingProject.selectedModel);
-      }
+      // Note: Model selection is now handled in Settings -> AI Models
+      // No need to restore model selection from pending project
 
       // Clear localStorage after restoring
       localStorage.removeItem("pendingProject");
@@ -371,14 +343,13 @@ export default function CraftInput() {
           return;
         }
 
-        // Store the prompt, images, and selected model in localStorage
+        // Store the prompt and images in localStorage (model is selected in settings)
         try {
           localStorage.setItem(
             "pendingProject",
             JSON.stringify({
               prompt: trimmedInput,
               images: selectedImages,
-              selectedModel: selectedModel,
               timestamp: Date.now(),
             })
           );
@@ -425,14 +396,14 @@ export default function CraftInput() {
         body: JSON.stringify({
           name: "New Project", // Default name
           description: input,
-          // No selectedModel needed - tier is stored in sessionStorage
+          // Model is determined server-side from user settings
         }),
       });
       if (response.ok) {
         const data = await response.json();
         console.log("Project created:", data);
 
-        // Store images and selected tier in sessionStorage if project was created
+        // Store images in sessionStorage if project was created
         if (data.project?.id) {
           if (selectedImages.length > 0) {
             sessionStorage.setItem(
@@ -440,14 +411,7 @@ export default function CraftInput() {
               JSON.stringify(selectedImages)
             );
           }
-
-          // Store selected model for the chat interface
-          if (selectedModel) {
-            sessionStorage.setItem(
-              `project-${data.project.id}-model`,
-              selectedModel
-            );
-          }
+          // Note: Model selection is now handled server-side from user settings
         }
 
         // Redirect to the coding interface
@@ -720,16 +684,7 @@ export default function CraftInput() {
               </svg>
             </Button>
 
-            {/* Model Selector */}
-            {!isLoadingModel && (
-              <ModelSelector
-                selectedModel={selectedModel || undefined}
-                onModelChange={setSelectedModel}
-                onOpenSettings={() => {
-                  router.push("/settings/models");
-                }}
-              />
-            )}
+            {/* Model selection is now done in Settings -> AI Models */}
           </div>
 
           <div className="flex items-center gap-2">

@@ -71,8 +71,7 @@ export async function POST(req: Request) {
                 enableWebSearch: true,
                 enableImageGeneration: true,
                 enableCodeExecution: true,
-                preferredCodingModel: true,
-                enabledCodingModels: true,
+                // Note: Model preferences are now fetched from modelService
             },
         });
 
@@ -83,7 +82,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { messages, taskType, projectFiles, projectId, tier, selectedModel, enableAgentLoop = true, useOrchestrator = false } = await req.json();
+        const { messages, taskType, projectFiles, projectId, enableAgentLoop = true, useOrchestrator = false } = await req.json();
 
         // Validate projectId
         if (!projectId) {
@@ -93,8 +92,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // Use selectedModel if provided, otherwise fall back to tier-based selection
-        const validTier: "fast" | "expert" = tier === "expert" ? "expert" : "fast";
+        // Note: Model selection is handled by modelService.getCodingModel(userId) in agent.ts
 
         // Generate session ID for agent loop coordination
         const sessionId = `session-${user.id}-${projectId}-${Date.now()}`;
@@ -409,15 +407,13 @@ export async function POST(req: Request) {
 
                 try {
                     // Start streaming from AI with SSE writer for tool events
+                    // Note: Model is determined by modelService.getCodingModel(userId) in agent.ts
                     const result = await streamCodingResponse({
                         messages: validMessages, // ✅ Use validated messages
                         systemPrompt,
                         projectFiles: projectFiles || {},
                         conversationHistory: messages.slice(0, -1),
                         userId: user.id,
-                        tier: validTier,
-                        preferredModel: selectedModel || user.preferredCodingModel, // Use request model or user's preferred model
-                        enabledModels: user.enabledCodingModels, // User's enabled models list
                         sseWriter, // ⚡ Pass SSE writer for real-time tool events
                         projectId, // ⚡ Phase 2: Project ID for agent loop
                         sessionId, // ⚡ Phase 2: Session ID for agent loop

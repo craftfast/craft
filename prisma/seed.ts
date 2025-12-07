@@ -237,81 +237,8 @@ async function main() {
         console.log(`   ✅ ${useCase} → ${modelId}`);
     }
 
-    // ========================================================================
-    // USER MODEL PREFERENCES SYNC
-    // ========================================================================
-    console.log("\n🔄 Syncing user model preferences...");
-
-    const availableCodingModels = await prisma.aIModel.findMany({
-        where: {
-            useCase: "CODING",
-            isEnabled: true,
-        },
-        select: { id: true },
-    });
-    const availableModelIds = availableCodingModels.map((m) => m.id);
-
-    const defaultCodingModel = modelsConfig.defaults.coding;
-
-    console.log(`   Available coding models: ${availableModelIds.length}`);
-    console.log(`   Default: ${defaultCodingModel}`);
-
-    const users = await prisma.user.findMany({
-        select: {
-            id: true,
-            email: true,
-            preferredCodingModel: true,
-            enabledCodingModels: true,
-        },
-    });
-
-    console.log(`   Found ${users.length} users to check`);
-
-    let updatedCount = 0;
-
-    for (const user of users) {
-        let needsUpdate = false;
-        const updates: Record<string, unknown> = {};
-
-        // Filter out invalid models from enabled list
-        const validEnabledModels = user.enabledCodingModels.filter((modelId: string) =>
-            availableModelIds.includes(modelId)
-        );
-
-        if (validEnabledModels.length !== user.enabledCodingModels.length) {
-            needsUpdate = true;
-            updates.enabledCodingModels = validEnabledModels.length > 0 ? validEnabledModels : availableModelIds;
-        }
-
-        if (validEnabledModels.length === 0) {
-            needsUpdate = true;
-            updates.enabledCodingModels = availableModelIds;
-        }
-
-        if (user.preferredCodingModel && !availableModelIds.includes(user.preferredCodingModel)) {
-            needsUpdate = true;
-            updates.preferredCodingModel = defaultCodingModel;
-        }
-
-        const finalEnabledModels = (updates.enabledCodingModels as string[]) || validEnabledModels;
-        const finalPreferredModel = (updates.preferredCodingModel as string) || user.preferredCodingModel || defaultCodingModel;
-
-        if (!finalEnabledModels.includes(finalPreferredModel)) {
-            needsUpdate = true;
-            updates.enabledCodingModels = [...finalEnabledModels, finalPreferredModel];
-        }
-
-        if (needsUpdate) {
-            await prisma.user.update({
-                where: { id: user.id },
-                data: updates,
-            });
-            updatedCount++;
-            console.log(`   ⚠️  Updated ${user.email}`);
-        }
-    }
-
-    console.log(`   ✅ Updated ${updatedCount} users with valid model preferences`);
+    // Note: User model preferences are now stored in the modelPreferences JSON field
+    // Users select their preferred models via the Settings UI, no migration needed here
 
     // ========================================================================
     // SUMMARY

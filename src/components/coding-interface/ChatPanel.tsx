@@ -11,7 +11,6 @@ import { RefreshCw } from "lucide-react";
 import FileChangesCard from "./FileChangesCard";
 import { useCreditBalance } from "@/hooks/useCreditBalance";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
-import { ModelSelector } from "@/components/ModelSelector";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { notifyCreditUpdate } from "@/lib/credit-events";
@@ -164,45 +163,8 @@ export default function ChatPanel({
   const { balance } = useCreditBalance();
   const { playNotificationSound, suggestionsEnabled } = useUserSettings();
 
-  // Initialize selected model from user preferences
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [isLoadingModel, setIsLoadingModel] = useState(true);
-
-  // Load user's preferred model on mount
-  useEffect(() => {
-    const loadPreferredModel = async () => {
-      try {
-        const response = await fetch("/api/user/model-preferences");
-        if (response.ok) {
-          const data = await response.json();
-          const sessionModel = sessionStorage.getItem(
-            `project-${projectId}-model`
-          );
-          // Use session model if available, otherwise use preferred model
-          setSelectedModel(
-            sessionModel ||
-              data.preferredCodingModel ||
-              "anthropic/claude-sonnet-4.5"
-          );
-        } else {
-          setSelectedModel("anthropic/claude-sonnet-4.5");
-        }
-      } catch (error) {
-        console.error("Failed to load model preferences:", error);
-        setSelectedModel("anthropic/claude-sonnet-4.5");
-      } finally {
-        setIsLoadingModel(false);
-      }
-    };
-    loadPreferredModel();
-  }, [projectId]);
-
-  // Save model selection to sessionStorage when it changes
-  useEffect(() => {
-    if (selectedModel && !isLoadingModel) {
-      sessionStorage.setItem(`project-${projectId}-model`, selectedModel);
-    }
-  }, [selectedModel, projectId, isLoadingModel]);
+  // Note: Model selection is now done in Settings -> AI Models
+  // The backend uses modelService.getCodingModel(userId) to get the user's preferred coding model
 
   // Check if tokens are low or exhausted
   const isLowTokens =
@@ -713,7 +675,7 @@ export default function ChatPanel({
           taskType: "coding",
           projectFiles, // Send existing project files for context
           projectId, // Required for AI usage tracking
-          selectedModel: selectedModel, // Pass selected model ID
+          // Note: Model is now determined server-side from user settings
         }),
       });
 
@@ -1888,16 +1850,7 @@ export default function ChatPanel({
                   </svg>
                 </Button>
 
-                {/* Model Selector */}
-                {!isLoadingModel && (
-                  <ModelSelector
-                    selectedModel={selectedModel || undefined}
-                    onModelChange={setSelectedModel}
-                    onOpenSettings={() => {
-                      router.push("/settings/models");
-                    }}
-                  />
-                )}
+                {/* Model selection is now done in Settings -> AI Models */}
               </div>
 
               <div className="flex items-center gap-2">

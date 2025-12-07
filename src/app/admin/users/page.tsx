@@ -71,7 +71,7 @@ interface User {
   accountBalance: number;
   createdAt: string;
   updatedAt: string;
-  preferredCodingModel: string | null;
+  modelPreferences: Record<string, string> | null;
   enableMemory: boolean;
   enableWebSearch: boolean;
   _count: {

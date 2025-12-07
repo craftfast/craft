@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
                 accountBalance: true,
                 createdAt: true,
                 updatedAt: true,
-                preferredCodingModel: true,
+                modelPreferences: true,
                 enableMemory: true,
                 enableWebSearch: true,
                 _count: {

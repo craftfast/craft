@@ -1,177 +1,116 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Check, Info, Sparkles, Brain } from "lucide-react";
 import {
-  AVAILABLE_MODELS,
-  getAvailableCodingModels,
-  getDefaultCodingModel,
-} from "@/lib/models/config";
+  Check,
+  Info,
+  Sparkles,
+  Brain,
+  Image,
+  Video,
+  Code,
+  Lock,
+  Zap,
+  Crown,
+  RefreshCw,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { ModelConfig, ModelUseCase } from "@/lib/models";
 
-interface ModelPreference {
-  preferredCodingModel: string;
-  enabledCodingModels: string[];
+// Icon mapping for use cases
+const USE_CASE_ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  coding: Code,
+  "image-generation": Image,
+  "video-generation": Video,
+  orchestrator: Brain,
+  memory: Brain,
+};
+
+// Description mapping for use cases
+const USE_CASE_DESCRIPTIONS: Record<string, string> = {
+  coding:
+    "This model will be used for all code generation, debugging, and software development tasks.",
+  "image-generation":
+    "This model will be used when generating images from text descriptions.",
+  "video-generation":
+    "This model will be used when generating videos from text descriptions.",
+};
+
+interface UseCasePreference {
+  useCase: ModelUseCase;
+  displayName: string;
+  preferredModelId: string;
+  preferredModel: ModelConfig | null;
+  availableModels: ModelConfig[];
+  isUserSelectable: boolean;
 }
 
 export default function ModelPreferencesTab() {
-  const [preferredModel, setPreferredModel] = useState<string>(
-    getDefaultCodingModel()
-  );
-  const [enabledModels, setEnabledModels] = useState<Set<string>>(new Set());
+  const [preferences, setPreferences] = useState<UseCasePreference[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const codingModels = getAvailableCodingModels();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [savingUseCase, setSavingUseCase] = useState<string | null>(null);
 
   // Load settings on mount
   useEffect(() => {
     loadSettings();
   }, []);
 
-  const loadSettings = async () => {
+  const loadSettings = async (showRefreshToast = false) => {
     try {
+      if (showRefreshToast) setIsRefreshing(true);
       const response = await fetch("/api/user/model-preferences");
       if (!response.ok) throw new Error("Failed to load model preferences");
 
-      const data: ModelPreference = await response.json();
-      setPreferredModel(data.preferredCodingModel || getDefaultCodingModel());
-      setEnabledModels(new Set(data.enabledCodingModels || []));
+      const data = await response.json();
+      setPreferences(data.preferences || []);
+      if (showRefreshToast) toast.success("Model preferences refreshed");
     } catch (error) {
       console.error("Error loading model preferences:", error);
       toast.error("Failed to load model preferences");
-      // Set defaults
-      setEnabledModels(new Set(codingModels.map((model) => model.id)));
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  const saveSettings = async (showToast = false) => {
-    if (isSaving) return;
-
-    setIsSaving(true);
+  const selectModel = async (useCase: ModelUseCase, modelId: string) => {
+    setSavingUseCase(useCase);
     try {
       const response = await fetch("/api/user/model-preferences", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          preferredCodingModel: preferredModel,
-          enabledCodingModels: Array.from(enabledModels),
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ useCase, modelId }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Failed to save model preferences:", errorData);
-        throw new Error(errorData.error || "Failed to save model preferences");
+        throw new Error(errorData.error || "Failed to save");
       }
 
-      if (showToast) {
-        toast.success("Model preferences saved");
-      }
+      const data = await response.json();
+      setPreferences(data.preferences || []);
+      toast.success("Model preference updated");
     } catch (error) {
-      console.error("Error saving model preferences:", error);
-      toast.error("Failed to save model preferences");
+      console.error("Error saving model preference:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to save model preference"
+      );
     } finally {
-      setIsSaving(false);
+      setSavingUseCase(null);
     }
   };
 
-  const toggleModelEnabled = async (modelId: string) => {
-    const newEnabled = new Set(enabledModels);
-    if (newEnabled.has(modelId)) {
-      // Don't allow disabling if it's the only enabled model
-      if (newEnabled.size === 1) {
-        toast.error("You must have at least one model enabled");
-        return;
-      }
-      // Don't allow disabling the preferred model
-      if (modelId === preferredModel) {
-        toast.error(
-          "Cannot disable your preferred model. Select another preferred model first."
-        );
-        return;
-      }
-      newEnabled.delete(modelId);
-    } else {
-      newEnabled.add(modelId);
-    }
-    setEnabledModels(newEnabled);
-
-    // Auto-save
-    try {
-      const response = await fetch("/api/user/model-preferences", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          preferredCodingModel: preferredModel,
-          enabledCodingModels: Array.from(newEnabled),
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to save");
-    } catch (error) {
-      console.error("Error saving:", error);
-      toast.error("Failed to save changes");
-    }
-  };
-
-  const setAsPreferred = async (modelId: string) => {
-    // Auto-enable the model if it's not enabled
-    const newEnabled = !enabledModels.has(modelId)
-      ? new Set([...enabledModels, modelId])
-      : enabledModels;
-
-    if (!enabledModels.has(modelId)) {
-      setEnabledModels(newEnabled);
-    }
-    setPreferredModel(modelId);
-
-    // Auto-save
-    try {
-      const response = await fetch("/api/user/model-preferences", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          preferredCodingModel: modelId,
-          enabledCodingModels: Array.from(newEnabled),
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to save");
-    } catch (error) {
-      console.error("Error saving:", error);
-      toast.error("Failed to save changes");
-    }
-  };
-
-  // Group models by provider
-  const modelsByProvider = codingModels.reduce((acc, model) => {
-    const provider = model.displayName.split(" ")[0]; // Get first word (Claude, GPT, Gemini, etc.)
-    if (!acc[provider]) {
-      acc[provider] = [];
-    }
-    acc[provider].push(model);
-    return acc;
-  }, {} as Record<string, typeof codingModels>);
-
-  const providerOrder = ["Claude", "GPT", "Gemini", "Minimax"];
-  const sortedProviders = Object.keys(modelsByProvider).sort((a, b) => {
-    const indexA = providerOrder.indexOf(a);
-    const indexB = providerOrder.indexOf(b);
-    if (indexA === -1) return 1;
-    if (indexB === -1) return -1;
-    return indexA - indexB;
-  });
+  // Group preferences by user-selectable and system
+  const userSelectablePrefs = preferences.filter((p) => p.isUserSelectable);
+  const systemPrefs = preferences.filter((p) => !p.isUserSelectable);
 
   if (isLoading) {
     return (
@@ -182,63 +121,27 @@ export default function ModelPreferencesTab() {
           <Skeleton className="h-4 w-full max-w-md" />
         </div>
 
-        {/* Models Skeleton */}
+        {/* Use Cases Skeleton */}
         <div className="space-y-6">
-          {[1, 2, 3].map((provider) => (
-            <div key={provider} className="space-y-3">
-              <Skeleton className="h-5 w-32" />
-              <div className="space-y-2">
-                {[1, 2].map((model) => (
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-5" />
+                <Skeleton className="h-5 w-32" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[1, 2].map((j) => (
                   <div
-                    key={model}
-                    className="flex items-center justify-between p-4 rounded-xl border border-input bg-muted/50"
+                    key={j}
+                    className="p-4 rounded-xl border border-input bg-muted/50"
                   >
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-5 w-40" />
-                        <Skeleton className="h-5 w-16 rounded-full" />
-                      </div>
-                      <Skeleton className="h-4 w-full max-w-sm" />
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-3 w-24" />
-                        <Skeleton className="h-3 w-3 rounded-full" />
-                        <Skeleton className="h-3 w-32" />
-                        <Skeleton className="h-3 w-3 rounded-full" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 ml-4">
-                      <Skeleton className="h-8 w-28 rounded-full" />
-                      <Skeleton className="h-10 w-12 rounded-full" />
-                    </div>
+                    <Skeleton className="h-5 w-40 mb-2" />
+                    <Skeleton className="h-4 w-full" />
                   </div>
                 ))}
               </div>
             </div>
           ))}
-        </div>
-
-        {/* System Models Skeleton */}
-        <div>
-          <Skeleton className="h-6 w-40 mb-4" />
-          <div className="space-y-2">
-            {[1, 2].map((model) => (
-              <div
-                key={model}
-                className="flex items-center justify-between p-4 rounded-xl border border-input bg-muted/30"
-              >
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-4 w-4 rounded" />
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-4 w-20" />
-                  </div>
-                  <Skeleton className="h-4 w-64" />
-                </div>
-                <Skeleton className="h-6 w-16 rounded-full" />
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     );
@@ -247,160 +150,222 @@ export default function ModelPreferencesTab() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-2">
-          Coding Models
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Choose your preferred AI model for code generation and enable/disable
-          available models
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            AI Model Preferences
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-xl">
+            Choose your preferred AI model for each task. Your selection will be
+            used throughout the app — no need to select a model in every chat.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => loadSettings(true)}
+          disabled={isRefreshing}
+          className="rounded-full"
+        >
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+          />
+          Refresh
+        </Button>
       </div>
 
-      {/* Models by Provider */}
-      <div className="space-y-6">
-        {sortedProviders.map((provider) => (
-          <div key={provider} className="space-y-3">
-            <h4 className="text-sm font-medium text-foreground">{provider}</h4>
-            <div className="space-y-2">
-              {modelsByProvider[provider].map((model) => {
-                const isEnabled = enabledModels.has(model.id);
-                const isPreferred = preferredModel === model.id;
+      {/* User-Selectable Models */}
+      <div className="space-y-10">
+        {userSelectablePrefs.map((pref) => {
+          const Icon = USE_CASE_ICONS[pref.useCase] || Sparkles;
+          const isSaving = savingUseCase === pref.useCase;
+          const useCaseDescription = USE_CASE_DESCRIPTIONS[pref.useCase] || "";
+          const availableModels = pref.availableModels.filter(
+            (m) => !m.isSystem
+          );
 
-                return (
-                  <div
-                    key={model.id}
-                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                      isPreferred
-                        ? "bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700"
-                        : "bg-muted/50 border-input hover:border-neutral-300 dark:hover:border-neutral-700"
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+          // Show message if no models available for this use case
+          if (availableModels.length === 0) {
+            return (
+              <div key={pref.useCase} className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Icon className="w-5 h-5 text-foreground" />
+                  <h4 className="text-base font-medium text-foreground">
+                    {pref.displayName}
+                  </h4>
+                </div>
+                <div className="p-4 rounded-xl border border-dashed border-input bg-muted/30 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No models available for this use case yet.
+                  </p>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={pref.useCase} className="space-y-4">
+              {/* Use Case Header */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Icon className="w-5 h-5 text-foreground" />
+                  <h4 className="text-base font-medium text-foreground">
+                    {pref.displayName}
+                  </h4>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {availableModels.length}{" "}
+                    {availableModels.length === 1 ? "model" : "models"}
+                  </span>
+                </div>
+                {useCaseDescription && (
+                  <p className="text-xs text-muted-foreground pl-7">
+                    {useCaseDescription}
+                  </p>
+                )}
+              </div>
+
+              {/* Model Options */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {availableModels.map((model) => {
+                  const isSelected = model.id === pref.preferredModelId;
+                  const TierIcon = model.tier === "expert" ? Crown : Zap;
+
+                  return (
+                    <button
+                      key={model.id}
+                      onClick={() =>
+                        !isSelected && selectModel(pref.useCase, model.id)
+                      }
+                      disabled={isSaving || isSelected}
+                      className={`relative flex flex-col items-start p-4 rounded-xl border transition-all text-left ${
+                        isSelected
+                          ? "bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 ring-2 ring-neutral-400 dark:ring-neutral-600"
+                          : "bg-card border-input hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-muted/50 cursor-pointer"
+                      } ${isSaving ? "opacity-50 cursor-wait" : ""}`}
+                    >
+                      {/* Selection indicator */}
+                      {isSelected && (
+                        <div className="absolute top-3 right-3">
+                          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-neutral-800 dark:bg-neutral-200">
+                            <Check className="w-3 h-3 text-white dark:text-neutral-900" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Model Name & Tier */}
+                      <div className="flex items-center gap-2 mb-1.5 pr-6">
                         <h5 className="text-sm font-medium text-foreground">
                           {model.displayName}
                         </h5>
-                        {isPreferred && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-neutral-200 dark:bg-neutral-800 text-foreground rounded-full">
-                            Default
-                          </span>
-                        )}
-                        {model.id.includes("sonnet") && !isPreferred && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-neutral-100 dark:bg-neutral-900 text-muted-foreground rounded-full">
-                            Recommended
-                          </span>
-                        )}
+                        <span
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                            model.tier === "expert"
+                              ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                              : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                          }`}
+                        >
+                          <TierIcon className="w-2.5 h-2.5" />
+                          {model.tier === "expert" ? "Expert" : "Fast"}
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-2">
+
+                      {/* Provider */}
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                        {model.provider}
+                      </p>
+
+                      {/* Description */}
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2 min-h-[2rem]">
                         {model.description}
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>
-                          Context:{" "}
-                          {(
-                            model.capabilities.maxContextLength! / 1000
-                          ).toFixed(0)}
-                          K tokens
-                        </span>
-                        <span>•</span>
-                        <span>
-                          ${model.pricing?.inputTokens?.toFixed(2) ?? "x.xx"}/1M
-                          input tokens
-                        </span>
-                        <span>•</span>
-                        <span>
-                          ${model.pricing?.outputTokens?.toFixed(2) ?? "x.xx"}
-                          /1M output tokens
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 ml-4">
-                      {isEnabled && !isPreferred && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setAsPreferred(model.id)}
-                          className="rounded-full text-xs"
-                        >
-                          Set as default
-                        </Button>
-                      )}
-                      {isPreferred && (
-                        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground px-3 py-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-full">
-                          <Check className="w-3.5 h-3.5" />
-                          Current
-                        </div>
-                      )}
-                      <Switch
-                        checked={isEnabled}
-                        onCheckedChange={() => toggleModelEnabled(model.id)}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                      {/* Pricing & Capabilities Info */}
+                      <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                        {model.pricing?.inputTokens && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted">
+                            ${model.pricing.inputTokens.toFixed(2)}/1M in
+                          </span>
+                        )}
+                        {model.pricing?.outputTokens && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted">
+                            ${model.pricing.outputTokens.toFixed(2)}/1M out
+                          </span>
+                        )}
+                        {model.capabilities?.maxContextLength && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted">
+                            {(
+                              model.capabilities.maxContextLength / 1000
+                            ).toFixed(0)}
+                            K context
+                          </span>
+                        )}
+                        {model.pricing?.images && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted">
+                            ${model.pricing.images.toFixed(2)}/1K images
+                          </span>
+                        )}
+                        {model.pricing?.videoSeconds && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted">
+                            ${model.pricing.videoSeconds.toFixed(2)}/sec video
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* System Models (Non-editable) */}
-      <div className="space-y-3 pt-6 border-t border-border">
-        <div className="flex items-start gap-2">
-          <Info className="w-4 h-4 text-muted-foreground mt-0.5" />
-          <div>
-            <h4 className="text-sm font-medium text-foreground mb-1">
-              System Models
-            </h4>
-            <p className="text-xs text-muted-foreground mb-3">
-              These models are used for specific system functions and cannot be
-              changed
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          {/* Naming Model */}
-          <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30 border-input">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Brain className="w-4 h-4 text-muted-foreground" />
-                <h5 className="text-sm font-medium text-foreground">
-                  {AVAILABLE_MODELS["x-ai/grok-4-1-fast"].displayName}
-                </h5>
-                <span className="text-xs text-muted-foreground">(Naming)</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Automatically generates project names
+      {systemPrefs.length > 0 && (
+        <div className="space-y-4 pt-8 border-t border-border">
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30">
+            <Info className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-1">
+                System Models
+              </h4>
+              <p className="text-xs text-muted-foreground mb-4">
+                These models are automatically selected by the system for
+                internal operations. They are optimized for their specific tasks
+                and cannot be changed.
               </p>
-            </div>
-            <div className="text-xs text-muted-foreground px-3 py-1.5 bg-muted rounded-full">
-              System
-            </div>
-          </div>
 
-          {/* Memory Model */}
-          <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30 border-input">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Brain className="w-4 h-4 text-muted-foreground" />
-                <h5 className="text-sm font-medium text-foreground">
-                  {AVAILABLE_MODELS["x-ai/grok-4-1-fast"].displayName}
-                </h5>
-                <span className="text-xs text-muted-foreground">(Memory)</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {systemPrefs.map((pref) => {
+                  const Icon = USE_CASE_ICONS[pref.useCase] || Brain;
+
+                  return (
+                    <div
+                      key={pref.useCase}
+                      className="flex items-center justify-between p-3 rounded-lg bg-background border border-input"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            {pref.displayName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {pref.preferredModel?.displayName || "Default"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground px-2 py-1 bg-muted rounded-full">
+                        <Lock className="w-3 h-3" />
+                        Auto
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Manages context and remembers your preferences
-              </p>
-            </div>
-            <div className="text-xs text-muted-foreground px-3 py-1.5 bg-muted rounded-full">
-              System
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

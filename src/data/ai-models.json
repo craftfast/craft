@@ -300,12 +300,12 @@
         {
             "id": "google/gemini-2.5-flash-image",
             "name": "gemini-2.5-flash-image",
-            "displayName": "Gemini 2.5 Flash Image 🍌",
+            "displayName": "Gemini 2.5 Flash Image",
             "provider": "google",
             "tier": "fast",
             "description": "Native image generation optimized for speed and flexibility",
             "useCase": "image-generation",
-            "isSystem": true,
+            "isSystem": false,
             "capabilities": {
                 "supportedInputs": [
                     "text",
@@ -335,7 +335,7 @@
             "tier": "expert",
             "description": "Latest video generation model with audio (Preview)",
             "useCase": "video-generation",
-            "isSystem": true,
+            "isSystem": false,
             "capabilities": {
                 "supportedInputs": [
                     "text"
@@ -364,7 +364,7 @@
             "tier": "fast",
             "description": "Fast video generation model with audio (Preview)",
             "useCase": "video-generation",
-            "isSystem": true,
+            "isSystem": false,
             "capabilities": {
                 "supportedInputs": [
                     "text"

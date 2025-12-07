@@ -3,22 +3,14 @@
  * 
  * This is the single source of truth for all AI operations in Craft.
  * 
- * INTELLIGENT MODEL SELECTION:
- * Models are automatically selected based on:
- * - Use case (coding, naming, memory, etc.)
- * - User's plan (HOBBY, PRO, ENTERPRISE)
- * - Required capabilities (multimodal, web search, function calling)
- * - Cost efficiency (selects cheapest model that meets requirements)
+ * MODEL SELECTION:
+ * - User's preferred model for each use case is stored in their preferences
+ * - Models are loaded from database via modelService
+ * - System models (orchestrator, memory) are fixed and not user-selectable
  * 
- * Selection Process:
- * - Text-only tasks → Fast tier models (optimized for speed and cost)
- * - Multimodal tasks → Models with image/video support
- * - Web search needed → Models with web search capabilities
- * - Naming tasks → Ultra-cheap, fast models
- * - Memory tasks → Models with large context windows
- * 
- * All models are automatically selected - no user configuration needed.
- * Model Configuration is managed in src/lib/models/config.ts
+ * Model Configuration is managed via:
+ * - Database: AIModel, AIModelCapabilities, AIModelPricing tables
+ * - Service: src/lib/models/service.ts (modelService singleton)
  */
 
 import { createAnthropic } from "@ai-sdk/anthropic";
@@ -27,11 +19,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createXai } from "@ai-sdk/xai";
 import { generateText, streamText, stepCountIs } from "ai";
-import {
-    getModelConfig,
-    getOrchestratorModel,
-    getCodingModel,
-} from "@/lib/models/config";
+import { modelService, DEFAULT_MODEL_IDS, type ModelProvider } from "@/lib/models";
 import { tools } from "@/lib/ai/tools";
 import { SSEStreamWriter } from "@/lib/ai/sse-events";
 import { createAgentLoop, type AgentLoopCoordinator } from "@/lib/ai/agent-loop-coordinator";
@@ -62,26 +50,16 @@ const xai = createXai({
 });
 
 // ============================================================================
-// MODEL CONFIGURATION
+// CODING AGENT
 // ============================================================================
-// All model configurations are managed in src/lib/models/config.ts
-// Models are automatically selected based on use case - no user configuration
-
-// ============================================================================
-// CODING AGENT (Intelligent Model Selection)
-// ============================================================================
-// System automatically selects the most efficient model based on requirements
-// Considers input types, capabilities needed, and cost efficiency
+// Uses user's preferred coding model from their settings
 
 interface CodingStreamOptions {
     messages: unknown[]; // Pre-formatted messages from the API
     systemPrompt: string;
     projectFiles?: Record<string, string>;
     conversationHistory?: Array<{ role: string; content: string }>;
-    userId: string; // User ID to determine plan and model access
-    tier?: "fast" | "expert"; // Optional: specify tier (defaults to fast) - LEGACY
-    preferredModel?: string | null; // Optional: user's preferred coding model ID
-    enabledModels?: string[]; // Optional: list of models user has enabled
+    userId: string; // User ID to get their preferred model
     sseWriter?: SSEStreamWriter; // Optional: SSE writer for real-time tool events
     projectId?: string; // Optional: project ID for agent loop state management
     sessionId?: string; // Optional: session ID for agent loop coordination
@@ -123,7 +101,7 @@ async function detectRequirements(messages: unknown[], systemPrompt: string): Pr
         }
     }
 
-    // Use Grok 4 Fast (Orchestrator) to intelligently detect if web search is needed
+    // Use orchestrator model to intelligently detect if web search is needed
     try {
         const lastMessage = messagesArray[messagesArray.length - 1];
         const userPrompt = lastMessage && typeof lastMessage === 'object' && 'content' in lastMessage
@@ -153,14 +131,15 @@ NOT requiring web search:
 - General programming questions
 - URLs in context (just references, not search requests)`;
 
-        const orchestratorModelId = getOrchestratorModel();
+        // Use orchestrator model from modelService (system-only model)
+        const orchestratorModelId = await modelService.getOrchestratorModel();
 
         let provider, modelPath, providerType;
         let modelInstance;
         let useOpenRouterFallback = false;
 
         try {
-            ({ provider, modelPath, providerType } = getModelProvider(orchestratorModelId, useOpenRouterFallback));
+            ({ provider, modelPath, providerType } = await getModelProvider(orchestratorModelId, useOpenRouterFallback));
 
             switch (providerType) {
                 case "x-ai":
@@ -175,7 +154,7 @@ NOT requiring web search:
         } catch (directProviderError) {
             console.warn(`⚠️ Direct provider failed for requirement detection, falling back to OpenRouter:`, directProviderError);
             useOpenRouterFallback = true;
-            ({ provider, modelPath } = getModelProvider(orchestratorModelId, useOpenRouterFallback));
+            ({ provider, modelPath } = await getModelProvider(orchestratorModelId, useOpenRouterFallback));
             modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
         }
 
@@ -205,32 +184,37 @@ NOT requiring web search:
 }
 
 /**
- * Get the appropriate AI provider and model name for a given model ID
- * Dynamically uses model configuration from config.ts (single source of truth)
- * 
- * FALLBACK STRATEGY:
- * - Primary: Use direct provider (Anthropic, OpenAI, Google, XAI)
- * - Fallback: Use OpenRouter if direct provider fails (5% commission but reliability)
+ * Provider info return type for getModelProvider
  */
-function getModelProvider(modelId: string, useOpenRouterFallback = false): {
+export interface ModelProviderInfo {
     provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter> | ReturnType<typeof createOpenAI> | ReturnType<typeof createGoogleGenerativeAI> | ReturnType<typeof createXai>;
     modelPath: string;
     displayName: string;
     providerType: "anthropic" | "openrouter" | "openai" | "google" | "x-ai";
     isFallback: boolean;
-} {
-    // Get model config from single source of truth
-    const modelConfig = getModelConfig(modelId);
+}
+
+/**
+ * Get the appropriate AI provider and model name for a given model ID
+ * Uses modelService as single source of truth (database-first with JSON fallback)
+ * 
+ * FALLBACK STRATEGY:
+ * - Primary: Use direct provider (Anthropic, OpenAI, Google, XAI)
+ * - Fallback: Use OpenRouter if direct provider fails (5% commission but reliability)
+ */
+async function getModelProvider(modelId: string, useOpenRouterFallback = false): Promise<ModelProviderInfo> {
+    // Get model config from modelService (database-first, then JSON fallback)
+    const modelConfig = await modelService.getModel(modelId);
 
     if (!modelConfig) {
-        console.warn(`⚠️ Unknown model: ${modelId}, falling back to fast coding model`);
+        console.warn(`⚠️ Unknown model: ${modelId}, falling back to default coding model`);
 
-        // Ultimate fallback - use the fast coding model
-        const fallbackModelId = getCodingModel("fast");
-        const fallbackConfig = getModelConfig(fallbackModelId);
+        // Ultimate fallback - use the default coding model
+        const fallbackModelId = DEFAULT_MODEL_IDS.coding;
+        const fallbackConfig = await modelService.getModel(fallbackModelId);
 
         if (!fallbackConfig) {
-            throw new Error("Configuration error: Fast coding model not found in config");
+            throw new Error("Configuration error: Default coding model not found");
         }
 
         // Recursively call with the fallback model
@@ -242,7 +226,7 @@ function getModelProvider(modelId: string, useOpenRouterFallback = false): {
         console.log(`🔄 Using OpenRouter as fallback for ${modelConfig.displayName}`);
         return {
             provider: openrouter,
-            modelPath: modelId, // Use the model ID which includes provider prefix (e.g., "anthropic/claude-haiku-4.5")
+            modelPath: modelId, // Use the model ID which includes provider prefix (e.g., "anthropic/claude-sonnet-4.5")
             displayName: `${modelConfig.displayName} (via OpenRouter)`,
             providerType: "openrouter",
             isFallback: true,
@@ -281,7 +265,7 @@ function getModelProvider(modelId: string, useOpenRouterFallback = false): {
     // Direct providers use model alias/name (e.g., "claude-sonnet-4-5" for Anthropic)
     const modelPath = modelConfig.provider === "openrouter"
         ? modelId  // OpenRouter format: provider/model-name
-        : modelConfig.name; // Direct provider format: specific model version
+        : modelConfig.modelPath; // Direct provider format: specific model version
 
     return {
         provider,
@@ -294,7 +278,7 @@ function getModelProvider(modelId: string, useOpenRouterFallback = false): {
 
 /**
  * Stream coding responses using intelligent model selection
- * Automatically selects the most efficient model based on requirements
+ * Uses user's preferred coding model from settings
  * 
  * Phase 2: Supports agent loop coordination for multi-step reasoning
  */
@@ -305,9 +289,6 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         projectFiles = {},
         conversationHistory = [],
         userId,
-        tier = "fast",
-        preferredModel,
-        enabledModels,
         sseWriter,
         projectId,
         sessionId,
@@ -354,8 +335,8 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     // Detect requirements from messages
     const { hasImages, hasWebSearchRequest, needsFunctionCalling } = await detectRequirements(messages, systemPrompt);
 
-    // Get the coding model - use user's preferred model if available, otherwise fall back to tier-based selection
-    const codingModel = getCodingModel(preferredModel, enabledModels);
+    // Get the coding model from user's settings (single model per use case)
+    const codingModel = await modelService.getCodingModel(userId);
 
     // Try direct provider first, with OpenRouter as fallback
     let provider, modelPath, displayName, providerType, isFallback;
@@ -363,7 +344,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     let useOpenRouterFallback = false;
 
     try {
-        ({ provider, modelPath, displayName, providerType, isFallback } = getModelProvider(codingModel, useOpenRouterFallback));
+        ({ provider, modelPath, displayName, providerType, isFallback } = await getModelProvider(codingModel, useOpenRouterFallback));
 
         console.log(`⚡ AI Agent: Using ${displayName} (${codingModel}) for coding with TOOL USE enabled`);
         if (isFallback) {
@@ -405,7 +386,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         console.warn(`⚠️ Direct provider failed, falling back to OpenRouter:`, directProviderError);
         useOpenRouterFallback = true;
 
-        ({ provider, modelPath, displayName, providerType, isFallback } = getModelProvider(codingModel, useOpenRouterFallback));
+        ({ provider, modelPath, displayName, providerType, isFallback } = await getModelProvider(codingModel, useOpenRouterFallback));
 
         console.log(`🔄 Retrying with OpenRouter fallback: ${displayName}`);
         modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
@@ -575,7 +556,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
 
                 if (!providerCostUsd) {
                     // Direct provider - calculate cost manually
-                    const modelConfig = getModelConfig(codingModel);
+                    const modelConfig = await modelService.getModel(codingModel);
                     console.log(`💳 Calculating cost for direct provider: ${modelConfig?.provider || 'unknown'}`);
                     try {
                         // Debug: Log raw usage data structure for troubleshooting
@@ -625,12 +606,12 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
                     } catch (error) {
                         console.error('❌ Cost calculation error:', error);
                         console.error('Error details:', error instanceof Error ? error.message : String(error));
-                        // Fallback to simple calculation
-                        const modelConfig = getModelConfig(codingModel);
-                        if (modelConfig?.pricing) {
+                        // Fallback to simple calculation using modelService
+                        const fallbackConfig = await modelService.getModel(codingModel);
+                        if (fallbackConfig?.pricing) {
                             providerCostUsd =
-                                ((inputTokens / 1_000_000) * modelConfig.pricing.inputTokens) +
-                                ((outputTokens / 1_000_000) * modelConfig.pricing.outputTokens);
+                                ((inputTokens / 1_000_000) * fallbackConfig.pricing.inputTokens) +
+                                ((outputTokens / 1_000_000) * fallbackConfig.pricing.outputTokens);
                             console.log(`⚠️ Using fallback calculation (basic input/output only): $${providerCostUsd.toFixed(6)}`);
                         } else {
                             console.warn(`⚠️ No pricing config found for model: ${codingModel}`);
@@ -714,15 +695,15 @@ Project name (1-${maxWords} words only, no code):`;
 
     // Generate project name using intelligent model selection
     try {
-        // Use Grok 4.1 Fast (Orchestrator) for naming
-        const namingModelId = getOrchestratorModel();
+        // Use naming model from modelService (system-only model, optimized for fast naming)
+        const namingModelId = await modelService.getNamingModel();
 
         let provider, modelPath, displayName, providerType;
         let modelInstance;
         let useOpenRouterFallback = false;
 
         try {
-            ({ provider, modelPath, displayName, providerType } = getModelProvider(namingModelId, useOpenRouterFallback));
+            ({ provider, modelPath, displayName, providerType } = await getModelProvider(namingModelId, useOpenRouterFallback));
             console.log(`🤖 AI Agent: Generating project name with ${displayName} (${namingModelId})`);
 
             // Different providers use different call patterns
@@ -749,7 +730,7 @@ Project name (1-${maxWords} words only, no code):`;
             console.warn(`⚠️ Direct provider failed for naming, falling back to OpenRouter:`, directProviderError);
             useOpenRouterFallback = true;
 
-            ({ provider, modelPath, displayName, providerType } = getModelProvider(namingModelId, useOpenRouterFallback));
+            ({ provider, modelPath, displayName, providerType } = await getModelProvider(namingModelId, useOpenRouterFallback));
             console.log(`🔄 Retrying with OpenRouter fallback: ${displayName}`);
             modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
         }

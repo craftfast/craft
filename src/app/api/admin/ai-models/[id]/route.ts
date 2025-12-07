@@ -105,13 +105,20 @@ export async function GET(
             _count: true,
         });
 
-        // Get users preferring this model
-        const usersPreferring = await prisma.user.count({
+        // Get users preferring this model (from modelPreferences JSON field)
+        const usersWithPreferences = await prisma.user.findMany({
             where: {
-                preferredCodingModel: modelId,
+                modelPreferences: { not: null },
                 deletedAt: null,
             },
+            select: {
+                modelPreferences: true,
+            },
         });
+        const usersPreferring = usersWithPreferences.filter((u) => {
+            const prefs = u.modelPreferences as { coding?: string } | null;
+            return prefs?.coding === modelId;
+        }).length;
 
         // Get audit logs
         const auditLogs = await prisma.aIModelAuditLog.findMany({
@@ -458,13 +465,20 @@ export async function DELETE(
             );
         }
 
-        // Check if users are using this model
-        const usersUsingModel = await prisma.user.count({
+        // Check if users are using this model (from modelPreferences JSON field)
+        const usersWithModelPref = await prisma.user.findMany({
             where: {
-                preferredCodingModel: modelId,
+                modelPreferences: { not: null },
                 deletedAt: null,
             },
+            select: {
+                modelPreferences: true,
+            },
         });
+        const usersUsingModel = usersWithModelPref.filter((u) => {
+            const prefs = u.modelPreferences as { coding?: string; "image-generation"?: string; "video-generation"?: string } | null;
+            return prefs?.coding === modelId || prefs?.["image-generation"] === modelId || prefs?.["video-generation"] === modelId;
+        }).length;
 
         if (usersUsingModel > 0) {
             // Instead of blocking, we could migrate users to default

@@ -116,7 +116,7 @@ export default function AdminSidebar() {
       <div className="flex h-full flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-4 dark:border-neutral-800">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4 px-2">
             <Logo variant="icon" className="!h-6" href="/admin" />
             <span className="font-semibold text-neutral-900 dark:text-neutral-100">
               Admin Panel
@@ -125,7 +125,7 @@ export default function AdminSidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
