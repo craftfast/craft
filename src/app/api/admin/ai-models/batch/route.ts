@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
                     select: { id: true, useCase: true },
                 });
 
-                const useCaseSet = new Set(modelsToDisable.map(m => m.useCase));
+                const useCaseSet = new Set(modelsToDisable.map((m: typeof modelsToDisable[number]) => m.useCase));
 
                 for (const useCase of useCaseSet) {
                     const enabledCount = await prisma.aIModel.count({
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
                     select: { id: true, useCase: true, isEnabled: true },
                 });
 
-                const useCaseSet = new Set(modelsToDelete.map(m => m.useCase));
+                const useCaseSet = new Set(modelsToDelete.map((m: typeof modelsToDelete[number]) => m.useCase));
 
                 for (const useCase of useCaseSet) {
                     const remainingCount = await prisma.aIModel.count({
