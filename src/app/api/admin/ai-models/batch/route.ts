@@ -15,6 +15,7 @@ import { requireAdmin, getAdminUser } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { modelRegistry } from "@/lib/models/registry";
 import { z } from "zod";
+import type { AIModelUseCase } from "@prisma/client";
 
 const batchOperationSchema = z.discriminatedUnion("operation", [
     z.object({
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
                     select: { id: true, useCase: true },
                 });
 
-                const useCases = [...new Set(modelsToDisable.map(m => m.useCase))];
+                const useCases = [...new Set(modelsToDisable.map(m => m.useCase))] as AIModelUseCase[];
 
                 for (const useCase of useCases) {
                     const enabledCount = await prisma.aIModel.count({
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
                     select: { id: true, useCase: true, isEnabled: true },
                 });
 
-                const useCases = [...new Set(modelsToDelete.map(m => m.useCase))];
+                const useCases = [...new Set(modelsToDelete.map(m => m.useCase))] as AIModelUseCase[];
 
                 for (const useCase of useCases) {
                     const remainingCount = await prisma.aIModel.count({
