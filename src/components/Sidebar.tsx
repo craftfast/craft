@@ -6,6 +6,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
 import { LINKS } from "@/lib/constants";
 import Logo from "@/components/Logo";
+import BetaBadge from "@/components/BetaBadge";
 import {
   Home,
   FolderOpen,
@@ -163,20 +164,20 @@ export default function Sidebar() {
   return (
     <>
       {/* Overlay backdrop */}
-      <div
-        className="fixed inset-0 z-[100] bg-black/50"
-        onClick={closeSidebar}
-      />
+      <div className="fixed inset-0 z-100 bg-black/50" onClick={closeSidebar} />
 
       {/* Sidebar - slides in from left, overlays content */}
       <aside
-        className="fixed top-0 left-0 z-[101] h-screen w-64 bg-background shadow-xl animate-in slide-in-from-left duration-200"
+        className="fixed top-0 left-0 z-101 h-screen w-64 bg-background shadow-xl animate-in slide-in-from-left duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col h-full">
           {/* Header with close button */}
           <div className="flex items-center justify-between px-3 py-4">
-            <Logo variant="extended" className="!h-5" href="/" />
+            <div className="flex items-center gap-2">
+              <Logo variant="extended" className="h-5!" href="/" />
+              <BetaBadge showVersion />
+            </div>
             <button
               onClick={closeSidebar}
               className="p-2 rounded-xl hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"

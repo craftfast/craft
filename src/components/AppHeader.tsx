@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import UserMenu from "./UserMenu";
 import Logo from "./Logo";
+import BetaBadge from "./BetaBadge";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { Menu } from "lucide-react";
 import { Button } from "./ui/button";
@@ -39,7 +40,7 @@ export default function AppHeader({
     <header
       className={`${
         fixed ? "fixed left-0 right-0" : "sticky"
-      } top-0 z-[40] bg-background/80 backdrop-blur-md`}
+      } top-0 z-40 bg-background/80 backdrop-blur-md`}
     >
       <div
         className={`${
@@ -57,9 +58,10 @@ export default function AppHeader({
           </button>
           <Logo
             variant={showLogoText ? "extended" : "icon"}
-            className="!h-5"
+            className="h-5!"
             href="/"
           />
+          <BetaBadge showVersion className="ml-2" />
           {afterLogo && (
             <>
               <Separator orientation="vertical" className="h-6 mx-1 ml-3" />
