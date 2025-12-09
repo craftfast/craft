@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, getAdminUser } from "@/lib/admin-auth";
-import { prisma } from "@/lib/db";
+import { prisma, Prisma } from "@/lib/db";
 import { modelRegistry, toDbProvider, toDbTier, toDbUseCase, toDbInputType, toDbOutputType } from "@/lib/models/registry";
 import type { ModelConfig, ModelProvider, ModelTier, ModelUseCase, ModelInputType, ModelOutputType, ModelCapabilities, ModelPricing } from "@/lib/models/registry";
 import { z } from "zod";
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
         // We need to count users who have each model as their preferred coding model
         const usersWithPreferences = await prisma.user.findMany({
             where: {
-                modelPreferences: { not: null },
+                modelPreferences: { not: Prisma.DbNull },
                 deletedAt: null,
             },
             select: {

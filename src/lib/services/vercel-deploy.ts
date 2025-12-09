@@ -227,7 +227,7 @@ async function pollVercelDeployment(
         if (data.readyState === "READY") {
             // Deployment successful
             const deploymentUrl = data.alias?.[0] || data.url;
-            const deployment = await prisma.deployment.update({
+            await prisma.deployment.update({
                 where: { id: deploymentId },
                 data: {
                     status: "ready",
@@ -239,11 +239,11 @@ async function pollVercelDeployment(
             });
 
             console.log(`Deployment ready: https://${deploymentUrl}`);
-            return { ...deployment, url: deploymentUrl };
+            return { status: "ready", url: deploymentUrl, vercelUrl: deploymentUrl };
         } else if (data.readyState === "ERROR" || data.readyState === "CANCELED") {
             // Deployment failed
             const errorMessage = data.errorMessage || "Vercel deployment failed";
-            const deployment = await prisma.deployment.update({
+            await prisma.deployment.update({
                 where: { id: deploymentId },
                 data: {
                     status: "error",
@@ -253,13 +253,13 @@ async function pollVercelDeployment(
             });
 
             console.error(`Deployment failed: ${errorMessage}`);
-            return deployment;
+            return { status: "error" };
         }
     }
 
     // Timeout
     console.error("Deployment timeout after 5 minutes");
-    const deployment = await prisma.deployment.update({
+    await prisma.deployment.update({
         where: { id: deploymentId },
         data: {
             status: "error",
@@ -268,5 +268,5 @@ async function pollVercelDeployment(
         },
     });
 
-    return deployment;
+    return { status: "error" };
 }

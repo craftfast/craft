@@ -79,7 +79,6 @@ export async function executeTaskWithCodingAgent(options: DelegationOptions): Pr
             projectFiles,
             conversationHistory: [],
             userId,
-            tier,
             sseWriter,
             projectId,
             sessionId,

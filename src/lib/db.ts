@@ -1,5 +1,8 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma } from '@prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
+
+// Re-export Prisma namespace for types like Prisma.DbNull, Prisma.JsonNull
+export { Prisma }
 
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined

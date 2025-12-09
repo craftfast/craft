@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
+import type { BalanceTransactionType } from "@prisma/client";
 
 export async function GET(request: Request) {
     try {
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get("limit") || "10");
         const offset = parseInt(searchParams.get("offset") || "0");
-        const type = searchParams.get("type"); // Optional filter by type (e.g., TOPUP)
+        const type = searchParams.get("type") as BalanceTransactionType | null; // Optional filter by type (e.g., TOPUP)
 
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
         }
 
         // Build where clause with optional type filter
-        const whereClause: { userId: string; type?: string } = { userId: user.id };
+        const whereClause: { userId: string; type?: BalanceTransactionType } = { userId: user.id };
         if (type) {
             whereClause.type = type;
         }

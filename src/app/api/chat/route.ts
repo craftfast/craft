@@ -378,19 +378,19 @@ export async function POST(req: Request) {
             return true;
         });
 
-        // Check if any messages contain images
-        const hasImages = validMessages.some((m: { content: unknown }) =>
+        // Check if any valid messages contain images
+        const hasValidImages = validMessages.some((m: { content: unknown }) =>
             Array.isArray(m.content) && m.content.some((c: { type: string }) => c.type === 'image')
         );
 
-        logger.ai.info(`Chat Request - Task: ${taskType || 'coding'}${hasImages ? ' (with images)' : ''}`);
+        logger.ai.info(`Chat Request - Task: ${taskType || 'coding'}${hasValidImages ? ' (with images)' : ''}`);
         if (projectFiles && Object.keys(projectFiles).length > 0) {
             logger.ai.debug(`Context: ${Object.keys(projectFiles).length} existing project files`);
         }
 
         // Get last user message for memory capture
         const lastUserMessage = messages.filter((m: { role: string }) => m.role === 'user').pop();
-        const _userMessageText = typeof lastUserMessage?.content === 'string'
+        const userMessageText = typeof lastUserMessage?.content === 'string'
             ? lastUserMessage.content
             : Array.isArray(lastUserMessage?.content)
                 ? lastUserMessage.content.find((c: { type: string }) => c.type === 'text')?.text || ''

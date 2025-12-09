@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, getAdminUser } from "@/lib/admin-auth";
-import { prisma } from "@/lib/db";
+import { prisma, Prisma } from "@/lib/db";
 import { modelRegistry, toDbProvider, toDbTier, toDbUseCase, toDbInputType, toDbOutputType } from "@/lib/models/registry";
 import type { ModelProvider, ModelTier, ModelUseCase, ModelInputType, ModelOutputType } from "@/lib/models/registry";
 import { z } from "zod";
@@ -108,7 +108,7 @@ export async function GET(
         // Get users preferring this model (from modelPreferences JSON field)
         const usersWithPreferences = await prisma.user.findMany({
             where: {
-                modelPreferences: { not: null },
+                modelPreferences: { not: Prisma.DbNull },
                 deletedAt: null,
             },
             select: {
@@ -468,7 +468,7 @@ export async function DELETE(
         // Check if users are using this model (from modelPreferences JSON field)
         const usersWithModelPref = await prisma.user.findMany({
             where: {
-                modelPreferences: { not: null },
+                modelPreferences: { not: Prisma.DbNull },
                 deletedAt: null,
             },
             select: {

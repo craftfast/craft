@@ -265,7 +265,7 @@ async function getModelProvider(modelId: string, useOpenRouterFallback = false):
     // Direct providers use model alias/name (e.g., "claude-sonnet-4-5" for Anthropic)
     const modelPath = modelConfig.provider === "openrouter"
         ? modelId  // OpenRouter format: provider/model-name
-        : modelConfig.modelPath; // Direct provider format: specific model version
+        : modelConfig.name; // Direct provider format: specific model version
 
     return {
         provider,

@@ -10,7 +10,9 @@ export default async function Home() {
     <SidebarLayout>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         {/* Payment Success Handler - Updates balance when returning from checkout */}
-        <PaymentSuccessHandler />
+        <Suspense fallback={null}>
+          <PaymentSuccessHandler />
+        </Suspense>
 
         {/* Modal Redirect Handler - Shows projects/feedback modals based on URL parameters */}
         <Suspense fallback={null}>
@@ -34,7 +36,7 @@ export default async function Home() {
         </main>
 
         {/* Terms and Privacy Notice - Fixed at bottom */}
-        <footer className="relative z-10 w-full py-4 flex-shrink-0">
+        <footer className="relative z-10 w-full py-4 shrink-0">
           <div className="w-full text-center px-4">
             <p className="text-xs text-muted-foreground">
               By messaging Craft, you agree to our{" "}

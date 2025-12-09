@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS = {
     signupsEnabled: true,
     maxProjectsPerUser: 50,
     defaultBalance: 0,
-} as const;
+};
 
 // Setting descriptions for self-hosters
 const SETTING_DESCRIPTIONS: Record<string, string> = {
@@ -29,7 +29,12 @@ const SETTING_DESCRIPTIONS: Record<string, string> = {
     defaultBalance: "Starting credit balance for new users (in USD)",
 };
 
-type SettingsType = typeof DEFAULT_SETTINGS;
+type SettingsType = {
+    maintenanceMode: boolean;
+    signupsEnabled: boolean;
+    maxProjectsPerUser: number;
+    defaultBalance: number;
+};
 
 /**
  * Load all settings from database, falling back to defaults

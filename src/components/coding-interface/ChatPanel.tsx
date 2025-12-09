@@ -137,7 +137,7 @@ export default function ChatPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasLoadedMessages = useRef(false); // Track if we've already loaded messages
   const hasTriggeredAutoSend = useRef(false); // Track if we've triggered auto-send
-  const _router = useRouter();
+  const router = useRouter();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -1612,7 +1612,7 @@ export default function ChatPanel({
                         >
                           <div className="rounded-lg overflow-hidden bg-muted border border-border hover:opacity-80 transition-opacity shadow-sm p-2 flex items-center gap-2">
                             {/* Image preview with fallback to icon */}
-                            <div className="w-4 h-4 flex-shrink-0 relative">
+                            <div className="w-4 h-4 shrink-0 relative">
                               <Image
                                 src={image.url}
                                 alt={image.name}
@@ -1632,7 +1632,7 @@ export default function ChatPanel({
                                 }}
                               />
                               <svg
-                                className="w-4 h-4 text-neutral-400 flex-shrink-0 hidden"
+                                className="w-4 h-4 text-neutral-400 shrink-0 hidden"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1683,7 +1683,7 @@ export default function ChatPanel({
                 return (
                   <SuggestionChips
                     lastAssistantMessage={lastMessage.content}
-                    projectDescription={projectDescription}
+                    projectDescription={projectDescription ?? undefined}
                     fileChanges={lastMessage.fileChanges}
                     onSuggestionClick={(suggestion) => {
                       setInput(suggestion);
@@ -1798,7 +1798,7 @@ export default function ChatPanel({
                 onKeyDown={handleKeyDown}
                 placeholder="Describe what you want to build or modify..."
                 rows={1}
-                className="w-full p-2 !border-0 !shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-muted-foreground overflow-y-auto scrollbar-minimal min-h-[3.5rem] max-h-[288px]"
+                className="w-full p-2 border-0! shadow-none! focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent focus:outline-none resize-none text-base sm:text-md text-foreground placeholder:text-muted-foreground overflow-y-auto scrollbar-minimal min-h-14 max-h-72"
               />
               {/* Show interim transcript indicator */}
               {interimTranscript && (
@@ -1951,7 +1951,7 @@ export default function ChatPanel({
       {/* Image Preview Modal */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
           onClick={() => setPreviewImage(null)}
         >
           <div
@@ -1990,7 +1990,7 @@ export default function ChatPanel({
                 unoptimized
               />
               {/* Image name */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+              <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-4">
                 <p className="text-white text-sm font-medium">
                   {previewImage.name}
                 </p>

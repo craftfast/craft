@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -38,7 +38,7 @@ interface Project {
   updatedAt: string;
 }
 
-export default function ProjectsPage() {
+function ProjectsContent() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -701,5 +701,24 @@ export default function ProjectsPage() {
         </main>
       </div>
     </SidebarLayout>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense
+      fallback={
+        <SidebarLayout>
+          <div className="min-h-screen bg-background">
+            <AppHeader />
+            <div className="flex items-center justify-center min-h-[50vh]">
+              <Skeleton className="w-32 h-8 rounded-lg" />
+            </div>
+          </div>
+        </SidebarLayout>
+      }
+    >
+      <ProjectsContent />
+    </Suspense>
   );
 }

@@ -9,11 +9,8 @@ import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { uploadFile, getFileSizeLimit } from "@/lib/r2-storage";
 
-export const config = {
-    api: {
-        bodyParser: false, // Disable default body parser for file uploads
-    },
-};
+// Note: In Next.js App Router, body parsing is handled automatically by NextRequest
+// No need for config.api.bodyParser = false like in Pages Router
 
 /**
  * POST /api/upload - Upload files to R2 storage

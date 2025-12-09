@@ -19,7 +19,7 @@ function ForgotPasswordContent() {
     setLoading(true);
 
     try {
-      const result = await authClient.forgetPassword({
+      const result = await authClient.requestPasswordReset({
         email,
         redirectTo: "/auth/reset-password",
       });

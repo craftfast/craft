@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
-import { prisma } from "@/lib/db";
+import { prisma, Prisma } from "@/lib/db";
 
 /**
  * GET /api/integrations/vercel/callback
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
                 username: userData.user?.username || null,
                 isActive: true,
                 lastSyncAt: new Date(),
-                metadata: configurationId ? { configurationId } : null,
+                metadata: configurationId ? { configurationId } : Prisma.DbNull,
             },
             create: {
                 userId: session.user.id,
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
                 scopes: tokenData.scope ? tokenData.scope.split(" ") : [],
                 isActive: true,
                 lastSyncAt: new Date(),
-                metadata: configurationId ? { configurationId } : null,
+                metadata: configurationId ? { configurationId } : Prisma.DbNull,
             },
         });
 
