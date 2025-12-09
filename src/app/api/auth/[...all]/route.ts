@@ -10,7 +10,4 @@ import { toNextJsHandler } from "better-auth/next-js";
  * - 2FA, OAuth, email/password auth
  * - Account banning (admin plugin)
  */
-const handlers = toNextJsHandler(auth);
-
-export const GET = handlers.GET;
-export const POST = handlers.POST;
+export const { GET, POST, PATCH, PUT, DELETE } = toNextJsHandler(auth);
