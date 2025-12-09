@@ -17,7 +17,7 @@ import { generateText } from "ai";
 import { createXai } from "@ai-sdk/xai";
 import { SessionManager } from "./orchestrator/session-manager";
 import { TaskManager } from "./orchestrator/task-manager";
-import { getPostHogClient, withTracing, createTracingOptions } from "@/lib/posthog-server";
+import { getTracedModel } from "@/lib/posthog-server";
 import type { TaskInfo, TaskPhase } from "@/types/orchestrator";
 import {
     createMemory,
@@ -33,18 +33,11 @@ const xai = createXai({
 /**
  * Get a traced model for orchestrator tools
  */
-function getTracedModel(userId?: string, projectId?: string, toolName?: string) {
-    const baseModel = xai("grok-4-fast");
-    const posthogClient = getPostHogClient();
-
-    if (!posthogClient) return baseModel;
-
-    return withTracing(baseModel, posthogClient, {
-        ...createTracingOptions(userId, projectId, {
-            modelId: "x-ai/grok-4-fast",
-            agentType: "orchestrator-tool",
-            toolName,
-        }),
+function getOrchestratorToolModel(userId?: string, projectId?: string, toolName?: string) {
+    return getTracedModel(xai("grok-4-fast"), userId, projectId, {
+        modelId: "x-ai/grok-4-fast",
+        agentType: "orchestrator-tool",
+        toolName,
     });
 }
 
@@ -108,7 +101,7 @@ export const generateProjectName = tool({
         console.log(`💡 Generating project name for: ${userRequest}`);
 
         try {
-            const model = getTracedModel(undefined, undefined, "generateProjectName");
+            const model = getOrchestratorToolModel(undefined, undefined, "generateProjectName");
 
             const result = await generateText({
                 model,
@@ -170,7 +163,7 @@ export const createTaskList = tool({
         console.log(`🎯 Creating HIGH-LEVEL task list for: ${userRequest}`);
 
         try {
-            const model = getTracedModel(undefined, projectContext?.projectId, "createTaskList");
+            const model = getOrchestratorToolModel(undefined, projectContext?.projectId, "createTaskList");
 
             const prompt = `You are an expert project orchestrator. Break down this user request into HIGH-LEVEL phases only.
 

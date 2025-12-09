@@ -13,30 +13,84 @@
 
 const POSTHOG_HOST = "https://us.i.posthog.com";
 
+// Allowed origins - restrict CORS to your domains only for security
+const ALLOWED_ORIGINS = [
+    "https://craft.fast",
+    "https://www.craft.fast",
+    "https://app.craft.fast",
+    "http://localhost:3000", // For local development testing
+];
+
 export default {
     async fetch(request) {
         const url = new URL(request.url);
+        const origin = request.headers.get("Origin");
 
-        // Rewrite the URL to PostHog
-        const posthogUrl = new URL(url.pathname + url.search, POSTHOG_HOST);
+        // Handle CORS preflight requests
+        if (request.method === "OPTIONS") {
+            return handleCORS(origin);
+        }
 
-        // Clone the request with the new URL
-        const modifiedRequest = new Request(posthogUrl, {
-            method: request.method,
-            headers: request.headers,
-            body: request.body,
-            redirect: "follow",
-        });
+        try {
+            // Rewrite the URL to PostHog
+            const posthogUrl = new URL(url.pathname + url.search, POSTHOG_HOST);
 
-        // Forward the request to PostHog
-        const response = await fetch(modifiedRequest);
+            // Clone the request with the new URL
+            const modifiedRequest = new Request(posthogUrl, {
+                method: request.method,
+                headers: request.headers,
+                body: request.body,
+                redirect: "follow",
+            });
 
-        // Clone the response and add CORS headers
-        const modifiedResponse = new Response(response.body, response);
-        modifiedResponse.headers.set("Access-Control-Allow-Origin", "*");
-        modifiedResponse.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        modifiedResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
+            // Forward the request to PostHog
+            const response = await fetch(modifiedRequest);
 
-        return modifiedResponse;
+            // Clone the response and add CORS headers
+            const modifiedResponse = new Response(response.body, response);
+
+            // Only allow specific origins for security
+            if (origin && ALLOWED_ORIGINS.includes(origin)) {
+                modifiedResponse.headers.set("Access-Control-Allow-Origin", origin);
+            }
+            modifiedResponse.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            modifiedResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
+
+            return modifiedResponse;
+        } catch (error) {
+            // Log the error for debugging in Cloudflare dashboard
+            console.error("PostHog proxy error:", error);
+
+            // Return a 502 Bad Gateway with CORS headers
+            const headers = {
+                "Content-Type": "text/plain",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+            };
+            if (origin && ALLOWED_ORIGINS.includes(origin)) {
+                headers["Access-Control-Allow-Origin"] = origin;
+            }
+
+            return new Response("Bad Gateway: PostHog service unavailable", {
+                status: 502,
+                headers,
+            });
+        }
     },
 };
+
+// Handle CORS preflight requests
+function handleCORS(origin) {
+    const headers = {
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400", // Cache preflight for 24 hours
+    };
+
+    // Only set allowed origin if it's in our list
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+        headers["Access-Control-Allow-Origin"] = origin;
+    }
+
+    return new Response(null, { status: 204, headers });
+}

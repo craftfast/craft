@@ -18,7 +18,7 @@ import { executeTaskWithCodingAgent } from "./delegation";
 import { getOrchestratorSystemPrompt } from "../orchestrator-prompts";
 import { orchestratorTools } from "../orchestrator-tools";
 import { SSEStreamWriter } from "../sse-events";
-import { getPostHogClient, withTracing, createTracingOptions } from "@/lib/posthog-server";
+import { getTracedModel } from "@/lib/posthog-server";
 import type { OrchestratorState } from "@/types/orchestrator";
 
 const xai = createXai({
@@ -100,19 +100,11 @@ export class OrchestratorAgent {
             })),
         ];
 
-        // Use Grok 4 Fast for orchestration
-        const baseModel = xai("grok-4-fast");
-
-        // Wrap model with PostHog tracing for LLM analytics
-        const posthogClient = getPostHogClient();
-        const model = posthogClient
-            ? withTracing(baseModel, posthogClient, {
-                ...createTracingOptions(this.userId, this.projectId, {
-                    modelId: "x-ai/grok-4-fast",
-                    agentType: "orchestrator",
-                }),
-            })
-            : baseModel;
+        // Use Grok 4 Fast for orchestration with PostHog tracing
+        const model = getTracedModel(xai("grok-4-fast"), this.userId, this.projectId, {
+            modelId: "x-ai/grok-4-fast",
+            agentType: "orchestrator",
+        });
 
         try {
             // Stream orchestrator's response
@@ -276,19 +268,11 @@ export async function executeOrchestrator(
         })),
     ];
 
-    // Generate response
-    const baseModel = xai("grok-4-fast");
-
-    // Wrap model with PostHog tracing for LLM analytics
-    const posthogClient = getPostHogClient();
-    const model = posthogClient
-        ? withTracing(baseModel, posthogClient, {
-            ...createTracingOptions(userId, projectId, {
-                modelId: "x-ai/grok-4-fast",
-                agentType: "orchestrator",
-            }),
-        })
-        : baseModel;
+    // Generate response with PostHog tracing
+    const model = getTracedModel(xai("grok-4-fast"), userId, projectId, {
+        modelId: "x-ai/grok-4-fast",
+        agentType: "orchestrator",
+    });
 
     const result = await generateText({
         model,

@@ -8,10 +8,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 // Determine environment
 const isProduction = process.env.NODE_ENV === "production";
 
-// Simple environment log
-if (typeof window !== "undefined") {
-  console.log(`[Craft] Environment: ${process.env.NODE_ENV}`);
-}
+// Guard to prevent duplicate event listener registration (e.g., during HMR)
+let errorHandlersRegistered = false;
 
 // Initialize PostHog only on client side AND only in production
 // Development data will NOT be sent to PostHog to keep analytics clean
@@ -19,7 +17,12 @@ if (typeof window !== "undefined" && isProduction) {
   const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
   const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
 
-  if (posthogKey) {
+  if (!posthogKey) {
+    console.warn(
+      "[PostHog] NEXT_PUBLIC_POSTHOG_KEY is missing in production. Analytics will not be tracked. " +
+        "Add the key to your environment variables."
+    );
+  } else {
     posthog.init(posthogKey, {
       api_host: posthogHost || "https://us.i.posthog.com",
 
@@ -40,7 +43,7 @@ if (typeof window !== "undefined" && isProduction) {
         // Mask specific sensitive elements
         maskInputOptions: {
           password: true,
-          email: false, // Allow email to be visible for debugging
+          email: true, // Mask email addresses for privacy compliance (GDPR, CCPA)
         },
       },
 
@@ -89,26 +92,31 @@ if (typeof window !== "undefined" && isProduction) {
     // ========================================
     // GLOBAL ERROR HANDLER (Capture uncaught errors)
     // ========================================
-    // Capture unhandled JavaScript errors
-    window.addEventListener("error", (event) => {
-      posthog.capture("$exception", {
-        $exception_message: event.message,
-        $exception_type: event.error?.name || "Error",
-        $exception_source: event.filename,
-        $exception_lineno: event.lineno,
-        $exception_colno: event.colno,
-        $exception_stack_trace: event.error?.stack,
-      });
-    });
+    // Only register once to prevent duplicate handlers during HMR
+    if (!errorHandlersRegistered) {
+      errorHandlersRegistered = true;
 
-    // Capture unhandled promise rejections
-    window.addEventListener("unhandledrejection", (event) => {
-      posthog.capture("$exception", {
-        $exception_message: event.reason?.message || String(event.reason),
-        $exception_type: event.reason?.name || "UnhandledRejection",
-        $exception_stack_trace: event.reason?.stack,
+      // Capture unhandled JavaScript errors
+      window.addEventListener("error", (event) => {
+        posthog.capture("$exception", {
+          $exception_message: event.message,
+          $exception_type: event.error?.name || "Error",
+          $exception_source: event.filename,
+          $exception_lineno: event.lineno,
+          $exception_colno: event.colno,
+          $exception_stack_trace: event.error?.stack,
+        });
       });
-    });
+
+      // Capture unhandled promise rejections
+      window.addEventListener("unhandledrejection", (event) => {
+        posthog.capture("$exception", {
+          $exception_message: event.reason?.message || String(event.reason),
+          $exception_type: event.reason?.name || "UnhandledRejection",
+          $exception_stack_trace: event.reason?.stack,
+        });
+      });
+    }
   }
 }
 

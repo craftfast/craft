@@ -31,7 +31,7 @@ import { createAgentLoop, type AgentLoopCoordinator } from "@/lib/ai/agent-loop-
 import { setToolContext, clearToolContext } from "@/lib/ai/tool-context";
 import { prisma } from "@/lib/db";
 import { calculateUsageCost, formatCostBreakdown, type AIUsage } from "@/lib/ai/usage-cost-calculator";
-import { getPostHogClient, withTracing, createTracingOptions } from "@/lib/posthog-server";
+import { getTracedModel } from "@/lib/posthog-server";
 
 // Create AI provider clients
 // Provider selection is handled dynamically based on model configuration
@@ -430,17 +430,12 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     });
 
     // Wrap model with PostHog tracing for LLM analytics
-    const posthogClient = getPostHogClient();
-    const tracedModel = posthogClient
-        ? withTracing(modelInstance, posthogClient, {
-            ...createTracingOptions(userId, projectId, {
-                modelId: codingModel,
-                modelDisplayName: displayName,
-                agentType: "coding",
-                isFallback,
-            }),
-        })
-        : modelInstance;
+    const tracedModel = getTracedModel(modelInstance, userId, projectId, {
+        modelId: codingModel,
+        modelDisplayName: displayName,
+        agentType: "coding",
+        isFallback,
+    });
 
     // Stream the response with TOOLS ENABLED and usage tracking
     // ⚡ CRITICAL FIX: Use stopWhen to allow multiple tool execution rounds
@@ -755,16 +750,11 @@ Project name (1-${maxWords} words only, no code):`;
         }
 
         // Wrap model with PostHog tracing for LLM analytics
-        const posthogClient = getPostHogClient();
-        const tracedModel = posthogClient
-            ? withTracing(modelInstance, posthogClient, {
-                ...createTracingOptions(userId, undefined, {
-                    modelId: namingModelId,
-                    modelDisplayName: displayName,
-                    agentType: "naming",
-                }),
-            })
-            : modelInstance;
+        const tracedModel = getTracedModel(modelInstance, userId, undefined, {
+            modelId: namingModelId,
+            modelDisplayName: displayName,
+            agentType: "naming",
+        });
 
         const result = await generateText({
             model: tracedModel as never,
