@@ -141,8 +141,8 @@ export async function GET(
                 isSystem: model.isSystem,
                 sortOrder: model.sortOrder,
                 capabilities: model.capabilities ? {
-                    supportedInputs: model.capabilities.supportedInputs.map(t => t.toLowerCase()),
-                    supportedOutputs: model.capabilities.supportedOutputs.map(t => t.toLowerCase().replace("_", "-")),
+                    supportedInputs: model.capabilities.supportedInputs.map((t: string) => t.toLowerCase()),
+                    supportedOutputs: model.capabilities.supportedOutputs.map((t: string) => t.toLowerCase().replace("_", "-")),
                     maxContextLength: model.capabilities.maxContextLength,
                     supportsStreaming: model.capabilities.supportsStreaming,
                     supportsSystemPrompts: model.capabilities.supportsSystemPrompts,
