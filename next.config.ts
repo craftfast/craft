@@ -5,12 +5,12 @@ import type { NextConfig } from "next";
 // E2B sandbox URLs need to be allowed for preview functionality
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com https://accounts.google.com https://apis.google.com;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com https://accounts.google.com https://apis.google.com https://vercel.live https://*.posthog.com https://us-assets.i.posthog.com;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   img-src 'self' blob: data: https://*.googleusercontent.com https://avatars.githubusercontent.com https://*.r2.dev https://*.e2b.dev https://*.e2b.app;
   font-src 'self' https://fonts.gstatic.com;
-  connect-src 'self' https://*.e2b.dev https://*.e2b.app wss://*.e2b.dev wss://*.e2b.app https://api.resend.com https://api.razorpay.com https://*.razorpay.com https://accounts.google.com https://api.github.com https://*.openai.com https://*.anthropic.com https://*.google.com https://generativelanguage.googleapis.com;
-  frame-src 'self' https://*.e2b.dev https://*.e2b.app https://checkout.razorpay.com https://api.razorpay.com https://accounts.google.com;
+  connect-src 'self' https://*.e2b.dev https://*.e2b.app wss://*.e2b.dev wss://*.e2b.app https://api.resend.com https://api.razorpay.com https://*.razorpay.com https://accounts.google.com https://api.github.com https://*.openai.com https://*.anthropic.com https://*.google.com https://generativelanguage.googleapis.com https://*.posthog.com https://us.i.posthog.com https://us-assets.i.posthog.com;
+  frame-src 'self' https://*.e2b.dev https://*.e2b.app https://checkout.razorpay.com https://api.razorpay.com https://accounts.google.com https://vercel.live;
   frame-ancestors 'none';
   form-action 'self';
   base-uri 'self';
