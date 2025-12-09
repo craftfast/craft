@@ -11,6 +11,11 @@
  * Model Configuration is managed via:
  * - Database: AIModel, AIModelCapabilities, AIModelPricing tables
  * - Service: src/lib/models/service.ts (modelService singleton)
+ * 
+ * LLM ANALYTICS:
+ * - PostHog integration via @posthog/ai withTracing wrapper
+ * - Automatic tracking of token usage, latency, and costs
+ * - User attribution via distinct ID
  */
 
 import { createAnthropic } from "@ai-sdk/anthropic";
@@ -26,6 +31,7 @@ import { createAgentLoop, type AgentLoopCoordinator } from "@/lib/ai/agent-loop-
 import { setToolContext, clearToolContext } from "@/lib/ai/tool-context";
 import { prisma } from "@/lib/db";
 import { calculateUsageCost, formatCostBreakdown, type AIUsage } from "@/lib/ai/usage-cost-calculator";
+import { getTracedModel } from "@/lib/posthog-server";
 
 // Create AI provider clients
 // Provider selection is handled dynamically based on model configuration
@@ -423,11 +429,19 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
         },
     });
 
+    // Wrap model with PostHog tracing for LLM analytics
+    const tracedModel = getTracedModel(modelInstance, userId, projectId, {
+        modelId: codingModel,
+        modelDisplayName: displayName,
+        agentType: "coding",
+        isFallback,
+    });
+
     // Stream the response with TOOLS ENABLED and usage tracking
     // ⚡ CRITICAL FIX: Use stopWhen to allow multiple tool execution rounds
     // This ensures the agent continues calling tools until the task is complete
     const result = streamText({
-        model: modelInstance,
+        model: tracedModel,
         system: systemPrompt,
         messages: messages as never, // AI SDK will handle the validation
         tools, // ⚡ PHASE 1: ENABLE ALL TOOLS
@@ -735,8 +749,15 @@ Project name (1-${maxWords} words only, no code):`;
             modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
         }
 
+        // Wrap model with PostHog tracing for LLM analytics
+        const tracedModel = getTracedModel(modelInstance, userId, undefined, {
+            modelId: namingModelId,
+            modelDisplayName: displayName,
+            agentType: "naming",
+        });
+
         const result = await generateText({
-            model: modelInstance as never,
+            model: tracedModel as never,
             system: systemPrompt,
             prompt: userPrompt,
             temperature,

@@ -7,6 +7,7 @@ import { CreditBalanceProvider } from "@/contexts/CreditBalanceContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ChatPositionProvider } from "@/contexts/ChatPositionContext";
 import { UserSettingsProvider } from "@/contexts/UserSettingsContext";
+import { PostHogProvider } from "@/components/providers/PostHogProvider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -103,15 +104,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider>
-          <ThemeProvider>
-            <ChatPositionProvider>
-              <UserSettingsProvider>
-                <CreditBalanceProvider>{children}</CreditBalanceProvider>
-              </UserSettingsProvider>
-            </ChatPositionProvider>
-          </ThemeProvider>
-        </SessionProvider>
+        <PostHogProvider>
+          <SessionProvider>
+            <ThemeProvider>
+              <ChatPositionProvider>
+                <UserSettingsProvider>
+                  <CreditBalanceProvider>{children}</CreditBalanceProvider>
+                </UserSettingsProvider>
+              </ChatPositionProvider>
+            </ThemeProvider>
+          </SessionProvider>
+        </PostHogProvider>
         <Toaster />
         <SpeedInsights />
         <Analytics />

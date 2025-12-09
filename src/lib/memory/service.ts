@@ -24,6 +24,7 @@
 import { prisma } from "@/lib/db";
 import { generateText } from "ai";
 import { createXai } from "@ai-sdk/xai";
+import { getTracedModel } from "@/lib/posthog-server";
 
 const xai = createXai({
     apiKey: process.env.XAI_API_KEY || "",
@@ -55,8 +56,11 @@ export async function extractMemoriesFromConversation(params: {
     const { userId, userMessage, assistantResponse, projectId } = params;
 
     try {
-        // Use Grok 4 Fast for memory extraction (cheap, fast)
-        const model = xai("grok-4-fast");
+        // Use Grok 4 Fast for memory extraction with PostHog tracing
+        const model = getTracedModel(xai("grok-4-fast"), userId, projectId, {
+            modelId: "x-ai/grok-4-fast",
+            agentType: "memory-extraction",
+        });
 
         const extractionPrompt = `Analyze this conversation and extract ONLY truly important, long-lasting information about the user.
 

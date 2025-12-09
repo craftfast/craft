@@ -17,6 +17,7 @@ import { generateText } from "ai";
 import { createXai } from "@ai-sdk/xai";
 import { SessionManager } from "./orchestrator/session-manager";
 import { TaskManager } from "./orchestrator/task-manager";
+import { getTracedModel } from "@/lib/posthog-server";
 import type { TaskInfo, TaskPhase } from "@/types/orchestrator";
 import {
     createMemory,
@@ -28,6 +29,17 @@ import {
 const xai = createXai({
     apiKey: process.env.XAI_API_KEY || "",
 });
+
+/**
+ * Get a traced model for orchestrator tools
+ */
+function getOrchestratorToolModel(userId?: string, projectId?: string, toolName?: string) {
+    return getTracedModel(xai("grok-4-fast"), userId, projectId, {
+        modelId: "x-ai/grok-4-fast",
+        agentType: "orchestrator-tool",
+        toolName,
+    });
+}
 
 // ============================================================================
 // PROJECT MANAGEMENT TOOLS
@@ -89,7 +101,7 @@ export const generateProjectName = tool({
         console.log(`💡 Generating project name for: ${userRequest}`);
 
         try {
-            const model = xai("grok-4-fast");
+            const model = getOrchestratorToolModel(undefined, undefined, "generateProjectName");
 
             const result = await generateText({
                 model,
@@ -151,7 +163,7 @@ export const createTaskList = tool({
         console.log(`🎯 Creating HIGH-LEVEL task list for: ${userRequest}`);
 
         try {
-            const model = xai("grok-4-fast");
+            const model = getOrchestratorToolModel(undefined, projectContext?.projectId, "createTaskList");
 
             const prompt = `You are an expert project orchestrator. Break down this user request into HIGH-LEVEL phases only.
 
