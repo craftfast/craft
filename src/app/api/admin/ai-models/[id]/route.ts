@@ -475,7 +475,7 @@ export async function DELETE(
                 modelPreferences: true,
             },
         });
-        const usersUsingModel = usersWithModelPref.filter((u) => {
+        const usersUsingModel = usersWithModelPref.filter((u: { modelPreferences: unknown }) => {
             const prefs = u.modelPreferences as { coding?: string; "image-generation"?: string; "video-generation"?: string } | null;
             return prefs?.coding === modelId || prefs?.["image-generation"] === modelId || prefs?.["video-generation"] === modelId;
         }).length;
