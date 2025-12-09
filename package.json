@@ -4,7 +4,7 @@
   "type": "module",
   "description": "A revolutionary vibe coding tool that transforms the way developers create, collaborate, and craft amazing applications",
   "author": "Nextcrafter Labs (OPC) Private Limited",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "homepage": "https://craft.fast",
   "repository": {
     "type": "git",
