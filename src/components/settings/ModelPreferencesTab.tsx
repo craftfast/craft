@@ -17,7 +17,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { ModelConfig, ModelUseCase } from "@/lib/models";
+import type { ModelConfig, ModelUseCase } from "@/lib/models/types-client";
 
 // Icon mapping for use cases
 const USE_CASE_ICONS: Record<
@@ -275,7 +275,7 @@ export default function ModelPreferencesTab() {
                       </p>
 
                       {/* Description */}
-                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2 min-h-[2rem]">
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2 min-h-8">
                         {model.description}
                       </p>
 
@@ -323,7 +323,7 @@ export default function ModelPreferencesTab() {
       {systemPrefs.length > 0 && (
         <div className="space-y-4 pt-8 border-t border-border">
           <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30">
-            <Info className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <Info className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
             <div>
               <h4 className="text-sm font-medium text-foreground mb-1">
                 System Models

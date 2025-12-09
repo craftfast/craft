@@ -6,6 +6,9 @@
  * 
  * This should run as a separate process in production
  * Usage: tsx src/workers/webhook-worker.ts
+ * 
+ * NOTE: Requires REDIS_URL environment variable for TCP Redis connection.
+ * Upstash REST URLs won't work - you need a real Redis or Upstash TCP connection.
  */
 
 import { Worker, Job } from "bullmq";
@@ -13,27 +16,25 @@ import { Redis } from "ioredis";
 import { WebhookJobData } from "@/lib/webhook-queue";
 import { prisma } from "@/lib/db";
 
-// Redis connection - uses Upstash by default
-const getRedisConnection = () => {
-    // If using Upstash Redis (default)
-    if (process.env.UPSTASH_REDIS_REST_URL) {
-        const url = new URL(process.env.UPSTASH_REDIS_REST_URL);
-        return new Redis({
-            host: url.hostname,
-            port: Number(url.port) || 6379,
-            password: process.env.UPSTASH_REDIS_REST_TOKEN,
-            tls: url.protocol === "https:" ? {} : undefined,
-            maxRetriesPerRequest: null,
-        });
+// Redis connection - requires TCP Redis (not REST API)
+const getRedisConnection = (): Redis | null => {
+    const redisUrl = process.env.REDIS_URL;
+
+    if (!redisUrl) {
+        console.error("❌ REDIS_URL not configured - webhook worker cannot start");
+        console.error("   BullMQ requires a TCP Redis connection (redis://...)");
+        return null;
     }
 
-    // Fallback to custom Redis configuration
-    return new Redis({
-        host: process.env.REDIS_HOST || "localhost",
-        port: Number(process.env.REDIS_PORT) || 6379,
-        password: process.env.REDIS_PASSWORD,
-        maxRetriesPerRequest: null,
-    });
+    try {
+        return new Redis(redisUrl, {
+            maxRetriesPerRequest: null,
+            enableReadyCheck: false,
+        });
+    } catch (error) {
+        console.error("Failed to create Redis connection:", error);
+        return null;
+    }
 };
 
 const connection = getRedisConnection();
@@ -107,7 +108,12 @@ async function processWebhookByType(
 /**
  * Create and start the webhook worker
  */
-export function startWebhookWorker(): Worker<WebhookJobData> {
+export function startWebhookWorker(): Worker<WebhookJobData> | null {
+    if (!connection) {
+        console.error("❌ Cannot start webhook worker - no Redis connection");
+        return null;
+    }
+
     const worker = new Worker<WebhookJobData>(
         "webhook-processing",
         async (job) => {
@@ -157,18 +163,23 @@ if (require.main === module) {
     console.log("Starting webhook worker...");
     const worker = startWebhookWorker();
 
+    if (!worker) {
+        console.error("❌ Failed to start webhook worker");
+        process.exit(1);
+    }
+
     // Graceful shutdown
     process.on("SIGTERM", async () => {
         console.log("SIGTERM received, closing worker...");
         await worker.close();
-        await connection.quit();
+        if (connection) await connection.quit();
         process.exit(0);
     });
 
     process.on("SIGINT", async () => {
         console.log("SIGINT received, closing worker...");
         await worker.close();
-        await connection.quit();
+        if (connection) await connection.quit();
         process.exit(0);
     });
 }

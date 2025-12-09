@@ -18,6 +18,9 @@ import { prisma } from "@/lib/db";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+// Force dynamic rendering since this route uses request.headers for rate limiting
+export const dynamic = 'force-dynamic';
+
 // Cache the response for 24 hours - stats only need daily updates
 export const revalidate = 86400; // 24 hours
 

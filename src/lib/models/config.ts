@@ -191,26 +191,14 @@ export function getExpertCodingModel(): string {
 // ============================================================================
 // These async functions use the database-backed registry
 // They should be preferred over the sync functions above for new code
+//
+// NOTE: These are re-exported from "./registry" but this file should NOT be
+// imported directly in client components. Use "@/lib/models" instead for
+// server components, or use the sync functions above for client components.
+//
+// The registry exports are kept here for backward compatibility but marked
+// as server-only. Import from "./registry" directly in server code.
+// ============================================================================
 
-export {
-    modelRegistry,
-    getModelConfig as getModelConfigAsync,
-    getAllModelIds as getAllModelIdsAsync,
-    getAvailableCodingModels as getAvailableCodingModelsAsync,
-    getDefaultCodingModel as getDefaultCodingModelAsync,
-    getDefaultEnabledCodingModels as getDefaultEnabledCodingModelsAsync,
-    getCodingModel as getCodingModelAsync,
-    getNamingModel as getNamingModelAsync,
-    getMemoryModel as getMemoryModelAsync,
-    getOrchestratorModel as getOrchestratorModelAsync,
-    getImageGenerationModel as getImageGenerationModelAsync,
-    getCodingModelByTier as getCodingModelByTierAsync,
-    getFastCodingModel as getFastCodingModelAsync,
-    getExpertCodingModel as getExpertCodingModelAsync,
-} from "./registry";
-
-export type {
-    ModelConfig as AsyncModelConfig,
-    ModelCapabilities as AsyncModelCapabilities,
-    ModelPricing as AsyncModelPricing,
-} from "./registry";
+// Server-only re-exports - DO NOT import config.ts in client components
+// if you need these functions. Import from registry.ts directly in server code.

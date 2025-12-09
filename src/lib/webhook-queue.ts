@@ -3,35 +3,86 @@
  * 
  * BullMQ-based queue system for processing webhook events with retry logic
  * Ensures webhook reliability with exponential backoff
+ * 
+ * NOTE: This uses ioredis which requires a TCP Redis connection.
+ * Upstash REST URLs won't work - you need either:
+ * - A real Redis server
+ * - Upstash Redis with TCP connection string (redis://...)
+ * 
+ * If REDIS_URL is not configured, webhook queue is disabled.
  */
 
-import { Queue, Worker, Job } from "bullmq";
+import { Queue, Job } from "bullmq";
 import { Redis } from "ioredis";
 
-// Redis connection - uses Upstash by default
-const getRedisConnection = () => {
-    // If using Upstash Redis (default)
-    if (process.env.UPSTASH_REDIS_REST_URL) {
-        const url = new URL(process.env.UPSTASH_REDIS_REST_URL);
-        return new Redis({
-            host: url.hostname,
-            port: Number(url.port) || 6379,
-            password: process.env.UPSTASH_REDIS_REST_TOKEN,
-            tls: url.protocol === "https:" ? {} : undefined,
-            maxRetriesPerRequest: null,
-        });
+// Lazy initialization to prevent connection during build
+let _connection: Redis | null = null;
+let _webhookQueue: Queue<WebhookJobData> | null = null;
+let _initialized = false;
+
+// Redis connection - requires TCP Redis (not REST API)
+const getRedisConnection = (): Redis | null => {
+    // Skip during build
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+        return null;
     }
 
-    // Fallback to custom Redis configuration
-    return new Redis({
-        host: process.env.REDIS_HOST || "localhost",
-        port: Number(process.env.REDIS_PORT) || 6379,
-        password: process.env.REDIS_PASSWORD,
-        maxRetriesPerRequest: null,
-    });
+    // Require explicit REDIS_URL for BullMQ (TCP connection)
+    // Upstash REST URL won't work with ioredis/BullMQ
+    const redisUrl = process.env.REDIS_URL;
+
+    if (!redisUrl) {
+        console.warn("⚠️ REDIS_URL not configured - webhook queue disabled");
+        console.warn("   BullMQ requires a TCP Redis connection (redis://...)");
+        console.warn("   Upstash REST URLs (https://...) won't work with BullMQ");
+        return null;
+    }
+
+    try {
+        return new Redis(redisUrl, {
+            maxRetriesPerRequest: null,
+            enableReadyCheck: false,
+            lazyConnect: true, // Don't connect immediately
+        });
+    } catch (error) {
+        console.error("Failed to create Redis connection:", error);
+        return null;
+    }
 };
 
-const connection = getRedisConnection();
+// Initialize queue lazily
+const initializeQueue = () => {
+    if (_initialized) return;
+    _initialized = true;
+
+    _connection = getRedisConnection();
+
+    if (_connection) {
+        _webhookQueue = new Queue<WebhookJobData>("webhook-processing", {
+            connection: _connection,
+            defaultJobOptions: {
+                attempts: 5,
+                backoff: {
+                    type: "exponential",
+                    delay: 60000,
+                },
+                removeOnComplete: {
+                    count: 1000,
+                    age: 7 * 24 * 60 * 60,
+                },
+                removeOnFail: {
+                    count: 5000,
+                },
+            },
+        });
+    }
+};
+
+// Get queue (initializes lazily)
+const getQueue = (): Queue<WebhookJobData> | null => {
+    initializeQueue();
+    return _webhookQueue;
+};
 
 // Webhook job data interface
 export interface WebhookJobData {
@@ -41,24 +92,58 @@ export interface WebhookJobData {
     attempt: number;
 }
 
-// Create webhook queue with retry configuration
-export const webhookQueue = new Queue<WebhookJobData>("webhook-processing", {
-    connection,
-    defaultJobOptions: {
-        attempts: 5, // Retry up to 5 times
-        backoff: {
-            type: "exponential",
-            delay: 60000, // Start with 1 minute
-        },
-        removeOnComplete: {
-            count: 1000, // Keep last 1000 completed jobs
-            age: 7 * 24 * 60 * 60, // Remove after 7 days
-        },
-        removeOnFail: {
-            count: 5000, // Keep last 5000 failed jobs for debugging
-        },
+// Legacy export for backward compatibility (now lazy)
+export const webhookQueue = {
+    get queue() {
+        return getQueue();
     },
-});
+    async add(...args: Parameters<Queue<WebhookJobData>["add"]>) {
+        const q = getQueue();
+        if (!q) throw new Error("Webhook queue not available - REDIS_URL not configured");
+        return q.add(...args);
+    },
+    async getJob(jobId: string) {
+        const q = getQueue();
+        if (!q) return null;
+        return q.getJob(jobId);
+    },
+    async getWaitingCount() {
+        const q = getQueue();
+        return q?.getWaitingCount() ?? 0;
+    },
+    async getActiveCount() {
+        const q = getQueue();
+        return q?.getActiveCount() ?? 0;
+    },
+    async getCompletedCount() {
+        const q = getQueue();
+        return q?.getCompletedCount() ?? 0;
+    },
+    async getFailedCount() {
+        const q = getQueue();
+        return q?.getFailedCount() ?? 0;
+    },
+    async getDelayedCount() {
+        const q = getQueue();
+        return q?.getDelayedCount() ?? 0;
+    },
+    async getFailed(start: number, end: number) {
+        const q = getQueue();
+        return q?.getFailed(start, end) ?? [];
+    },
+    async getCompleted(start: number, end: number) {
+        const q = getQueue();
+        return q?.getCompleted(start, end) ?? [];
+    },
+    async clean(grace: number, limit: number, type: "completed" | "failed") {
+        const q = getQueue();
+        return q?.clean(grace, limit, type) ?? [];
+    },
+    async close() {
+        const q = getQueue();
+        await q?.close();
+    },
+};
 
 /**
  * Add a webhook event to the processing queue
@@ -179,5 +264,7 @@ export async function cleanupWebhookQueue(
  */
 export async function closeWebhookQueue() {
     await webhookQueue.close();
-    await connection.quit();
+    if (_connection) {
+        await _connection.quit();
+    }
 }

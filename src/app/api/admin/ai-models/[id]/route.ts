@@ -115,7 +115,7 @@ export async function GET(
                 modelPreferences: true,
             },
         });
-        const usersPreferring = usersWithPreferences.filter((u) => {
+        const usersPreferring = usersWithPreferences.filter((u: { modelPreferences: unknown }) => {
             const prefs = u.modelPreferences as { coding?: string } | null;
             return prefs?.coding === modelId;
         }).length;
@@ -141,8 +141,8 @@ export async function GET(
                 isSystem: model.isSystem,
                 sortOrder: model.sortOrder,
                 capabilities: model.capabilities ? {
-                    supportedInputs: model.capabilities.supportedInputs.map(t => t.toLowerCase()),
-                    supportedOutputs: model.capabilities.supportedOutputs.map(t => t.toLowerCase().replace("_", "-")),
+                    supportedInputs: model.capabilities.supportedInputs.map((t: string) => t.toLowerCase()),
+                    supportedOutputs: model.capabilities.supportedOutputs.map((t: string) => t.toLowerCase().replace("_", "-")),
                     maxContextLength: model.capabilities.maxContextLength,
                     supportsStreaming: model.capabilities.supportsStreaming,
                     supportsSystemPrompts: model.capabilities.supportsSystemPrompts,
@@ -186,7 +186,7 @@ export async function GET(
                 totalCost: usageStats._sum.providerCostUsd || 0,
                 usersPreferring,
             },
-            auditLogs: auditLogs.map(log => ({
+            auditLogs: auditLogs.map((log: { id: string; action: string; changes: unknown; performedBy: string | null; createdAt: Date }) => ({
                 id: log.id,
                 action: log.action,
                 changes: log.changes,
@@ -475,7 +475,7 @@ export async function DELETE(
                 modelPreferences: true,
             },
         });
-        const usersUsingModel = usersWithModelPref.filter((u) => {
+        const usersUsingModel = usersWithModelPref.filter((u: { modelPreferences: unknown }) => {
             const prefs = u.modelPreferences as { coding?: string; "image-generation"?: string; "video-generation"?: string } | null;
             return prefs?.coding === modelId || prefs?.["image-generation"] === modelId || prefs?.["video-generation"] === modelId;
         }).length;

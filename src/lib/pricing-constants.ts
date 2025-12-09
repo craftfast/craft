@@ -11,7 +11,9 @@
  * GST applies only to our service charge (platform fee), not the underlying transaction.
  */
 
-import { AVAILABLE_MODELS } from "@/lib/models/config";
+// Import directly from @/data to avoid pulling in prisma via @/lib/models/config
+// This is critical for client-side components that use pricing constants
+import { AI_MODELS_BY_ID } from "@/data";
 import { EMAILS, USAGE_LIMITS } from "@/lib/constants";
 
 // Re-export USAGE_LIMITS for convenience
@@ -113,7 +115,7 @@ export const AI_MODEL_PRICING = {
  * Get model pricing from config
  */
 export function getModelPricing(modelId: string): { inputPrice: number; outputPrice: number } | null {
-    const model = Object.values(AVAILABLE_MODELS).find(m => m.id === modelId);
+    const model = AI_MODELS_BY_ID[modelId];
     if (!model || !model.pricing) return null;
 
     return {
