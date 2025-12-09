@@ -115,7 +115,7 @@ export const AI_MODEL_PRICING = {
  * Get model pricing from config
  */
 export function getModelPricing(modelId: string): { inputPrice: number; outputPrice: number } | null {
-    const model = Object.values(AI_MODELS_BY_ID).find(m => m.id === modelId);
+    const model = AI_MODELS_BY_ID[modelId];
     if (!model || !model.pricing) return null;
 
     return {

@@ -273,31 +273,39 @@ async function RecentActivity() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {recentUsers.map((user) => (
-              <div key={user.id} className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center overflow-hidden shrink-0">
-                  {user.image ? (
-                    <img
-                      src={user.image}
-                      alt={user.name || "User"}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-                      {user.name?.[0] || user.email[0].toUpperCase()}
-                    </span>
-                  )}
+            {recentUsers.map(
+              (user: {
+                id: string;
+                name: string | null;
+                email: string;
+                createdAt: Date;
+                image: string | null;
+              }) => (
+                <div key={user.id} className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center overflow-hidden shrink-0">
+                    {user.image ? (
+                      <img
+                        src={user.image}
+                        alt={user.name || "User"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                        {user.name?.[0] || user.email[0].toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {user.name || user.email}
+                    </p>
+                  </div>
+                  <div className="text-xs text-neutral-400 shrink-0">
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {user.name || user.email}
-                  </p>
-                </div>
-                <div className="text-xs text-neutral-400 shrink-0">
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </CardContent>
       </Card>
@@ -320,26 +328,35 @@ async function RecentActivity() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {recentProjects.map((project) => (
-              <Link
-                key={project.id}
-                href={`/admin/projects/${project.id}`}
-                className="flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 -mx-2 px-2 py-1 rounded-lg transition-colors"
-              >
-                <div className="h-8 w-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0">
-                  <FolderKanban className="h-4 w-4 text-neutral-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{project.name}</p>
-                  <p className="text-xs text-neutral-500 truncate">
-                    {project.user.name || project.user.email}
-                  </p>
-                </div>
-                <div className="text-xs text-neutral-400 shrink-0">
-                  {new Date(project.createdAt).toLocaleDateString()}
-                </div>
-              </Link>
-            ))}
+            {recentProjects.map(
+              (project: {
+                id: string;
+                name: string;
+                createdAt: Date;
+                user: { name: string | null; email: string };
+              }) => (
+                <Link
+                  key={project.id}
+                  href={`/admin/projects/${project.id}`}
+                  className="flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 -mx-2 px-2 py-1 rounded-lg transition-colors"
+                >
+                  <div className="h-8 w-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0">
+                    <FolderKanban className="h-4 w-4 text-neutral-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {project.name}
+                    </p>
+                    <p className="text-xs text-neutral-500 truncate">
+                      {project.user.name || project.user.email}
+                    </p>
+                  </div>
+                  <div className="text-xs text-neutral-400 shrink-0">
+                    {new Date(project.createdAt).toLocaleDateString()}
+                  </div>
+                </Link>
+              )
+            )}
           </div>
         </CardContent>
       </Card>
