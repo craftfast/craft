@@ -186,7 +186,7 @@ export async function GET(
                 totalCost: usageStats._sum.providerCostUsd || 0,
                 usersPreferring,
             },
-            auditLogs: auditLogs.map(log => ({
+            auditLogs: auditLogs.map((log: { id: string; action: string; changes: unknown; performedBy: string | null; createdAt: Date }) => ({
                 id: log.id,
                 action: log.action,
                 changes: log.changes,
