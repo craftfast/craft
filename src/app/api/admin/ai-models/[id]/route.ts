@@ -115,7 +115,7 @@ export async function GET(
                 modelPreferences: true,
             },
         });
-        const usersPreferring = usersWithPreferences.filter((u) => {
+        const usersPreferring = usersWithPreferences.filter((u: { modelPreferences: unknown }) => {
             const prefs = u.modelPreferences as { coding?: string } | null;
             return prefs?.coding === modelId;
         }).length;
