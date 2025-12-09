@@ -18,6 +18,7 @@ import { executeTaskWithCodingAgent } from "./delegation";
 import { getOrchestratorSystemPrompt } from "../orchestrator-prompts";
 import { orchestratorTools } from "../orchestrator-tools";
 import { SSEStreamWriter } from "../sse-events";
+import { getPostHogClient, withTracing, createTracingOptions } from "@/lib/posthog-server";
 import type { OrchestratorState } from "@/types/orchestrator";
 
 const xai = createXai({
@@ -100,7 +101,18 @@ export class OrchestratorAgent {
         ];
 
         // Use Grok 4 Fast for orchestration
-        const model = xai("grok-4-fast");
+        const baseModel = xai("grok-4-fast");
+
+        // Wrap model with PostHog tracing for LLM analytics
+        const posthogClient = getPostHogClient();
+        const model = posthogClient
+            ? withTracing(baseModel, posthogClient, {
+                ...createTracingOptions(this.userId, this.projectId, {
+                    modelId: "x-ai/grok-4-fast",
+                    agentType: "orchestrator",
+                }),
+            })
+            : baseModel;
 
         try {
             // Stream orchestrator's response
@@ -265,7 +277,19 @@ export async function executeOrchestrator(
     ];
 
     // Generate response
-    const model = xai("grok-4-fast");
+    const baseModel = xai("grok-4-fast");
+
+    // Wrap model with PostHog tracing for LLM analytics
+    const posthogClient = getPostHogClient();
+    const model = posthogClient
+        ? withTracing(baseModel, posthogClient, {
+            ...createTracingOptions(userId, projectId, {
+                modelId: "x-ai/grok-4-fast",
+                agentType: "orchestrator",
+            }),
+        })
+        : baseModel;
+
     const result = await generateText({
         model,
         messages,
