@@ -94,43 +94,49 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
             const amount = fromSmallestUnit(payment.amount);
 
             if (requestedBalance > 0) {
-                // Get current balance
-                const currentUser = await prisma.user.findUnique({
-                    where: { id: user.id },
-                    select: { accountBalance: true },
-                });
+                // Use transaction to ensure atomic balance update
+                // If any operation fails, both are rolled back
+                const result = await prisma.$transaction(async (tx) => {
+                    // Get current balance within transaction
+                    const currentUser = await tx.user.findUnique({
+                        where: { id: user.id },
+                        select: { accountBalance: true },
+                    });
 
-                const balanceBefore = parseFloat(currentUser?.accountBalance.toString() || "0");
-                const balanceAfter = balanceBefore + requestedBalance;
+                    const balanceBefore = parseFloat(currentUser?.accountBalance.toString() || "0");
+                    const balanceAfter = balanceBefore + requestedBalance;
 
-                // Update user balance
-                await prisma.user.update({
-                    where: { id: user.id },
-                    data: {
-                        accountBalance: balanceAfter,
-                    },
-                });
-
-                // Create balance transaction record
-                await prisma.balanceTransaction.create({
-                    data: {
-                        userId: user.id,
-                        type: "TOPUP",
-                        amount: requestedBalance,
-                        balanceBefore,
-                        balanceAfter,
-                        description: `Balance top-up via Razorpay - ${payment.method}`,
-                        metadata: {
-                            paymentId: payment.id,
-                            orderId: payment.order_id,
-                            totalCharged: amount,
-                            platformFee: payment.notes?.platform_fee,
-                            gst: payment.notes?.gst,
+                    // Update user balance
+                    await tx.user.update({
+                        where: { id: user.id },
+                        data: {
+                            accountBalance: balanceAfter,
                         },
-                    },
+                    });
+
+                    // Create balance transaction record
+                    await tx.balanceTransaction.create({
+                        data: {
+                            userId: user.id,
+                            type: "TOPUP",
+                            amount: requestedBalance,
+                            balanceBefore,
+                            balanceAfter,
+                            description: `Balance top-up via Razorpay - ${payment.method}`,
+                            metadata: {
+                                paymentId: payment.id,
+                                orderId: payment.order_id,
+                                totalCharged: amount,
+                                platformFee: payment.notes?.platform_fee,
+                                gst: payment.notes?.gst,
+                            },
+                        },
+                    });
+
+                    return { balanceBefore, balanceAfter };
                 });
 
-                console.log(`Added $${requestedBalance} balance to user ${user.id} (payment ${payment.id})`);
+                console.log(`Added $${requestedBalance} balance to user ${user.id} (payment ${payment.id}) [${result.balanceBefore} -> ${result.balanceAfter}]`);
 
                 // Get exchange rate from notes (if payment was in INR)
                 const receiptExchangeRate = payment.notes?.exchange_rate
