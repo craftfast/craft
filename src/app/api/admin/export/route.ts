@@ -64,17 +64,23 @@ export async function GET(request: NextRequest) {
                         status: true,
                         paymentMethod: true,
                         razorpayPaymentId: true,
+                        razorpayOrderId: true,
+                        invoiceId: true,
+                        taxAmount: true,
+                        taxRate: true,
+                        taxCountryCode: true,
+                        metadata: true,
                         createdAt: true,
-                        user: { select: { email: true } },
+                        user: { select: { email: true, name: true, billingName: true } },
                     },
                     orderBy: { createdAt: "desc" },
                 });
 
-                csvContent = "ID,User Email,Amount,Currency,Status,Method,Payment ID,Created\n";
+                csvContent = "Invoice Number,Date,User Email,User Name,Amount,Currency,Tax Amount,Tax Rate,Status,Payment ID,Order ID\n";
                 csvContent += transactions
                     .map(
                         (t) =>
-                            `"${t.id}","${t.user.email}",${t.amount},"${t.currency}","${t.status}","${t.paymentMethod}","${t.razorpayPaymentId || ""}","${t.createdAt.toISOString()}"`
+                            `"${t.invoiceId || ""}","${t.createdAt.toISOString()}","${t.user.email}","${t.user.billingName || t.user.name || ""}",${t.amount},"${t.currency}",${t.taxAmount || 0},${t.taxRate || 0},"${t.status}","${t.razorpayPaymentId || ""}","${t.razorpayOrderId || ""}"`
                     )
                     .join("\n");
                 break;
@@ -104,6 +110,60 @@ export async function GET(request: NextRequest) {
                         (u) =>
                             `"${u.id}","${u.userId}","${u.projectId}","${u.model}",${u.inputTokens},${u.outputTokens},${u.totalTokens},${u.providerCostUsd},"${u.callType}","${u.createdAt.toISOString()}"`
                     )
+                    .join("\n");
+                break;
+            }
+
+            case "invoices": {
+                // Full invoice export for accounting/GST filing
+                const invoices = await prisma.paymentTransaction.findMany({
+                    where: {
+                        status: "completed",
+                        invoiceId: { not: null },
+                    },
+                    select: {
+                        id: true,
+                        invoiceId: true,
+                        amount: true,
+                        currency: true,
+                        taxAmount: true,
+                        taxRate: true,
+                        taxCountryCode: true,
+                        razorpayPaymentId: true,
+                        razorpayOrderId: true,
+                        metadata: true,
+                        createdAt: true,
+                        user: {
+                            select: {
+                                email: true,
+                                name: true,
+                                billingName: true,
+                                billingAddress: true,
+                                billingCountry: true,
+                                taxId: true,
+                            },
+                        },
+                    },
+                    orderBy: { createdAt: "desc" },
+                });
+
+                // GST-compliant CSV headers for accounting
+                csvContent = "Invoice Number,Invoice Date,Customer Name,Customer Email,Customer GSTIN,Customer State,Customer State Code,Billing Address,Taxable Amount,CGST,SGST,IGST,Total Tax,Total Amount,Currency,Place of Supply,SAC Code,Payment ID,B2B/B2C\n";
+                csvContent += invoices
+                    .map((inv) => {
+                        const meta = (inv.metadata as Record<string, unknown>) || {};
+                        const billingAddress = inv.user.billingAddress as { line1?: string; line2?: string; city?: string; state?: string; postalCode?: string } | null;
+                        const addressStr = [
+                            billingAddress?.line1,
+                            billingAddress?.line2,
+                            billingAddress?.city,
+                            billingAddress?.state,
+                            billingAddress?.postalCode,
+                            inv.user.billingCountry,
+                        ].filter(Boolean).join(", ");
+
+                        return `"${inv.invoiceId}","${inv.createdAt.toISOString().split("T")[0]}","${inv.user.billingName || inv.user.name || ""}","${inv.user.email}","${inv.user.taxId || ""}","${meta.customerState || ""}","${meta.customerStateCode || ""}","${addressStr}",${meta.taxableAmount || inv.amount},${meta.cgst || 0},${meta.sgst || 0},${meta.igst || 0},${inv.taxAmount || 0},${inv.amount},"${inv.currency}","${meta.placeOfSupply || ""}","${meta.sacCode || ""}","${inv.razorpayPaymentId || ""}","${inv.user.taxId ? "B2B" : "B2C"}"`;
+                    })
                     .join("\n");
                 break;
             }

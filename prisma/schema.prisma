@@ -71,7 +71,7 @@ model User {
   billingAddress        Json? // { line1, line2, city, state, postalCode }
   taxId                 String? // GST/VAT/Tax ID number
   taxIdCountry          String? // Country code for Tax ID (e.g., IN, US, GB)
-  sendInvoiceEmail      Boolean                      @default(false) // Send invoice email after each purchase
+  sendInvoiceEmail      Boolean                      @default(true) // Send invoice email after each purchase
   // Balance system (replaces subscription credits)
   accountBalance        Decimal                      @default(0) @db.Decimal(10, 2)
   // Relations

@@ -102,7 +102,7 @@ export default function CustomCheckoutModal({
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [postalCode, setPostalCode] = useState("");
-  const [sendInvoiceEmail, setSendInvoiceEmail] = useState(false);
+  const [sendInvoiceEmail, setSendInvoiceEmail] = useState(true);
 
   // Fetch billing info on mount
   useEffect(() => {
@@ -156,7 +156,7 @@ export default function CustomCheckoutModal({
         setCity(data.billingInfo.billingAddress?.city || "");
         setState(data.billingInfo.billingAddress?.state || "");
         setPostalCode(data.billingInfo.billingAddress?.postalCode || "");
-        setSendInvoiceEmail(data.billingInfo.sendInvoiceEmail || false);
+        setSendInvoiceEmail(data.billingInfo.sendInvoiceEmail ?? true);
       }
     } catch (error) {
       console.error("Failed to fetch billing info:", error);

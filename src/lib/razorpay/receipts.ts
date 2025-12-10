@@ -199,7 +199,7 @@ function getGstType(customerState?: string): "IGST" | "CGST_SGST" {
 
 /**
  * Send payment receipt email after successful top-up
- * All transactions get a PDF tax invoice attachment
+ * Invoice is ALWAYS generated and stored, email is optional based on user preference
  */
 export async function sendPaymentReceipt(params: SendReceiptParams): Promise<ReceiptResult> {
     try {
@@ -215,13 +215,8 @@ export async function sendPaymentReceipt(params: SendReceiptParams): Promise<Rec
             },
         });
 
-        if (!user?.sendInvoiceEmail) {
-            console.log(`Receipt email skipped for user ${params.userId} - sendInvoiceEmail is disabled`);
-            return { success: true };
-        }
-
-        const displayName = user.billingName || params.userName || "Customer";
-        const billingAddress = user.billingAddress as { line1?: string; line2?: string; city?: string; state?: string; postalCode?: string } | null;
+        const displayName = user?.billingName || params.userName || "Customer";
+        const billingAddress = user?.billingAddress as { line1?: string; line2?: string; city?: string; state?: string; postalCode?: string } | null;
         const customerState = billingAddress?.state;
         const customerStateCode = getStateCode(customerState);
 
@@ -272,7 +267,7 @@ export async function sendPaymentReceipt(params: SendReceiptParams): Promise<Rec
             billingAddress?.city,
             billingAddress?.state,
             billingAddress?.postalCode,
-            user.billingCountry,
+            user?.billingCountry,
         ].filter(Boolean);
         const formattedCustomerAddress = customerAddressParts.join(', ');
 
@@ -353,7 +348,7 @@ export async function sendPaymentReceipt(params: SendReceiptParams): Promise<Rec
                                         <p style="margin: 0 0 8px 0; font-size: 10px; font-weight: 700; color: #737373; text-transform: uppercase; letter-spacing: 0.5px;">Bill To</p>
                                         <p style="margin: 0; font-size: 14px; font-weight: 600; color: #171717;">${displayName}</p>
                                         ${formattedCustomerAddress ? `<p style="margin: 6px 0 0 0; font-size: 12px; color: #525252; line-height: 1.5;">${formattedCustomerAddress}</p>` : ''}
-                                        ${user.taxId ? `<p style="margin: 8px 0 0 0; font-size: 12px; color: #171717;"><strong>GSTIN:</strong> ${user.taxId}</p>` : ''}
+                                        ${user?.taxId ? `<p style="margin: 8px 0 0 0; font-size: 12px; color: #171717;"><strong>GSTIN:</strong> ${user.taxId}</p>` : ''}
                                         ${customerState ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: #525252;">State: ${customerState}${customerStateCode ? ` (${customerStateCode})` : ''}</p>` : ''}
                                     </td>
                                 </tr>
@@ -519,7 +514,7 @@ export async function sendPaymentReceipt(params: SendReceiptParams): Promise<Rec
                                     • <strong>Place of Supply:</strong> ${placeOfSupply}${placeOfSupplyCode ? ` (Code: ${placeOfSupplyCode})` : ''}<br>
                                     • <strong>Supply Type:</strong> ${gstType === "CGST_SGST" ? "Intra-state supply (CGST + SGST applicable)" : "Inter-state supply (IGST applicable)"}<br>
                                     • <strong>Reverse Charge:</strong> ${reverseCharge}<br>
-                                    ${user.taxId ? `• <strong>ITC Eligibility:</strong> This is a valid tax invoice for Input Tax Credit claims` : '• This invoice is generated for B2C transaction'}
+                                    ${user?.taxId ? `• <strong>ITC Eligibility:</strong> This is a valid tax invoice for Input Tax Credit claims` : '• This invoice is generated for B2C transaction'}
                                 </p>
                             </div>
                         </td>
@@ -554,7 +549,49 @@ export async function sendPaymentReceipt(params: SendReceiptParams): Promise<Rec
 </html>
         `.trim();
 
-        // Determine email subject - always a tax invoice now
+        // ALWAYS store invoice in database first (regardless of email preference)
+        const transaction = await prisma.paymentTransaction.findFirst({
+            where: { razorpayPaymentId: params.paymentId },
+        });
+
+        if (transaction) {
+            const existingMetadata = (transaction.metadata as Record<string, unknown>) || {};
+            await prisma.paymentTransaction.update({
+                where: { id: transaction.id },
+                data: {
+                    invoiceId: invoiceNumber,
+                    metadata: {
+                        ...existingMetadata,
+                        invoiceNumber,
+                        gstType,
+                        taxableAmount,
+                        cgst,
+                        sgst,
+                        igst,
+                        supplierGstin: COMPANY_GSTIN,
+                        supplierState: COMPANY_STATE,
+                        supplierStateCode: COMPANY_STATE_CODE,
+                        customerGstin: user?.taxId,
+                        customerState: customerState,
+                        customerStateCode: customerStateCode,
+                        placeOfSupply: placeOfSupply,
+                        placeOfSupplyCode: placeOfSupplyCode,
+                        reverseCharge: reverseCharge,
+                        sacCode: SAC_CODE,
+                        amountInWords: amountInWords,
+                    },
+                },
+            });
+            console.log(`Invoice ${invoiceNumber} stored for payment ${params.paymentId}`);
+        }
+
+        // Check if user wants email - if not, return success with invoice number
+        if (!user?.sendInvoiceEmail) {
+            console.log(`Invoice email skipped for user ${params.userId} - sendInvoiceEmail is disabled (invoice ${invoiceNumber} still stored)`);
+            return { success: true, invoiceNumber };
+        }
+
+        // Send email
         const subject = `Tax Invoice ${invoiceNumber} - ${formatAmount(params.totalAmount, params.currency)}`;
 
         const sent = await sendEmail({
@@ -565,45 +602,11 @@ export async function sendPaymentReceipt(params: SendReceiptParams): Promise<Rec
 
         if (sent) {
             console.log(`Tax Invoice email sent to ${params.userEmail} for payment ${params.paymentId}`);
-
-            // Update transaction with invoice number
-            const transaction = await prisma.paymentTransaction.findFirst({
-                where: { razorpayPaymentId: params.paymentId },
-            });
-
-            if (transaction) {
-                const existingMetadata = (transaction.metadata as Record<string, unknown>) || {};
-                await prisma.paymentTransaction.update({
-                    where: { id: transaction.id },
-                    data: {
-                        invoiceId: invoiceNumber,
-                        metadata: {
-                            ...existingMetadata,
-                            invoiceNumber,
-                            gstType,
-                            taxableAmount,
-                            cgst,
-                            sgst,
-                            igst,
-                            supplierGstin: COMPANY_GSTIN,
-                            supplierState: COMPANY_STATE,
-                            supplierStateCode: COMPANY_STATE_CODE,
-                            customerGstin: user.taxId,
-                            customerState: customerState,
-                            customerStateCode: customerStateCode,
-                            placeOfSupply: placeOfSupply,
-                            placeOfSupplyCode: placeOfSupplyCode,
-                            reverseCharge: reverseCharge,
-                            sacCode: SAC_CODE,
-                            amountInWords: amountInWords,
-                        },
-                    },
-                });
-            }
-
             return { success: true, invoiceNumber };
         } else {
-            return { success: false, error: "Failed to send email" };
+            // Invoice is already stored, just email failed
+            console.error(`Failed to send invoice email for ${invoiceNumber}, but invoice is stored`);
+            return { success: true, invoiceNumber, error: "Invoice stored but email failed" };
         }
     } catch (error) {
         console.error("Error sending payment receipt:", error);

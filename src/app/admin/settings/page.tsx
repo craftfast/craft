@@ -21,6 +21,7 @@ import {
   Users,
   FolderKanban,
   DollarSign,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -150,7 +151,9 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handleExportData = async (type: "users" | "transactions" | "usage") => {
+  const handleExportData = async (
+    type: "users" | "transactions" | "usage" | "invoices"
+  ) => {
     setExportLoading(true);
     try {
       const response = await fetch(`/api/admin/export?type=${type}`);
@@ -402,6 +405,15 @@ export default function AdminSettingsPage() {
             >
               <DollarSign className="h-4 w-4 mr-2" />
               Export Transactions
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleExportData("invoices")}
+              disabled={exportLoading}
+              className="rounded-full"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Export Invoices (GST)
             </Button>
             <Button
               variant="outline"
