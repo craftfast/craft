@@ -15,10 +15,12 @@ export {
     COUNTRIES,
     STATES_BY_COUNTRY,
     TAX_ID_INFO,
+    INDIAN_GST_STATE_CODES,
     getTaxIdInfo,
     getCountryName,
     getStatesForCountry,
     countryHasStates,
+    getGstStateCode,
     type CountryCode,
 } from "./countries";
 

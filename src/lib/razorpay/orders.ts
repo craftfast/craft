@@ -7,7 +7,7 @@
 
 import { razorpayClient, toSmallestUnit } from "./index";
 import { getOrCreateRazorpayCustomer } from "./customer";
-import { calculatePaymentAmount, getPaymentCurrency } from "./currency";
+import { calculatePaymentAmount } from "./currency";
 
 export interface CreateOrderParams {
     userId: string;

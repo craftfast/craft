@@ -10,6 +10,8 @@
 
 import { sendEmail } from "@/lib/email";
 import { prisma } from "@/lib/db";
+import { getGstStateCode } from "@/data";
+import { amountToWords } from "@/lib/utils/number-to-words";
 
 // Company details from environment
 const COMPANY_NAME = process.env.COMPANY_NAME || "Craft.fast";
@@ -31,12 +33,12 @@ interface SendReceiptParams {
     userName?: string;
     paymentId: string;
     orderId: string;
-    credits: number; // Always in USD
-    platformFee: number; // Always in USD
-    gst: number; // Always in USD
-    totalAmount: number; // In payment currency (INR or USD)
-    currency: string; // INR or USD
-    exchangeRate?: number | null; // For INR payments
+    credits: number; // Base amount in USD (converted to INR for invoice display)
+    platformFee: number; // Base amount in USD (converted to INR for invoice display)
+    gst: number; // Base amount in USD (converted to INR for invoice display)
+    totalAmount: number; // Final charged amount in payment currency (INR)
+    currency: string; // Payment currency (always INR)
+    exchangeRate?: number | null; // USD to INR exchange rate used for conversion
 }
 
 /**
@@ -50,117 +52,11 @@ function formatAmount(amount: number, currency: string): string {
 }
 
 /**
- * Convert number to words for Indian currency
- */
-function amountToWords(amount: number, currency: string): string {
-    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-        'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-    function convertLessThanThousand(num: number): string {
-        if (num === 0) return '';
-        if (num < 20) return ones[num];
-        if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '');
-        return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 ? ' ' + convertLessThanThousand(num % 100) : '');
-    }
-
-    function convertIndian(num: number): string {
-        if (num === 0) return 'Zero';
-
-        let result = '';
-
-        // Crores (1,00,00,000)
-        if (num >= 10000000) {
-            result += convertLessThanThousand(Math.floor(num / 10000000)) + ' Crore ';
-            num %= 10000000;
-        }
-
-        // Lakhs (1,00,000)
-        if (num >= 100000) {
-            result += convertLessThanThousand(Math.floor(num / 100000)) + ' Lakh ';
-            num %= 100000;
-        }
-
-        // Thousands
-        if (num >= 1000) {
-            result += convertLessThanThousand(Math.floor(num / 1000)) + ' Thousand ';
-            num %= 1000;
-        }
-
-        // Hundreds
-        if (num > 0) {
-            result += convertLessThanThousand(num);
-        }
-
-        return result.trim();
-    }
-
-    const rupees = Math.floor(amount);
-    const paise = Math.round((amount - rupees) * 100);
-
-    const currencyName = currency === 'INR' ? 'Rupees' : 'Dollars';
-    const subunitName = currency === 'INR' ? 'Paise' : 'Cents';
-
-    let words = convertIndian(rupees) + ' ' + currencyName;
-    if (paise > 0) {
-        words += ' and ' + convertIndian(paise) + ' ' + subunitName;
-    }
-    words += ' Only';
-
-    return words;
-}
-
-/**
- * Get state code from state name (Indian states)
- */
-function getStateCode(stateName?: string): string {
-    if (!stateName) return '';
-
-    const stateCodes: Record<string, string> = {
-        'andhra pradesh': '37',
-        'arunachal pradesh': '12',
-        'assam': '18',
-        'bihar': '10',
-        'chhattisgarh': '22',
-        'goa': '30',
-        'gujarat': '24',
-        'haryana': '06',
-        'himachal pradesh': '02',
-        'jharkhand': '20',
-        'karnataka': '29',
-        'kerala': '32',
-        'madhya pradesh': '23',
-        'maharashtra': '27',
-        'manipur': '14',
-        'meghalaya': '17',
-        'mizoram': '15',
-        'nagaland': '13',
-        'odisha': '21',
-        'punjab': '03',
-        'rajasthan': '08',
-        'sikkim': '11',
-        'tamil nadu': '33',
-        'telangana': '36',
-        'tripura': '16',
-        'uttar pradesh': '09',
-        'uttarakhand': '05',
-        'west bengal': '19',
-        'andaman and nicobar islands': '35',
-        'chandigarh': '04',
-        'dadra and nagar haveli and daman and diu': '26',
-        'delhi': '07',
-        'jammu and kashmir': '01',
-        'ladakh': '38',
-        'lakshadweep': '31',
-        'puducherry': '34',
-    };
-
-    return stateCodes[stateName.toLowerCase()] || '';
-}
-
-/**
  * Generate sequential invoice number for Indian GST invoices
  * Format: CRAFT/2024-25/INV/000001
+ * 
+ * Uses atomic increment via InvoiceSequence table to prevent race conditions
+ * when multiple invoices are generated simultaneously.
  */
 async function generateInvoiceNumber(): Promise<string> {
     const now = new Date();
@@ -170,18 +66,35 @@ async function generateInvoiceNumber(): Promise<string> {
     const fyEnd = fyStart + 1;
     const fy = `${fyStart}-${String(fyEnd).slice(-2)}`;
 
-    const startOfFY = new Date(fyStart, 3, 1);
-    const count = await prisma.paymentTransaction.count({
-        where: {
-            createdAt: { gte: startOfFY },
-            metadata: {
-                path: ["invoiceNumber"],
-                not: "null",
-            },
-        },
+    // Atomically increment and get the next invoice number
+    const sequence = await prisma.$transaction(async (tx) => {
+        // Try to find existing sequence for this financial year
+        const existing = await tx.invoiceSequence.findUnique({
+            where: { financialYear: fy },
+        });
+
+        if (existing) {
+            // Increment existing sequence
+            return await tx.invoiceSequence.update({
+                where: { financialYear: fy },
+                data: { lastNumber: { increment: 1 } },
+            });
+        } else {
+            // Create new sequence starting at 1
+            return await tx.invoiceSequence.create({
+                data: { financialYear: fy, lastNumber: 1 },
+            });
+        }
     });
 
-    const invoiceNum = String(count + 1).padStart(6, "0");
+    const nextNumber = sequence.lastNumber;
+    if (nextNumber > 999999) {
+        console.warn(
+            `[Invoice] High invoice number detected: ${nextNumber} for FY ${fy}. Consider reviewing invoice generation.`
+        );
+    }
+
+    const invoiceNum = String(nextNumber).padStart(6, "0");
     return `CRAFT/${fy}/INV/${invoiceNum}`;
 }
 
@@ -218,7 +131,7 @@ export async function sendPaymentReceipt(params: SendReceiptParams): Promise<Rec
         const displayName = user?.billingName || params.userName || "Customer";
         const billingAddress = user?.billingAddress as { line1?: string; line2?: string; city?: string; state?: string; postalCode?: string } | null;
         const customerState = billingAddress?.state;
-        const customerStateCode = getStateCode(customerState);
+        const customerStateCode = getGstStateCode(customerState);
 
         const isInr = params.currency === 'INR';
         const exchangeRate = params.exchangeRate || 1;
@@ -550,11 +463,19 @@ export async function sendPaymentReceipt(params: SendReceiptParams): Promise<Rec
         `.trim();
 
         // ALWAYS store invoice in database first (regardless of email preference)
+        // Use findFirst + conditional update to prevent race conditions where multiple
+        // webhook events could assign different invoice numbers to the same payment
         const transaction = await prisma.paymentTransaction.findFirst({
             where: { razorpayPaymentId: params.paymentId },
         });
 
         if (transaction) {
+            // Only update if invoiceId is not already set (prevents race condition)
+            if (transaction.invoiceId) {
+                console.log(`Invoice already exists for payment ${params.paymentId}: ${transaction.invoiceId}`);
+                return { success: true, invoiceNumber: transaction.invoiceId };
+            }
+
             const existingMetadata = (transaction.metadata as Record<string, unknown>) || {};
             await prisma.paymentTransaction.update({
                 where: { id: transaction.id },

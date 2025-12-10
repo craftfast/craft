@@ -3,10 +3,13 @@
  * OpenRouter-style transparent pay-as-you-go pricing
  * Users top up balance with 10% platform fee, then pay exact provider costs
  * 
- * Tax Rules:
+ * Tax Rules (Updated December 2024):
  * - 18% GST applies on TOTAL amount (credits + platform fee) for ALL customers
  * - All payments are charged in INR for simplified accounting
  * - Razorpay's DCC allows international customers to pay in their currency
+ * 
+ * Policy Change: Previously, GST only applied to Indian customers. Now GST applies
+ * to all customers regardless of location for simplified compliance and uniform pricing.
  * 
  * Example ($100 credits):
  *   Credits: $100 + Platform Fee: $10 = Subtotal: $110
@@ -29,6 +32,7 @@ export { USAGE_LIMITS };
 export const PLATFORM_FEE_PERCENT = 0.10; // 10% platform fee on top-ups
 export const GST_PERCENT = 0.18; // 18% GST on total amount (credits + platform fee) for ALL customers
 export const MINIMUM_BALANCE_AMOUNT = 10; // Minimum $10 balance top-up
+export const MAXIMUM_BALANCE_AMOUNT = 3500; // Maximum $3,500 balance top-up (≈₹5,00,000 Razorpay limit after fees)
 export const MINIMUM_CHECKOUT_AMOUNT = 11; // $10 + 10% fee
 export const MINIMUM_BALANCE_THRESHOLD = 0.50; // Block operations below $0.50
 export const LOW_BALANCE_WARNING_THRESHOLD = 5.00; // Warn when balance < $5
@@ -49,6 +53,9 @@ export function isIndianCustomer(countryCode: string | null | undefined): boolea
  * All customers: (credits + platform fee) + 18% GST on total
  * 
  * Example: ($100 credits + $10 fee) × 1.18 = $129.80
+ * 
+ * Note: countryCode parameter kept for backward compatibility but no longer used
+ * since GST now applies to all customers regardless of location.
  */
 export function getCheckoutAmount(desiredBalance: number, _countryCode?: string | null): number {
     const platformFee = desiredBalance * PLATFORM_FEE_PERCENT;
@@ -86,6 +93,9 @@ export function getFeeBreakdown(desiredBalance: number, countryCode?: string | n
 /**
  * Calculate balance from checkout amount (removes fees)
  * All customers: removes platform fee + GST on total
+ * 
+ * Note: countryCode parameter kept for backward compatibility but no longer used
+ * since GST now applies to all customers regardless of location.
  */
 export function getBalanceFromCheckout(checkoutAmount: number, _countryCode?: string | null): number {
     // Formula: total = (balance + fee) * (1 + gst_rate)

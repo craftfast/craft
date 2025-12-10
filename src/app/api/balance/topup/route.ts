@@ -15,6 +15,7 @@ import { RAZORPAY_CONFIG } from "@/lib/razorpay-config";
 import {
     getCheckoutAmount,
     MINIMUM_BALANCE_AMOUNT,
+    MAXIMUM_BALANCE_AMOUNT,
 } from "@/lib/pricing-constants";
 import { paymentRateLimiter, checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 
@@ -44,10 +45,17 @@ export async function POST(request: Request) {
 
         const { amount } = await request.json();
 
-        // Validate amount
+        // Validate amount - minimum and maximum limits
         if (!amount || typeof amount !== "number" || amount < MINIMUM_BALANCE_AMOUNT) {
             return NextResponse.json(
                 { error: `Minimum top-up amount is $${MINIMUM_BALANCE_AMOUNT}` },
+                { status: 400 }
+            );
+        }
+
+        if (amount > MAXIMUM_BALANCE_AMOUNT) {
+            return NextResponse.json(
+                { error: `Maximum top-up amount is $${MAXIMUM_BALANCE_AMOUNT} per transaction (Razorpay limit)` },
                 { status: 400 }
             );
         }

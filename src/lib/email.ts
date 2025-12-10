@@ -5,6 +5,12 @@
 
 import { EMAILS } from "@/lib/constants";
 
+/**
+ * Email attachment structure for Resend API
+ * Currently supported but not actively used. Intended for future use cases like:
+ * - Attaching PDF invoices to receipt emails
+ * - Sending export files via email
+ */
 interface EmailAttachment {
     filename: string;
     content: string; // Base64 encoded content

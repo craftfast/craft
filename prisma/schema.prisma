@@ -639,6 +639,18 @@ model PaymentTransaction {
   @@map("payment_transactions")
 }
 
+// Invoice sequence for atomic invoice number generation
+// Prevents race conditions when multiple invoices are generated simultaneously
+model InvoiceSequence {
+  id            String   @id @default(cuid())
+  financialYear String   @unique // e.g., "2024-25"
+  lastNumber    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("invoice_sequences")
+}
+
 enum BalanceTransactionType {
   TOPUP
   AI_USAGE

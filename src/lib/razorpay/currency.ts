@@ -6,54 +6,12 @@
  * - Checkout amounts are converted from USD to INR
  * - Razorpay's Dynamic Currency Conversion (DCC) allows international 
  *   customers to see/pay in their local currency at checkout
- * 
- * Uses a fallback exchange rate from env if API is unavailable.
  */
 
-// Fallback exchange rate from environment variable
-// Set FALLBACK_USD_TO_INR_RATE in .env (e.g., FALLBACK_USD_TO_INR_RATE=84.50)
-const FALLBACK_USD_TO_INR_RATE = parseFloat(process.env.FALLBACK_USD_TO_INR_RATE || '84.50');
+import { getUsdToInrRate } from "@/lib/exchange-rate";
 
-// Cache for exchange rate (12 hour cache)
-let cachedRate: { rate: number; timestamp: number } | null = null;
-const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
-
-/**
- * Fetch current USD to INR exchange rate
- * Uses fallback if API fails
- */
-export async function getUsdToInrRate(): Promise<number> {
-    // Check cache first
-    if (cachedRate && Date.now() - cachedRate.timestamp < CACHE_DURATION_MS) {
-        return cachedRate.rate;
-    }
-
-    try {
-        // Try to fetch from a free exchange rate API
-        // You can replace this with a more reliable API in production
-        const response = await fetch(
-            'https://api.exchangerate-api.com/v4/latest/USD',
-            { next: { revalidate: 43200 } } // Cache for 12 hours
-        );
-
-        if (response.ok) {
-            const data = await response.json();
-            const rate = data.rates?.INR;
-
-            if (rate && typeof rate === 'number') {
-                cachedRate = { rate, timestamp: Date.now() };
-                console.log(`Exchange rate fetched: 1 USD = ${rate} INR`);
-                return rate;
-            }
-        }
-    } catch (error) {
-        console.warn('Failed to fetch exchange rate, using fallback:', error);
-    }
-
-    // Return fallback rate if API fails
-    console.log(`Using fallback exchange rate: 1 USD = ${FALLBACK_USD_TO_INR_RATE} INR`);
-    return FALLBACK_USD_TO_INR_RATE;
-}
+// Re-export for convenience
+export { getUsdToInrRate } from "@/lib/exchange-rate";
 
 /**
  * Convert USD amount to INR
@@ -78,8 +36,11 @@ export async function inrToUsd(inrAmount: number): Promise<number> {
 /**
  * Get payment currency - always INR for simplified accounting
  * Razorpay's DCC allows international customers to pay in their currency
+ * 
+ * Note: countryCode parameter kept for API consistency with calculatePaymentAmount,
+ * but is unused since all payments are now processed in INR.
  */
-export function getPaymentCurrency(_countryCode: string | null | undefined): 'INR' {
+export function getPaymentCurrency(_countryCode?: string | null): 'INR' {
     return 'INR'; // Always charge in INR
 }
 

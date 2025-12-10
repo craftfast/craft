@@ -94,8 +94,9 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
             const amount = fromSmallestUnit(payment.amount);
 
             if (requestedBalance > 0) {
-                // Use transaction to ensure atomic balance update
-                // If any operation fails, both are rolled back
+                // Use transaction to ensure atomic balance update.
+                // This prevents race conditions where multiple concurrent payment captures
+                // could lead to inconsistent balance state. If any operation fails, all are rolled back.
                 const result = await prisma.$transaction(async (tx) => {
                     // Get current balance within transaction
                     const currentUser = await tx.user.findUnique({

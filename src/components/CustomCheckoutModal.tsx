@@ -17,6 +17,7 @@ import {
   getCheckoutAmount,
   getFeeBreakdown,
   MINIMUM_BALANCE_AMOUNT,
+  MAXIMUM_BALANCE_AMOUNT,
   PLATFORM_FEE_PERCENT,
   GST_PERCENT,
 } from "@/lib/pricing-constants";
@@ -111,7 +112,7 @@ export default function CustomCheckoutModal({
     }
   }, [isOpen]);
 
-  // Fetch exchange rate for INR conversion (all payments are in INR)
+  // Fetch exchange rate to display INR equivalent to users (actual payment processing in INR happens server-side)
   useEffect(() => {
     const fetchExchangeRate = async () => {
       if (isOpen) {
@@ -254,6 +255,13 @@ export default function CustomCheckoutModal({
   const handlePurchase = async () => {
     if (amount < MINIMUM_BALANCE_AMOUNT) {
       toast.error(`Minimum amount is $${MINIMUM_BALANCE_AMOUNT}`);
+      return;
+    }
+
+    if (amount > MAXIMUM_BALANCE_AMOUNT) {
+      toast.error(
+        `Maximum amount is $${MAXIMUM_BALANCE_AMOUNT} per transaction`
+      );
       return;
     }
 
@@ -470,7 +478,8 @@ export default function CustomCheckoutModal({
                 value={amount}
                 onChange={(e) => setAmount(Number(e.target.value))}
                 min={MINIMUM_BALANCE_AMOUNT}
-                placeholder={`Min $${MINIMUM_BALANCE_AMOUNT}`}
+                max={MAXIMUM_BALANCE_AMOUNT}
+                placeholder={`$${MINIMUM_BALANCE_AMOUNT} - $${MAXIMUM_BALANCE_AMOUNT}`}
                 className="h-12 rounded-xl bg-neutral-800/50 border-neutral-700 text-neutral-100 placeholder:text-neutral-600"
               />
             </div>
@@ -840,7 +849,11 @@ export default function CustomCheckoutModal({
           {/* Purchase Button */}
           <Button
             onClick={handlePurchase}
-            disabled={loading || amount < MINIMUM_BALANCE_AMOUNT}
+            disabled={
+              loading ||
+              amount < MINIMUM_BALANCE_AMOUNT ||
+              amount > MAXIMUM_BALANCE_AMOUNT
+            }
             className="w-full h-12 rounded-xl bg-neutral-700 hover:bg-neutral-600 text-white font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {loading
@@ -850,10 +863,15 @@ export default function CustomCheckoutModal({
               : "Purchase"}
           </Button>
 
-          {/* Error Message */}
+          {/* Error Messages */}
           {amount < MINIMUM_BALANCE_AMOUNT && (
             <p className="text-xs text-red-400 text-center">
               Minimum amount is ${MINIMUM_BALANCE_AMOUNT}
+            </p>
+          )}
+          {amount > MAXIMUM_BALANCE_AMOUNT && (
+            <p className="text-xs text-red-400 text-center">
+              Maximum amount is ${MAXIMUM_BALANCE_AMOUNT} per transaction
             </p>
           )}
         </div>
