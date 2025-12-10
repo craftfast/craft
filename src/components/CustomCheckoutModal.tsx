@@ -71,6 +71,7 @@ interface CustomCheckoutModalProps {
  * - Billing address and Tax ID management
  * - Auto-invoicing options
  * - Smooth animations and transitions
+ * - Multi-currency support (INR for India, USD for others)
  */
 export default function CustomCheckoutModal({
   isOpen,
@@ -81,6 +82,10 @@ export default function CustomCheckoutModal({
   const [loading, setLoading] = useState(false);
   const [billingInfo, setBillingInfo] = useState<BillingInfo>({});
   const [loadingBillingInfo, setLoadingBillingInfo] = useState(true);
+
+  // Exchange rate for INR payments
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [loadingExchangeRate, setLoadingExchangeRate] = useState(false);
 
   // Billing form states
   const [showBillingForm, setShowBillingForm] = useState(false);
@@ -104,6 +109,33 @@ export default function CustomCheckoutModal({
     if (isOpen) {
       fetchBillingInfo();
     }
+  }, [isOpen]);
+
+  // Fetch exchange rate for INR conversion (all payments are in INR)
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      if (isOpen) {
+        setLoadingExchangeRate(true);
+        try {
+          const res = await fetch("/api/exchange-rate");
+          const data = await res.json();
+          if (data.success && data.rate) {
+            setExchangeRate(data.rate);
+          } else {
+            // API should always return a rate (with fallback), but handle edge case
+            setExchangeRate(null);
+          }
+        } catch (error) {
+          console.error("Failed to fetch exchange rate:", error);
+          // Network error - will show without INR conversion
+          setExchangeRate(null);
+        } finally {
+          setLoadingExchangeRate(false);
+        }
+      }
+    };
+
+    fetchExchangeRate();
   }, [isOpen]);
 
   const fetchBillingInfo = async () => {
@@ -271,6 +303,7 @@ export default function CustomCheckoutModal({
           description: `Top-up $${data.requestedBalance}`,
           theme: {
             color: "#000000",
+            backdrop_color: "rgba(0, 0, 0, 0.85)",
           },
           handler: function (response: any) {
             toast.success("Payment successful! Credits added to your account.");
@@ -279,6 +312,7 @@ export default function CustomCheckoutModal({
             const event = new CustomEvent("credits-updated");
             window.dispatchEvent(event);
 
+            setLoading(false);
             onSuccess();
             onClose();
           },
@@ -286,6 +320,7 @@ export default function CustomCheckoutModal({
             ondismiss: function () {
               setLoading(false);
             },
+            animation: false,
           },
         };
 
@@ -330,7 +365,7 @@ export default function CustomCheckoutModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[999999] flex items-center justify-center">
+    <div className="fixed inset-0 z-999999 flex items-center justify-center">
       {/* Backdrop - covers everything including settings sidebar */}
       <div
         className="fixed inset-0 bg-black/60"
@@ -456,9 +491,9 @@ export default function CustomCheckoutModal({
                 )}
               </div>
               {showBillingForm ? (
-                <ChevronUp className="w-4 h-4 flex-shrink-0" />
+                <ChevronUp className="w-4 h-4 shrink-0" />
               ) : (
-                <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                <ChevronDown className="w-4 h-4 shrink-0" />
               )}
             </button>
 
@@ -608,9 +643,9 @@ export default function CustomCheckoutModal({
             >
               <span>Edit Tax ID</span>
               {showTaxIdForm ? (
-                <ChevronUp className="w-4 h-4 flex-shrink-0" />
+                <ChevronUp className="w-4 h-4 shrink-0" />
               ) : (
-                <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                <ChevronDown className="w-4 h-4 shrink-0" />
               )}
             </button>
 
@@ -743,7 +778,7 @@ export default function CustomCheckoutModal({
                   checked={sendInvoiceEmail}
                   onChange={(e) => saveSendInvoiceEmail(e.target.checked)}
                 />
-                <div className="w-9 h-5 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-neutral-500 peer-checked:after:bg-neutral-200"></div>
+                <div className="w-9 h-5 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-neutral-500 peer-checked:after:bg-neutral-200"></div>
               </label>
             </div>
           </div>
@@ -765,18 +800,41 @@ export default function CustomCheckoutModal({
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-neutral-400">GST</span>
+              <span className="text-neutral-400">GST (18% on total)</span>
               <span className="font-mono text-neutral-200">
-                {isIndian ? `$${gst.toFixed(2)}` : "N/A"}
+                ${gst.toFixed(2)}
               </span>
             </div>
             <div className="h-px bg-neutral-700" />
             <div className="flex justify-between text-base font-semibold pt-1">
-              <span className="text-neutral-200">Total due</span>
+              <span className="text-neutral-200">Total due (USD)</span>
               <span className="font-mono text-neutral-100">
                 ${checkoutAmount.toFixed(2)}
               </span>
             </div>
+            {/* Show INR equivalent - all payments in INR */}
+            {exchangeRate && (
+              <>
+                <div className="flex justify-between text-base font-semibold">
+                  <span className="text-neutral-200">You pay (INR)</span>
+                  <span className="font-mono text-green-400">
+                    ₹
+                    {(checkoutAmount * exchangeRate).toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-500 text-center">
+                  Exchange rate: 1 USD = ₹{exchangeRate.toFixed(2)}
+                </p>
+              </>
+            )}
+            {loadingExchangeRate && (
+              <p className="text-xs text-neutral-500 text-center">
+                Fetching exchange rate...
+              </p>
+            )}
           </div>
 
           {/* Purchase Button */}

@@ -9,6 +9,18 @@ import { PaymentCapturedEvent, PaymentFailedEvent, OrderPaidEvent } from "../web
 import { getUserByRazorpayInfo } from "../webhooks";
 import { fromSmallestUnit } from "../index";
 import { sendPaymentReceipt } from "../receipts";
+import { GST_PERCENT } from "@/lib/pricing-constants";
+
+interface UserWithBilling {
+    id: string;
+    email: string;
+    name?: string | null;
+    razorpayCustomerId: string | null;
+    billingCountry?: string | null;
+    billingName?: string | null;
+    billingAddress?: any;
+    taxId?: string | null;
+}
 
 /**
  * Handle payment.captured event
@@ -24,12 +36,21 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
         const userId = payment.notes?.user_id;
 
         // Try to get user by ID first, then fall back to email
-        let user: { id: string; email: string; name?: string | null; razorpayCustomerId: string | null; billingCountry?: string | null } | null = null;
+        let user: UserWithBilling | null = null;
 
         if (userId) {
             user = await prisma.user.findUnique({
                 where: { id: userId },
-                select: { id: true, email: true, name: true, razorpayCustomerId: true, billingCountry: true },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    razorpayCustomerId: true,
+                    billingCountry: true,
+                    billingName: true,
+                    billingAddress: true,
+                    taxId: true,
+                },
             });
         }
 
@@ -38,16 +59,24 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
             const basicUser = await getUserByRazorpayInfo(undefined, payment.email);
             if (basicUser) {
                 // Fetch additional fields needed for invoice
-                const fullUser = await prisma.user.findUnique({
+                user = await prisma.user.findUnique({
                     where: { id: basicUser.id },
-                    select: { id: true, email: true, name: true, razorpayCustomerId: true, billingCountry: true },
+                    select: {
+                        id: true,
+                        email: true,
+                        name: true,
+                        razorpayCustomerId: true,
+                        billingCountry: true,
+                        billingName: true,
+                        billingAddress: true,
+                        taxId: true,
+                    },
                 });
-                user = fullUser;
             }
         }
 
         if (!user) {
-            console.error(`User not found for payment ${payment.id} (userId: ${userId}, email: ${payment.email})`);
+            console.error(`User not found for payment ${payment.id} (userId: ${userId || 'N/A'})`);
             return { success: false, error: "User not found" };
         }
 
@@ -103,6 +132,11 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
 
                 console.log(`Added $${requestedBalance} balance to user ${user.id} (payment ${payment.id})`);
 
+                // Get exchange rate from notes (if payment was in INR)
+                const receiptExchangeRate = payment.notes?.exchange_rate
+                    ? parseFloat(payment.notes.exchange_rate)
+                    : null;
+
                 // Send payment receipt email (async, don't block payment processing)
                 sendPaymentReceipt({
                     userId: user.id,
@@ -115,9 +149,10 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
                     gst,
                     totalAmount: amount,
                     currency: payment.currency.toUpperCase(),
+                    exchangeRate: receiptExchangeRate,
                 }).then(result => {
                     if (result.success) {
-                        console.log(`Receipt email processed for payment ${payment.id}`);
+                        console.log(`Receipt/invoice email processed for payment ${payment.id}${result.invoiceNumber ? ` (Invoice: ${result.invoiceNumber})` : ''}`);
                     } else {
                         console.error(`Failed to send receipt for payment ${payment.id}:`, result.error);
                     }
@@ -127,7 +162,13 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
             }
         }
 
-        // Create payment transaction record
+        // Calculate tax info based on billing country
+        const billingCountry = payment.notes?.billing_country || user.billingCountry;
+        const isIndianCustomer = billingCountry?.toUpperCase() === 'IN';
+        const gstAmount = parseFloat(payment.notes?.gst || "0");
+        const exchangeRate = payment.notes?.exchange_rate ? parseFloat(payment.notes.exchange_rate) : null;
+
+        // Create payment transaction record with full billing and tax data
         await prisma.paymentTransaction.create({
             data: {
                 userId: user.id,
@@ -137,10 +178,26 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
                 paymentMethod: "razorpay",
                 razorpayOrderId: payment.order_id,
                 razorpayPaymentId: payment.id,
+                // Tax compliance fields
+                taxAmount: isIndianCustomer ? gstAmount : null,
+                taxRate: isIndianCustomer ? GST_PERCENT : null,
+                taxCountryCode: billingCountry || null,
                 metadata: {
                     method: payment.method,
                     purchaseType,
                     notes: payment.notes,
+                    // Billing info for invoice generation
+                    billingName: user.billingName || user.name || user.email,
+                    billingCountry: billingCountry,
+                    billingAddress: user.billingAddress,
+                    taxId: user.taxId,
+                    // Currency conversion info (if paid in INR)
+                    exchangeRate: exchangeRate,
+                    originalUsdAmount: payment.notes?.original_usd_amount,
+                    // Fee breakdown
+                    requestedBalance: payment.notes?.requested_balance,
+                    platformFee: payment.notes?.platform_fee,
+                    gst: payment.notes?.gst,
                 },
             },
         });
@@ -179,7 +236,7 @@ export async function handlePaymentFailed(event: PaymentFailedEvent) {
         }
 
         if (!user) {
-            console.error(`User not found for failed payment ${payment.id} (userId: ${userId}, email: ${payment.email})`);
+            console.error(`User not found for failed payment ${payment.id} (userId: ${userId || 'N/A'})`);
             return { success: false, error: "User not found" };
         }
 
