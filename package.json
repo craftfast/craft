@@ -1,6 +1,6 @@
 {
   "name": "craft",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "A revolutionary vibe coding tool that transforms the way developers create, collaborate, and craft amazing applications",
   "author": "Nextcrafter Labs (OPC) Private Limited",
@@ -39,7 +39,10 @@
     "razorpay:verify": "tsx scripts/verify-razorpay-env.ts",
     "e2b:build:dev": "tsx src/lib/e2b/build-template-dev.ts",
     "e2b:build:prod": "tsx src/lib/e2b/build-template-prod.ts",
-    "e2b:verify": "tsx scripts/verify-e2b-template.ts"
+    "e2b:verify": "tsx scripts/verify-e2b-template.ts",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -125,6 +128,8 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.29.8",
     "@eslint/eslintrc": "^3.3.3",
     "@prisma/client": "^7.1.0",
     "@tailwindcss/postcss": "^4.1.17",

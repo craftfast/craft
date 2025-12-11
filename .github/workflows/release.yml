@@ -2,45 +2,65 @@ name: 🎉 Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  create-release:
-    name: 🎉 Create Release
+  release:
+    name: 🎉 Release
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+      pull-requests: write
+      
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        
-    - name: 📦 Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: 📥 Install dependencies
-      run: npm ci
-      
-    - name: 🏗️ Build application
-      run: npm run build
-      
-    - name: 📋 Generate changelog
-      id: changelog
-      run: |
-        echo "## What's Changed" > CHANGELOG.md
-        git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s" >> CHANGELOG.md
-        
-    - name: 🎉 Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body_path: CHANGELOG.md
-        draft: false
-        prerelease: false
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🎉 Create Release Pull Request or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          title: "chore: version packages 🎉"
+          commit: "chore: version packages"
+          version: pnpm version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Create Git Tag
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}" || true
+          git push origin "v${VERSION}" || true
+
+      - name: 📋 Create GitHub Release
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.changesets.outputs.publishedPackages && fromJson(steps.changesets.outputs.publishedPackages)[0].version || '' }}
+          release_name: Release v${{ steps.changesets.outputs.publishedPackages && fromJson(steps.changesets.outputs.publishedPackages)[0].version || '' }}
+          draft: false
+          prerelease: false
