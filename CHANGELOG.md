@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2
+
+### Patch Changes
+
+- [#40](https://github.com/craftfast/craft/pull/40) [`85f4608`](https://github.com/craftfast/craft/commit/85f46083da67cc1ddd02b5e8d78ba22c7375308d) Thanks [@sudheerdotai](https://github.com/sudheerdotai)! - Fixed version display to read from package.json via Next.js environment variable instead of hardcoded value
+
+- [#40](https://github.com/craftfast/craft/pull/40) [`85f4608`](https://github.com/craftfast/craft/commit/85f46083da67cc1ddd02b5e8d78ba22c7375308d) Thanks [@sudheerdotai](https://github.com/sudheerdotai)! - git add . ; git commit -m "fix: read version from package.json via next.js env"
+
 ## 0.2.1
 
 ### Patch Changes
