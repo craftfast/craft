@@ -23,9 +23,8 @@ export default function BetaBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold tracking-wider rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 ${className}`}
     >
-      {VERSION_INFO.stage}
       {showVersion && (
         <span className="text-neutral-500 dark:text-neutral-500">
           {VERSION_INFO.displayVersion}

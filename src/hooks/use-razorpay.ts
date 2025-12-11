@@ -37,6 +37,15 @@ export interface RazorpayOptions {
     modal?: {
         ondismiss?: () => void;
     };
+    // Disable Dynamic Currency Conversion (DCC)
+    config?: {
+        display?: {
+            hide?: Array<{ method: string }>;
+            preferences?: {
+                show_default_blocks?: boolean;
+            };
+        };
+    };
 }
 
 export function useRazorpay() {

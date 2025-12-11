@@ -5,10 +5,23 @@
 
 import { EMAILS } from "@/lib/constants";
 
+/**
+ * Email attachment structure for Resend API
+ * Currently supported but not actively used. Intended for future use cases like:
+ * - Attaching PDF invoices to receipt emails
+ * - Sending export files via email
+ */
+interface EmailAttachment {
+    filename: string;
+    content: string; // Base64 encoded content
+    content_type?: string;
+}
+
 interface SendEmailParams {
     to: string;
     subject: string;
     html: string;
+    attachments?: EmailAttachment[];
 }
 
 type OTPType = "sign-in" | "email-verification" | "forget-password" | "account-deletion" | "email-change";
@@ -16,7 +29,7 @@ type OTPType = "sign-in" | "email-verification" | "forget-password" | "account-d
 /**
  * Send an email using Resend API (or fallback to console.log if no API key)
  */
-export async function sendEmail({ to, subject, html }: SendEmailParams): Promise<boolean> {
+export async function sendEmail({ to, subject, html, attachments }: SendEmailParams): Promise<boolean> {
     const resendApiKey = process.env.RESEND_ACCOUNT_API_KEY || process.env.RESEND_API_KEY;
     const emailFrom = process.env.RESEND_ACCOUNT_EMAIL_FROM || process.env.EMAIL_FROM || EMAILS.NOREPLY;
 
@@ -26,6 +39,9 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
         console.log("To:", to);
         console.log("Subject:", subject);
         console.log("From:", emailFrom);
+        if (attachments?.length) {
+            console.log("Attachments:", attachments.map(a => a.filename).join(", "));
+        }
         console.log("\n");
         return true;
     }
@@ -35,6 +51,21 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
         console.log(`To: ${to}`);
         console.log(`From: ${emailFrom}`);
         console.log(`Subject: ${subject}`);
+        if (attachments?.length) {
+            console.log(`Attachments: ${attachments.map(a => a.filename).join(", ")}`);
+        }
+
+        const emailPayload: Record<string, unknown> = {
+            from: emailFrom,
+            to,
+            subject,
+            html,
+        };
+
+        // Add attachments if provided
+        if (attachments?.length) {
+            emailPayload.attachments = attachments;
+        }
 
         const response = await fetch("https://api.resend.com/emails", {
             method: "POST",
@@ -42,12 +73,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${resendApiKey}`,
             },
-            body: JSON.stringify({
-                from: emailFrom,
-                to,
-                subject,
-                html,
-            }),
+            body: JSON.stringify(emailPayload),
         });
 
         if (!response.ok) {

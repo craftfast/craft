@@ -15,6 +15,7 @@ import { RAZORPAY_CONFIG } from "@/lib/razorpay-config";
 import {
     getCheckoutAmount,
     MINIMUM_BALANCE_AMOUNT,
+    MAXIMUM_BALANCE_AMOUNT,
 } from "@/lib/pricing-constants";
 import { paymentRateLimiter, checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 
@@ -44,10 +45,17 @@ export async function POST(request: Request) {
 
         const { amount } = await request.json();
 
-        // Validate amount
+        // Validate amount - minimum and maximum limits
         if (!amount || typeof amount !== "number" || amount < MINIMUM_BALANCE_AMOUNT) {
             return NextResponse.json(
                 { error: `Minimum top-up amount is $${MINIMUM_BALANCE_AMOUNT}` },
+                { status: 400 }
+            );
+        }
+
+        if (amount > MAXIMUM_BALANCE_AMOUNT) {
+            return NextResponse.json(
+                { error: `Maximum top-up amount is $${MAXIMUM_BALANCE_AMOUNT} per transaction (Razorpay limit)` },
                 { status: 400 }
             );
         }
@@ -66,16 +74,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Calculate total checkout amount (includes 10% fee + GST on fee for Indian customers)
+        // Calculate total checkout amount (includes 10% fee + 18% GST on total for ALL customers)
         const checkoutAmount = getCheckoutAmount(amount, user.billingCountry);
         const platformFee = amount * 0.1; // 10% platform fee
-        const gst = user.billingCountry === "IN" ? platformFee * 0.18 : 0; // GST on fee only
+        const subtotal = amount + platformFee;
+        const gst = subtotal * 0.18; // 18% GST on total (credits + fee) for ALL customers
         const isIndian = user.billingCountry === "IN";
 
-        // Create Razorpay order
-        const description = isIndian
-            ? `Balance Top-Up: $${amount} + $${platformFee.toFixed(2)} fee + $${gst.toFixed(2)} GST`
-            : `Balance Top-Up: $${amount} + $${platformFee.toFixed(2)} fee`;
+        // Create Razorpay order (always in INR)
+        const description = `Balance Top-Up: $${amount} + $${platformFee.toFixed(2)} fee + $${gst.toFixed(2)} GST`;
 
         const order = await createRazorpayOrder({
             userId: user.id,
@@ -83,6 +90,7 @@ export async function POST(request: Request) {
             userEmail: user.email,
             amount: checkoutAmount,
             description,
+            countryCode: user.billingCountry, // Pass country for currency selection
             notes: {
                 purchase_type: "balance_topup",
                 requested_balance: amount.toString(),
@@ -101,6 +109,9 @@ export async function POST(request: Request) {
             gst,
             billingCountry: user.billingCountry,
             orderId: order.orderId,
+            currency: order.currency,
+            chargeAmount: order.chargeAmount,
+            exchangeRate: order.exchangeRate,
         });
 
         return NextResponse.json({
@@ -114,6 +125,10 @@ export async function POST(request: Request) {
             gst: gst.toFixed(2),
             isIndian,
             totalCharged: checkoutAmount.toFixed(2),
+            // Currency conversion info
+            chargeAmount: order.chargeAmount,
+            originalUsdAmount: order.originalUsdAmount,
+            exchangeRate: order.exchangeRate,
         });
     } catch (error) {
         console.error("Error creating top-up order:", error);

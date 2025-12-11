@@ -61,6 +61,9 @@ export const razorpayClient = {
     get refunds() {
         return getRazorpayClient().refunds;
     },
+    get invoices() {
+        return getRazorpayClient().invoices;
+    },
 };
 
 // Export configuration

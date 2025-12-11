@@ -2,27 +2,37 @@
  * Razorpay Order Management
  * 
  * Handles order creation for payments and top-ups.
+ * Supports multi-currency: INR for Indian customers, USD for international.
  */
 
-import { razorpayClient, toSmallestUnit, RAZORPAY_CURRENCY } from "./index";
+import { razorpayClient, toSmallestUnit } from "./index";
 import { getOrCreateRazorpayCustomer } from "./customer";
+import { calculatePaymentAmount } from "./currency";
 
 export interface CreateOrderParams {
     userId: string;
     userName: string;
     userEmail: string;
-    amount: number; // In main currency unit (e.g., USD/INR)
+    amount: number; // In USD (will be converted to INR for Indian customers)
     description: string;
     notes?: Record<string, string>;
+    countryCode?: string | null; // Customer country for currency selection
 }
 
 /**
  * Create a Razorpay order for payment
+ * - Indian customers: Charged in INR (converted from USD)
+ * - International customers: Charged in USD
  */
 export async function createRazorpayOrder(params: CreateOrderParams) {
-    const { userId, userName, userEmail, amount, description, notes = {} } = params;
+    const { userId, userName, userEmail, amount, description, notes = {}, countryCode } = params;
 
     try {
+        // Calculate payment amount and currency based on customer country
+        const paymentInfo = await calculatePaymentAmount(amount, countryCode);
+        const currency = paymentInfo.currency;
+        const chargeAmount = paymentInfo.chargeAmount;
+
         // Try to get or create customer (may return null if customer already exists but can't be fetched)
         const customer = await getOrCreateRazorpayCustomer({
             userId,
@@ -35,10 +45,11 @@ export async function createRazorpayOrder(params: CreateOrderParams) {
         const userIdShort = userId.slice(0, 8); // Use first 8 chars of userId
         const receipt = `rcpt_${userIdShort}_${timestamp}`.slice(0, 40);
 
-        // Build notes - customer_id is optional
+        // Build notes - include exchange rate info for INR payments
         const orderNotes: Record<string, string> = {
             user_id: userId,
             description,
+            original_usd_amount: amount.toFixed(2),
             ...notes,
         };
 
@@ -46,20 +57,28 @@ export async function createRazorpayOrder(params: CreateOrderParams) {
             orderNotes.customer_id = customer.id;
         }
 
+        // Add exchange rate info for INR payments
+        if (paymentInfo.exchangeRate) {
+            orderNotes.exchange_rate = paymentInfo.exchangeRate.toFixed(4);
+        }
+
         const order = await razorpayClient.orders.create({
-            amount: toSmallestUnit(amount),
-            currency: RAZORPAY_CURRENCY,
+            amount: toSmallestUnit(chargeAmount),
+            currency: currency,
             receipt,
             notes: orderNotes,
         });
 
-        console.log(`Created Razorpay order ${order.id} for user ${userId} - Amount: ${amount} ${RAZORPAY_CURRENCY}`);
+        console.log(`Created Razorpay order ${order.id} for user ${userId} - Amount: ${chargeAmount} ${currency} (USD: ${amount})`);
 
         return {
             orderId: order.id,
             amount: order.amount,
             currency: order.currency,
             customerId: customer?.id || null,
+            chargeAmount: chargeAmount,
+            originalUsdAmount: amount,
+            exchangeRate: paymentInfo.exchangeRate,
         };
     } catch (error) {
         console.error("Error creating Razorpay order:", error);

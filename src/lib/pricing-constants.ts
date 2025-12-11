@@ -3,12 +3,18 @@
  * OpenRouter-style transparent pay-as-you-go pricing
  * Users top up balance with 10% platform fee, then pay exact provider costs
  * 
- * Tax Rules:
- * - India: 18% GST applies on PLATFORM FEE ONLY (not on credits)
- * - International: 0% GST (export of services is zero-rated under Indian GST)
+ * Tax Rules (Updated December 2024):
+ * - 18% GST applies on TOTAL amount (credits + platform fee) for ALL customers
+ * - All payments are charged in INR for simplified accounting
+ * - Razorpay's DCC allows international customers to pay in their currency
  * 
- * Legal basis: Credits are pass-through costs to AI providers (pure agent).
- * GST applies only to our service charge (platform fee), not the underlying transaction.
+ * Policy Change: Previously, GST only applied to Indian customers. Now GST applies
+ * to all customers regardless of location for simplified compliance and uniform pricing.
+ * 
+ * Example ($100 credits):
+ *   Credits: $100 + Platform Fee: $10 = Subtotal: $110
+ *   GST (18% of $110): $19.80
+ *   Total: $129.80 USD (converted to INR at checkout)
  */
 
 // Import directly from @/data to avoid pulling in prisma via @/lib/models/config
@@ -24,8 +30,9 @@ export { USAGE_LIMITS };
 // ============================================================================
 
 export const PLATFORM_FEE_PERCENT = 0.10; // 10% platform fee on top-ups
-export const GST_PERCENT = 0.18; // 18% GST on platform fee (India only)
+export const GST_PERCENT = 0.18; // 18% GST on total amount (credits + platform fee) for ALL customers
 export const MINIMUM_BALANCE_AMOUNT = 10; // Minimum $10 balance top-up
+export const MAXIMUM_BALANCE_AMOUNT = 3500; // Maximum $3,500 balance top-up (≈₹5,00,000 Razorpay limit after fees)
 export const MINIMUM_CHECKOUT_AMOUNT = 11; // $10 + 10% fee
 export const MINIMUM_BALANCE_THRESHOLD = 0.50; // Block operations below $0.50
 export const LOW_BALANCE_WARNING_THRESHOLD = 5.00; // Warn when balance < $5
@@ -34,7 +41,8 @@ export const LOW_BALANCE_WARNING_THRESHOLD = 5.00; // Warn when balance < $5
 export const SUGGESTED_TOPUP_AMOUNTS = [25, 50, 100, 250, 500, 1000];
 
 /**
- * Check if a country is India (for GST purposes)
+ * Check if a country is India
+ * Note: GST now applies to all customers, this is kept for reference/analytics
  */
 export function isIndianCustomer(countryCode: string | null | undefined): boolean {
     return countryCode?.toUpperCase() === 'IN';
@@ -42,22 +50,24 @@ export function isIndianCustomer(countryCode: string | null | undefined): boolea
 
 /**
  * Calculate checkout amount from desired balance
- * - India: credits + platform fee + GST on platform fee only
- * - International: credits + platform fee only
+ * All customers: (credits + platform fee) + 18% GST on total
  * 
- * Example (India): $100 credits + $10 fee + $1.80 GST (on fee) = $111.80
- * Example (International): $100 credits + $10 fee = $110.00
+ * Example: ($100 credits + $10 fee) × 1.18 = $129.80
+ * 
+ * Note: countryCode parameter kept for backward compatibility but no longer used
+ * since GST now applies to all customers regardless of location.
  */
-export function getCheckoutAmount(desiredBalance: number, countryCode?: string | null): number {
+export function getCheckoutAmount(desiredBalance: number, _countryCode?: string | null): number {
     const platformFee = desiredBalance * PLATFORM_FEE_PERCENT;
-    const gstOnFee = isIndianCustomer(countryCode) ? platformFee * GST_PERCENT : 0;
-    const total = desiredBalance + platformFee + gstOnFee;
+    const subtotal = desiredBalance + platformFee;
+    const gst = subtotal * GST_PERCENT; // 18% GST for all customers
+    const total = subtotal + gst;
     return Math.ceil(total * 100) / 100;
 }
 
 /**
  * Get breakdown of fees for a given balance amount
- * GST applies only to platform fee for Indian customers
+ * GST (18%) applies to total amount (credits + platform fee) for ALL customers
  */
 export function getFeeBreakdown(desiredBalance: number, countryCode?: string | null): {
     balance: number;
@@ -68,8 +78,9 @@ export function getFeeBreakdown(desiredBalance: number, countryCode?: string | n
 } {
     const isIndian = isIndianCustomer(countryCode);
     const platformFee = desiredBalance * PLATFORM_FEE_PERCENT;
-    const gst = isIndian ? platformFee * GST_PERCENT : 0;
-    const total = Math.ceil((desiredBalance + platformFee + gst) * 100) / 100;
+    const subtotal = desiredBalance + platformFee;
+    const gst = subtotal * GST_PERCENT; // 18% GST for all customers
+    const total = Math.ceil((subtotal + gst) * 100) / 100;
     return {
         balance: desiredBalance,
         platformFee: Math.ceil(platformFee * 100) / 100,
@@ -80,18 +91,16 @@ export function getFeeBreakdown(desiredBalance: number, countryCode?: string | n
 }
 
 /**
- * Calculate balance from checkout amount (removes fees based on country)
- * - India: removes platform fee + GST on fee
- * - International: removes platform fee only
+ * Calculate balance from checkout amount (removes fees)
+ * All customers: removes platform fee + GST on total
+ * 
+ * Note: countryCode parameter kept for backward compatibility but no longer used
+ * since GST now applies to all customers regardless of location.
  */
-export function getBalanceFromCheckout(checkoutAmount: number, countryCode?: string | null): number {
-    // Formula: total = balance + fee + gst_on_fee
-    // total = balance + (balance * 0.1) + (balance * 0.1 * 0.18) for India
-    // total = balance * (1 + 0.1 + 0.018) = balance * 1.118 for India
-    // total = balance * 1.1 for International
-    const feeMultiplier = isIndianCustomer(countryCode)
-        ? (1 + PLATFORM_FEE_PERCENT + PLATFORM_FEE_PERCENT * GST_PERCENT)
-        : (1 + PLATFORM_FEE_PERCENT);
+export function getBalanceFromCheckout(checkoutAmount: number, _countryCode?: string | null): number {
+    // Formula: total = (balance + fee) * (1 + gst_rate)
+    // total = (balance * 1.1) * 1.18 = balance * 1.298
+    const feeMultiplier = (1 + PLATFORM_FEE_PERCENT) * (1 + GST_PERCENT);
     const balance = checkoutAmount / feeMultiplier;
     return Math.floor(balance * 100) / 100;
 }

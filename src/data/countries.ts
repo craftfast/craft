@@ -284,6 +284,60 @@ export const COUNTRIES = [
 
 export type CountryCode = (typeof COUNTRIES)[number]["code"];
 
+/**
+ * GST State Codes for Indian States/UTs
+ * These are the official 2-digit numeric codes used in GST invoices
+ * as per Indian tax regulations.
+ */
+export const INDIAN_GST_STATE_CODES: Record<string, string> = {
+    'andaman and nicobar islands': '35',
+    'andhra pradesh': '37',
+    'arunachal pradesh': '12',
+    'assam': '18',
+    'bihar': '10',
+    'chandigarh': '04',
+    'chhattisgarh': '22',
+    'dadra and nagar haveli and daman and diu': '26',
+    'delhi': '07',
+    'goa': '30',
+    'gujarat': '24',
+    'haryana': '06',
+    'himachal pradesh': '02',
+    'jammu and kashmir': '01',
+    'jharkhand': '20',
+    'karnataka': '29',
+    'kerala': '32',
+    'ladakh': '38',
+    'lakshadweep': '31',
+    'madhya pradesh': '23',
+    'maharashtra': '27',
+    'manipur': '14',
+    'meghalaya': '17',
+    'mizoram': '15',
+    'nagaland': '13',
+    'odisha': '21',
+    'puducherry': '34',
+    'punjab': '03',
+    'rajasthan': '08',
+    'sikkim': '11',
+    'tamil nadu': '33',
+    'telangana': '36',
+    'tripura': '16',
+    'uttar pradesh': '09',
+    'uttarakhand': '05',
+    'west bengal': '19',
+};
+
+/**
+ * Get GST state code from state name
+ * @param stateName - The name of the Indian state/UT
+ * @returns The 2-digit GST state code or empty string if not found
+ */
+export function getGstStateCode(stateName?: string): string {
+    if (!stateName) return '';
+    return INDIAN_GST_STATE_CODES[stateName.toLowerCase()] || '';
+}
+
 // States/Provinces by country (for countries with state/province requirements)
 export const STATES_BY_COUNTRY: Record<string, { code: string; name: string }[]> = {
     // India - 28 States + 8 Union Territories

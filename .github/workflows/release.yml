@@ -2,45 +2,84 @@ name: 🎉 Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+  workflow_run:
+    workflows: ["🤖 Auto Changeset"]
+    types:
+      - completed
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  create-release:
-    name: 🎉 Create Release
+  release:
+    name: 🎉 Release
     runs-on: ubuntu-latest
-    
+    # Only run if triggered directly or if auto-changeset succeeded
+    if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: write
+      pull-requests: write
+      
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        
-    - name: 📦 Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: 📥 Install dependencies
-      run: npm ci
-      
-    - name: 🏗️ Build application
-      run: npm run build
-      
-    - name: 📋 Generate changelog
-      id: changelog
-      run: |
-        echo "## What's Changed" > CHANGELOG.md
-        git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s" >> CHANGELOG.md
-        
-    - name: 🎉 Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body_path: CHANGELOG.md
-        draft: false
-        prerelease: false
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main  # Always use latest main
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🎉 Create Release Pull Request or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          title: "chore: version packages 🎉"
+          commit: "chore: version packages"
+          version: pnpm version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Create Git Tag
+        id: create_tag
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create tag if it doesn't exist
+          if ! git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+            git tag -a "v${VERSION}" -m "Release v${VERSION}"
+            git push origin "v${VERSION}"
+            echo "tag_created=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag v${VERSION} already exists"
+            echo "tag_created=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📋 Create GitHub Release
+        if: steps.changesets.outputs.hasChangesets == 'false' && steps.create_tag.outputs.tag_created == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.create_tag.outputs.version }}
+          name: Release v${{ steps.create_tag.outputs.version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
