@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import packageJson from "./package.json" with { type: "json" };
 
 // Content Security Policy
 // Note: 'unsafe-inline' and 'unsafe-eval' needed for Next.js and React development
@@ -18,6 +19,10 @@ const ContentSecurityPolicy = `
 `.replace(/\n/g, " ").trim();
 
 const nextConfig: NextConfig = {
+  // Expose version to client
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
+  },
   // Enable MDX pages
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   // MDX configuration for Turbopack

@@ -2,10 +2,10 @@
  * Application Version Configuration
  *
  * Centralized version management for the Craft application.
- * Update this file when releasing new versions.
+ * Version is automatically read from package.json via Next.js env.
  */
 
-export const APP_VERSION = "0.1.0";
+export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "0.0.0";
 
 type AppStage = "alpha" | "beta" | "rc" | "stable";
 export const APP_STAGE: AppStage = "beta";
