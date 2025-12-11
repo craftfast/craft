@@ -15,7 +15,6 @@ jobs:
   release:
     name: 🎉 Release
     runs-on: ubuntu-latest
-    # Only run if triggered directly or if auto-changeset succeeded
     if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: write
@@ -26,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: main  # Always use latest main
+          ref: main
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
@@ -37,10 +36,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 📥 Install changesets CLI only
+        run: pnpm add -g @changesets/cli
 
       - name: 🎉 Create Release Pull Request or Publish
         id: changesets
@@ -48,7 +46,7 @@ jobs:
         with:
           title: "chore: version packages 🎉"
           commit: "chore: version packages"
-          version: pnpm version
+          version: pnpm changeset version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
