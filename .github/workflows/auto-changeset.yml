@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
       - name: 📥 Checkout code
@@ -23,20 +22,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: 🔍 Check for existing changesets
         id: check_changesets
@@ -56,7 +41,6 @@ jobs:
           echo "Commit message: $COMMIT_MSG"
           
           # Determine version bump type from commit message
-          # Default to patch unless specified
           if echo "$COMMIT_MSG" | grep -qiE "^(feat|feature)(\(.+\))?!:|BREAKING CHANGE"; then
             BUMP_TYPE="major"
           elif echo "$COMMIT_MSG" | grep -qiE "^(feat|feature)(\(.+\))?:"; then
@@ -68,7 +52,6 @@ jobs:
           echo "Bump type: $BUMP_TYPE"
           
           # Clean up commit message for changelog
-          # Remove conventional commit prefixes for cleaner changelog
           CLEAN_MSG=$(echo "$COMMIT_MSG" | head -1 | sed -E 's/^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.+\))?:\s*//i')
           
           # If message is empty after cleanup, use original
@@ -82,7 +65,7 @@ jobs:
           # Generate unique filename
           FILENAME=".changeset/auto-${COMMIT_SHA}.md"
           
-          # Create changeset file using printf to avoid YAML parsing issues
+          # Create changeset file
           printf '%s\n' '---' "\"craft\": $BUMP_TYPE" '---' '' "$CLEAN_MSG" > "$FILENAME"
           
           echo "Created changeset: $FILENAME"
@@ -102,4 +85,5 @@ jobs:
           
           git add .changeset/
           git commit -m "chore: auto-generate changeset [skip ci]"
+          git push
           git push
