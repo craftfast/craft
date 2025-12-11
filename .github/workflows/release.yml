@@ -19,7 +19,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -35,10 +35,10 @@ jobs:
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: 📥 Install changesets CLI only
-        run: pnpm add -g @changesets/cli
+      - name: 📥 Install changesets CLI
+        run: pnpm add -g @changesets/cli @changesets/changelog-github
 
       - name: 🎉 Create Release Pull Request or Publish
         id: changesets
@@ -56,10 +56,10 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # Create tag if it doesn't exist
           if ! git rev-parse "v${VERSION}" >/dev/null 2>&1; then
             git tag -a "v${VERSION}" -m "Release v${VERSION}"
