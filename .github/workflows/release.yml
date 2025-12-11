@@ -11,14 +11,15 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   release:
     name: 🎉 Release
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
-    permissions:
-      contents: write
-      pull-requests: write
 
     steps:
       - name: 📥 Checkout code
