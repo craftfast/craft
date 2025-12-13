@@ -2,24 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { uploadFile, deleteFile } from "@/lib/r2-storage";
-import puppeteer from "puppeteer";
 
 /**
  * POST /api/sandbox/[projectId]/screenshot
  * 
  * Captures a screenshot of the project preview and stores it as the project thumbnail.
- * Uses Puppeteer for server-side screenshot capture of E2B sandboxes.
+ * Uses Chrome + Puppeteer running INSIDE the E2B sandbox to capture screenshots.
  * 
  * Important: Only ONE screenshot per project is stored. When a new screenshot is uploaded,
  * the old one is automatically deleted from R2 storage to save space.
  * 
  * Flow:
  * 1. Client requests screenshot capture
- * 2. Server uses Puppeteer to load the E2B preview URL
- * 3. Server captures screenshot
- * 4. Server deletes old screenshot (if exists)
- * 5. Server uploads new screenshot to Cloudflare R2 storage
- * 6. Server updates project.previewImage
+ * 2. Vercel API calls E2B sandbox's /api/screenshot endpoint
+ * 3. E2B sandbox uses local Chrome + Puppeteer to capture screenshot
+ * 4. E2B sandbox returns PNG buffer
+ * 5. Vercel deletes old screenshot (if exists)
+ * 6. Vercel uploads new screenshot to Cloudflare R2 storage
+ * 7. Vercel updates project.previewImage
  */
 export async function POST(
     request: NextRequest,
@@ -98,44 +98,75 @@ export async function POST(
         let buffer: Buffer;
         let imageType = 'png';
 
-        // Server-side capture using Puppeteer if URL is provided
+        // Spawn a separate screenshot sandbox to capture the URL
         if (url && typeof url === 'string') {
-            console.log(`📸 Server-side screenshot capture for ${url}`);
+            const isProduction = process.env.NODE_ENV === 'production';
+            if (!isProduction) {
+                console.log(`📸 Spawning screenshot sandbox to capture: ${url}`);
+            }
 
             try {
-                const browser = await puppeteer.launch({
-                    headless: true,
-                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                const { Sandbox } = await import("e2b");
+                const screenshotTemplateId = process.env.E2B_SCREENSHOT_TEMPLATE_ID;
+
+                if (!screenshotTemplateId) {
+                    throw new Error("E2B_SCREENSHOT_TEMPLATE_ID not configured");
+                }
+
+                // Spawn lightweight screenshot sandbox
+                const sandbox = await Sandbox.betaCreate(screenshotTemplateId, {
+                    timeoutMs: 60000, // 60 second timeout
                 });
 
-                const page = await browser.newPage();
-                await page.setViewport({ width: 1920, height: 1080 });
+                if (!isProduction) {
+                    console.log(`✅ Screenshot sandbox created: ${sandbox.sandboxId}`);
+                }
 
-                // Navigate to the URL with a timeout
-                await page.goto(url, {
-                    waitUntil: 'networkidle2',
-                    timeout: 15000,
-                });
+                // Run screenshot capture script with the URL
+                const result = await sandbox.commands.run(
+                    `node capture.js "${url}"`,
+                    {
+                        onStdout: (data: string) => {
+                            // Filter out base64 data from logs (too verbose)
+                            if (!data.includes('SCREENSHOT_START') && !data.includes('SCREENSHOT_END') && data.length < 200) {
+                                console.log(`[Screenshot] ${data}`);
+                            }
+                        },
+                        onStderr: (data: string) => console.error(`[Screenshot Error] ${data}`),
+                        timeoutMs: 60000, // 60 second timeout for screenshot capture
+                    }
+                );
 
-                // Wait a bit for any dynamic content to load
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Parse output to get base64 screenshot
+                const output = result.stdout || '';
+                const startMarker = "SCREENSHOT_START";
+                const endMarker = "SCREENSHOT_END";
+                const startIndex = output.indexOf(startMarker);
+                const endIndex = output.indexOf(endMarker);
 
-                // Capture screenshot
-                const screenshotBuffer = await page.screenshot({
-                    type: 'png',
-                    fullPage: false, // Just capture viewport
-                });
+                if (startIndex === -1 || endIndex === -1) {
+                    throw new Error("Screenshot output markers not found in output");
+                }
 
-                await browser.close();
-
-                buffer = Buffer.from(screenshotBuffer);
+                const base64Screenshot = output.substring(startIndex + startMarker.length, endIndex).trim();
+                buffer = Buffer.from(base64Screenshot, 'base64');
                 imageType = 'png';
 
-                console.log(`✅ Server-side screenshot captured (${(buffer.length / 1024).toFixed(2)} KB)`);
+                console.log(`✅ Screenshot captured (${(buffer.length / 1024).toFixed(2)} KB)`);
+
+                // Kill the screenshot sandbox immediately
+                await sandbox.kill();
+                if (!isProduction) {
+                    console.log(`🗑️ Screenshot sandbox killed: ${sandbox.sandboxId}`);
+                }
+
             } catch (error) {
-                console.error('❌ Puppeteer screenshot failed:', error);
+                console.error('❌ Screenshot capture failed:', error);
                 return NextResponse.json(
-                    { error: "Failed to capture screenshot from URL" },
+                    {
+                        error: "Failed to capture screenshot",
+                        details: error instanceof Error ? error.message : "Unknown error"
+                    },
                     { status: 500 }
                 );
             }

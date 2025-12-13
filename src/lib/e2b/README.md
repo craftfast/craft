@@ -135,6 +135,33 @@ pnpm e2b:build:dev
 pnpm e2b:build:prod
 ```
 
+## � Screenshot Capture (Chrome + Puppeteer)
+
+The template includes Chrome + Puppeteer for screenshot capture:
+
+**What's Included:**
+
+- ✅ Chromium browser + all dependencies
+- ✅ Puppeteer npm package
+- ✅ Screenshot utility: `src/lib/screenshot/capture.ts`
+- ✅ Screenshot API: `src/app/api/screenshot/route.ts`
+
+**How It Works:**
+
+1. Your Vercel API calls: `https://sandbox-url.e2b.dev/api/screenshot`
+2. E2B sandbox uses local Chrome to capture `localhost:3000`
+3. Sandbox returns PNG buffer
+4. Vercel uploads to Cloudflare R2
+
+**Benefits:**
+
+- ✅ No Chrome on Vercel (bypasses 50MB limit)
+- ✅ Fast capture (localhost, no network latency)
+- ✅ Accurate screenshots (same environment as app)
+- ✅ No external screenshot services needed
+
+See [`docs/project-screenshot-capture-summary.md`](../../docs/project-screenshot-capture-summary.md) for details.
+
 ## 📝 Notes
 
 - Template is immutable after building
@@ -148,3 +175,4 @@ pnpm e2b:build:prod
 - **Build Scripts**: `src/lib/e2b/build-template-*.ts`
 - **Sandbox Manager**: `src/lib/e2b/sandbox-manager.ts`
 - **Verification Script**: `scripts/verify-e2b-template.ts`
+- **Screenshot Docs**: `docs/project-screenshot-capture-summary.md`
