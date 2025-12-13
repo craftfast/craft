@@ -6,15 +6,9 @@
  */
 
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { redis, REDIS_PREFIXES } from "./redis-client";
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
-
-// Create Redis client (uses UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN env vars)
-const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL || "",
-    token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-});
 
 /**
  * Rate limiter for AI chat endpoints
@@ -24,7 +18,7 @@ export const chatRateLimiter = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(20, "1 m"),
     analytics: true,
-    prefix: "craft:ratelimit:chat",
+    prefix: REDIS_PREFIXES.RATE_LIMIT_CHAT,
 });
 
 /**
@@ -35,7 +29,7 @@ export const apiRateLimiter = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(100, "1 m"),
     analytics: true,
-    prefix: "craft:ratelimit:api",
+    prefix: REDIS_PREFIXES.RATE_LIMIT_API,
 });
 
 /**

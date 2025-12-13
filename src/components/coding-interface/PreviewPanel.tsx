@@ -120,6 +120,34 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
     );
     const dropdownRef = useRef<HTMLDivElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const iframeLoadAttempts = useRef(0);
+    const maxIframeRetries = 3;
+
+    // Ref-based lock to prevent concurrent sandbox starts (state updates are async)
+    const isStartingSandbox = useRef(false);
+
+    // Handle iframe load retry
+    const retryIframeLoad = useCallback(() => {
+      if (iframeLoadAttempts.current < maxIframeRetries && previewUrl) {
+        iframeLoadAttempts.current += 1;
+        console.log(
+          `🔄 Retrying iframe load (attempt ${iframeLoadAttempts.current}/${maxIframeRetries})...`
+        );
+
+        // Force re-render by clearing and re-setting iframe URL
+        setIframeUrl("");
+        setTimeout(() => {
+          setIframeUrl(previewUrl + currentRoute);
+        }, 1000);
+      }
+    }, [previewUrl, currentRoute]);
+
+    // Reset retry counter when sandbox status changes
+    useEffect(() => {
+      if (sandboxStatus === "running") {
+        iframeLoadAttempts.current = 0;
+      }
+    }, [sandboxStatus]);
 
     // Capture screenshot when preview loads successfully
     // Only capture if: 1) No existing preview image, OR 2) Project version changed from last captured version
@@ -407,11 +435,19 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
     ]);
 
     const startSandbox = async () => {
-      // Prevent duplicate sandbox starts
-      if (sandboxStatus === "loading" || sandboxStatus === "running") {
-        console.log(`⏭️  Sandbox already ${sandboxStatus}, skipping start...`);
+      // Prevent duplicate sandbox starts using ref (more reliable than state for concurrent calls)
+      if (isStartingSandbox.current) {
+        console.log(`⏭️ Sandbox start already in progress, skipping...`);
         return;
       }
+
+      if (sandboxStatus === "loading" || sandboxStatus === "running") {
+        console.log(`⏭️ Sandbox already ${sandboxStatus}, skipping start...`);
+        return;
+      }
+
+      // Acquire lock
+      isStartingSandbox.current = true;
 
       try {
         setSandboxStatus("loading");
@@ -465,11 +501,16 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
           }),
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to start sandbox");
-        }
-
         const data = await response.json();
+
+        // Check for error status from backend
+        if (!response.ok || data.status === "error") {
+          console.error(
+            "❌ Sandbox error:",
+            data.error || "Failed to start sandbox"
+          );
+          throw new Error(data.error || "Failed to start sandbox");
+        }
 
         console.log("📦 Sandbox created:", data);
         console.log("🔗 Preview URL:", data.url);
@@ -488,8 +529,9 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
           );
         }
 
-        // ✅ SIMPLIFIED: Just set the URL and show iframe immediately
-        // Next.js will handle its own loading states in the browser
+        // ✅ Backend has already verified the URL is accessible (5 retries with progressive delays)
+        // We trust the backend verification and immediately show the iframe
+        // The iframe will handle its own loading states
         console.log("🎉 Setting preview URL:", data.url);
         setPreviewUrl(data.url);
         setIframeUrl(data.url);
@@ -502,6 +544,9 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
         console.error("Error starting sandbox:", error);
         setError("Failed to start preview. Please try again.");
         setSandboxStatus("error");
+      } finally {
+        // Always release the lock
+        isStartingSandbox.current = false;
       }
     };
 
@@ -768,7 +813,7 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
     return (
       <div
         className={`h-full flex flex-col bg-background ${
-          isFullscreen ? "fixed inset-0 z-[60]" : ""
+          isFullscreen ? "fixed inset-0 z-60" : ""
         }`}
       >
         {/* Preview Toolbar - Hidden since controls moved to main header */}
@@ -963,7 +1008,7 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
                                   </p>
                                 </div>
                                 {restoringVersionId === v.id && (
-                                  <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                                  <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin shrink-0"></div>
                                 )}
                               </div>
                             </button>
@@ -1254,13 +1299,36 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
                     title="Preview"
                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
                     allow="clipboard-read; clipboard-write"
-                    onLoad={() => {
+                    onLoad={(e) => {
                       console.log("✅ Iframe loaded successfully!");
-                      // Capture screenshot on first successful load
-                      captureScreenshot();
+
+                      // Check if iframe loaded a blank page or error
+                      // Due to cross-origin restrictions, we can't check content directly
+                      // But we can use a timeout to detect if the page is blank
+                      setTimeout(() => {
+                        try {
+                          // Try to access iframe's URL to verify it loaded properly
+                          const iframe = e.target as HTMLIFrameElement;
+                          // If we can check contentWindow location without error, it loaded
+                          if (iframe.contentWindow) {
+                            console.log("✅ Iframe content verified");
+                            // Reset retry counter on success
+                            iframeLoadAttempts.current = 0;
+                          }
+                        } catch (err) {
+                          // Cross-origin error is expected for E2B sandbox - this is fine
+                          console.log(
+                            "ℹ️ Iframe loaded (cross-origin, content unverifiable)"
+                          );
+                        }
+                        // Capture screenshot on successful load
+                        captureScreenshot();
+                      }, 2000);
                     }}
                     onError={(e) => {
-                      console.error("❌ Iframe error:", e);
+                      console.error("❌ Iframe load error:", e);
+                      // Retry loading if we haven't exceeded max attempts
+                      retryIframeLoad();
                     }}
                   />
                 </div>

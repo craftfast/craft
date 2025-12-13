@@ -34,19 +34,28 @@ interface AgentLoopOptions {
 }
 
 export class AgentLoopCoordinator {
-    private stateManager: AgentLoopStateManager;
+    private stateManager!: AgentLoopStateManager;
     private sseWriter?: SSEStreamWriter;
+    private initPromise: Promise<void>;
 
     constructor(options: AgentLoopOptions) {
-        // Get or create agent loop state
-        this.stateManager = getAgentLoopState(options.sessionId, {
+        // Initialize state manager asynchronously
+        this.initPromise = this.initialize(options);
+        this.sseWriter = options.sseWriter;
+    }
+
+    private async initialize(options: AgentLoopOptions) {
+        // Get or create agent loop state from Redis
+        this.stateManager = await getAgentLoopState(options.sessionId, {
             projectId: options.projectId,
             userId: options.userId,
             projectFiles: options.projectFiles || {},
             conversationHistory: options.conversationHistory || [],
         });
+    }
 
-        this.sseWriter = options.sseWriter;
+    async ensureInitialized() {
+        await this.initPromise;
     }
 
     // ========================================================================
@@ -60,6 +69,9 @@ export class AgentLoopCoordinator {
         shouldContinue: boolean;
         nextAction?: string;
     }> {
+        // Ensure initialized
+        await this.ensureInitialized();
+
         // Start the loop
         this.stateManager.startLoop();
 
@@ -409,7 +421,7 @@ export function createAgentLoop(options: AgentLoopOptions): AgentLoopCoordinator
 /**
  * Get the current state summary for display
  */
-export function getAgentLoopSummary(sessionId: string) {
-    const manager = getAgentLoopState(sessionId);
+export async function getAgentLoopSummary(sessionId: string) {
+    const manager = await getAgentLoopState(sessionId);
     return manager.getSummary();
 }

@@ -406,49 +406,152 @@ export class AgentLoopStateManager {
 }
 
 // ============================================================================
-// GLOBAL STATE REGISTRY
+// GLOBAL STATE REGISTRY (Redis-backed)
 // ============================================================================
 
+import { redis, REDIS_PREFIXES, REDIS_TTL } from "../redis-client";
+
+const AGENT_LOOP_PREFIX = REDIS_PREFIXES.AGENT_LOOP;
+const AGENT_LOOP_TTL = REDIS_TTL.AGENT_LOOP;
+
 /**
- * Global registry of active agent loop states
- * Maps sessionId -> AgentLoopStateManager
+ * Get agent loop state from Redis
  */
-export const activeAgentLoops = new Map<string, AgentLoopStateManager>();
+async function getAgentLoopFromRedis(sessionId: string): Promise<AgentLoopState | null> {
+    try {
+        const key = `${AGENT_LOOP_PREFIX}:${sessionId}`;
+        const data = await redis.get<string>(key);
+
+        if (!data) {
+            return null;
+        }
+
+        return JSON.parse(data) as AgentLoopState;
+    } catch (error) {
+        console.error(`Failed to get agent loop state for ${sessionId}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Save agent loop state to Redis
+ */
+async function saveAgentLoopToRedis(sessionId: string, state: AgentLoopState): Promise<void> {
+    try {
+        const key = `${AGENT_LOOP_PREFIX}:${sessionId}`;
+        await redis.set(key, JSON.stringify(state), { ex: AGENT_LOOP_TTL });
+    } catch (error) {
+        console.error(`Failed to save agent loop state for ${sessionId}:`, error);
+    }
+}
+
+/**
+ * Delete agent loop state from Redis
+ */
+async function deleteAgentLoopFromRedis(sessionId: string): Promise<void> {
+    try {
+        const key = `${AGENT_LOOP_PREFIX}:${sessionId}`;
+        await redis.del(key);
+    } catch (error) {
+        console.error(`Failed to delete agent loop state for ${sessionId}:`, error);
+    }
+}
 
 /**
  * Get or create an agent loop state for a session
+ * Now uses Redis for distributed storage across Vercel instances
  */
-export function getAgentLoopState(
+export async function getAgentLoopState(
     sessionId: string,
     initialData?: Partial<AgentLoopState>
-): AgentLoopStateManager {
-    let manager = activeAgentLoops.get(sessionId);
+): Promise<AgentLoopStateManager> {
+    // Try to load from Redis first
+    const savedState = await getAgentLoopFromRedis(sessionId);
 
-    if (!manager) {
+    let manager: AgentLoopStateManager;
+
+    if (savedState) {
+        // Restore from Redis
+        manager = new AgentLoopStateManager(savedState);
+    } else {
+        // Create new
         manager = new AgentLoopStateManager({
             sessionId,
             ...initialData,
         });
-        activeAgentLoops.set(sessionId, manager);
+
+        // Save initial state to Redis
+        await saveAgentLoopToRedis(sessionId, manager.getState());
     }
+
+    // Wrap manager methods to auto-save to Redis after state changes
+    const originalAddReasoningStep = manager.addReasoningStep.bind(manager);
+    manager.addReasoningStep = function (...args) {
+        const result = originalAddReasoningStep(...args);
+        saveAgentLoopToRedis(sessionId, manager.getState()).catch(console.error);
+        return result;
+    };
+
+    const originalSetPhase = manager.setPhase.bind(manager);
+    manager.setPhase = function (...args) {
+        originalSetPhase(...args);
+        saveAgentLoopToRedis(sessionId, manager.getState()).catch(console.error);
+    };
+
+    const originalStartLoop = manager.startLoop.bind(manager);
+    manager.startLoop = function () {
+        originalStartLoop();
+        saveAgentLoopToRedis(sessionId, manager.getState()).catch(console.error);
+    };
+
+    const originalStopLoop = manager.stopLoop.bind(manager);
+    manager.stopLoop = function () {
+        originalStopLoop();
+        saveAgentLoopToRedis(sessionId, manager.getState()).catch(console.error);
+    };
 
     return manager;
 }
 
 /**
- * Clean up inactive agent loop states (older than 30 minutes)
+ * Delete an agent loop state
  */
-export function cleanupInactiveAgentLoops() {
-    const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000; // Changed from 1 hour to 30 minutes
+export async function deleteAgentLoopState(sessionId: string): Promise<void> {
+    await deleteAgentLoopFromRedis(sessionId);
+}
 
-    for (const [sessionId, manager] of activeAgentLoops.entries()) {
-        const state = manager.getState();
-        if (!state.isActive && state.updatedAt < thirtyMinutesAgo) {
-            activeAgentLoops.delete(sessionId);
-            console.log(`🧹 Cleaned up inactive agent loop: ${sessionId}`);
+/**
+ * Clean up inactive agent loop states (older than 30 minutes)
+ * Note: Redis TTL handles most cleanup automatically
+ */
+export async function cleanupInactiveAgentLoops(): Promise<void> {
+    try {
+        const pattern = `${AGENT_LOOP_PREFIX}:*`;
+        const keys = await redis.keys(pattern);
+
+        const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
+        let cleanedCount = 0;
+
+        for (const key of keys) {
+            const data = await redis.get<string>(key);
+            if (data) {
+                const state = JSON.parse(data) as AgentLoopState;
+                if (!state.isActive && state.updatedAt < thirtyMinutesAgo) {
+                    await redis.del(key);
+                    cleanedCount++;
+                }
+            }
         }
+
+        if (cleanedCount > 0) {
+            console.log(`🧹 Cleaned up ${cleanedCount} inactive agent loops`);
+        }
+    } catch (error) {
+        console.error("Failed to cleanup agent loops:", error);
     }
 }
 
-// Clean up every 10 minutes
-setInterval(cleanupInactiveAgentLoops, 10 * 60 * 1000);
+// Clean up every 10 minutes (backup to Redis TTL)
+if (typeof setInterval !== 'undefined') {
+    setInterval(cleanupInactiveAgentLoops, 10 * 60 * 1000);
+}

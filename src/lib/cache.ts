@@ -1,78 +1,85 @@
 /**
- * Simple In-Memory Cache for Credit Availability
- * Uses a Map with TTL for caching to reduce database load
+ * Distributed Cache with Redis (Upstash)
  * 
- * Note: This is an in-memory cache, so it will be cleared on server restart.
- * For production with multiple instances, consider using Redis instead.
+ * Replaces in-memory Map-based cache with Redis for Vercel multi-instance deployments.
+ * Uses Upstash Redis REST API for serverless compatibility.
  */
 
-interface CacheEntry<T> {
-    value: T;
-    expiresAt: number;
-}
+import { redis, REDIS_PREFIXES } from "./redis-client";
 
-class SimpleCache<T> {
-    private cache = new Map<string, CacheEntry<T>>();
+class DistributedCache<T> {
+    private prefix: string;
 
-    set(key: string, value: T, ttlSeconds: number): void {
-        const expiresAt = Date.now() + (ttlSeconds * 1000);
-        this.cache.set(key, { value, expiresAt });
+    constructor(prefix: string = REDIS_PREFIXES.CACHE) {
+        this.prefix = prefix;
     }
 
-    get(key: string): T | null {
-        const entry = this.cache.get(key);
+    private getKey(key: string): string {
+        return `${this.prefix}:${key}`;
+    }
 
-        if (!entry) {
-            return null;
+    async set(key: string, value: T, ttlSeconds: number): Promise<void> {
+        try {
+            const redisKey = this.getKey(key);
+            await redis.set(redisKey, JSON.stringify(value), { ex: ttlSeconds });
+        } catch (error) {
+            console.error(`Redis cache set error for key ${key}:`, error);
+            // Fail silently - cache is not critical
         }
-
-        // Check if expired
-        if (Date.now() > entry.expiresAt) {
-            this.cache.delete(key);
-            return null;
-        }
-
-        return entry.value;
     }
 
-    delete(key: string): void {
-        this.cache.delete(key);
-    }
+    async get(key: string): Promise<T | null> {
+        try {
+            const redisKey = this.getKey(key);
+            const value = await redis.get<string>(redisKey);
 
-    clear(): void {
-        this.cache.clear();
-    }
-
-    // Clean up expired entries periodically
-    cleanup(): number {
-        const now = Date.now();
-        let deletedCount = 0;
-
-        for (const [key, entry] of this.cache.entries()) {
-            if (now > entry.expiresAt) {
-                this.cache.delete(key);
-                deletedCount++;
+            if (value === null) {
+                return null;
             }
-        }
 
-        return deletedCount;
+            return JSON.parse(value) as T;
+        } catch (error) {
+            console.error(`Redis cache get error for key ${key}:`, error);
+            return null;
+        }
     }
 
-    size(): number {
-        return this.cache.size;
+    async delete(key: string): Promise<void> {
+        try {
+            const redisKey = this.getKey(key);
+            await redis.del(redisKey);
+        } catch (error) {
+            console.error(`Redis cache delete error for key ${key}:`, error);
+        }
+    }
+
+    async clear(): Promise<void> {
+        try {
+            // Delete all keys with this prefix
+            const pattern = `${this.prefix}:*`;
+            const keys = await redis.keys(pattern);
+
+            if (keys.length > 0) {
+                await redis.del(...keys);
+            }
+        } catch (error) {
+            console.error("Redis cache clear error:", error);
+        }
+    }
+
+    // Note: Redis automatically handles TTL expiry, no manual cleanup needed
+    async size(): Promise<number> {
+        try {
+            const pattern = `${this.prefix}:*`;
+            const keys = await redis.keys(pattern);
+            return keys.length;
+        } catch (error) {
+            console.error("Redis cache size error:", error);
+            return 0;
+        }
     }
 }
 
 // Export singleton instance for generic caching
-// Balance-based system - no more subscription credit caching needed
-export const genericCache = new SimpleCache<unknown>();
-
-// Clean up expired cache entries every 5 minutes
-if (typeof setInterval !== 'undefined') {
-    setInterval(() => {
-        const deleted = genericCache.cleanup();
-        if (deleted > 0) {
-            console.log(`🧹 Cleaned up ${deleted} expired cache entries`);
-        }
-    }, 5 * 60 * 1000);
-}
+// Uses Redis for distributed caching across Vercel instances
+export const genericCache = new DistributedCache<unknown>(REDIS_PREFIXES.CACHE);

@@ -330,6 +330,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
 
         // Execute THINK phase before streaming
         try {
+            await agentLoop.ensureInitialized();
             await agentLoop.executeTurn(userMessage);
         } catch (error) {
             console.error('❌ Agent loop initialization failed:', error);

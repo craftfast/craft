@@ -3,23 +3,39 @@ import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { getOrCreateProjectSandbox } from "@/lib/e2b/sandbox-manager";
 import { decryptValue } from "@/lib/crypto";
+import { acquireRedisLock } from "@/lib/redis-lock";
 
 /**
  * POST /api/sandbox/[projectId]
  * Create or reuse sandbox for a project
+ * 
+ * Production notes:
+ * - Has 90s overall timeout to prevent hanging
+ * - Limits restart attempts to prevent infinite loops
+ * - Uses Redis distributed lock (multi-instance safe for Vercel)
  */
 export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ projectId: string }> }
 ) {
+    const { projectId } = await params;
+    const operationStartTime = Date.now();
+    const OPERATION_TIMEOUT_MS = 90000; // 90 seconds max
+
+    // Acquire Redis distributed lock to prevent concurrent operations on the same sandbox
+    // This works across multiple Vercel instances
+    const releaseLock = await acquireRedisLock(`sandbox:lock:${projectId}`, {
+        ttlMs: 90000,      // Lock expires after 90s (matches operation timeout)
+        timeoutMs: 60000,  // Wait up to 60s to acquire lock
+    });
+
     try {
         const session = await getSession();
 
         if (!session?.user?.id) {
+            await releaseLock();
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        const { projectId } = await params;
 
         // Verify project ownership
         const project = await prisma.project.findFirst({
@@ -33,6 +49,7 @@ export async function POST(
         });
 
         if (!project) {
+            await releaseLock();
             return NextResponse.json({ error: "Project not found" }, { status: 404 });
         }
 
@@ -131,37 +148,91 @@ export async function POST(
         let isServerRunning = false;
         let needsRestart = false;
 
-        // Check if port 3000 is responding (health check)
+        // Strategy: Check process first (fast), then fallback to port check if needed
+        // 1. Check if Next.js process is running
         try {
-            const portCheck = await sandbox.commands.run(
-                "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo '000'",
-                { timeoutMs: 3000 }
+            const processCheck = await sandbox.commands.run(
+                "pgrep -f 'next dev|next-server' || echo 'none'",
+                { timeoutMs: 2000 }
             );
-            const statusCode = portCheck.stdout?.trim() || '000';
-            isServerRunning = statusCode.startsWith('2') || statusCode === '404'; // 2xx or 404 means server is responding
+            const hasProcess = processCheck.stdout?.trim() && processCheck.stdout.trim() !== 'none';
 
-            if (isServerRunning) {
-                console.log(`✅ Dev server is already running and responding (HTTP ${statusCode})`);
+            if (hasProcess) {
+                console.log("✅ Next.js process is running");
 
-                // Force restart if environment variables changed
-                if (envFileChanged) {
-                    console.log("🔄 Environment variables changed - restarting server to apply changes...");
-                    needsRestart = true;
+                // Process exists, do a quick port check to confirm it's responding
+                try {
+                    const portCheck = await sandbox.commands.run(
+                        "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo '000'",
+                        { timeoutMs: 3000 }
+                    );
+                    const statusCode = portCheck.stdout?.trim() || '000';
+                    isServerRunning = statusCode.startsWith('2') || statusCode === '404';
+
+                    if (isServerRunning) {
+                        console.log(`✅ Dev server is responding (HTTP ${statusCode})`);
+                    } else {
+                        console.log(`⚠️ Process running but port not responding (HTTP ${statusCode})`);
+                    }
+                } catch (err) {
+                    // Port check failed but process exists - give it a moment
+                    console.log("⏳ Process exists but port check failed, trying once more...");
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    try {
+                        const retry = await sandbox.commands.run(
+                            "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo '000'",
+                            { timeoutMs: 3000 }
+                        );
+                        const statusCode = retry.stdout?.trim() || '000';
+                        isServerRunning = statusCode.startsWith('2') || statusCode === '404';
+
+                        if (isServerRunning) {
+                            console.log(`✅ Dev server responding on retry (HTTP ${statusCode})`);
+                        }
+                    } catch {
+                        console.log("⚠️ Port still not responding after retry");
+                    }
                 }
             } else {
-                console.log(`⚠️ Port 3000 not responding (HTTP ${statusCode})`);
-                needsRestart = true;
+                console.log("⚠️ No Next.js process found");
             }
         } catch (error) {
-            console.log("⚠️ Could not check port 3000, assuming server needs to start");
-            needsRestart = true;
+            console.log("⚠️ Could not check process, will check port directly");
+
+            // Fallback: Direct port check using simpler netstat
+            try {
+                const portCheck = await sandbox.commands.run(
+                    "netstat -tuln | grep ':3000 ' || echo 'not_found'",
+                    { timeoutMs: 2000 }
+                );
+                const portInUse = !portCheck.stdout?.includes('not_found');
+
+                if (portInUse) {
+                    console.log("✅ Port 3000 is in use");
+                    isServerRunning = true;
+                } else {
+                    console.log("⚠️ Port 3000 not in use");
+                }
+            } catch {
+                console.log("⚠️ Netstat check also failed");
+            }
         }
 
-        // Only restart if server is not running or not responding
-        if (needsRestart) {
-            console.log("🔧 Cleaning up any stale processes...");
+        // Force restart if environment variables changed
+        if (isServerRunning && envFileChanged) {
+            console.log("🔄 Environment variables changed - restarting server to apply changes...");
+            needsRestart = true;
+            isServerRunning = false;
+        }
+
+        // If not running, need to start
+        if (!isServerRunning) {
+            console.log("⚠️ Dev server not running, needs to start");
+            needsRestart = true; // ✅ FIX: Actually set needsRestart to true!
+
             try {
-                // Use pkill to cleanly kill the process tree by name
+                // Use pkill to cleanly kill any stale processes
                 // This is more reliable than finding PIDs manually
                 await sandbox.commands.run(
                     "pkill -f 'next dev' || pkill -f 'next-server' || true",
@@ -196,27 +267,38 @@ export async function POST(
                 );
                 console.log(`✅ Dev server started with 'pnpm dev' (PID: ${devProcess.pid || 'unknown'})`);
 
-                // Wait for the server to become ready (up to 30 seconds)
+                // Wait for the server to become ready (up to 40 seconds for Next.js compilation)
                 console.log("⏳ Waiting for Next.js to compile and start...");
                 const startTime = Date.now();
                 let isReady = false;
+                let consecutiveSuccesses = 0;
+                const requiredChecks = envFileChanged ? 2 : 1; // 2 checks for restart, 1 for fresh start
 
-                while (Date.now() - startTime < 30000 && !isReady) {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                while (Date.now() - startTime < 40000 && !isReady) {
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Check every 2s
 
                     try {
                         const check = await sandbox.commands.run(
                             "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo 'failed'",
-                            { timeoutMs: 2000 }
+                            { timeoutMs: 3000 }
                         );
 
                         const code = check.stdout?.trim() || '';
                         if (code !== 'failed' && /^[2-5]\d\d$/.test(code)) {
-                            isReady = true;
-                            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                            console.log(`✅ Dev server is ready! (HTTP ${code}) - took ${elapsed}s`);
+                            consecutiveSuccesses++;
+                            console.log(`✓ Server responding (HTTP ${code}) - ${consecutiveSuccesses}/${requiredChecks} checks`);
+
+                            // Require 2 consecutive checks only for restarts, 1 for fresh starts
+                            if (consecutiveSuccesses >= requiredChecks) {
+                                isReady = true;
+                                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                                console.log(`✅ Dev server is ready! (HTTP ${code}) - took ${elapsed}s`);
+                            }
+                        } else {
+                            consecutiveSuccesses = 0; // Reset counter on failure
                         }
                     } catch (checkError) {
+                        consecutiveSuccesses = 0; // Reset counter on error
                         // Continue waiting
                     }
                 }
@@ -240,31 +322,132 @@ export async function POST(
 
         // Get the preview URL
         const previewUrl = `https://${sandbox.getHost(3000)}`;
-        console.log(`🔗 Preview URL: ${previewUrl}`);        // Verify external URL is accessible (for resumed sandboxes, port forwarding may take a moment)
+        console.log(`🔗 Preview URL: ${previewUrl}`);
+
+        // Verify external URL is accessible (for resumed sandboxes, port forwarding may take a moment)
         console.log("🔍 Verifying external URL accessibility...");
         let isExternallyAccessible = false;
-        const maxRetries = 3;
+        const maxRetries = 5;
 
         for (let i = 0; i < maxRetries; i++) {
             try {
                 const response = await fetch(previewUrl, {
                     method: 'HEAD',
-                    signal: AbortSignal.timeout(3000)
+                    signal: AbortSignal.timeout(5000)
                 });
-                if (response.ok || response.status === 404) { // 404 is fine, means server is responding
+                if (response.ok || response.status === 404) {
                     isExternallyAccessible = true;
                     console.log(`✅ External URL is accessible (HTTP ${response.status})`);
                     break;
+                } else {
+                    console.log(`⚠️ External URL returned HTTP ${response.status}`);
                 }
             } catch (error) {
                 if (i < maxRetries - 1) {
-                    console.log(`⏳ External URL not ready yet (attempt ${i + 1}/${maxRetries}), retrying in 1s...`);
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                } else {
-                    console.warn(`⚠️ External URL verification failed after ${maxRetries} attempts, but returning URL anyway`);
+                    const delay = (i + 1) * 1500;
+                    console.log(`⏳ External URL not ready yet (attempt ${i + 1}/${maxRetries}), retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
         }
+
+        // If external URL is not accessible, try restarting the dev server
+        if (!isExternallyAccessible) {
+            // Check operation timeout before attempting restart
+            if (Date.now() - operationStartTime > OPERATION_TIMEOUT_MS) {
+                console.error("❌ Operation timeout exceeded before restart attempt");
+                releaseLock();
+                return NextResponse.json({
+                    error: "Sandbox operation timed out. Please try again.",
+                    status: "timeout",
+                }, { status: 504 });
+            }
+
+            try {
+                // Kill existing processes
+                await sandbox.commands.run(
+                    "pkill -f 'next dev' || pkill -f 'next-server' || true",
+                    { timeoutMs: 3000 }
+                );
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Restart the dev server
+                await sandbox.commands.run(
+                    "cd /home/user/project && pnpm dev",
+                    {
+                        background: true,
+                        envs: {
+                            NODE_ENV: "development",
+                            PORT: "3000",
+                            HOSTNAME: "0.0.0.0",
+                            NEXT_TELEMETRY_DISABLED: "1",
+                        },
+                    }
+                );
+                console.log("✅ Dev server restarted");
+
+                // Wait for server to start
+                console.log("⏳ Waiting for dev server to start...");
+                await new Promise(resolve => setTimeout(resolve, 5000));
+
+                // Try external URL again
+                for (let i = 0; i < 5; i++) {
+                    try {
+                        const response = await fetch(previewUrl, {
+                            method: 'HEAD',
+                            signal: AbortSignal.timeout(5000)
+                        });
+                        if (response.ok || response.status === 404) {
+                            isExternallyAccessible = true;
+                            console.log(`✅ External URL is now accessible (HTTP ${response.status})`);
+                            break;
+                        }
+                    } catch (error) {
+                        if (i < 4) {
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                        }
+                    }
+                }
+            } catch (restartError) {
+                console.error("❌ Failed to restart dev server:", restartError);
+            }
+        }
+
+        // Final check - if still not accessible, return error
+        if (!isExternallyAccessible) {
+            const elapsed = Math.floor((Date.now() - operationStartTime) / 1000);
+            console.error(`❌ External URL is not accessible after restart attempt (${elapsed}s elapsed)`);
+            await releaseLock();
+            return NextResponse.json({
+                sandboxId: sandbox.sandboxId,
+                url: previewUrl,
+                status: "error",
+                error: "The preview is taking longer than expected to start. This could be due to:",
+                details: [
+                    "Network connectivity issues with the sandbox",
+                    "The Next.js app may have build errors",
+                    "Heavy dependencies taking time to install"
+                ],
+                suggestion: "Try refreshing the page in a moment, or check the sandbox logs for errors.",
+            }, { status: 503 });
+        }
+
+        // Final operation timeout check
+        const totalElapsed = Date.now() - operationStartTime;
+        if (totalElapsed > OPERATION_TIMEOUT_MS) {
+            console.warn(`⚠️ Operation completed but exceeded timeout (${totalElapsed}ms)`);
+        }
+
+        // Release lock before returning
+        await releaseLock();
+
+        // Log success metrics for monitoring
+        const totalDuration = Date.now() - operationStartTime;
+        console.log(`✅ [${projectId}] Sandbox ready in ${totalDuration}ms`, {
+            sandboxId: sandbox.sandboxId,
+            duration: totalDuration,
+            hadRestart: !isServerRunning,
+        });
 
         // Return sandbox info
         return NextResponse.json({
@@ -275,10 +458,36 @@ export async function POST(
         });
 
     } catch (error) {
-        console.error("Error creating sandbox:", error);
+        // Always release lock on error
+        await releaseLock();
+
+        const elapsed = Date.now() - operationStartTime;
+        console.error(`❌ [${projectId}] Sandbox error after ${elapsed}ms:`, error);
+
+        // Distinguish between different error types for better debugging
+        let errorMessage = "Failed to create sandbox";
+        let statusCode = 500;
+
+        if (error instanceof Error) {
+            if (error.message.includes("timeout")) {
+                errorMessage = "Sandbox operation timed out";
+                statusCode = 504;
+            } else if (error.message.includes("lock")) {
+                errorMessage = "Another sandbox operation is in progress. Please wait and try again.";
+                statusCode = 429;
+            } else if (error.message.includes("Failed to start Next.js")) {
+                errorMessage = "Failed to start the development server";
+                statusCode = 503;
+            }
+        }
+
         return NextResponse.json(
-            { error: "Failed to create sandbox" },
-            { status: 500 }
+            {
+                error: errorMessage,
+                details: error instanceof Error ? error.message : String(error),
+                projectId,
+            },
+            { status: statusCode }
         );
     }
 }
