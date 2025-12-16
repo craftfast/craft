@@ -146,28 +146,45 @@ export function calculateAICost(modelId: string, inputTokens: number, outputToke
     return inputCost + outputCost;
 }
 
-// Infrastructure cost estimates (to be replaced with real API integration)
+// Infrastructure costs - exact provider pricing with zero markup
+// Source: Official pricing pages linked in /pricing
 export const INFRASTRUCTURE_COSTS = {
-    // E2B Sandbox - estimate until real API integration
+    // E2B Sandbox - per second billing (2 vCPU default)
+    // Source: https://e2b.dev/pricing
     sandbox: {
-        perMinute: 0.001, // $0.001 per minute (estimate)
+        perSecond: 0.000028, // $0.000028/s for 2 vCPU (default)
+        perMinute: 0.00168, // $0.000028 * 60 = $0.00168/min
+        perHour: 0.1008, // ~$0.10/hour for 2 vCPU
     },
 
-    // Neon Database - estimate until real API integration
-    database: {
-        storagePerGBMonth: 0.02, // $0.02 per GB/month (estimate)
-        computePerHour: 0.001, // $0.001 per hour (estimate)
+    // Supabase for Platforms - usage-based pricing
+    // Source: https://supabase.com/pricing
+    // Includes: Database, Auth, File Storage (for app files), Edge Functions
+    supabase: {
+        computePerHour: 0.018, // $0.018/hour per instance (pauses after 15 min)
+        computePerMonth: 13, // ~$13/month if always on
+        databaseStoragePerGBMonth: 0.125, // $0.125/GB/month
+        fileStoragePerGBMonth: 0.021, // $0.021/GB/month (app files)
+        egressPerGB: 0.09, // $0.09/GB transferred
+        authPerMAU: 0.00325, // $0.00325/MAU over 50K free
+        edgeFunctionsPerMillion: 2.0, // $2.00/1M invocations
+        realtimeMessagesPerMillion: 2.5, // $2.50/1M messages
+        realtimeConcurrentConnections: 10, // $10/1K connections
     },
 
-    // Cloudflare R2 Storage - estimate until real API integration
-    storage: {
-        perGBMonth: 0.015, // $0.015 per GB/month
-        perMillionOps: 0.36, // $0.36 per million operations
-    },
-
-    // Vercel Deployment - estimate
-    deployment: {
-        perDeploy: 0.01, // $0.01 per deployment (estimate)
+    // Vercel for Platforms - usage-based (Fluid Compute pricing)
+    // Source: https://vercel.com/docs/functions/usage-and-pricing
+    // Pro plan: $20/mo includes 4 hours CPU, 360 GB-hrs memory, 1M invocations
+    vercel: {
+        // Fluid Compute pricing (US-East region, iad1)
+        activeCPUPerHour: 0.128, // $0.128/CPU-hour (only charged during execution)
+        provisionedMemoryPerGBHour: 0.0106, // $0.0106/GB-hour
+        invocationsPerMillion: 0.60, // $0.60/1M invocations
+        // Included with Pro plan ($20/mo)
+        includedCPUHours: 4, // 4 hours Active CPU
+        includedMemoryGBHours: 360, // 360 GB-hrs provisioned memory
+        includedInvocations: 1_000_000, // 1M function invocations
+        // Note: Actual costs passed through at cost via Vercel for Platforms
     },
 } as const;
 

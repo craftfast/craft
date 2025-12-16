@@ -120,21 +120,50 @@ export default function TermsOfService() {
                 <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
                   <p className="font-semibold mb-2">Transparent Pricing</p>
                   <p className="text-sm mb-3">
-                    Craft uses a transparent pay-as-you-go pricing model similar
-                    to OpenRouter. You top up your account balance and only pay
-                    for what you use at exact provider costs.
+                    Craft uses a transparent pay-as-you-go pricing model. You
+                    top up your account balance with a 10% flat platform fee,
+                    then pay exact provider costs for all services with zero
+                    markup.
                   </p>
                   <ul className="space-y-1 text-sm">
                     <li>• No monthly subscription required</li>
                     <li>• Top up your balance starting from $10 minimum</li>
-                    <li>• 10% platform fee applied on top-ups</li>
-                    <li>• Pay exact AI provider costs with zero markup</li>
-                    <li>• Balance never expires</li>
+                    <li>
+                      • <strong>10% flat platform fee</strong> applied on
+                      top-ups (covers payment processing, platform
+                      infrastructure, and support)
+                    </li>
+                    <li>
+                      • <strong>Zero markup</strong> on all provider services
+                    </li>
+                    <li>• Credits valid for 1 year from purchase</li>
                     <li>• Unlimited projects</li>
-                    <li>• All features included</li>
-                    <li>• Live preview environment (E2B sandbox)</li>
-                    <li>• Database integration (Neon PostgreSQL)</li>
-                    <li>• Vercel & GitHub deployment</li>
+                  </ul>
+                </div>
+
+                <div className="bg-stone-50 dark:bg-neutral-900 rounded-xl p-4">
+                  <p className="font-semibold mb-2">What You Pay For</p>
+                  <ul className="space-y-1 text-sm">
+                    <li>
+                      • <strong>AI Models:</strong> Exact provider rates
+                      (Anthropic, OpenAI, Google, xAI) - zero markup
+                    </li>
+                    <li>
+                      • <strong>E2B Sandbox:</strong> Live preview & code
+                      execution at E2B pricing ($0.000028/s for 2 vCPU)
+                    </li>
+                    <li>
+                      • <strong>Supabase Backend:</strong> Database, Auth,
+                      Storage via Supabase for Platforms at actual cost
+                    </li>
+                    <li>
+                      • <strong>Vercel Deployment:</strong> Production hosting
+                      via Vercel for Platforms at actual cost
+                    </li>
+                    <li>
+                      • <strong>Project Storage:</strong> Code files at
+                      Cloudflare R2 pricing ($0.015/GB/month)
+                    </li>
                   </ul>
                 </div>
 
@@ -501,27 +530,32 @@ export default function TermsOfService() {
               </h2>
 
               <h3 className="text-xl font-semibold mb-3">
-                7.1 Your Own Infrastructure
+                7.1 Infrastructure Services (At Cost)
               </h3>
+              <p className="mb-3">
+                We provide the following infrastructure services at exact
+                provider cost with zero markup:
+              </p>
               <ul className="space-y-2">
                 <li>
-                  <strong>Database & Storage:</strong> You connect your own
-                  Supabase account for database and storage. Craft does not
-                  provide or bill for database/storage infrastructure.
+                  <strong>E2B Sandbox:</strong> Code execution and live preview
+                  environments powered by E2B, billed at their published rates.
                 </li>
                 <li>
-                  <strong>Deployment:</strong> You can deploy to your own Vercel
-                  account. Craft facilitates the deployment but does not bill
-                  for hosting.
+                  <strong>Supabase for Platforms:</strong> Database, Auth,
+                  Storage, and Edge Functions provided via Supabase for
+                  Platforms integration, billed at Supabase&apos;s published
+                  rates.
                 </li>
                 <li>
-                  <strong>Responsibility:</strong> You are responsible for
-                  managing and paying for your own Supabase and Vercel accounts
-                  directly with those providers.
+                  <strong>Vercel for Platforms:</strong> Production deployment
+                  and hosting provided via Vercel for Platforms integration,
+                  billed at Vercel&apos;s published rates.
                 </li>
                 <li>
-                  <strong>Storage Limits:</strong> Any storage or usage limits
-                  are determined by your Supabase plan, not Craft.
+                  <strong>AI Models:</strong> Code generation using providers
+                  like Anthropic, OpenAI, Google, and xAI at their exact
+                  published rates.
                 </li>
               </ul>
 
@@ -566,17 +600,68 @@ export default function TermsOfService() {
               </h2>
 
               <p className="mb-3">
-                Craft integrates with third-party services including:
+                Craft integrates with third-party services to provide a complete
+                development experience:
               </p>
               <ul className="space-y-2">
                 <li>
-                  <strong>GitHub:</strong> Repository sync and version control
+                  <strong>GitHub:</strong> Import existing Next.js projects,
+                  sync code, and deploy via GitHub Actions
                 </li>
                 <li>
-                  <strong>Figma:</strong> Design imports
+                  <strong>Figma:</strong> Import designs and convert them to
+                  code using AI
+                </li>
+                <li>
+                  <strong>E2B:</strong> Sandbox execution and live preview
+                  environment
+                </li>
+                <li>
+                  <strong>Supabase:</strong> Database, authentication, storage,
+                  and edge functions
+                </li>
+                <li>
+                  <strong>Vercel:</strong> Production deployment and hosting
                 </li>
                 <li>
                   <strong>Razorpay:</strong> Payment processing
+                </li>
+              </ul>
+
+              <h3 className="text-xl font-semibold mb-3 mt-6">
+                8.1 Project Import
+              </h3>
+              <ul className="space-y-2">
+                <li>
+                  <strong>GitHub Import:</strong> You can import existing
+                  Next.js projects from GitHub that match our supported
+                  templates
+                </li>
+                <li>
+                  <strong>Figma Import:</strong> You can import Figma designs
+                  and use AI to generate code from your designs
+                </li>
+                <li>
+                  You are responsible for ensuring you have the rights to import
+                  and use any content you bring into Craft
+                </li>
+              </ul>
+
+              <h3 className="text-xl font-semibold mb-3 mt-6">
+                8.2 Environment Variables
+              </h3>
+              <ul className="space-y-2">
+                <li>
+                  You can add environment variables via project settings for use
+                  in your applications
+                </li>
+                <li>
+                  Secret values are encrypted at rest and never displayed after
+                  creation
+                </li>
+                <li>
+                  You are responsible for securely managing your API keys and
+                  secrets
                 </li>
               </ul>
 

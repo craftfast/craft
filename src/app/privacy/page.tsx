@@ -424,35 +424,38 @@ export default function PrivacyPolicy() {
               </p>
 
               <h3 className="text-xl font-semibold mb-3 mt-6">
-                9.1 Infrastructure Services
+                9.1 Infrastructure Services (At Cost)
               </h3>
               <p className="mb-3">
-                Craft integrates with third-party services for infrastructure
-                needs:
+                Craft provides the following infrastructure services at exact
+                provider cost with zero markup:
               </p>
               <ul className="space-y-2">
                 <li>
-                  <strong>Supabase:</strong> When you connect your Supabase
-                  account, your application databases and storage are managed
-                  directly by Supabase in your account. Craft accesses this data
-                  only as necessary to provide development features. Your
-                  database content is subject to Supabase&apos;s privacy policy,
-                  not stored on Craft servers.
+                  <strong>E2B Sandbox:</strong> Code execution and live preview
+                  environments. Your code runs in isolated E2B sandboxes subject
+                  to E2B&apos;s privacy policy.
                 </li>
                 <li>
-                  <strong>Vercel:</strong> When you connect your Vercel account
-                  for deployment, your deployed applications run on
-                  Vercel&apos;s infrastructure. Deployment logs and runtime data
-                  are managed by Vercel according to their privacy policy.
+                  <strong>Supabase for Platforms:</strong> Database,
+                  authentication, storage, and edge functions. Your application
+                  data is managed via Supabase for Platforms integration and
+                  subject to Supabase&apos;s privacy policy.
                 </li>
                 <li>
-                  <strong>GitHub:</strong> Code synchronization and version
-                  control data are managed by GitHub according to their privacy
-                  policy.
+                  <strong>Vercel for Platforms:</strong> Production deployment
+                  and hosting. Your deployed applications run on Vercel&apos;s
+                  infrastructure subject to Vercel&apos;s privacy policy.
                 </li>
                 <li>
-                  <strong>Figma:</strong> Design import and sync data are
-                  managed by Figma according to their privacy policy.
+                  <strong>GitHub:</strong> Code synchronization, version
+                  control, and project import. Your repositories are managed by
+                  GitHub according to their privacy policy.
+                </li>
+                <li>
+                  <strong>Figma:</strong> Design import and conversion to code.
+                  Your designs are accessed via Figma&apos;s API according to
+                  their privacy policy.
                 </li>
               </ul>
               <p className="mt-3">

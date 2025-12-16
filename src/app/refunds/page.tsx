@@ -303,63 +303,66 @@ export default function RefundPolicy() {
               </h2>
 
               <h3 className="text-xl font-semibold mb-3">
-                5.1 Your Own Infrastructure
+                5.1 Infrastructure Services (At Cost)
               </h3>
               <p className="mb-3">
-                Craft is a development platform that integrates with third-party
-                services:
+                Craft provides infrastructure services at exact provider cost
+                with zero markup. Your balance covers:
               </p>
               <ul className="space-y-2">
                 <li>
-                  <strong>Supabase:</strong> Database and storage are provided
-                  through your own Supabase account
+                  <strong>AI Models:</strong> Code generation using providers
+                  like Anthropic, OpenAI, Google, and xAI
                 </li>
                 <li>
-                  <strong>Vercel:</strong> Deployment services through your own
-                  Vercel account
+                  <strong>E2B Sandbox:</strong> Code execution and live preview
+                  environments
                 </li>
                 <li>
-                  <strong>GitHub:</strong> Code synchronization through your own
-                  GitHub account
+                  <strong>Supabase Backend:</strong> Database, Auth, Storage,
+                  and Edge Functions via Supabase for Platforms
                 </li>
                 <li>
-                  <strong>Figma:</strong> Design imports through your own Figma
-                  account
+                  <strong>Vercel Deployment:</strong> Production hosting via
+                  Vercel for Platforms
+                </li>
+                <li>
+                  <strong>Project Storage:</strong> Code files and assets on
+                  Cloudflare R2
                 </li>
               </ul>
 
               <h3 className="text-xl font-semibold mb-3 mt-6">
-                5.2 Third-Party Billing
+                5.2 Billing Model
               </h3>
               <ul className="space-y-2">
                 <li>
-                  Craft does not bill for database, storage, or deployment
-                  infrastructure
+                  <strong>10% Platform Fee:</strong> Applied on top-ups to cover
+                  payment processing, platform infrastructure, and support
                 </li>
                 <li>
-                  Any charges from Neon, Vercel, GitHub, or E2B are billed
-                  directly by those providers if you use their paid tiers
+                  <strong>Zero Markup:</strong> All provider services (AI,
+                  sandbox, database, deployment) at exact cost
                 </li>
                 <li>
-                  Refunds for third-party services must be requested directly
-                  from those providers
+                  Usage is tracked in real-time and visible in your Usage
+                  dashboard
                 </li>
-                <li>
-                  Craft balance covers AI development assistance and platform
-                  features
-                </li>
+                <li>Credits are valid for 1 year from purchase date</li>
               </ul>
 
               <h3 className="text-xl font-semibold mb-3 mt-6">
-                5.3 Integration Support
+                5.3 Third-Party Integrations
               </h3>
               <ul className="space-y-2">
+                <li>
+                  <strong>GitHub:</strong> Import Next.js projects and sync code
+                </li>
+                <li>
+                  <strong>Figma:</strong> Import designs and convert to code
+                </li>
                 <li>
                   We provide support for connecting and configuring integrations
-                </li>
-                <li>
-                  We are not responsible for service availability or billing of
-                  third-party providers
                 </li>
                 <li>
                   Issues with third-party services should be reported to the
