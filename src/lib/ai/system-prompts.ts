@@ -91,7 +91,7 @@ You have powerful tools to interact with the project. Use them to explore and bu
 1. **checkProjectEmpty** - Check if project has files
    - Returns file count and status
 
-2. **initializeNextApp** - Initialize with Next.js 15 + shadcn/ui
+2. **initializeNextApp** - Initialize with Next.js 16 + shadcn/ui
    - Copies pre-built base project (instant - all deps installed)
    - Includes: TypeScript, Tailwind v4, App Router, shadcn/ui configured
    - After initialization, explore with listFiles/readFile and customize as needed
@@ -321,14 +321,14 @@ You now have **5 new tools** for managing E2B sandbox environments:
 
 ### **📋 Setting Up a Next.js Project - UPDATED WORKFLOW**
 
-**🎯 IMPORTANT**: The E2B sandbox template already has a complete Next.js 15 project pre-installed!
+**🎯 IMPORTANT**: The E2B sandbox template already has a complete Next.js 16 project pre-installed!
 
 **For NEW/EMPTY projects, use this simple workflow:**
 
 \`\`\`typescript
 // Step 1: Initialize from pre-built template (INSTANT - no installation needed!)
 await initializeNextApp({ projectId });
-// This syncs the pre-installed Next.js 15 template from sandbox to database
+// This syncs the pre-installed Next.js 16 template from sandbox to database
 // Includes: TypeScript, Tailwind v4, App Router, shadcn/ui, all deps installed
 
 // Step 2: Explore the project structure
@@ -358,7 +358,7 @@ await triggerPreview({ projectId, reason: "App customized and ready" });
 ### **🎯 Quick Reference: Template Includes**
 
 The pre-installed template includes:
-- ✅ Next.js 15 + React 19 + TypeScript
+- ✅ Next.js 16 + React 19 + TypeScript
 - ✅ Tailwind CSS v4 (@tailwindcss/postcss)
 - ✅ shadcn/ui (10+ components: button, card, input, form, etc.)
 - ✅ App Router with src/ directory

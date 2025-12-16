@@ -16,7 +16,7 @@ config();
 async function buildProdTemplate() {
     console.log("🏗️  Building Craft E2B template for production...");
     console.log(`📦 Template: craft-next`);
-    console.log(`📝 Description: Craft Next.js 15 + shadcn/ui base project (pre-built)\n`);
+    console.log(`📝 Description: Craft Next.js 16 + shadcn/ui base project (pre-built)\n`);
 
     // Check for E2B API key
     const apiKey = process.env.E2B_API_KEY;

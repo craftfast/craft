@@ -337,7 +337,7 @@ export function buildCraftTemplate() {
             // 9. Create a helpful README template
             "echo '# Craft Project' > README.md",
             "echo '' >> README.md",
-            "echo 'Built with Craft AI - Next.js 15 + shadcn/ui + Prisma + Better Auth' >> README.md",
+            "echo 'Built with Craft AI - Next.js 16 + shadcn/ui + Prisma + Better Auth' >> README.md",
             "echo '' >> README.md",
             "echo '## Quick Start' >> README.md",
             "echo '' >> README.md",
@@ -358,7 +358,7 @@ export function buildCraftTemplate() {
             "echo '' >> README.md",
             "echo '## Tech Stack' >> README.md",
             "echo '' >> README.md",
-            "echo '- Next.js 15 + React 19' >> README.md",
+            "echo '- Next.js 16 + React 19' >> README.md",
             "echo '- TypeScript' >> README.md",
             "echo '- Tailwind CSS v4' >> README.md",
             "echo '- shadcn/ui components + Sonner toasts' >> README.md",
@@ -492,7 +492,7 @@ export function buildCraftTemplate() {
  */
 export const craftTemplateMetadata = {
     name: "craft-next",
-    description: "Complete SaaS starter: Next.js 15 + Auth + DB + Email + Storage + AI + Payments + Analytics - Ship in minutes!",
+    description: "Complete SaaS starter: Next.js 16 + Auth + DB + Email + Storage + AI + Payments + Analytics - Ship in minutes!",
     version: "2.0.0",
     tags: [
         "nodejs", "pnpm", "nextjs", "react", "typescript",

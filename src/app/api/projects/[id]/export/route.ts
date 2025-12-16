@@ -134,14 +134,14 @@ function generateProjectFiles(
                 lint: "next lint"
             },
             dependencies: {
-                "next": "15.0.0",
-                "react": "19.0.0",
-                "react-dom": "19.0.0"
+                "next": "16.0.10",
+                "react": "19.2.3",
+                "react-dom": "19.2.3"
             },
             devDependencies: {
                 "@types/node": "^20",
-                "@types/react": "^18",
-                "@types/react-dom": "^18",
+                "@types/react": "^19",
+                "@types/react-dom": "^19",
                 "typescript": "^5",
                 "@tailwindcss/postcss": "^4",
                 "tailwindcss": "^4"
@@ -180,7 +180,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Tech Stack
 
-- Next.js 15
+- Next.js 16
 - React 19
 - TypeScript
 - Tailwind CSS v4

@@ -982,9 +982,9 @@ export const checkProjectEmpty = tool({
 });
 
 export const initializeNextApp = tool({
-    description: `Initialize project by syncing Next.js 15 template files from E2B sandbox to database.
+    description: `Initialize project by syncing Next.js 16 template files from E2B sandbox to database.
 
-This reads all files from the E2B sandbox (which has Next.js pre-installed) and saves them to the database. The template includes Next.js 15, TypeScript, Tailwind CSS v4, and App Router.
+This reads all files from the E2B sandbox (which has Next.js pre-installed) and saves them to the database. The template includes Next.js 16, TypeScript, Tailwind CSS v4, and App Router.
 
 After initialization, you can explore with listFiles() and readFile(), then customize files with generateFiles() to build what the user requested.
 
