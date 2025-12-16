@@ -55,13 +55,21 @@ class DistributedCache<T> {
 
     async clear(): Promise<void> {
         try {
-            // Delete all keys with this prefix
+            // Delete all keys with this prefix using SCAN (production-safe)
             const pattern = `${this.prefix}:*`;
-            const keys = await redis.keys(pattern);
+            let cursor = "0";
 
-            if (keys.length > 0) {
-                await redis.del(...keys);
-            }
+            do {
+                const [nextCursor, foundKeys] = await redis.scan(cursor, {
+                    match: pattern,
+                    count: 100,
+                });
+                cursor = nextCursor;
+
+                if (Array.isArray(foundKeys) && foundKeys.length > 0) {
+                    await redis.del(...foundKeys);
+                }
+            } while (cursor !== "0");
         } catch (error) {
             console.error("Redis cache clear error:", error);
         }
@@ -71,8 +79,22 @@ class DistributedCache<T> {
     async size(): Promise<number> {
         try {
             const pattern = `${this.prefix}:*`;
-            const keys = await redis.keys(pattern);
-            return keys.length;
+            let cursor = "0";
+            let count = 0;
+
+            do {
+                const [nextCursor, foundKeys] = await redis.scan(cursor, {
+                    match: pattern,
+                    count: 100,
+                });
+                cursor = nextCursor;
+
+                if (Array.isArray(foundKeys)) {
+                    count += foundKeys.length;
+                }
+            } while (cursor !== "0");
+
+            return count;
         } catch (error) {
             console.error("Redis cache size error:", error);
             return 0;

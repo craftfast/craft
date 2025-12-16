@@ -22,36 +22,36 @@ export async function POST(
     const operationStartTime = Date.now();
     const OPERATION_TIMEOUT_MS = 90000; // 90 seconds max
 
-    // Acquire Redis distributed lock to prevent concurrent operations on the same sandbox
-    // This works across multiple Vercel instances
+    // Check authentication first (before acquiring lock)
+    const session = await getSession();
+
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify project ownership (before acquiring lock)
+    const project = await prisma.project.findFirst({
+        where: {
+            id: projectId,
+            userId: session.user.id,
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    if (!project) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    // Acquire Redis distributed lock AFTER auth/ownership checks
+    // This prevents holding locks for unauthorized or invalid requests
     const releaseLock = await acquireRedisLock(`sandbox:lock:${projectId}`, {
         ttlMs: 90000,      // Lock expires after 90s (matches operation timeout)
         timeoutMs: 60000,  // Wait up to 60s to acquire lock
     });
 
     try {
-        const session = await getSession();
-
-        if (!session?.user?.id) {
-            await releaseLock();
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        // Verify project ownership
-        const project = await prisma.project.findFirst({
-            where: {
-                id: projectId,
-                userId: session.user.id,
-            },
-            select: {
-                id: true,
-            },
-        });
-
-        if (!project) {
-            await releaseLock();
-            return NextResponse.json({ error: "Project not found" }, { status: 404 });
-        }
 
         // Use sandbox manager - will resume paused sandbox if exists, or create new one
         console.log(`� Getting or creating sandbox for project: ${projectId}`);
@@ -272,7 +272,7 @@ export async function POST(
                 const startTime = Date.now();
                 let isReady = false;
                 let consecutiveSuccesses = 0;
-                const requiredChecks = envFileChanged ? 2 : 1; // 2 checks for restart, 1 for fresh start
+                const requiredChecks = 2; // Always require 2 consecutive checks for reliability
 
                 while (Date.now() - startTime < 40000 && !isReady) {
                     await new Promise(resolve => setTimeout(resolve, 2000)); // Check every 2s
@@ -288,7 +288,6 @@ export async function POST(
                             consecutiveSuccesses++;
                             console.log(`✓ Server responding (HTTP ${code}) - ${consecutiveSuccesses}/${requiredChecks} checks`);
 
-                            // Require 2 consecutive checks only for restarts, 1 for fresh starts
                             if (consecutiveSuccesses >= requiredChecks) {
                                 isReady = true;
                                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -356,7 +355,11 @@ export async function POST(
             // Check operation timeout before attempting restart
             if (Date.now() - operationStartTime > OPERATION_TIMEOUT_MS) {
                 console.error("❌ Operation timeout exceeded before restart attempt");
-                releaseLock();
+                try {
+                    await releaseLock();
+                } catch (lockError) {
+                    console.error("⚠️ Failed to release lock in timeout path:", lockError);
+                }
                 return NextResponse.json({
                     error: "Sandbox operation timed out. Please try again.",
                     status: "timeout",
@@ -417,7 +420,11 @@ export async function POST(
         if (!isExternallyAccessible) {
             const elapsed = Math.floor((Date.now() - operationStartTime) / 1000);
             console.error(`❌ External URL is not accessible after restart attempt (${elapsed}s elapsed)`);
-            await releaseLock();
+            try {
+                await releaseLock();
+            } catch (lockError) {
+                console.error("⚠️ Failed to release lock in inaccessible URL path:", lockError);
+            }
             return NextResponse.json({
                 sandboxId: sandbox.sandboxId,
                 url: previewUrl,
@@ -439,7 +446,11 @@ export async function POST(
         }
 
         // Release lock before returning
-        await releaseLock();
+        try {
+            await releaseLock();
+        } catch (lockError) {
+            console.error("⚠️ Failed to release lock in success path:", lockError);
+        }
 
         // Log success metrics for monitoring
         const totalDuration = Date.now() - operationStartTime;
@@ -459,7 +470,11 @@ export async function POST(
 
     } catch (error) {
         // Always release lock on error
-        await releaseLock();
+        try {
+            await releaseLock();
+        } catch (lockError) {
+            console.error("⚠️ Failed to release lock in error catch block:", lockError);
+        }
 
         const elapsed = Date.now() - operationStartTime;
         console.error(`❌ [${projectId}] Sandbox error after ${elapsed}ms:`, error);
