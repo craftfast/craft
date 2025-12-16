@@ -488,7 +488,7 @@ export default function PricingPage() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-700 rounded-lg flex items-center justify-center shrink-0">
                       <svg
                         className="w-4 h-4 text-neutral-600 dark:text-neutral-300"
                         fill="currentColor"
@@ -507,7 +507,7 @@ export default function PricingPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-700 rounded-lg flex items-center justify-center shrink-0">
                       <svg
                         className="w-4 h-4 text-neutral-600 dark:text-neutral-300"
                         viewBox="0 0 38 57"
@@ -530,7 +530,7 @@ export default function PricingPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-700 rounded-lg flex items-center justify-center shrink-0">
                       <svg
                         className="w-4 h-4 text-neutral-600 dark:text-neutral-300"
                         fill="none"
@@ -555,7 +555,7 @@ export default function PricingPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-700 rounded-lg flex items-center justify-center shrink-0">
                       <svg
                         className="w-4 h-4 text-neutral-600 dark:text-neutral-300"
                         fill="none"
@@ -585,7 +585,7 @@ export default function PricingPage() {
 
             {/* Pricing Model Explanation */}
             <div className="mb-20">
-              <div className="bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-8">
+              <div className="bg-linear-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-8">
                 <div className="max-w-3xl mx-auto text-center mb-8">
                   <h2 className="text-2xl font-bold text-foreground mb-4">
                     Our Simple Pricing Model
@@ -640,7 +640,7 @@ export default function PricingPage() {
                 {/* GST Note for Indian customers */}
                 <div className="flex items-start gap-2 p-3 bg-neutral-200/50 dark:bg-neutral-700/50 rounded-lg">
                   <svg
-                    className="w-5 h-5 text-neutral-600 dark:text-neutral-400 flex-shrink-0 mt-0.5"
+                    className="w-5 h-5 text-neutral-600 dark:text-neutral-400 shrink-0 mt-0.5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
