@@ -122,25 +122,37 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const iframeLoadAttempts = useRef(0);
     const maxIframeRetries = 3;
+    const iframeLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Ref-based lock to prevent concurrent sandbox starts (state updates are async)
     const isStartingSandbox = useRef(false);
 
     // Handle iframe load retry
-    const retryIframeLoad = useCallback(() => {
-      if (iframeLoadAttempts.current < maxIframeRetries && previewUrl) {
-        iframeLoadAttempts.current += 1;
-        console.log(
-          `🔄 Retrying iframe load (attempt ${iframeLoadAttempts.current}/${maxIframeRetries})...`
-        );
+    const retryIframeLoad = useCallback(
+      (reason: string) => {
+        if (iframeLoadAttempts.current < maxIframeRetries && previewUrl) {
+          iframeLoadAttempts.current += 1;
+          console.log(
+            `🔄 Retrying iframe load due to ${reason} (attempt ${iframeLoadAttempts.current}/${maxIframeRetries})...`
+          );
 
-        // Force re-render by clearing and re-setting iframe URL
-        setIframeUrl("");
-        setTimeout(() => {
-          setIframeUrl(previewUrl + currentRoute);
-        }, 1000);
-      }
-    }, [previewUrl, currentRoute]);
+          // Clear any existing timeout
+          if (iframeLoadTimeoutRef.current) {
+            clearTimeout(iframeLoadTimeoutRef.current);
+            iframeLoadTimeoutRef.current = null;
+          }
+
+          // Force re-render by clearing and re-setting iframe URL
+          setIframeUrl("");
+          setTimeout(() => {
+            setIframeUrl(previewUrl + currentRoute);
+          }, 1000);
+        } else if (iframeLoadAttempts.current >= maxIframeRetries) {
+          console.error(`❌ Max iframe retries (${maxIframeRetries}) exceeded`);
+        }
+      },
+      [previewUrl, currentRoute]
+    );
 
     // Reset retry counter when sandbox status changes
     useEffect(() => {
@@ -148,6 +160,30 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
         iframeLoadAttempts.current = 0;
       }
     }, [sandboxStatus]);
+
+    // Set timeout for iframe load (triggers retry if not loaded in time)
+    useEffect(() => {
+      if (iframeUrl && previewUrl) {
+        // Clear any existing timeout
+        if (iframeLoadTimeoutRef.current) {
+          clearTimeout(iframeLoadTimeoutRef.current);
+        }
+
+        // Set 30s timeout for iframe to load
+        iframeLoadTimeoutRef.current = setTimeout(() => {
+          console.warn("⏱️ Iframe load timeout - no onLoad event received");
+          retryIframeLoad("timeout");
+        }, 30000);
+      }
+
+      // Cleanup timeout on unmount or URL change
+      return () => {
+        if (iframeLoadTimeoutRef.current) {
+          clearTimeout(iframeLoadTimeoutRef.current);
+          iframeLoadTimeoutRef.current = null;
+        }
+      };
+    }, [iframeUrl, previewUrl, retryIframeLoad]);
 
     // Capture screenshot when preview loads successfully
     // Only capture if: 1) No existing preview image, OR 2) Project version changed from last captured version
@@ -1302,33 +1338,30 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
                     onLoad={(e) => {
                       console.log("✅ Iframe loaded successfully!");
 
-                      // Check if iframe loaded a blank page or error
-                      // Due to cross-origin restrictions, we can't check content directly
-                      // But we can use a timeout to detect if the page is blank
+                      // Clear any pending timeout
+                      if (iframeLoadTimeoutRef.current) {
+                        clearTimeout(iframeLoadTimeoutRef.current);
+                        iframeLoadTimeoutRef.current = null;
+                      }
+
+                      // Reset retry counter on successful load
+                      iframeLoadAttempts.current = 0;
+
+                      // Wait for iframe content to render before capturing screenshot
+                      // Note: Due to cross-origin restrictions, we cannot verify content directly
                       setTimeout(() => {
-                        try {
-                          // Try to access iframe's URL to verify it loaded properly
-                          const iframe = e.target as HTMLIFrameElement;
-                          // If we can check contentWindow location without error, it loaded
-                          if (iframe.contentWindow) {
-                            console.log("✅ Iframe content verified");
-                            // Reset retry counter on success
-                            iframeLoadAttempts.current = 0;
-                          }
-                        } catch (err) {
-                          // Cross-origin error is expected for E2B sandbox - this is fine
-                          console.log(
-                            "ℹ️ Iframe loaded (cross-origin, content unverifiable)"
-                          );
-                        }
-                        // Capture screenshot on successful load
                         captureScreenshot();
                       }, 2000);
                     }}
                     onError={(e) => {
                       console.error("❌ Iframe load error:", e);
+                      // Clear timeout on error
+                      if (iframeLoadTimeoutRef.current) {
+                        clearTimeout(iframeLoadTimeoutRef.current);
+                        iframeLoadTimeoutRef.current = null;
+                      }
                       // Retry loading if we haven't exceeded max attempts
-                      retryIframeLoad();
+                      retryIframeLoad("load error");
                     }}
                   />
                 </div>

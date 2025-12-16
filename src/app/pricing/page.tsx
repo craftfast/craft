@@ -1349,7 +1349,7 @@ export default function PricingPage() {
                         {faq.question}
                       </h3>
                       <svg
-                        className="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform duration-200 flex-shrink-0"
+                        className="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform duration-200 shrink-0"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -1373,7 +1373,7 @@ export default function PricingPage() {
             </div>
 
             {/* CTA Section */}
-            <div className="bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-8 sm:p-12 text-center">
+            <div className="bg-linear-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-8 sm:p-12 text-center">
               <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
                 Ready to start building?
               </h2>

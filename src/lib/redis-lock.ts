@@ -17,6 +17,8 @@ interface RedisLockOptions {
     timeoutMs?: number;
     /** Interval between retry attempts in milliseconds (default: 500ms) */
     retryIntervalMs?: number;
+    /** If true, throw error when Redis is unavailable instead of falling back (default: false) */
+    requireLock?: boolean;
 }
 
 /**
@@ -43,7 +45,8 @@ export async function acquireRedisLock(
     const {
         ttlMs = 60000,          // Lock expires after 60s (prevents deadlocks)
         timeoutMs = 60000,      // Wait up to 60s to acquire lock
-        retryIntervalMs = 500   // Check every 500ms
+        retryIntervalMs = 500,  // Check every 500ms
+        requireLock = false     // If true, fail instead of fallback
     } = options;
 
     const lockValue = `${Date.now()}-${Math.random()}`; // Unique lock value
@@ -96,11 +99,19 @@ export async function acquireRedisLock(
         } catch (error) {
             console.error(`❌ Error acquiring lock ${lockKey}:`, error);
 
+            // If requireLock is true, throw error instead of falling back
+            if (requireLock) {
+                throw new Error(`Failed to acquire required lock "${lockKey}" - Redis unavailable`);
+            }
+
             // If Redis is unavailable, fall back to allowing the operation
-            // (better to risk race condition than to block all operations)
-            console.warn(`⚠️ Redis unavailable for locking - proceeding without lock`);
+            // WARNING: This creates a race condition risk - operations may execute concurrently
+            console.warn(`⚠️ [CRITICAL] Redis unavailable for lock "${lockKey}" - proceeding WITHOUT distributed lock!`);
+            console.warn(`⚠️ [CRITICAL] Resource: ${lockKey} - Race conditions possible across multiple Vercel instances`);
+            console.warn(`⚠️ [CRITICAL] Monitor for duplicate operations or data inconsistencies`);
+
             return async () => {
-                console.log(`⚠️ No-op lock release (Redis was unavailable)`);
+                console.log(`⚠️ No-op lock release (Redis was unavailable for: ${lockKey})`);
             };
         }
     }
@@ -115,9 +126,20 @@ export { checkRedisHealth as isRedisAvailable } from "./redis-client";
  */
 export async function getActiveLocks(pattern: string = "*"): Promise<string[]> {
     try {
-        // Note: KEYS command can be slow on large databases
-        // In production, consider using SCAN instead
-        const keys = await redis.keys(pattern);
+        // Use SCAN to iterate over keys matching the pattern (production-safe)
+        let cursor = "0";
+        let keys: string[] = [];
+        do {
+            // SCAN cursor MATCH pattern COUNT 100
+            const [nextCursor, foundKeys] = await redis.scan(cursor, {
+                match: pattern,
+                count: 100,
+            });
+            cursor = nextCursor;
+            if (Array.isArray(foundKeys)) {
+                keys.push(...foundKeys);
+            }
+        } while (cursor !== "0");
         return keys;
     } catch (error) {
         console.error("Error fetching active locks:", error);

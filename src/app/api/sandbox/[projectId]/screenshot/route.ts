@@ -128,7 +128,7 @@ export async function POST(
                     {
                         onStdout: (data: string) => {
                             // Filter out base64 data from logs (too verbose)
-                            if (!data.includes('SCREENSHOT_START') && !data.includes('SCREENSHOT_END') && data.length < 200) {
+                            if (!data.includes('SCREENSHOT_START') && !data.includes('SCREENSHOT_END')) {
                                 console.log(`[Screenshot] ${data}`);
                             }
                         },
@@ -154,10 +154,19 @@ export async function POST(
 
                 console.log(`✅ Screenshot captured (${(buffer.length / 1024).toFixed(2)} KB)`);
 
-                // Kill the screenshot sandbox immediately
-                await sandbox.kill();
-                if (!isProduction) {
-                    console.log(`🗑️ Screenshot sandbox killed: ${sandbox.sandboxId}`);
+                // Kill the screenshot sandbox immediately, with timeout and error handling
+                try {
+                    const killPromise = sandbox.kill();
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Sandbox kill timed out after 10s")), 10000)
+                    );
+                    await Promise.race([killPromise, timeoutPromise]);
+                    if (!isProduction) {
+                        console.log(`🗑️ Screenshot sandbox killed: ${sandbox.sandboxId}`);
+                    }
+                } catch (killError) {
+                    console.error(`⚠️ Failed to kill screenshot sandbox (${sandbox.sandboxId}):`, killError);
+                    // Continue anyway - screenshot was captured successfully
                 }
 
             } catch (error) {

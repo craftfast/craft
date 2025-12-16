@@ -81,8 +81,9 @@ async function testRedisLock() {
             await acquireRedisLock(timeoutLockKey, { ttlMs: 5000, timeoutMs: 2000 });
             console.error("❌ Should have timed out but didn't");
         } catch (error) {
+            const elapsed = Date.now() - startTime;
             if (error instanceof Error && error.message.includes("timeout")) {
-                console.log("✅ Lock correctly timed out after 2s");
+                console.log(`✅ Lock correctly timed out after ${elapsed}ms (expected ~2000ms)`);
             } else {
                 console.error("❌ Unexpected error:", error);
             }

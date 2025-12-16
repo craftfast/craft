@@ -56,10 +56,14 @@ export function clearToolContext() {
 
 /**
  * Register a specific tool call with context (Redis-backed)
+ * Key structure: craft:tool-context:{sessionId}:{toolCallId}
+ * This allows efficient cleanup by session without N+1 queries
  */
 export async function registerToolCall(toolCallId: string, context: ToolExecutionContext): Promise<void> {
     try {
-        const key = `${TOOL_CONTEXT_PREFIX}:${toolCallId}`;
+        // Include sessionId in key for efficient pattern-based deletion
+        const sessionId = context.sessionId || 'unknown';
+        const key = `${TOOL_CONTEXT_PREFIX}:${sessionId}:${toolCallId}`;
 
         // Store only serializable data in Redis
         const serializable: SerializableToolContext = {
@@ -77,12 +81,21 @@ export async function registerToolCall(toolCallId: string, context: ToolExecutio
 
 /**
  * Get context for a specific tool call (from Redis)
+ * Note: Since we don't know the sessionId here, we need to scan
+ * This is only called rarely (for debugging/monitoring)
  */
 export async function getToolCallContext(toolCallId: string): Promise<SerializableToolContext | null> {
     try {
-        const key = `${TOOL_CONTEXT_PREFIX}:${toolCallId}`;
-        const data = await redis.get<string>(key);
+        // Search for the key across all sessions
+        const pattern = `${TOOL_CONTEXT_PREFIX}:*:${toolCallId}`;
+        const keys = await redis.keys(pattern);
 
+        if (keys.length === 0) {
+            return null;
+        }
+
+        // Get the first matching key (should only be one)
+        const data = await redis.get<string>(keys[0]);
         if (!data) {
             return null;
         }
@@ -96,11 +109,17 @@ export async function getToolCallContext(toolCallId: string): Promise<Serializab
 
 /**
  * Unregister a tool call context (from Redis)
+ * Note: Since we don't know the sessionId here, we need to scan
  */
 export async function unregisterToolCall(toolCallId: string): Promise<void> {
     try {
-        const key = `${TOOL_CONTEXT_PREFIX}:${toolCallId}`;
-        await redis.del(key);
+        // Search for the key across all sessions
+        const pattern = `${TOOL_CONTEXT_PREFIX}:*:${toolCallId}`;
+        const keys = await redis.keys(pattern);
+
+        if (keys.length > 0) {
+            await redis.del(...keys);
+        }
     } catch (error) {
         console.error(`Failed to unregister tool context for ${toolCallId}:`, error);
     }
@@ -108,29 +127,21 @@ export async function unregisterToolCall(toolCallId: string): Promise<void> {
 
 /**
  * Clean up old tool contexts (call after stream completes)
+ * Efficiently deletes all contexts for a session using pattern matching
  */
 export async function cleanupToolContexts(sessionId?: string): Promise<void> {
     currentContext = null;
 
     if (sessionId) {
         try {
-            // Clean up all tool contexts for this session
-            const pattern = `${TOOL_CONTEXT_PREFIX}:*`;
+            // Clean up all tool contexts for this session using pattern matching
+            // Key structure: craft:tool-context:{sessionId}:{toolCallId}
+            const pattern = `${TOOL_CONTEXT_PREFIX}:${sessionId}:*`;
             const keys = await redis.keys(pattern);
 
-            const keysToDelete: string[] = [];
-            for (const key of keys) {
-                const data = await redis.get<string>(key);
-                if (data) {
-                    const context = JSON.parse(data) as SerializableToolContext;
-                    if (context.sessionId === sessionId) {
-                        keysToDelete.push(key);
-                    }
-                }
-            }
-
-            if (keysToDelete.length > 0) {
-                await redis.del(...keysToDelete);
+            if (keys.length > 0) {
+                await redis.del(...keys);
+                console.log(`✅ Cleaned up ${keys.length} tool contexts for session ${sessionId}`);
             }
         } catch (error) {
             console.error("Failed to cleanup tool contexts:", error);

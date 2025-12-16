@@ -28,17 +28,23 @@ export const revalidate = 86400; // 24 hours
 const STATS_CACHE_PREFIX = REDIS_PREFIXES.STATS_CACHE;
 const STATS_CACHE_TTL = REDIS_TTL.LONG;
 
-// Create rate limiter conditionally (check at runtime)
+// Create and cache the rate limiter instance at module scope
+let publicRateLimiter: Ratelimit | null | undefined = undefined;
 async function getPublicRateLimiter() {
+    if (publicRateLimiter !== undefined) {
+        return publicRateLimiter;
+    }
     if (await isRedisConfigured()) {
-        return new Ratelimit({
+        publicRateLimiter = new Ratelimit({
             redis,
             limiter: Ratelimit.slidingWindow(10, "1 m"),
             analytics: true,
             prefix: REDIS_PREFIXES.RATE_LIMIT_PUBLIC,
         });
+    } else {
+        publicRateLimiter = null;
     }
-    return null;
+    return publicRateLimiter;
 }
 
 // Valid period values (whitelist approach)
