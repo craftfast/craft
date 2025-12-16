@@ -18,11 +18,6 @@
  * - User attribution via distinct ID
  */
 
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { createOpenAI } from "@ai-sdk/openai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createXai } from "@ai-sdk/xai";
 import { generateText, streamText, stepCountIs } from "ai";
 import { modelService, DEFAULT_MODEL_IDS, type ModelProvider } from "@/lib/models";
 import { tools } from "@/lib/ai/tools";
@@ -32,28 +27,7 @@ import { setToolContext, clearToolContext } from "@/lib/ai/tool-context";
 import { prisma } from "@/lib/db";
 import { calculateUsageCost, formatCostBreakdown, type AIUsage } from "@/lib/ai/usage-cost-calculator";
 import { getTracedModel } from "@/lib/posthog-server";
-
-// Create AI provider clients
-// Provider selection is handled dynamically based on model configuration
-const openrouter = createOpenRouter({
-    apiKey: process.env.OPENROUTER_API_KEY || "",
-});
-
-const anthropic = createAnthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY || "",
-});
-
-const openai = createOpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "",
-});
-
-const google = createGoogleGenerativeAI({
-    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || "",
-});
-
-const xai = createXai({
-    apiKey: process.env.XAI_API_KEY || "",
-});
+import { providerRegistry, type ProviderType } from "@/lib/ai/providers";
 
 // ============================================================================
 // CODING AGENT
@@ -140,28 +114,23 @@ NOT requiring web search:
         // Use orchestrator model from modelService (system-only model)
         const orchestratorModelId = await modelService.getOrchestratorModel();
 
-        let provider, modelPath, providerType;
+        let modelPath, providerType;
         let modelInstance;
         let useOpenRouterFallback = false;
 
         try {
-            ({ provider, modelPath, providerType } = await getModelProvider(orchestratorModelId, useOpenRouterFallback));
+            ({ modelPath, providerType } = await getModelProvider(orchestratorModelId, useOpenRouterFallback));
 
-            switch (providerType) {
-                case "x-ai":
-                    modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
-                    break;
-                case "openrouter":
-                    modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
-                    break;
-                default:
-                    throw new Error(`Unsupported provider type for orchestrator: ${providerType}`);
+            if (providerType !== "x-ai" && providerType !== "openrouter") {
+                throw new Error(`Unsupported provider type for orchestrator: ${providerType}`);
             }
+
+            modelInstance = getModelInstance(providerType, modelPath);
         } catch (directProviderError) {
             console.warn(`⚠️ Direct provider failed for requirement detection, falling back to OpenRouter:`, directProviderError);
             useOpenRouterFallback = true;
-            ({ provider, modelPath } = await getModelProvider(orchestratorModelId, useOpenRouterFallback));
-            modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+            ({ modelPath, providerType } = await getModelProvider(orchestratorModelId, useOpenRouterFallback));
+            modelInstance = getModelInstance(providerType, modelPath);
         }
 
         const result = await generateText({
@@ -193,10 +162,9 @@ NOT requiring web search:
  * Provider info return type for getModelProvider
  */
 export interface ModelProviderInfo {
-    provider: ReturnType<typeof createAnthropic> | ReturnType<typeof createOpenRouter> | ReturnType<typeof createOpenAI> | ReturnType<typeof createGoogleGenerativeAI> | ReturnType<typeof createXai>;
     modelPath: string;
     displayName: string;
-    providerType: "anthropic" | "openrouter" | "openai" | "google" | "x-ai";
+    providerType: ProviderType;
     isFallback: boolean;
 }
 
@@ -231,7 +199,6 @@ async function getModelProvider(modelId: string, useOpenRouterFallback = false):
     if (useOpenRouterFallback && modelConfig.provider !== "openrouter") {
         console.log(`🔄 Using OpenRouter as fallback for ${modelConfig.displayName}`);
         return {
-            provider: openrouter,
             modelPath: modelId, // Use the model ID which includes provider prefix (e.g., "anthropic/claude-sonnet-4.5")
             displayName: `${modelConfig.displayName} (via OpenRouter)`,
             providerType: "openrouter",
@@ -239,33 +206,8 @@ async function getModelProvider(modelId: string, useOpenRouterFallback = false):
         };
     }
 
-    // Return the appropriate provider based on model config
-    let provider;
-    let providerType: "anthropic" | "openrouter" | "openai" | "google" | "x-ai";
-
-    switch (modelConfig.provider) {
-        case "anthropic":
-            provider = anthropic;
-            providerType = "anthropic";
-            break;
-        case "openai":
-            provider = openai;
-            providerType = "openai";
-            break;
-        case "google":
-            provider = google;
-            providerType = "google";
-            break;
-        case "x-ai":
-            provider = xai;
-            providerType = "x-ai";
-            break;
-        case "openrouter":
-        default:
-            provider = openrouter;
-            providerType = "openrouter";
-            break;
-    }
+    // Get provider type from model config
+    const providerType = modelConfig.provider as ProviderType;
 
     // IMPORTANT: OpenRouter requires model ID format (e.g., "anthropic/claude-sonnet-4.5")
     // Direct providers use model alias/name (e.g., "claude-sonnet-4-5" for Anthropic)
@@ -274,12 +216,25 @@ async function getModelProvider(modelId: string, useOpenRouterFallback = false):
         : modelConfig.name; // Direct provider format: specific model version
 
     return {
-        provider,
         modelPath,
         displayName: modelConfig.displayName,
         providerType,
         isFallback: false,
     };
+}
+
+/**
+ * Get model instance from provider registry
+ * Handles OpenRouter's special .chat() method
+ */
+function getModelInstance(providerType: ProviderType, modelPath: string) {
+    // OpenRouter requires .chat() method, others use direct call
+    if (providerType === "openrouter") {
+        const provider = providerRegistry.getProvider(providerType);
+        return (provider as any).chat(modelPath);
+    }
+
+    return providerRegistry.getModel(providerType, modelPath);
 }
 
 /**
@@ -330,6 +285,7 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
 
         // Execute THINK phase before streaming
         try {
+            await agentLoop.ensureInitialized();
             await agentLoop.executeTurn(userMessage);
         } catch (error) {
             console.error('❌ Agent loop initialization failed:', error);
@@ -345,12 +301,12 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
     const codingModel = await modelService.getCodingModel(userId);
 
     // Try direct provider first, with OpenRouter as fallback
-    let provider, modelPath, displayName, providerType, isFallback;
+    let modelPath, displayName, providerType, isFallback;
     let modelInstance;
     let useOpenRouterFallback = false;
 
     try {
-        ({ provider, modelPath, displayName, providerType, isFallback } = await getModelProvider(codingModel, useOpenRouterFallback));
+        ({ modelPath, displayName, providerType, isFallback } = await getModelProvider(codingModel, useOpenRouterFallback));
 
         console.log(`⚡ AI Agent: Using ${displayName} (${codingModel}) for coding with TOOL USE enabled`);
         if (isFallback) {
@@ -362,40 +318,16 @@ export async function streamCodingResponse(options: CodingStreamOptions) {
             console.log(`📁 Context: ${Object.keys(projectFiles).length} existing project files`);
         }
 
-        // Different providers use different call patterns
-        // Anthropic: anthropic(modelPath)
-        // OpenRouter: openrouter.chat(modelPath)
-        // OpenAI: openai(modelPath) or openai.chat(modelPath)
-        // Google: google(modelPath)
-        // xAI: xai(modelPath)
-        switch (providerType) {
-            case "anthropic":
-                modelInstance = (provider as ReturnType<typeof createAnthropic>)(modelPath);
-                break;
-            case "openai":
-                // OpenAI models can use both formats, prefer direct call
-                modelInstance = (provider as ReturnType<typeof createOpenAI>)(modelPath);
-                break;
-            case "google":
-                modelInstance = (provider as ReturnType<typeof createGoogleGenerativeAI>)(modelPath);
-                break;
-            case "x-ai":
-                modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
-                break;
-            case "openrouter":
-            default:
-                modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
-                break;
-        }
+        modelInstance = getModelInstance(providerType, modelPath);
     } catch (directProviderError) {
         // If direct provider fails, retry with OpenRouter fallback
         console.warn(`⚠️ Direct provider failed, falling back to OpenRouter:`, directProviderError);
         useOpenRouterFallback = true;
 
-        ({ provider, modelPath, displayName, providerType, isFallback } = await getModelProvider(codingModel, useOpenRouterFallback));
+        ({ modelPath, displayName, providerType, isFallback } = await getModelProvider(codingModel, useOpenRouterFallback));
 
         console.log(`🔄 Retrying with OpenRouter fallback: ${displayName}`);
-        modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+        modelInstance = getModelInstance(providerType, modelPath);
     }
 
     // Track tool execution timing for SSE events
@@ -712,41 +644,23 @@ Project name (1-${maxWords} words only, no code):`;
         // Use naming model from modelService (system-only model, optimized for fast naming)
         const namingModelId = await modelService.getNamingModel();
 
-        let provider, modelPath, displayName, providerType;
+        let modelPath, displayName, providerType;
         let modelInstance;
         let useOpenRouterFallback = false;
 
         try {
-            ({ provider, modelPath, displayName, providerType } = await getModelProvider(namingModelId, useOpenRouterFallback));
+            ({ modelPath, displayName, providerType } = await getModelProvider(namingModelId, useOpenRouterFallback));
             console.log(`🤖 AI Agent: Generating project name with ${displayName} (${namingModelId})`);
 
-            // Different providers use different call patterns
-            switch (providerType) {
-                case "anthropic":
-                    modelInstance = (provider as ReturnType<typeof createAnthropic>)(modelPath);
-                    break;
-                case "openai":
-                    modelInstance = (provider as ReturnType<typeof createOpenAI>)(modelPath);
-                    break;
-                case "google":
-                    modelInstance = (provider as ReturnType<typeof createGoogleGenerativeAI>)(modelPath);
-                    break;
-                case "x-ai":
-                    modelInstance = (provider as ReturnType<typeof createXai>)(modelPath);
-                    break;
-                case "openrouter":
-                default:
-                    modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
-                    break;
-            }
+            modelInstance = getModelInstance(providerType, modelPath);
         } catch (directProviderError) {
             // If direct provider fails, retry with OpenRouter fallback
             console.warn(`⚠️ Direct provider failed for naming, falling back to OpenRouter:`, directProviderError);
             useOpenRouterFallback = true;
 
-            ({ provider, modelPath, displayName, providerType } = await getModelProvider(namingModelId, useOpenRouterFallback));
+            ({ modelPath, displayName, providerType } = await getModelProvider(namingModelId, useOpenRouterFallback));
             console.log(`🔄 Retrying with OpenRouter fallback: ${displayName}`);
-            modelInstance = (provider as ReturnType<typeof createOpenRouter>).chat(modelPath);
+            modelInstance = getModelInstance(providerType, modelPath);
         }
 
         // Wrap model with PostHog tracing for LLM analytics

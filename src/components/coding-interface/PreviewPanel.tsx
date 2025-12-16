@@ -120,6 +120,70 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
     );
     const dropdownRef = useRef<HTMLDivElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const iframeLoadAttempts = useRef(0);
+    const maxIframeRetries = 3;
+    const iframeLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Ref-based lock to prevent concurrent sandbox starts (state updates are async)
+    const isStartingSandbox = useRef(false);
+
+    // Handle iframe load retry
+    const retryIframeLoad = useCallback(
+      (reason: string) => {
+        if (iframeLoadAttempts.current < maxIframeRetries && previewUrl) {
+          iframeLoadAttempts.current += 1;
+          console.log(
+            `🔄 Retrying iframe load due to ${reason} (attempt ${iframeLoadAttempts.current}/${maxIframeRetries})...`
+          );
+
+          // Clear any existing timeout
+          if (iframeLoadTimeoutRef.current) {
+            clearTimeout(iframeLoadTimeoutRef.current);
+            iframeLoadTimeoutRef.current = null;
+          }
+
+          // Force re-render by clearing and re-setting iframe URL
+          setIframeUrl("");
+          setTimeout(() => {
+            setIframeUrl(previewUrl + currentRoute);
+          }, 1000);
+        } else if (iframeLoadAttempts.current >= maxIframeRetries) {
+          console.error(`❌ Max iframe retries (${maxIframeRetries}) exceeded`);
+        }
+      },
+      [previewUrl, currentRoute]
+    );
+
+    // Reset retry counter when sandbox status changes
+    useEffect(() => {
+      if (sandboxStatus === "running") {
+        iframeLoadAttempts.current = 0;
+      }
+    }, [sandboxStatus]);
+
+    // Set timeout for iframe load (triggers retry if not loaded in time)
+    useEffect(() => {
+      if (iframeUrl && previewUrl) {
+        // Clear any existing timeout
+        if (iframeLoadTimeoutRef.current) {
+          clearTimeout(iframeLoadTimeoutRef.current);
+        }
+
+        // Set 30s timeout for iframe to load
+        iframeLoadTimeoutRef.current = setTimeout(() => {
+          console.warn("⏱️ Iframe load timeout - no onLoad event received");
+          retryIframeLoad("timeout");
+        }, 30000);
+      }
+
+      // Cleanup timeout on unmount or URL change
+      return () => {
+        if (iframeLoadTimeoutRef.current) {
+          clearTimeout(iframeLoadTimeoutRef.current);
+          iframeLoadTimeoutRef.current = null;
+        }
+      };
+    }, [iframeUrl, previewUrl, retryIframeLoad]);
 
     // Capture screenshot when preview loads successfully
     // Only capture if: 1) No existing preview image, OR 2) Project version changed from last captured version
@@ -407,11 +471,19 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
     ]);
 
     const startSandbox = async () => {
-      // Prevent duplicate sandbox starts
-      if (sandboxStatus === "loading" || sandboxStatus === "running") {
-        console.log(`⏭️  Sandbox already ${sandboxStatus}, skipping start...`);
+      // Prevent duplicate sandbox starts using ref (more reliable than state for concurrent calls)
+      if (isStartingSandbox.current) {
+        console.log(`⏭️ Sandbox start already in progress, skipping...`);
         return;
       }
+
+      if (sandboxStatus === "loading" || sandboxStatus === "running") {
+        console.log(`⏭️ Sandbox already ${sandboxStatus}, skipping start...`);
+        return;
+      }
+
+      // Acquire lock
+      isStartingSandbox.current = true;
 
       try {
         setSandboxStatus("loading");
@@ -465,11 +537,16 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
           }),
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to start sandbox");
-        }
-
         const data = await response.json();
+
+        // Check for error status from backend
+        if (!response.ok || data.status === "error") {
+          console.error(
+            "❌ Sandbox error:",
+            data.error || "Failed to start sandbox"
+          );
+          throw new Error(data.error || "Failed to start sandbox");
+        }
 
         console.log("📦 Sandbox created:", data);
         console.log("🔗 Preview URL:", data.url);
@@ -488,8 +565,9 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
           );
         }
 
-        // ✅ SIMPLIFIED: Just set the URL and show iframe immediately
-        // Next.js will handle its own loading states in the browser
+        // ✅ Backend has already verified the URL is accessible (5 retries with progressive delays)
+        // We trust the backend verification and immediately show the iframe
+        // The iframe will handle its own loading states
         console.log("🎉 Setting preview URL:", data.url);
         setPreviewUrl(data.url);
         setIframeUrl(data.url);
@@ -502,6 +580,9 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
         console.error("Error starting sandbox:", error);
         setError("Failed to start preview. Please try again.");
         setSandboxStatus("error");
+      } finally {
+        // Always release the lock
+        isStartingSandbox.current = false;
       }
     };
 
@@ -768,7 +849,7 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
     return (
       <div
         className={`h-full flex flex-col bg-background ${
-          isFullscreen ? "fixed inset-0 z-[60]" : ""
+          isFullscreen ? "fixed inset-0 z-60" : ""
         }`}
       >
         {/* Preview Toolbar - Hidden since controls moved to main header */}
@@ -963,7 +1044,7 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
                                   </p>
                                 </div>
                                 {restoringVersionId === v.id && (
-                                  <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                                  <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin shrink-0"></div>
                                 )}
                               </div>
                             </button>
@@ -1254,13 +1335,33 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
                     title="Preview"
                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
                     allow="clipboard-read; clipboard-write"
-                    onLoad={() => {
+                    onLoad={(e) => {
                       console.log("✅ Iframe loaded successfully!");
-                      // Capture screenshot on first successful load
-                      captureScreenshot();
+
+                      // Clear any pending timeout
+                      if (iframeLoadTimeoutRef.current) {
+                        clearTimeout(iframeLoadTimeoutRef.current);
+                        iframeLoadTimeoutRef.current = null;
+                      }
+
+                      // Reset retry counter on successful load
+                      iframeLoadAttempts.current = 0;
+
+                      // Wait for iframe content to render before capturing screenshot
+                      // Note: Due to cross-origin restrictions, we cannot verify content directly
+                      setTimeout(() => {
+                        captureScreenshot();
+                      }, 2000);
                     }}
                     onError={(e) => {
-                      console.error("❌ Iframe error:", e);
+                      console.error("❌ Iframe load error:", e);
+                      // Clear timeout on error
+                      if (iframeLoadTimeoutRef.current) {
+                        clearTimeout(iframeLoadTimeoutRef.current);
+                        iframeLoadTimeoutRef.current = null;
+                      }
+                      // Retry loading if we haven't exceeded max attempts
+                      retryIframeLoad("load error");
                     }}
                   />
                 </div>

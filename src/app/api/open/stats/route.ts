@@ -16,7 +16,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { redis, isRedisConfigured, REDIS_PREFIXES, REDIS_TTL } from "@/lib/redis-client";
+import type { Redis } from "@upstash/redis";
 
 // Force dynamic rendering since this route uses request.headers for rate limiting
 export const dynamic = 'force-dynamic';
@@ -24,27 +25,27 @@ export const dynamic = 'force-dynamic';
 // Cache the response for 24 hours - stats only need daily updates
 export const revalidate = 86400; // 24 hours
 
-// In-memory cache for additional protection against burst traffic
-let cachedResponse: { data: unknown; timestamp: number } | null = null;
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour in-memory cache
+const STATS_CACHE_PREFIX = REDIS_PREFIXES.STATS_CACHE;
+const STATS_CACHE_TTL = REDIS_TTL.LONG;
 
-// Rate limiter specifically for public endpoints (more restrictive)
-// 10 requests per minute per IP to prevent abuse
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-    ? new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
-    : null;
-
-const publicRateLimiter = redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(10, "1 m"),
-        analytics: true,
-        prefix: "craft:ratelimit:open",
-    })
-    : null;
+// Create and cache the rate limiter instance at module scope
+let publicRateLimiter: Ratelimit | null | undefined = undefined;
+async function getPublicRateLimiter() {
+    if (publicRateLimiter !== undefined) {
+        return publicRateLimiter;
+    }
+    if (await isRedisConfigured()) {
+        publicRateLimiter = new Ratelimit({
+            redis,
+            limiter: Ratelimit.slidingWindow(10, "1 m"),
+            analytics: true,
+            prefix: REDIS_PREFIXES.RATE_LIMIT_PUBLIC,
+        });
+    } else {
+        publicRateLimiter = null;
+    }
+    return publicRateLimiter;
+}
 
 // Valid period values (whitelist approach)
 const VALID_PERIODS = new Set(["7d", "30d", "90d", "all"]);
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
         const forwarded = request.headers.get("x-forwarded-for");
         const ip = forwarded ? forwarded.split(",")[0].trim() : request.headers.get("x-real-ip") || "anonymous";
 
+        const publicRateLimiter = await getPublicRateLimiter();
         if (publicRateLimiter) {
             const { success, limit, remaining, reset } = await publicRateLimiter.limit(ip);
 
@@ -87,18 +89,25 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // === IN-MEMORY CACHE CHECK ===
+        // === REDIS CACHE CHECK ===
         // Return cached response if still valid (reduces DB load during traffic spikes)
-        const cacheKey = `stats_${period}`;
-        if (cachedResponse &&
-            Date.now() - cachedResponse.timestamp < CACHE_TTL_MS &&
-            (cachedResponse.data as { period?: string })?.period === period) {
-            return NextResponse.json(cachedResponse.data, {
-                headers: {
-                    "X-Cache": "HIT",
-                    "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=172800",
-                },
-            });
+        const cacheKey = `${STATS_CACHE_PREFIX}:${period}`;
+
+        if (await isRedisConfigured()) {
+            try {
+                const cached = await redis.get<string>(cacheKey);
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    return NextResponse.json(data, {
+                        headers: {
+                            "X-Cache": "HIT",
+                            "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=172800",
+                        },
+                    });
+                }
+            } catch (error) {
+                console.error("Redis cache read error:", error);
+            }
         }
 
         // Calculate date ranges
@@ -315,11 +324,14 @@ export async function GET(request: NextRequest) {
             generatedAt: now.toISOString(),
         };
 
-        // Update in-memory cache
-        cachedResponse = {
-            data: responseData,
-            timestamp: Date.now(),
-        };
+        // Update Redis cache
+        if (await isRedisConfigured()) {
+            try {
+                await redis.set(cacheKey, JSON.stringify(responseData), { ex: STATS_CACHE_TTL });
+            } catch (error) {
+                console.error("Redis cache write error:", error);
+            }
+        }
 
         return NextResponse.json(responseData, {
             headers: {

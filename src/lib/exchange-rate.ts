@@ -9,16 +9,10 @@
  * - Razorpay currency utilities (for payment calculations)
  */
 
-import { Redis } from "@upstash/redis";
+import { redis, REDIS_PREFIXES, REDIS_TTL } from "./redis-client";
 
-// Redis client for caching
-const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL || "",
-    token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-});
-
-const CACHE_KEY = "craft:exchange-rate:usd-inr";
-const CACHE_DURATION_SECONDS = 12 * 60 * 60; // 12 hours
+const CACHE_KEY = `${REDIS_PREFIXES.EXCHANGE_RATE}:usd-inr`;
+const CACHE_DURATION_SECONDS = REDIS_TTL.EXCHANGE_RATE;
 
 // Fallback rate from environment variable
 const FALLBACK_RATE = parseFloat(process.env.FALLBACK_USD_TO_INR_RATE || '84.50');

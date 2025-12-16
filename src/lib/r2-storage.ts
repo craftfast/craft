@@ -71,12 +71,15 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
     // Detect MIME type if not provided
     const detectedMimeType = mimeType || detectMimeType(fileName);
 
-    console.log(`📤 Uploading to R2:`, {
-        bucket: BUCKET_NAME,
-        key: r2Key,
-        size,
-        mimeType: detectedMimeType,
-    });
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (!isProduction) {
+        console.log(`📤 Uploading to R2:`, {
+            bucket: BUCKET_NAME,
+            key: r2Key,
+            size,
+            mimeType: detectedMimeType,
+        });
+    }
 
     try {
         // Upload to R2
@@ -93,9 +96,10 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
             },
         });
 
-        console.log(`🔄 Sending request to R2...`);
         await r2Client.send(command);
-        console.log(`✅ Upload successful!`);
+        if (!isProduction) {
+            console.log(`✅ Upload successful!`);
+        }
 
         // Construct public URL
         const r2Url = `${PUBLIC_URL}/${r2Key}`;

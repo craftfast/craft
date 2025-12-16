@@ -406,49 +406,218 @@ export class AgentLoopStateManager {
 }
 
 // ============================================================================
-// GLOBAL STATE REGISTRY
+// GLOBAL STATE REGISTRY (Redis-backed)
 // ============================================================================
 
-/**
- * Global registry of active agent loop states
- * Maps sessionId -> AgentLoopStateManager
- */
-export const activeAgentLoops = new Map<string, AgentLoopStateManager>();
+import { redis, REDIS_PREFIXES, REDIS_TTL } from "../redis-client";
+
+const AGENT_LOOP_PREFIX = REDIS_PREFIXES.AGENT_LOOP;
+const AGENT_LOOP_TTL = REDIS_TTL.AGENT_LOOP;
+
+// Track Redis failures for monitoring
+const redisFailureTracker = new Map<string, { count: number; lastError: number }>();
+const MAX_FAILURE_THRESHOLD = 5; // Alert after 5 consecutive failures
+const FAILURE_WINDOW_MS = 60000; // Reset counter after 1 minute
 
 /**
- * Get or create an agent loop state for a session
+ * Track Redis save failures and log warnings when threshold is exceeded
  */
-export function getAgentLoopState(
-    sessionId: string,
-    initialData?: Partial<AgentLoopState>
-): AgentLoopStateManager {
-    let manager = activeAgentLoops.get(sessionId);
+function trackRedisSaveFailure(sessionId: string, error: unknown) {
+    const now = Date.now();
+    const tracker = redisFailureTracker.get(sessionId);
 
-    if (!manager) {
-        manager = new AgentLoopStateManager({
-            sessionId,
-            ...initialData,
-        });
-        activeAgentLoops.set(sessionId, manager);
-    }
+    if (!tracker || now - tracker.lastError > FAILURE_WINDOW_MS) {
+        // First failure or outside failure window - reset counter
+        redisFailureTracker.set(sessionId, { count: 1, lastError: now });
+    } else {
+        // Increment failure count
+        tracker.count += 1;
+        tracker.lastError = now;
 
-    return manager;
-}
-
-/**
- * Clean up inactive agent loop states (older than 30 minutes)
- */
-export function cleanupInactiveAgentLoops() {
-    const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000; // Changed from 1 hour to 30 minutes
-
-    for (const [sessionId, manager] of activeAgentLoops.entries()) {
-        const state = manager.getState();
-        if (!state.isActive && state.updatedAt < thirtyMinutesAgo) {
-            activeAgentLoops.delete(sessionId);
-            console.log(`🧹 Cleaned up inactive agent loop: ${sessionId}`);
+        if (tracker.count >= MAX_FAILURE_THRESHOLD) {
+            console.error(
+                `🚨 [CRITICAL] Redis persistence failing repeatedly for session ${sessionId}!`,
+                `Failure count: ${tracker.count}`,
+                `Agent loop state will be LOST if instance crashes!`,
+                `Last error:`, error
+            );
+            // TODO: Send alert to monitoring service (e.g., Sentry, DataDog)
+        } else {
+            console.warn(
+                `⚠️ Redis save failure ${tracker.count}/${MAX_FAILURE_THRESHOLD} for session ${sessionId}:`,
+                error
+            );
         }
     }
 }
 
-// Clean up every 10 minutes
-setInterval(cleanupInactiveAgentLoops, 10 * 60 * 1000);
+/**
+ * Reset failure tracking on successful save
+ */
+function resetRedisFailureTracking(sessionId: string) {
+    redisFailureTracker.delete(sessionId);
+}
+
+/**
+ * Get agent loop state from Redis
+ */
+async function getAgentLoopFromRedis(sessionId: string): Promise<AgentLoopState | null> {
+    try {
+        const key = `${AGENT_LOOP_PREFIX}:${sessionId}`;
+        const data = await redis.get<string>(key);
+
+        if (!data) {
+            return null;
+        }
+
+        return JSON.parse(data) as AgentLoopState;
+    } catch (error) {
+        console.error(`Failed to get agent loop state for ${sessionId}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Save agent loop state to Redis with failure tracking
+ */
+async function saveAgentLoopToRedis(sessionId: string, state: AgentLoopState): Promise<void> {
+    try {
+        const key = `${AGENT_LOOP_PREFIX}:${sessionId}`;
+        await redis.set(key, JSON.stringify(state), { ex: AGENT_LOOP_TTL });
+
+        // Reset failure tracking on success
+        resetRedisFailureTracking(sessionId);
+    } catch (error) {
+        // Track failure and escalate if threshold exceeded
+        trackRedisSaveFailure(sessionId, error);
+
+        // Still throw for critical monitoring
+        throw error;
+    }
+}
+
+/**
+ * Delete agent loop state from Redis
+ */
+async function deleteAgentLoopFromRedis(sessionId: string): Promise<void> {
+    try {
+        const key = `${AGENT_LOOP_PREFIX}:${sessionId}`;
+        await redis.del(key);
+    } catch (error) {
+        console.error(`Failed to delete agent loop state for ${sessionId}:`, error);
+    }
+}
+
+/**
+ * Get or create an agent loop state for a session
+ * Now uses Redis for distributed storage across Vercel instances
+ */
+export async function getAgentLoopState(
+    sessionId: string,
+    initialData?: Partial<AgentLoopState>
+): Promise<AgentLoopStateManager> {
+    // Try to load from Redis first
+    const savedState = await getAgentLoopFromRedis(sessionId);
+
+    let manager: AgentLoopStateManager;
+
+    if (savedState) {
+        // Restore from Redis
+        manager = new AgentLoopStateManager(savedState);
+    } else {
+        // Create new
+        manager = new AgentLoopStateManager({
+            sessionId,
+            ...initialData,
+        });
+
+        // Save initial state to Redis
+        await saveAgentLoopToRedis(sessionId, manager.getState());
+    }
+
+    // Use Proxy to auto-save to Redis after state-mutating method calls
+    // This maintains full type safety and intercepts ALL method calls
+    const mutatingMethods = new Set([
+        'setPhase', 'startLoop', 'stopLoop', 'addReasoningStep',
+        'trackToolStart', 'trackToolComplete', 'addObservation',
+        'addReflection', 'updateConversationHistory', 'updateProjectFiles'
+    ]);
+
+    return new Proxy(manager, {
+        get(target, prop, receiver) {
+            const value = Reflect.get(target, prop, receiver);
+
+            // Only wrap methods that mutate state
+            if (typeof value === 'function' && mutatingMethods.has(prop as string)) {
+                return function (this: AgentLoopStateManager, ...args: any[]) {
+                    // Call original method
+                    const result = value.apply(target, args);
+
+                    // Background save with failure tracking
+                    saveAgentLoopToRedis(sessionId, target.getState()).catch(error => {
+                        // Error already tracked in saveAgentLoopToRedis
+                        // Continue operation even if save fails (state is in memory)
+                    });
+
+                    return result;
+                };
+            }
+
+            return value;
+        }
+    });
+}
+
+/**
+ * Delete an agent loop state
+ */
+export async function deleteAgentLoopState(sessionId: string): Promise<void> {
+    await deleteAgentLoopFromRedis(sessionId);
+}
+
+/**
+ * Clean up inactive agent loop states (older than 30 minutes)
+ * Note: Redis TTL handles most cleanup automatically
+ */
+export async function cleanupInactiveAgentLoops(): Promise<void> {
+    try {
+        const pattern = `${AGENT_LOOP_PREFIX}:*`;
+        const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
+        let cleanedCount = 0;
+
+        // Use SCAN to iterate over keys matching the pattern (production-safe)
+        let cursor = "0";
+        do {
+            // SCAN cursor MATCH pattern COUNT 100
+            const [nextCursor, foundKeys] = await redis.scan(cursor, {
+                match: pattern,
+                count: 100,
+            });
+            cursor = nextCursor;
+
+            if (Array.isArray(foundKeys)) {
+                for (const key of foundKeys) {
+                    const data = await redis.get<string>(key);
+                    if (data) {
+                        const state = JSON.parse(data) as AgentLoopState;
+                        if (!state.isActive && state.updatedAt < thirtyMinutesAgo) {
+                            await redis.del(key);
+                            cleanedCount++;
+                        }
+                    }
+                }
+            }
+        } while (cursor !== "0");
+
+        if (cleanedCount > 0) {
+            console.log(`🧹 Cleaned up ${cleanedCount} inactive agent loops`);
+        }
+    } catch (error) {
+        console.error("Failed to cleanup agent loops:", error);
+    }
+}
+
+// Clean up every 10 minutes (backup to Redis TTL)
+if (typeof setInterval !== 'undefined') {
+    setInterval(cleanupInactiveAgentLoops, 10 * 60 * 1000);
+}

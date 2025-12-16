@@ -34,19 +34,40 @@ interface AgentLoopOptions {
 }
 
 export class AgentLoopCoordinator {
-    private stateManager: AgentLoopStateManager;
+    private stateManager: AgentLoopStateManager | null = null;
     private sseWriter?: SSEStreamWriter;
+    private initPromise: Promise<void>;
 
     constructor(options: AgentLoopOptions) {
-        // Get or create agent loop state
-        this.stateManager = getAgentLoopState(options.sessionId, {
+        // Initialize state manager asynchronously
+        this.initPromise = this.initialize(options);
+        this.sseWriter = options.sseWriter;
+    }
+
+    private async initialize(options: AgentLoopOptions) {
+        // Get or create agent loop state from Redis
+        this.stateManager = await getAgentLoopState(options.sessionId, {
             projectId: options.projectId,
             userId: options.userId,
             projectFiles: options.projectFiles || {},
             conversationHistory: options.conversationHistory || [],
         });
+    }
 
-        this.sseWriter = options.sseWriter;
+    async ensureInitialized() {
+        await this.initPromise;
+    }
+
+    /**
+     * Get the state manager, throwing a clear error if not initialized
+     */
+    private getStateManager(): AgentLoopStateManager {
+        if (!this.stateManager) {
+            throw new Error(
+                'AgentLoopCoordinator not initialized. Call ensureInitialized() first.'
+            );
+        }
+        return this.stateManager;
     }
 
     // ========================================================================
@@ -60,8 +81,11 @@ export class AgentLoopCoordinator {
         shouldContinue: boolean;
         nextAction?: string;
     }> {
+        // Ensure initialized
+        await this.ensureInitialized();
+
         // Start the loop
-        this.stateManager.startLoop();
+        this.getStateManager().startLoop();
 
         try {
             // 1. THINK: Plan what to do
@@ -83,10 +107,10 @@ export class AgentLoopCoordinator {
             };
         } catch (error) {
             console.error('❌ Agent loop error:', error);
-            this.stateManager.stopLoop();
+            this.getStateManager().stopLoop();
 
             // Emit error observation
-            this.stateManager.addObservation(
+            this.getStateManager().addObservation(
                 'error',
                 error instanceof Error ? error.message : 'Unknown error'
             );
@@ -113,7 +137,7 @@ export class AgentLoopCoordinator {
         console.log('🤔 THINK: Planning actions...');
 
         // Transition to think phase
-        this.stateManager.setPhase('think');
+        this.getStateManager().setPhase('think');
         if (this.sseWriter) {
             this.sseWriter.writeAgentPhase('think');
         }
@@ -123,7 +147,7 @@ export class AgentLoopCoordinator {
 
         // Add reasoning steps
         for (const step of thinkingSteps) {
-            this.stateManager.addReasoningStep('think', step);
+            this.getStateManager().addReasoningStep('think', step);
             if (this.sseWriter) {
                 this.sseWriter.writeAgentReasoning('think', step);
             }
@@ -190,7 +214,7 @@ export class AgentLoopCoordinator {
         console.log('⚡ ACT: Executing actions...');
 
         // Transition to act phase
-        this.stateManager.setPhase('act');
+        this.getStateManager().setPhase('act');
         if (this.sseWriter) {
             this.sseWriter.writeAgentPhase('act');
         }
@@ -199,7 +223,7 @@ export class AgentLoopCoordinator {
 
         // Add reasoning for act phase
         const actStep = 'Executing planned tools and generating response...';
-        this.stateManager.addReasoningStep('act', actStep);
+        this.getStateManager().addReasoningStep('act', actStep);
         if (this.sseWriter) {
             this.sseWriter.writeAgentReasoning('act', actStep);
         }
@@ -221,7 +245,7 @@ export class AgentLoopCoordinator {
         console.log('👀 OBSERVE: Analyzing results...');
 
         // Transition to observe phase
-        this.stateManager.setPhase('observe');
+        this.getStateManager().setPhase('observe');
         if (this.sseWriter) {
             this.sseWriter.writeAgentPhase('observe');
         }
@@ -229,7 +253,7 @@ export class AgentLoopCoordinator {
         const observations: string[] = [];
 
         // Get tool execution results from state
-        const toolExecutions = this.stateManager.getToolExecutions();
+        const toolExecutions = this.getStateManager().getToolExecutions();
         const successfulTools = toolExecutions.filter(t => t.status === 'success');
         const failedTools = toolExecutions.filter(t => t.status === 'error');
 
@@ -238,7 +262,7 @@ export class AgentLoopCoordinator {
             const successMsg = `Successfully executed ${successfulTools.length} tool(s): ${successfulTools.map(t => t.name).join(', ')}`;
             observations.push(successMsg);
 
-            this.stateManager.addObservation('success', successMsg);
+            this.getStateManager().addObservation('success', successMsg);
             if (this.sseWriter) {
                 this.sseWriter.writeAgentObservation('success', successMsg);
             }
@@ -249,7 +273,7 @@ export class AgentLoopCoordinator {
             const errorMsg = `${failedTools.length} tool(s) failed: ${failedTools.map(t => `${t.name} (${t.error})`).join(', ')}`;
             observations.push(errorMsg);
 
-            this.stateManager.addObservation('error', errorMsg);
+            this.getStateManager().addObservation('error', errorMsg);
             if (this.sseWriter) {
                 this.sseWriter.writeAgentObservation('error', errorMsg);
             }
@@ -260,7 +284,7 @@ export class AgentLoopCoordinator {
             const noToolsMsg = 'No tools were executed - responded with text only';
             observations.push(noToolsMsg);
 
-            this.stateManager.addObservation('tool-result', noToolsMsg);
+            this.getStateManager().addObservation('tool-result', noToolsMsg);
             if (this.sseWriter) {
                 this.sseWriter.writeAgentObservation('tool-result', noToolsMsg);
             }
@@ -268,7 +292,7 @@ export class AgentLoopCoordinator {
 
         // Add reasoning steps for observations
         for (const obs of observations) {
-            this.stateManager.addReasoningStep('observe', obs);
+            this.getStateManager().addReasoningStep('observe', obs);
             if (this.sseWriter) {
                 this.sseWriter.writeAgentReasoning('observe', obs);
             }
@@ -292,13 +316,13 @@ export class AgentLoopCoordinator {
         console.log('🎯 REFLECT: Learning from results...');
 
         // Transition to reflect phase
-        this.stateManager.setPhase('reflect');
+        this.getStateManager().setPhase('reflect');
         if (this.sseWriter) {
             this.sseWriter.writeAgentPhase('reflect');
         }
 
         // Analyze what happened
-        const toolExecutions = this.stateManager.getToolExecutions();
+        const toolExecutions = this.getStateManager().getToolExecutions();
         const hasErrors = toolExecutions.some(t => t.status === 'error');
         const hasSuccess = toolExecutions.some(t => t.status === 'success');
 
@@ -335,7 +359,7 @@ export class AgentLoopCoordinator {
         }
 
         // Add reflection
-        this.stateManager.addReflection(insight, learnings, suggestedActions, confidence);
+        this.getStateManager().addReflection(insight, learnings, suggestedActions, confidence);
 
         if (this.sseWriter) {
             this.sseWriter.writeAgentReflection(insight, learnings, suggestedActions, confidence);
@@ -355,7 +379,7 @@ export class AgentLoopCoordinator {
         const shouldContinue = hasErrors && confidence < 0.5;
 
         // Stop the loop
-        this.stateManager.stopLoop();
+        this.getStateManager().stopLoop();
 
         return {
             shouldContinue,
@@ -368,11 +392,11 @@ export class AgentLoopCoordinator {
     // ========================================================================
 
     getState(): AgentLoopState {
-        return this.stateManager.getState();
+        return this.getStateManager().getState();
     }
 
     getSummary() {
-        return this.stateManager.getSummary();
+        return this.getStateManager().getSummary();
     }
 
     /**
@@ -384,14 +408,14 @@ export class AgentLoopCoordinator {
         args: Record<string, unknown>,
         dependencies?: string[]
     ) {
-        return this.stateManager.trackToolStart(name, args, dependencies);
+        return this.getStateManager().trackToolStart(name, args, dependencies);
     }
 
     /**
      * Update tool execution result
      */
     updateToolExecution(id: string, result?: unknown, error?: string) {
-        this.stateManager.trackToolComplete(id, result, error);
+        this.getStateManager().trackToolComplete(id, result, error);
     }
 }
 
@@ -409,7 +433,7 @@ export function createAgentLoop(options: AgentLoopOptions): AgentLoopCoordinator
 /**
  * Get the current state summary for display
  */
-export function getAgentLoopSummary(sessionId: string) {
-    const manager = getAgentLoopState(sessionId);
+export async function getAgentLoopSummary(sessionId: string) {
+    const manager = await getAgentLoopState(sessionId);
     return manager.getSummary();
 }
