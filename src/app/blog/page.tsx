@@ -77,7 +77,7 @@ export default function BlogPage() {
                   className="block bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors duration-200 group"
                 >
                   <div className="grid md:grid-cols-2 gap-0">
-                    <div className="aspect-video md:aspect-auto bg-gradient-to-br from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-800 flex items-center justify-center">
+                    <div className="aspect-video md:aspect-auto bg-linear-to-br from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-800 flex items-center justify-center">
                       <svg
                         className="w-16 h-16 text-neutral-400 dark:text-neutral-500"
                         fill="none"
@@ -143,7 +143,7 @@ export default function BlogPage() {
                   href={`/blog/${post.slug}`}
                   className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors duration-200 group flex flex-col"
                 >
-                  <div className="aspect-video bg-gradient-to-br from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-800 flex items-center justify-center">
+                  <div className="aspect-video bg-linear-to-br from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-800 flex items-center justify-center">
                     <svg
                       className="w-10 h-10 text-neutral-400 dark:text-neutral-500"
                       fill="none"
@@ -186,7 +186,7 @@ export default function BlogPage() {
             </div>
 
             {/* Newsletter Signup */}
-            <div className="bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-8 sm:p-12 text-center">
+            <div className="bg-linear-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-8 sm:p-12 text-center">
               <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
                 Stay up to date
               </h2>

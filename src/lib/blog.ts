@@ -1,6 +1,18 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
+import yaml from "js-yaml";
+
+// Configure gray-matter to use js-yaml 4.x with yaml.load instead of deprecated safeLoad
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const matterOptions: any = {
+    engines: {
+        yaml: {
+            parse: (str: string) => yaml.load(str),
+            stringify: (data: object) => yaml.dump(data),
+        },
+    },
+};
 
 export interface BlogPost {
     slug: string;
@@ -70,7 +82,7 @@ export function getBlogPost(slug: string): BlogPost | null {
     }
 
     const fileContents = fs.readFileSync(filePath, "utf8");
-    const { data, content } = matter(fileContents);
+    const { data, content } = matter(fileContents, matterOptions);
 
     return {
         slug,

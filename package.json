@@ -27,6 +27,14 @@
   "engines": {
     "node": ">=20.19.0"
   },
+  "pnpm": {
+    "overrides": {
+      "@modelcontextprotocol/sdk": ">=1.24.0",
+      "js-yaml": ">=4.1.1",
+      "body-parser": ">=2.2.1",
+      "mdast-util-to-hast": ">=13.2.1"
+    }
+  },
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev --turbopack",
@@ -48,14 +56,6 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
-  },
-  "pnpm": {
-    "overrides": {
-      "@modelcontextprotocol/sdk": ">=1.24.0",
-      "js-yaml": ">=4.1.1",
-      "body-parser": ">=2.2.1",
-      "mdast-util-to-hast": ">=13.2.1"
-    }
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.53",
@@ -113,6 +113,7 @@
     "highlight.js": "^11.11.1",
     "html2canvas": "^1.4.1",
     "ioredis": "^5.8.2",
+    "js-yaml": "^4.1.1",
     "lucide-react": "^0.556.0",
     "nanoid": "^5.1.6",
     "next": "16.0.10",
@@ -143,6 +144,7 @@
     "@prisma/client": "^7.1.0",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.7",
