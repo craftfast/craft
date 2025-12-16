@@ -5,10 +5,10 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@modelcontextprotocol/sdk': '>=1.24.0'
-  js-yaml: '>=4.1.1'
-  body-parser: '>=2.2.1'
-  mdast-util-to-hast: '>=13.2.1'
+  '@modelcontextprotocol/sdk': ^1.24.0
+  js-yaml: ^4.1.1
+  body-parser: ^2.2.1
+  mdast-util-to-hast: ^13.2.1
 
 importers:
 
@@ -180,7 +180,7 @@ importers:
         specifier: ^5.8.2
         version: 5.8.2
       js-yaml:
-        specifier: '>=4.1.1'
+        specifier: ^4.1.1
         version: 4.1.1
       lucide-react:
         specifier: ^0.556.0
@@ -1238,7 +1238,7 @@ packages:
     resolution: {integrity: sha512-46vaEaHAThIBlqWFTti1fo3xYU6DwCOwnIIotLhYUbNha90wk5cZL79zdf+NoAfKVsx4DPmjCtXvbQNNVPl5ZQ==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
-      '@modelcontextprotocol/sdk': '>=1.24.0'
+      '@modelcontextprotocol/sdk': ^1.24.0
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
         optional: true
