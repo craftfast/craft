@@ -1,71 +1,26 @@
 # Changelog
 
-## 0.2.2
-
-### Patch Changes
-
-- [#40](https://github.com/craftfast/craft/pull/40) [`85f4608`](https://github.com/craftfast/craft/commit/85f46083da67cc1ddd02b5e8d78ba22c7375308d) Thanks [@sudheerdotai](https://github.com/sudheerdotai)! - Fixed version display to read from package.json via Next.js environment variable instead of hardcoded value
-
-- [#40](https://github.com/craftfast/craft/pull/40) [`85f4608`](https://github.com/craftfast/craft/commit/85f46083da67cc1ddd02b5e8d78ba22c7375308d) Thanks [@sudheerdotai](https://github.com/sudheerdotai)! - git add . ; git commit -m "fix: read version from package.json via next.js env"
-
-## 0.2.1
-
-### Patch Changes
-
-- Added automated versioning and changelog management with Changesets
-
 All notable changes to this project will be documented in this file.
 
-The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
+The format is based on [Keep a Changelog](https://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.2.0] - 2025-12-09
+## [0.1.0] - 2025-12-16
 
 ### Added
 
-- Balance-based credit system with OpenRouter cost tracking
-- User-selectable AI models with preferences sync
-- Custom checkout modal for balance top-ups
-- Environment variable management with auditing and encryption
-- Agent activity indicator for live tool execution status
+- Initial release of Craft - A revolutionary vibe coding tool
+- Complete AI-powered development environment with E2B sandbox integration
+- Multi-provider AI support (OpenAI, Anthropic, Google, xAI, OpenRouter)
+- Balance-based credit system with real-time cost tracking
+- Professional project templates (Next.js, React, TypeScript)
+- Real-time collaboration features with live agent activity indicators
+- Secure environment variable management with encryption
 - Git versioning service with GitHub integration
-- Vercel integration with deployment history tracking
-- Admin APIs for billing, AI models, project management, and analytics
-- Blog and documentation navigation
-- Social media links in header and footer
-- BetaBadge component and version management
-- Sound notification settings with user preferences
-- Rate limiting and CSRF protection for API routes
-- GST handling and receipt generation for payments
-
-### Changed
-
-- Migrated from Polar to Razorpay for payment processing
-- Refactored AI model management with database-driven service
-- Enhanced sidebar navigation and project routing
-- Improved UI components with better button styles and layouts
-- Updated Content Security Policy configuration
-- Streamlined API route handler exports
-- Enhanced personalization settings for custom response tones
-
-### Removed
-
-- Polar webhook handlers and subscription management
-- Referral system and related database tables
-- Supabase integration card
-- Sentry error tracking module
-
-### Fixed
-
-- Database interactions and type handling across API routes
-- Sandbox heartbeat management with improved error handling
-- Project name display with tooltip improvements
-
-## [0.1.0] - 2025-09-22
-
-### Added
-
-- Initial public open-source setup
-- Code of Conduct, CODEOWNERS, FUNDING
-- Issue/PR templates, Support and Security policies
-- CI workflow for lint, typecheck, build; optional tests
-- Docs: getting-started, api-reference, components, deployment
+- Vercel integration with deployment history
+- Admin dashboard with billing, analytics, and project management
+- Razorpay payment integration with GST handling
+- User authentication with Better Auth
+- Project screenshot capture system
+- Sound notification settings
+- Rate limiting and CSRF protection
+- Redis-backed distributed systems support
