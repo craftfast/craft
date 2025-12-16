@@ -84,6 +84,5 @@ jobs:
           fi
           
           git add .changeset/
-          git commit -m "chore: auto-generate changeset [skip ci]"
-          git push
+          git commit -m "chore: auto-generate changeset"
           git push
