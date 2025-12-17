@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
+import {
+    createVercelProject,
+    getVercelProject,
+    createDeployment,
+    prepareFilesForDeployment,
+    waitForDeployment,
+} from "@/lib/services/vercel-platforms";
+import { trackDeploymentUsage } from "@/lib/infrastructure-usage";
 
 // GET /api/projects/[id]/deployments - Get all deployments
 export async function GET(
@@ -155,6 +163,8 @@ export async function POST(
  * Trigger deployment on various providers
  */
 interface ProjectData {
+    id: string;
+    userId: string;
     name: string;
     codeFiles: unknown;
 }
@@ -192,39 +202,140 @@ async function triggerDeployment(
 }
 
 /**
- * Deploy to Vercel
+ * Deploy to Vercel using Platforms service (Craft-managed account)
  */
 async function deployToVercel(
-    _project: ProjectData,
+    project: ProjectData & { id: string; userId: string },
     projectName: string,
-    environment: string
+    _environment: string
 ): Promise<{
     success: boolean;
     deploymentId?: string;
     url?: string;
     metadata?: Record<string, unknown>;
 }> {
-    const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
+    const VERCEL_PLATFORM_TOKEN = process.env.VERCEL_PLATFORM_TOKEN;
 
-    if (!VERCEL_TOKEN) {
+    if (!VERCEL_PLATFORM_TOKEN) {
         return {
             success: false,
-            metadata: { error: "Vercel token not configured" },
+            metadata: { error: "Vercel Platform not configured. Please contact support." },
         };
     }
 
-    // For now, return placeholder
-    // In production, you would integrate with Vercel API
-    return {
-        success: true,
-        deploymentId: `vercel_${Date.now()}`,
-        url: `https://${projectName}.vercel.app`,
-        metadata: {
-            provider: "vercel",
-            environment,
-            message: "Vercel integration placeholder - configure Vercel CLI or API",
-        },
-    };
+    try {
+        // Check user balance
+        const user = await prisma.user.findUnique({
+            where: { id: project.userId },
+            select: { accountBalance: true },
+        });
+
+        const balance = Number(user?.accountBalance || 0);
+        const minimumBalance = 0.50; // Minimum $0.50 required for deployment
+
+        if (balance < minimumBalance) {
+            return {
+                success: false,
+                metadata: {
+                    error: `Insufficient balance. You need at least $${minimumBalance.toFixed(2)} to deploy. Current balance: $${balance.toFixed(2)}`,
+                },
+            };
+        }
+
+        // Get or create Vercel project
+        let vercelProject = await getVercelProject(projectName);
+
+        if (!vercelProject) {
+            vercelProject = await createVercelProject({
+                name: projectName,
+                framework: "nextjs",
+                buildCommand: "next build",
+                outputDirectory: ".next",
+                installCommand: "npm install",
+            });
+
+            // Save Vercel project ID to our project
+            await prisma.project.update({
+                where: { id: project.id },
+                data: {
+                    vercelProjectId: vercelProject.id,
+                    vercelProjectName: vercelProject.name,
+                },
+            });
+        }
+
+        // Prepare files for deployment
+        const codeFiles = typeof project.codeFiles === "object" && project.codeFiles !== null
+            ? (project.codeFiles as Record<string, string>)
+            : {};
+
+        const files = prepareFilesForDeployment(codeFiles);
+
+        if (files.length === 0) {
+            return {
+                success: false,
+                metadata: { error: "No files to deploy" },
+            };
+        }
+
+        // Create deployment
+        const deployment = await createDeployment({
+            projectId: vercelProject.id,
+            files,
+            target: "production",
+            framework: "nextjs",
+        });
+
+        // Wait for deployment to complete (up to 5 minutes)
+        const finalDeployment = await waitForDeployment(deployment.id, 300000);
+
+        const deploymentUrl = finalDeployment.alias?.[0] || finalDeployment.url;
+
+        // Update project with deployment URL
+        await prisma.project.update({
+            where: { id: project.id },
+            data: {
+                vercelUrl: deploymentUrl ? `https://${deploymentUrl}` : null,
+            },
+        });
+
+        // Track deployment usage (charges for build time)
+        try {
+            await trackDeploymentUsage({
+                userId: project.userId,
+                projectId: project.id,
+                provider: "vercel",
+                deploymentId: deployment.id,
+                durationSec: Math.ceil((Date.now() - deployment.createdAt) / 1000),
+                metadata: {
+                    vercelProjectId: vercelProject.id,
+                    url: deploymentUrl,
+                },
+            });
+        } catch (trackError) {
+            console.error("Failed to track deployment usage:", trackError);
+            // Don't fail the deployment for tracking errors
+        }
+
+        return {
+            success: true,
+            deploymentId: deployment.id,
+            url: deploymentUrl ? `https://${deploymentUrl}` : undefined,
+            metadata: {
+                provider: "vercel-platforms",
+                vercelProjectId: vercelProject.id,
+                vercelProjectName: vercelProject.name,
+            },
+        };
+    } catch (error) {
+        console.error("Vercel deployment error:", error);
+        return {
+            success: false,
+            metadata: {
+                error: error instanceof Error ? error.message : "Deployment failed",
+            },
+        };
+    }
 }
 
 /**

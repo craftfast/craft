@@ -210,6 +210,17 @@ model Project {
   lastBackupAt                  DateTime? // Timestamp of last R2 backup
   previewImage                  String? // Screenshot/preview image URL for project thumbnail
   previewImageCapturedAtVersion Int? // Project version when preview image was captured
+  // Supabase for Platforms fields
+  supabaseProjectId             String? // Supabase project UUID
+  supabaseProjectRef            String? // Supabase project reference (e.g., "abcdefghijkl")
+  supabaseApiUrl                String? // Full API URL (e.g., https://xxx.supabase.co)
+  supabaseDbPassword            String? // Encrypted database password
+  supabaseStatus                String? // "provisioning", "active", "paused", "error"
+  supabaseProvisionedAt         DateTime? // When Supabase was provisioned
+  // Vercel for Platforms fields
+  vercelProjectId               String? // Vercel project ID
+  vercelProjectName             String? // Vercel project name
+  vercelUrl                     String? // Primary deployment URL
   // Environment Variables & Custom Views
   environmentVariables          Json                         @default("{}") // Encrypted env vars
   customViews                   Json                         @default("[]") // Array of custom view configs
@@ -234,6 +245,8 @@ model Project {
   environmentVariablesTable     ProjectEnvironmentVariable[]
 
   @@index([sandboxId])
+  @@index([supabaseProjectRef])
+  @@index([vercelProjectId])
   @@map("projects")
 }
 
@@ -695,29 +708,6 @@ model WebhookEvent {
   @@map("webhook_events")
 }
 
-model VercelIntegration {
-  id             String       @id @default(cuid())
-  userId         String       @unique
-  accessToken    String
-  refreshToken   String?
-  tokenExpiresAt DateTime?
-  vercelUserId   String?
-  vercelTeamId   String?
-  email          String?
-  username       String?
-  scopes         String[]
-  isActive       Boolean      @default(true)
-  lastSyncAt     DateTime?
-  metadata       Json?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  deployments    Deployment[]
-
-  @@index([userId])
-  @@index([isActive])
-  @@map("vercel_integrations")
-}
-
 model GitHubIntegration {
   id                    String             @id @default(cuid())
   userId                String             @unique
@@ -795,33 +785,30 @@ model GitHubRepository {
 }
 
 model Deployment {
-  id                  String             @id @default(cuid())
-  projectId           String
-  userId              String
-  vercelIntegrationId String?
-  githubRepositoryId  String?
-  platform            String
-  status              String             @default("pending")
-  vercelDeploymentId  String?
-  vercelProjectId     String?
-  vercelUrl           String?
-  vercelAliases       String[]
-  githubCommitSha     String?
-  githubBranch        String?
-  buildLog            String?
-  errorMessage        String?
-  startedAt           DateTime?
-  completedAt         DateTime?
-  duration            Int?
-  metadata            Json?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  githubRepository    GitHubRepository?  @relation(fields: [githubRepositoryId], references: [id])
-  vercelIntegration   VercelIntegration? @relation(fields: [vercelIntegrationId], references: [id])
+  id                 String            @id @default(cuid())
+  projectId          String
+  userId             String
+  githubRepositoryId String?
+  platform           String
+  status             String            @default("pending")
+  vercelDeploymentId String?
+  vercelProjectId    String?
+  vercelUrl          String?
+  vercelAliases      String[]
+  githubCommitSha    String?
+  githubBranch       String?
+  buildLog           String?
+  errorMessage       String?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  duration           Int?
+  metadata           Json?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  githubRepository   GitHubRepository? @relation(fields: [githubRepositoryId], references: [id])
 
   @@index([projectId])
   @@index([userId])
-  @@index([vercelIntegrationId])
   @@index([githubRepositoryId])
   @@index([platform])
   @@index([status])

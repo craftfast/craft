@@ -380,6 +380,262 @@ export async function trackDeploymentUsage(params: {
 }
 
 // ============================================================================
+// SUPABASE USAGE TRACKING
+// ============================================================================
+
+/**
+ * Track Supabase compute usage (hourly billing)
+ * Called periodically by cron job to bill for active Supabase instances
+ */
+export async function trackSupabaseComputeUsage(params: {
+    userId: string;
+    projectId: string;
+    supabaseProjectRef: string;
+    hoursActive: number;
+    instanceSize?: "pico" | "micro" | "small" | "medium" | "large";
+    metadata?: Record<string, unknown>;
+}): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
+    // Calculate cost based on instance size
+    // Default to micro if not specified
+    const hourlyRate = INFRASTRUCTURE_COSTS.supabase.computePerHour;
+    const providerCostUsd = params.hoursActive * hourlyRate;
+
+    if (providerCostUsd <= 0) {
+        return { id: "", providerCostUsd: 0, balanceAfter: 0 };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+        // Deduct from user balance
+        const user = await tx.user.findUnique({
+            where: { id: params.userId },
+            select: { accountBalance: true },
+        });
+
+        if (!user) {
+            throw new Error(`User ${params.userId} not found`);
+        }
+
+        const balanceBefore = Number(user.accountBalance || 0);
+        const balanceAfter = balanceBefore - providerCostUsd;
+
+        await tx.user.update({
+            where: { id: params.userId },
+            data: { accountBalance: balanceAfter },
+        });
+
+        // Create balance transaction record
+        await tx.balanceTransaction.create({
+            data: {
+                userId: params.userId,
+                type: "DATABASE_USAGE",
+                amount: -providerCostUsd,
+                balanceBefore,
+                balanceAfter,
+                description: `Supabase compute: ${params.hoursActive} hours`,
+                metadata: {
+                    projectId: params.projectId,
+                    supabaseProjectRef: params.supabaseProjectRef,
+                    hoursActive: params.hoursActive,
+                    instanceSize: params.instanceSize || "micro",
+                    ...params.metadata,
+                },
+            },
+        });
+
+        return {
+            id: `supabase-compute-${Date.now()}`,
+            providerCostUsd,
+            balanceAfter,
+        };
+    });
+
+    return result;
+}
+
+/**
+ * Track Supabase database storage usage (monthly billing)
+ */
+export async function trackSupabaseDatabaseStorage(params: {
+    userId: string;
+    projectId: string;
+    supabaseProjectRef: string;
+    storageGB: number;
+    metadata?: Record<string, unknown>;
+}): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
+    const providerCostUsd = params.storageGB * INFRASTRUCTURE_COSTS.supabase.databaseStoragePerGBMonth;
+
+    if (providerCostUsd <= 0) {
+        return { id: "", providerCostUsd: 0, balanceAfter: 0 };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+            where: { id: params.userId },
+            select: { accountBalance: true },
+        });
+
+        if (!user) {
+            throw new Error(`User ${params.userId} not found`);
+        }
+
+        const balanceBefore = Number(user.accountBalance || 0);
+        const balanceAfter = balanceBefore - providerCostUsd;
+
+        await tx.user.update({
+            where: { id: params.userId },
+            data: { accountBalance: balanceAfter },
+        });
+
+        await tx.balanceTransaction.create({
+            data: {
+                userId: params.userId,
+                type: "DATABASE_USAGE",
+                amount: -providerCostUsd,
+                balanceBefore,
+                balanceAfter,
+                description: `Supabase DB storage: ${params.storageGB} GB`,
+                metadata: {
+                    projectId: params.projectId,
+                    supabaseProjectRef: params.supabaseProjectRef,
+                    storageGB: params.storageGB,
+                    ...params.metadata,
+                },
+            },
+        });
+
+        return {
+            id: `supabase-db-storage-${Date.now()}`,
+            providerCostUsd,
+            balanceAfter,
+        };
+    });
+
+    return result;
+}
+
+/**
+ * Track Supabase file storage usage (monthly billing)
+ */
+export async function trackSupabaseFileStorage(params: {
+    userId: string;
+    projectId: string;
+    supabaseProjectRef: string;
+    storageGB: number;
+    metadata?: Record<string, unknown>;
+}): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
+    const providerCostUsd = params.storageGB * INFRASTRUCTURE_COSTS.supabase.fileStoragePerGBMonth;
+
+    if (providerCostUsd <= 0) {
+        return { id: "", providerCostUsd: 0, balanceAfter: 0 };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+            where: { id: params.userId },
+            select: { accountBalance: true },
+        });
+
+        if (!user) {
+            throw new Error(`User ${params.userId} not found`);
+        }
+
+        const balanceBefore = Number(user.accountBalance || 0);
+        const balanceAfter = balanceBefore - providerCostUsd;
+
+        await tx.user.update({
+            where: { id: params.userId },
+            data: { accountBalance: balanceAfter },
+        });
+
+        await tx.balanceTransaction.create({
+            data: {
+                userId: params.userId,
+                type: "STORAGE_USAGE",
+                amount: -providerCostUsd,
+                balanceBefore,
+                balanceAfter,
+                description: `Supabase file storage: ${params.storageGB} GB`,
+                metadata: {
+                    projectId: params.projectId,
+                    supabaseProjectRef: params.supabaseProjectRef,
+                    storageGB: params.storageGB,
+                    ...params.metadata,
+                },
+            },
+        });
+
+        return {
+            id: `supabase-file-storage-${Date.now()}`,
+            providerCostUsd,
+            balanceAfter,
+        };
+    });
+
+    return result;
+}
+
+/**
+ * Track Supabase egress (data transfer)
+ */
+export async function trackSupabaseEgress(params: {
+    userId: string;
+    projectId: string;
+    supabaseProjectRef: string;
+    egressGB: number;
+    metadata?: Record<string, unknown>;
+}): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
+    const providerCostUsd = params.egressGB * INFRASTRUCTURE_COSTS.supabase.egressPerGB;
+
+    if (providerCostUsd <= 0) {
+        return { id: "", providerCostUsd: 0, balanceAfter: 0 };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+            where: { id: params.userId },
+            select: { accountBalance: true },
+        });
+
+        if (!user) {
+            throw new Error(`User ${params.userId} not found`);
+        }
+
+        const balanceBefore = Number(user.accountBalance || 0);
+        const balanceAfter = balanceBefore - providerCostUsd;
+
+        await tx.user.update({
+            where: { id: params.userId },
+            data: { accountBalance: balanceAfter },
+        });
+
+        await tx.balanceTransaction.create({
+            data: {
+                userId: params.userId,
+                type: "DATABASE_USAGE",
+                amount: -providerCostUsd,
+                balanceBefore,
+                balanceAfter,
+                description: `Supabase egress: ${params.egressGB} GB`,
+                metadata: {
+                    projectId: params.projectId,
+                    supabaseProjectRef: params.supabaseProjectRef,
+                    egressGB: params.egressGB,
+                    ...params.metadata,
+                },
+            },
+        });
+
+        return {
+            id: `supabase-egress-${Date.now()}`,
+            providerCostUsd,
+            balanceAfter,
+        };
+    });
+
+    return result;
+}
+
+// ============================================================================
 // USAGE ANALYTICS
 // ============================================================================
 

@@ -17,8 +17,6 @@ import {
 import {
   CheckCircle2,
   Loader2,
-  Key,
-  ExternalLink,
   Search,
   Plus,
   MessageSquarePlus,
@@ -55,17 +53,11 @@ export default function IntegrationsPage() {
   const [githubStatus, setGithubStatus] = useState<IntegrationStatus | null>(
     null
   );
-  const [vercelStatus, setVercelStatus] = useState<IntegrationStatus | null>(
-    null
-  );
   const [figmaStatus, setFigmaStatus] = useState<IntegrationStatus | null>(
     null
   );
   const [isLoading, setIsLoading] = useState(true);
   const [connectingTo, setConnectingTo] = useState<string | null>(null);
-  const [showVercelTokenInput, setShowVercelTokenInput] = useState(false);
-  const [vercelToken, setVercelToken] = useState("");
-  const [isConnectingWithToken, setIsConnectingWithToken] = useState(false);
 
   // UI States
   const [searchQuery, setSearchQuery] = useState("");
@@ -86,19 +78,14 @@ export default function IntegrationsPage() {
   const checkIntegrationStatus = async () => {
     setIsLoading(true);
     try {
-      const [githubRes, vercelRes, figmaRes] = await Promise.all([
+      const [githubRes, figmaRes] = await Promise.all([
         fetch("/api/integrations/github/status"),
-        fetch("/api/integrations/vercel/status"),
         fetch("/api/integrations/figma/status"),
       ]);
 
       if (githubRes.ok) {
         const data = await githubRes.json();
         setGithubStatus(data);
-      }
-      if (vercelRes.ok) {
-        const data = await vercelRes.json();
-        setVercelStatus(data);
       }
       if (figmaRes.ok) {
         const data = await figmaRes.json();
@@ -111,7 +98,7 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleConnect = async (provider: "github" | "vercel" | "figma") => {
+  const handleConnect = async (provider: "github" | "figma") => {
     setConnectingTo(provider);
     try {
       const res = await fetch(`/api/integrations/${provider}/connect`);
@@ -130,43 +117,7 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleVercelTokenConnect = async () => {
-    if (!vercelToken.trim()) {
-      toast.error("Please enter your Vercel access token");
-      return;
-    }
-
-    setIsConnectingWithToken(true);
-    try {
-      const res = await fetch("/api/integrations/vercel/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken: vercelToken.trim() }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        toast.success(`Connected to Vercel as ${data.username || data.email}`);
-        setVercelStatus({
-          connected: true,
-          username: data.username,
-          email: data.email,
-        });
-        setShowVercelTokenInput(false);
-        setVercelToken("");
-      } else {
-        toast.error(data.error || "Failed to connect with token");
-      }
-    } catch (error) {
-      console.error("Failed to connect with token:", error);
-      toast.error("Failed to connect with token");
-    } finally {
-      setIsConnectingWithToken(false);
-    }
-  };
-
-  const handleDisconnect = async (provider: "github" | "vercel" | "figma") => {
+  const handleDisconnect = async (provider: "github" | "figma") => {
     try {
       const res = await fetch(`/api/integrations/${provider}/disconnect`, {
         method: "POST",
@@ -175,7 +126,6 @@ export default function IntegrationsPage() {
       if (res.ok) {
         toast.success(`Disconnected from ${provider}`);
         if (provider === "github") setGithubStatus(null);
-        if (provider === "vercel") setVercelStatus(null);
         if (provider === "figma") setFigmaStatus(null);
       } else {
         toast.error(`Failed to disconnect from ${provider}`);
@@ -248,26 +198,6 @@ export default function IntegrationsPage() {
         isAvailable: true,
       },
       {
-        id: "vercel",
-        name: "Vercel",
-        description: "Deploy and host your projects",
-        category: "deployment",
-        iconBg: "bg-neutral-900 dark:bg-neutral-900",
-        icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="white"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 2L2 20h20L12 2z" />
-          </svg>
-        ),
-        status: vercelStatus,
-        isAvailable: true,
-      },
-      {
         id: "figma",
         name: "Figma",
         description: "Import designs to project knowledge",
@@ -300,87 +230,14 @@ export default function IntegrationsPage() {
         status: figmaStatus,
         isAvailable: true,
       },
-      // Coming Soon Integrations
-      {
-        id: "slack",
-        name: "Slack",
-        description: "Get notifications and updates in Slack",
-        category: "communication",
-        iconBg: "bg-neutral-100 dark:bg-neutral-800",
-        icon: (
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"
-              fill="#E01E5A"
-            />
-          </svg>
-        ),
-        status: null,
-        isAvailable: false,
-      },
-      {
-        id: "netlify",
-        name: "Netlify",
-        description: "Alternative deployment platform",
-        category: "deployment",
-        iconBg: "bg-neutral-100 dark:bg-neutral-800",
-        icon: (
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M16.934 8.519a1.044 1.044 0 0 1 .303.03l2.9-2.9-.287-.287-3.56 1.166a1.045 1.045 0 0 1 .644.99zm-.93.478a1.043 1.043 0 0 1-.283.716l1.947 5.907.26-.26-1.975-6.248a1.008 1.008 0 0 1 .052-.115zm2.25 2.939a1.033 1.033 0 0 1 .053-.058l-1.674-1.675-1.947 1.947 1.675 1.675c.026-.02.052-.038.079-.055zm-5.625-5.625l1.675 1.675a1.033 1.033 0 0 1 .058-.053l-1.675-1.674zm.001-.001L10.955 4.636l-.287.287 1.674 1.674a1.008 1.008 0 0 1 .113-.05l.05-.164a1.043 1.043 0 0 1 .053-.043l-.254-.254zm-1.618 5.145a1.044 1.044 0 0 1-.716.283c-.032 0-.064-.002-.095-.005L7.04 14.895l5.172 5.172.287-.287-2.487-8.325zM12.23 5.13l.287-.287-5.05-5.05-.286.287 4.67 4.67.001.001.052.042a1.044 1.044 0 0 1 .326.337zm-1.333 4.472a1.044 1.044 0 0 1-.029-.251l-.001-.032-5.08 1.666.287.287 4.823-1.67zm1.025.263a1.044 1.044 0 0 1-.398-.078l-.068.226-1.946 6.145 8.37 2.733.287-.287-6.245-8.739zm-1.638.093a1.044 1.044 0 0 1-.716-.283l-1.675 1.675 1.675 1.675a1.033 1.033 0 0 1 .053.058l1.947-1.947-1.226-1.226a1.008 1.008 0 0 1-.058.048zm.012-2.026a1.044 1.044 0 0 1 .03-.303l-4.67-4.67-.287.287 4.67 4.67a1.044 1.044 0 0 1 .257.016zm8.57 5.156a1.043 1.043 0 0 1-.262-.682l-5.08-1.666-.001.032-.253 8.42 5.596 1.83.287-.287-4.67-4.67-.001-.001-.052-.042a1.044 1.044 0 0 1-.326-.337l1.675-1.674a1.043 1.043 0 0 1 .058.053l1.674-1.674a1.008 1.008 0 0 1-.05-.113l1.405.461z"
-              fill="#00C7B7"
-            />
-          </svg>
-        ),
-        status: null,
-        isAvailable: false,
-      },
-      {
-        id: "linear",
-        name: "Linear",
-        description: "Project management and issue tracking",
-        category: "development",
-        iconBg: "bg-neutral-100 dark:bg-neutral-800",
-        icon: (
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M3.185 11.092a.367.367 0 0 0-.09.488l9.326 9.326a.367.367 0 0 0 .488-.09 9.035 9.035 0 0 0-9.724-9.724zM2.18 13.61a.367.367 0 0 0-.18.318v6.982c0 .61.495 1.104 1.104 1.104h6.982a.367.367 0 0 0 .318-.18L2.18 13.61zM12.819 21.82a.367.367 0 0 0 .318-.18l8.681-8.681a.367.367 0 0 0-.18-.318 9.036 9.036 0 0 0-8.819 9.179zM20.896 11.728a.367.367 0 0 0 .318-.18A9 9 0 0 0 12.452 2.786a.367.367 0 0 0-.18.318l8.624 8.624zM10.908 3.185a.367.367 0 0 0 .09-.488L10.67 2.37A9 9 0 0 0 3.37 10.67l.326.328a.367.367 0 0 0 .488-.09 9.035 9.035 0 0 0 6.724-7.724z"
-              fill="#5E6AD2"
-            />
-          </svg>
-        ),
-        status: null,
-        isAvailable: false,
-      },
-      {
-        id: "notion",
-        name: "Notion",
-        description: "Import documentation and notes",
-        category: "development",
-        iconBg: "bg-neutral-100 dark:bg-neutral-800",
-        icon: (
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M4.014 3.306c.407.342.565.32 1.34.271l12.6-.763c.238 0 .04-.238-.04-.277l-2.093-1.514c-.357-.277-.832-.584-1.742-.506l-12.199.91c-.594.05-.713.297-.475.494l2.609 1.385zm.446 2.64v13.235c0 .713.357 1.02 1.158.97l13.861-.792c.802-.049 1.1-.474 1.1-1.088V5.07c0-.612-.237-.919-.772-.87l-14.479.83c-.575.05-.868.357-.868.919zm13.703.356c.079.356 0 .712-.357.752l-.674.13v9.791c-.585.318-.1.495-.793.495-.445 0-.663-.139-.1-.692l-3.43-10.681.297 11.84.673.149s0 .712-.495.712l-2.723.158c-.079-.158 0-.554.278-.619l.714-.178V8.254L7.14 8.48c-.079-.356.119-.863.673-.911l2.921-.178 3.55 10.807.277-11.768 1.208-.089c.079.158.079.673 0 1.03zm-13.62-1.267c0-.713.595-1.267 1.208-1.267l13.822-.832c.594-.05 1.189.317 1.189 1.03v14.326c0 .594-.178.792-.654.832l-14.637.832c-.435.05-.928-.039-.928-.871V5.035z"
-              fill="currentColor"
-            />
-          </svg>
-        ),
-        status: null,
-        isAvailable: false,
-      },
     ],
-    [githubStatus, vercelStatus, figmaStatus]
+    [githubStatus, figmaStatus]
   );
 
   const categories = [
     { id: "all", label: "All" },
     { id: "development", label: "Development" },
-    { id: "deployment", label: "Deployment" },
     { id: "design", label: "Design" },
-    { id: "communication", label: "Communication" },
   ];
 
   // Filter integrations
@@ -441,8 +298,8 @@ export default function IntegrationsPage() {
                 Sign in to manage integrations
               </h2>
               <p className="text-muted-foreground mb-6">
-                Create an account or sign in to connect GitHub, Vercel, and
-                other services.
+                Create an account or sign in to connect GitHub, Figma, and other
+                services.
               </p>
               <div className="flex items-center justify-center gap-3">
                 <Button variant="outline" asChild className="rounded-full">
@@ -461,12 +318,6 @@ export default function IntegrationsPage() {
 
   const renderIntegrationCard = (integration: Integration) => {
     const isConnected = integration.status?.connected;
-    const statusSetter =
-      integration.id === "github"
-        ? setGithubStatus
-        : integration.id === "vercel"
-        ? setVercelStatus
-        : setFigmaStatus;
 
     return (
       <div
@@ -500,11 +351,6 @@ export default function IntegrationsPage() {
                         integration.status?.login ||
                         integration.status?.username
                       }`
-                    : integration.id === "vercel"
-                    ? `Connected as ${
-                        integration.status?.username ||
-                        integration.status?.email
-                      }`
                     : `Connected as @${
                         integration.status?.handle || integration.status?.email
                       }`
@@ -522,89 +368,30 @@ export default function IntegrationsPage() {
               isConnected ? (
                 <button
                   onClick={() =>
-                    handleDisconnect(
-                      integration.id as "github" | "vercel" | "figma"
-                    )
+                    handleDisconnect(integration.id as "github" | "figma")
                   }
                   className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
                 >
                   Disconnect
                 </button>
               ) : (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() =>
-                      handleConnect(
-                        integration.id as "github" | "vercel" | "figma"
-                      )
-                    }
-                    disabled={connectingTo === integration.id}
-                    className="px-3 py-1.5 text-xs font-medium bg-accent text-foreground rounded-lg hover:bg-accent/80 transition-colors disabled:opacity-50"
-                  >
-                    {connectingTo === integration.id ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      "Connect"
-                    )}
-                  </button>
-                  {integration.id === "vercel" && (
-                    <button
-                      onClick={() =>
-                        setShowVercelTokenInput(!showVercelTokenInput)
-                      }
-                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent/50 transition-colors"
-                      title="Connect with access token"
-                    >
-                      <Key className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              )
-            ) : null}
-          </div>
-        </div>
-
-        {/* Vercel Token Input */}
-        {integration.id === "vercel" &&
-          showVercelTokenInput &&
-          !vercelStatus?.connected && (
-            <div className="mt-4 pt-4 border-t border-border space-y-3">
-              <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                <span>
-                  Create a token at{" "}
-                  <a
-                    href="https://vercel.com/account/tokens"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-foreground underline hover:no-underline inline-flex items-center gap-1"
-                  >
-                    vercel.com/account/tokens
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={vercelToken}
-                  onChange={(e) => setVercelToken(e.target.value)}
-                  placeholder="Paste your Vercel access token"
-                  className="flex-1 px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-                />
                 <button
-                  onClick={handleVercelTokenConnect}
-                  disabled={isConnectingWithToken || !vercelToken.trim()}
-                  className="px-4 py-2 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                  onClick={() =>
+                    handleConnect(integration.id as "github" | "figma")
+                  }
+                  disabled={connectingTo === integration.id}
+                  className="px-3 py-1.5 text-xs font-medium bg-accent text-foreground rounded-lg hover:bg-accent/80 transition-colors disabled:opacity-50"
                 >
-                  {isConnectingWithToken ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                  {connectingTo === integration.id ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
                   ) : (
                     "Connect"
                   )}
                 </button>
-              </div>
-            </div>
-          )}
+              )
+            ) : null}
+          </div>
+        </div>
       </div>
     );
   };

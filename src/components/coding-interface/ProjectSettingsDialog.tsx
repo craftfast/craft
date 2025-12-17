@@ -62,7 +62,6 @@ import {
   Download,
   CheckCircle2,
   AlertCircle,
-  Unlink,
   RefreshCw,
   TriangleIcon,
   Rocket,
@@ -71,6 +70,8 @@ import {
   FileType,
   Sparkles,
   X,
+  Info,
+  Unlink,
 } from "lucide-react";
 
 type SettingsSection =
@@ -155,7 +156,7 @@ interface SyncStatus {
 // Deployment types
 interface Deployment {
   id: string;
-  platform: string;
+  provider: string;
   status: string;
   vercelUrl?: string;
   vercelProjectId?: string;
@@ -275,7 +276,6 @@ export default function ProjectSettingsDialog({
   // Deployments state
   const [isLoadingDeployments, setIsLoadingDeployments] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [isDisconnectingVercel, setIsDisconnectingVercel] = useState(false);
   const [vercelConnected, setVercelConnected] = useState(false);
   const [vercelProject, setVercelProject] = useState<VercelProject | null>(
     null
@@ -740,22 +740,26 @@ export default function ProjectSettingsDialog({
   const loadDeploymentSettings = async () => {
     setIsLoadingDeployments(true);
     try {
-      const [settingsRes, deploymentsRes] = await Promise.all([
-        fetch(`/api/projects/${projectId}/settings`),
-        fetch(`/api/integrations/deploy?projectId=${projectId}`),
+      const [projectRes, deploymentsRes] = await Promise.all([
+        fetch(`/api/projects/${projectId}`),
+        fetch(`/api/projects/${projectId}/deployments`),
       ]);
-      if (settingsRes.ok) {
-        const data = await settingsRes.json();
-        if (data.deployments?.vercel) {
+      if (projectRes.ok) {
+        const data = await projectRes.json();
+        // Check if project has Vercel deployment info
+        if (data.vercelProjectId || data.vercelUrl) {
           setVercelConnected(true);
-          setVercelProject(data.deployments.vercelProject || null);
+          setVercelProject({
+            id: data.vercelProjectId,
+            name: data.vercelProjectName || data.name,
+          });
         }
       }
       if (deploymentsRes.ok) {
         const data = await deploymentsRes.json();
         if (data.deployments) {
           setDeploymentHistory(
-            data.deployments.filter((d: Deployment) => d.platform === "vercel")
+            data.deployments.filter((d: Deployment) => d.provider === "vercel")
           );
         }
       }
@@ -767,51 +771,22 @@ export default function ProjectSettingsDialog({
     }
   };
 
-  const handleConnectVercel = async () => {
-    toast.info("Connecting to Vercel...");
-    window.open(
-      `/api/integrations/vercel/connect?projectId=${projectId}`,
-      "_blank"
-    );
-  };
-
-  const handleDisconnectVercel = async () => {
-    setIsDisconnectingVercel(true);
-    try {
-      const res = await fetch(
-        `/api/integrations/vercel/disconnect?projectId=${projectId}`,
-        {
-          method: "POST",
-        }
-      );
-      if (res.ok) {
-        setVercelConnected(false);
-        setVercelProject(null);
-        toast.success("Disconnected from Vercel");
-      } else {
-        toast.error("Failed to disconnect from Vercel");
-      }
-    } catch (error) {
-      console.error("Failed to disconnect:", error);
-      toast.error("Failed to disconnect from Vercel");
-    } finally {
-      setIsDisconnectingVercel(false);
-    }
-  };
-
   const handleDeploy = async () => {
     setIsDeploying(true);
     try {
-      const res = await fetch(`/api/integrations/deploy`, {
+      const res = await fetch(`/api/projects/${projectId}/deployments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, platform: "vercel" }),
+        body: JSON.stringify({ provider: "vercel", environment: "production" }),
       });
+
+      const data = await res.json();
+
       if (res.ok) {
         toast.success("Deployment started!");
+        setVercelConnected(true);
         loadDeploymentSettings();
       } else {
-        const data = await res.json();
         toast.error(data.error || "Failed to start deployment");
       }
     } catch (error) {
@@ -1051,7 +1026,7 @@ export default function ProjectSettingsDialog({
                           {envVar.key}
                         </span>
                         {envVar.isSecret && (
-                          <Lock className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                          <Lock className="w-3 h-3 text-amber-500 shrink-0" />
                         )}
                       </div>
                       <div className="flex items-center gap-1 mt-0.5">
@@ -1627,7 +1602,7 @@ export default function ProjectSettingsDialog({
                     <p className="text-xs text-muted-foreground">
                       {vercelConnected
                         ? "Deploy with automatic builds"
-                        : "Connect to deploy"}
+                        : "One-click deployment"}
                     </p>
                   </div>
                 </div>
@@ -1636,37 +1611,37 @@ export default function ProjectSettingsDialog({
                 )}
               </div>
 
-              {!vercelConnected ? (
-                <Button
-                  onClick={handleConnectVercel}
-                  className="w-full rounded-lg"
-                  size="sm"
-                >
+              {/* Pricing Info */}
+              <div className="p-3 rounded-lg bg-muted/50 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <Info className="w-3.5 h-3.5" />
+                  <span className="font-medium">Usage-based pricing</span>
+                </div>
+                <p className="text-muted-foreground">
+                  $0.01/1K bandwidth + compute. Charged to your Craft balance.
+                </p>
+              </div>
+
+              {/* Deploy Button - Always visible */}
+              <Button
+                onClick={handleDeploy}
+                disabled={isDeploying}
+                className="w-full rounded-lg"
+                size="sm"
+              >
+                {isDeploying ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                ) : (
                   <Rocket className="w-3.5 h-3.5 mr-2" />
-                  Connect Vercel Account
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={handleDisconnectVercel}
-                  disabled={isDisconnectingVercel}
-                  className="w-full rounded-lg text-destructive hover:text-destructive"
-                  size="sm"
-                >
-                  {isDisconnectingVercel ? (
-                    <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                  ) : (
-                    <Unlink className="w-3.5 h-3.5 mr-2" />
-                  )}
-                  Disconnect Vercel
-                </Button>
-              )}
+                )}
+                {vercelConnected ? "Deploy Update" : "Deploy to Vercel"}
+              </Button>
             </div>
 
             {vercelConnected && (
               <div className="p-4 rounded-xl border space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-sm">Deployment</h3>
+                  <h3 className="font-medium text-sm">Deployment Status</h3>
                   {latestSuccessfulDeployment?.vercelUrl && (
                     <Button
                       variant="ghost"
@@ -1735,30 +1710,16 @@ export default function ProjectSettingsDialog({
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleDeploy}
-                    disabled={isDeploying}
-                    className="flex-1 rounded-lg"
-                    size="sm"
-                  >
-                    {isDeploying ? (
-                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                    ) : (
-                      <Rocket className="w-3.5 h-3.5 mr-1" />
-                    )}
-                    Deploy Now
-                  </Button>
-                  <Button
-                    onClick={loadDeploymentSettings}
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                {/* Refresh Status */}
+                <Button
+                  onClick={loadDeploymentSettings}
+                  variant="outline"
+                  size="sm"
+                  className="w-full rounded-lg"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 mr-2" />
+                  Refresh Status
+                </Button>
               </div>
             )}
 
@@ -1894,7 +1855,7 @@ export default function ProjectSettingsDialog({
                       className="flex items-center justify-between px-3 py-2"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">
                             {file.name}
@@ -1945,7 +1906,7 @@ export default function ProjectSettingsDialog({
         <DialogContent className="rounded-2xl sm:max-w-[900px] p-0 gap-0 overflow-hidden">
           <div className="flex h-[650px]">
             {/* Sidebar */}
-            <div className="w-52 border-r bg-muted/30 p-3 flex-shrink-0">
+            <div className="w-52 border-r bg-muted/30 p-3 shrink-0">
               <DialogHeader className="px-2 pb-2">
                 <DialogTitle className="text-sm">Project Settings</DialogTitle>
               </DialogHeader>

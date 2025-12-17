@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,31 +13,42 @@ import {
   ExternalLink,
   CheckCircle2,
   Loader2,
-  Link2,
   Copy,
   Rocket,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { INFRASTRUCTURE_COSTS } from "@/lib/pricing-constants";
 
 interface DeploymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
-  onExportProject: () => void;
+  onExportProject?: () => void;
 }
 
-interface IntegrationStatus {
-  connected: boolean;
-  email?: string;
-  username?: string;
-  login?: string;
+interface DeploymentStatus {
+  hasDeployments: boolean;
+  latestDeployment?: {
+    id: string;
+    status: string;
+    url?: string;
+    createdAt: string;
+    provider: string;
+  };
+  vercelProjectId?: string;
+  vercelProjectName?: string;
+  vercelUrl?: string;
 }
 
 interface DeploymentResult {
   id: string;
   status: string;
-  vercelUrl?: string;
+  url?: string;
   vercelProjectId?: string;
+  vercelProjectName?: string;
+  error?: string;
 }
 
 export default function DeploymentDialog({
@@ -46,91 +57,98 @@ export default function DeploymentDialog({
   projectId,
   onExportProject: _onExportProject,
 }: DeploymentDialogProps) {
-  const [vercelStatus, setVercelStatus] = useState<IntegrationStatus | null>(
-    null
-  );
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [status, setStatus] = useState<DeploymentStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deploymentPlatform, setDeploymentPlatform] = useState<string | null>(
-    null
-  );
   const [deploymentResult, setDeploymentResult] =
     useState<DeploymentResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Check integration status when dialog opens
+  // Check deployment status when dialog opens
+  const checkStatus = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/deployments`);
+      if (res.ok) {
+        const data = await res.json();
+        const vercelDeployments =
+          data.deployments?.filter(
+            (d: { provider: string }) => d.provider === "vercel"
+          ) || [];
+
+        // Get project info for Vercel details
+        const projectRes = await fetch(`/api/projects/${projectId}`);
+        const projectData = projectRes.ok ? await projectRes.json() : {};
+
+        setStatus({
+          hasDeployments: vercelDeployments.length > 0,
+          latestDeployment: vercelDeployments[0],
+          vercelProjectId: projectData.vercelProjectId,
+          vercelProjectName: projectData.vercelProjectName,
+          vercelUrl: projectData.vercelUrl,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to check deployment status:", err);
+      setError("Failed to check deployment status");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId]);
+
   useEffect(() => {
     if (open) {
-      checkIntegrationStatus();
-      // Reset deployment result when dialog opens
+      checkStatus();
       setDeploymentResult(null);
     }
-  }, [open]);
+  }, [open, checkStatus]);
 
-  const checkIntegrationStatus = async () => {
-    setIsCheckingStatus(true);
-    try {
-      const vercelRes = await fetch("/api/integrations/vercel/status");
-
-      if (vercelRes.ok) {
-        const vercelData = await vercelRes.json();
-        setVercelStatus(vercelData);
-      }
-    } catch (error) {
-      console.error("Failed to check integration status:", error);
-    } finally {
-      setIsCheckingStatus(false);
-    }
-  };
-
-  const handleConnectVercel = async () => {
-    try {
-      const res = await fetch("/api/integrations/vercel/connect");
-      const data = await res.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error("Failed to connect Vercel:", error);
-    }
-  };
-
-  const handleDeployToVercel = async () => {
+  const handleDeploy = async () => {
     setIsDeploying(true);
-    setDeploymentPlatform("vercel");
+    setError(null);
     setDeploymentResult(null);
 
     try {
-      const res = await fetch("/api/integrations/deploy", {
+      const res = await fetch(`/api/projects/${projectId}/deployments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          projectId,
-          platform: "vercel",
+          provider: "vercel",
+          environment: "production",
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error("Deployment failed");
+        setError(data.error || "Deployment failed");
+        toast.error(data.error || "Deployment failed");
+        return;
       }
 
-      const deployment = await res.json();
-
-      // Set the deployment result to show success UI
       setDeploymentResult({
-        id: deployment.id,
-        status: deployment.status,
-        vercelUrl: deployment.vercelUrl,
-        vercelProjectId: deployment.vercelProjectId,
+        id: data.deployment?.deploymentId || data.deployment?.id,
+        status: data.deployment?.status || "building",
+        url: data.deployment?.url,
+        vercelProjectId: data.deployment?.metadata?.vercelProjectId,
+        vercelProjectName: data.deployment?.metadata?.vercelProjectName,
       });
 
-      toast.success("Project deployed successfully!");
-    } catch (error) {
-      console.error("Deployment error:", error);
-      toast.error("Deployment failed. Please try again.");
+      if (data.deployment?.status === "active" || data.deployment?.url) {
+        toast.success("Deployed successfully!");
+      } else {
+        toast.success("Deployment started!");
+      }
+
+      // Refresh status
+      checkStatus();
+    } catch (err) {
+      console.error("Deployment error:", err);
+      setError("Failed to start deployment");
+      toast.error("Failed to start deployment");
     } finally {
       setIsDeploying(false);
-      setDeploymentPlatform(null);
     }
   };
 
@@ -140,32 +158,55 @@ export default function DeploymentDialog({
   };
 
   const getFullUrl = (url: string) => {
+    if (!url) return "";
     if (url.startsWith("http")) return url;
     return `https://${url}`;
   };
 
+  const formatCost = (cost: number) => `$${cost.toFixed(3)}`;
+
+  const liveUrl =
+    deploymentResult?.url || status?.vercelUrl || status?.latestDeployment?.url;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl sm:max-w-[500px]">
+      <DialogContent className="rounded-2xl sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Deploy Project</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Rocket className="w-5 h-5" />
+            Deploy Project
+          </DialogTitle>
           <DialogDescription>
-            Deploy your project to Vercel for instant global hosting with
-            automatic CI/CD.
+            Deploy your project to production with Vercel.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="pt-4">
-          {/* Vercel Option */}
-          <div className="border rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
+        <div className="pt-4 space-y-4">
+          {/* Error Alert */}
+          {error && (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isLoading && !status && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {/* Vercel Deployment Card */}
+          {!isLoading && (
+            <div className="border rounded-xl p-4 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-neutral-900 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white flex items-center justify-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    fill="white"
+                    width="20"
+                    height="20"
+                    className="fill-white dark:fill-neutral-900"
                     viewBox="0 0 24 24"
                   >
                     <path d="M12 2L2 20h20L12 2z" />
@@ -174,33 +215,53 @@ export default function DeploymentDialog({
                 <div>
                   <h3 className="font-semibold">Vercel</h3>
                   <p className="text-xs text-muted-foreground">
-                    {vercelStatus?.connected
-                      ? `Connected as ${vercelStatus.email}`
-                      : "Production-ready hosting"}
+                    Production-ready hosting with global CDN
                   </p>
                 </div>
               </div>
-              {vercelStatus?.connected && (
-                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-500" />
-              )}
-            </div>
 
-            {vercelStatus?.connected ? (
-              <div className="space-y-3">
-                {/* Show success state after deployment */}
-                {deploymentResult?.vercelUrl ? (
-                  <div className="space-y-4">
-                    {/* Success Banner */}
+              {/* Pricing Info */}
+              <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Usage-Based Pricing
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">CPU:</span>
+                    <span className="ml-1 font-mono">
+                      {formatCost(INFRASTRUCTURE_COSTS.vercel.activeCPUPerHour)}
+                      /hr
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Memory:</span>
+                    <span className="ml-1 font-mono">
+                      {formatCost(
+                        INFRASTRUCTURE_COSTS.vercel.provisionedMemoryPerGBHour
+                      )}
+                      /GB-hr
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Only charged for actual usage during function execution
+                </p>
+              </div>
+
+              {/* Deployment Success */}
+              {(deploymentResult?.url || (status?.vercelUrl && !isDeploying)) &&
+                liveUrl && (
+                  <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
                       <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                        <Rocket className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                          Deployed Successfully!
+                          {deploymentResult?.url ? "Deployed!" : "Live"}
                         </p>
                         <p className="text-xs text-green-600 dark:text-green-400">
-                          Your project is now live
+                          {status?.vercelProjectName || "Your project is live"}
                         </p>
                       </div>
                     </div>
@@ -212,17 +273,13 @@ export default function DeploymentDialog({
                       </p>
                       <div className="flex items-center gap-2">
                         <code className="flex-1 text-sm font-mono truncate">
-                          {deploymentResult.vercelUrl}
+                          {liveUrl}
                         </code>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 shrink-0"
-                          onClick={() =>
-                            copyToClipboard(
-                              getFullUrl(deploymentResult.vercelUrl!)
-                            )
-                          }
+                          className="h-8 w-8 p-0 shrink-0 rounded-lg"
+                          onClick={() => copyToClipboard(getFullUrl(liveUrl))}
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
@@ -233,10 +290,7 @@ export default function DeploymentDialog({
                     <div className="flex gap-2">
                       <Button
                         onClick={() =>
-                          window.open(
-                            getFullUrl(deploymentResult.vercelUrl!),
-                            "_blank"
-                          )
+                          window.open(getFullUrl(liveUrl), "_blank")
                         }
                         className="flex-1 rounded-lg"
                       >
@@ -245,83 +299,66 @@ export default function DeploymentDialog({
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => setDeploymentResult(null)}
+                        onClick={handleDeploy}
+                        disabled={isDeploying}
                         className="rounded-lg"
                       >
-                        Deploy Again
+                        {isDeploying ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                   </div>
-                ) : (
-                  /* Deploy button */
-                  <Button
-                    onClick={handleDeployToVercel}
-                    disabled={isDeploying}
-                    className="w-full rounded-lg"
-                  >
-                    {isDeploying && deploymentPlatform === "vercel" ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Deploying...
-                      </>
-                    ) : (
-                      <>
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Deploy Now
-                      </>
-                    )}
-                  </Button>
                 )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Button
-                  onClick={handleConnectVercel}
-                  className="w-full rounded-lg"
-                >
-                  <Link2 className="w-4 h-4 mr-2" />
-                  Connect Vercel Account
+
+              {/* Deploy Button (no previous deployment) */}
+              {!liveUrl && !isDeploying && (
+                <Button onClick={handleDeploy} className="w-full rounded-lg">
+                  <Rocket className="w-4 h-4 mr-2" />
+                  Deploy to Vercel
                 </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  You&apos;ll be redirected to authorize Vercel access
-                </p>
-              </div>
-            )}
-          </div>
+              )}
+
+              {/* Deploying State */}
+              {isDeploying && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 border">
+                    <Loader2 className="w-5 h-5 animate-spin text-neutral-600" />
+                    <div>
+                      <p className="text-sm font-medium">Deploying...</p>
+                      <p className="text-xs text-muted-foreground">
+                        Building and deploying your project
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Features List */}
-          <div className="mt-6 space-y-3">
-            <p className="text-sm font-medium">What you get:</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-500 shrink-0" />
-                <span>Global CDN with edge functions</span>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Includes:</p>
+            <ul className="space-y-1.5 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-neutral-500" />
+                Global CDN with edge functions
               </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-500 shrink-0" />
-                <span>Automatic HTTPS and custom domains</span>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-neutral-500" />
+                Automatic HTTPS
               </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-500 shrink-0" />
-                <span>Instant rollbacks and previews</span>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-neutral-500" />
+                Instant rollbacks
               </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-500 shrink-0" />
-                <span>Built-in analytics and monitoring</span>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-neutral-500" />
+                Analytics and monitoring
               </li>
             </ul>
-          </div>
-
-          {/* Documentation Link */}
-          <div className="mt-4 pt-4 border-t">
-            <Button
-              onClick={() => window.open("https://vercel.com/docs", "_blank")}
-              variant="ghost"
-              className="w-full rounded-lg text-sm"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View Vercel Documentation
-            </Button>
           </div>
         </div>
       </DialogContent>
