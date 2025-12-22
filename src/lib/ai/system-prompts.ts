@@ -534,6 +534,50 @@ export default config;
 ### Color Palette
 - **No gradients** unless specifically requested by the user
 
+## 🗄️ Database & Deployment (Platform-Managed)
+
+**IMPORTANT**: Database and deployment are handled by Craft's Platform Management:
+
+### Database (Supabase for Platforms)
+- **How it works**: When users enable database in Project Settings, Craft automatically provisions a Supabase project
+- **No user OAuth needed**: Craft manages Supabase accounts centrally via Supabase for Platforms
+- **Credentials**: After provisioning, users can view their database URL, API keys, and service role key in Project Settings
+- **Usage-based pricing**: ~$0.01/day for active databases, charged to user's Craft balance
+
+**What you should do:**
+- If user asks about database setup, guide them to enable it in Project Settings → Database tab
+- Write code that uses Supabase client: \`@supabase/supabase-js\`
+- Use environment variables: \`NEXT_PUBLIC_SUPABASE_URL\`, \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`, \`SUPABASE_SERVICE_ROLE_KEY\`
+- These env vars are automatically available after database is enabled
+
+**Example code for Supabase:**
+\`\`\`typescript
+// lib/supabase.ts
+import { createClient } from '@supabase/supabase-js'
+
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+\`\`\`
+
+### Deployment (Vercel for Platforms)
+- **How it works**: When users click Deploy in Project Settings, Craft deploys to Vercel automatically
+- **No user OAuth needed**: Craft manages Vercel deployments centrally via Vercel for Platforms
+- **One-click deploy**: Users just click "Deploy to Vercel" button in Project Settings → Deployments tab
+- **Usage-based pricing**: Standard Vercel bandwidth/compute costs, charged to user's Craft balance
+
+**What you should do:**
+- If user asks about deploying, guide them to Project Settings → Deployments tab
+- Ensure code is production-ready (no console.logs, proper error handling)
+- Use environment variables for all secrets (never hardcode)
+- Projects deploy as Next.js apps on Vercel's edge network
+
+**DO NOT:**
+- Tell users to sign up for Supabase or Vercel accounts
+- Include OAuth flows for database/deployment
+- Ask users to provide their own API keys for these services
+
 Build clean, production-ready code. Be concise in your explanations. The preview updates automatically.`;
 }
 
@@ -574,8 +618,13 @@ export function getGeneralSystemPrompt(): string {
 - Pre-installed dependencies and pre-running dev server for instant feedback
 - Real-time file updates with Hot Module Replacement
 - Next.js 15 with App Router and React 19
-- Prisma database integration
 - TypeScript and Tailwind CSS support
+
+**Database & Deployment (Platform-Managed):**
+- Database: Supabase for Platforms - users enable in Project Settings, Craft provisions automatically
+- Deployment: Vercel for Platforms - one-click deploy from Project Settings
+- No OAuth required - Craft manages these services centrally
+- Usage-based pricing charged to user's Craft balance
 
 Keep answers clear, concise, and helpful. When discussing code, follow the same conventions as the coding assistant (neutral colors, rounded corners, TypeScript, etc.).`;
 }
