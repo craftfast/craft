@@ -92,14 +92,19 @@ function ProjectsContent() {
     router.replace(url.pathname + url.search, { scroll: false });
   };
 
+  // Track if we've already fetched projects to avoid refetching on session object changes
+  const [hasFetched, setHasFetched] = useState(false);
+
   useEffect(() => {
-    if (session && !isPending) {
+    // Only fetch once when session becomes available
+    if (session && !isPending && !hasFetched) {
+      setHasFetched(true);
       fetchProjects();
     } else if (!session && !isPending) {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, isPending]);
+  }, [session, isPending, hasFetched]);
 
   const fetchProjects = async () => {
     try {

@@ -412,4 +412,153 @@ export async function sendOTPEmail(
     });
 }
 
+// ============================================================================
+// BILLING NOTIFICATION EMAILS
+// ============================================================================
 
+/**
+ * Send low balance warning email
+ * Sent when user balance drops below $5 (warning threshold)
+ */
+export async function sendLowBalanceWarningEmail(params: {
+    email: string;
+    name?: string | null;
+    balance: number;
+}): Promise<boolean> {
+    const { email, name, balance } = params;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Low Balance Warning</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                            <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #171717;">Low Balance Warning</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #525252;">
+                                Hi${name ? ` ${name}` : ''},
+                            </p>
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #525252;">
+                                Your Craft account balance is running low:
+                            </p>
+                            <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; text-align: center; margin: 20px 0;">
+                                <p style="margin: 0; font-size: 14px; color: #92400e;">Current Balance</p>
+                                <p style="margin: 8px 0 0 0; font-size: 32px; font-weight: 700; color: #b45309;">$${balance.toFixed(2)}</p>
+                            </div>
+                            <p style="margin: 20px 0; font-size: 16px; line-height: 1.6; color: #525252;">
+                                To avoid service interruptions, please add credits to your account. Services will be paused when your balance drops below $0.50.
+                            </p>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="https://craft.fast/dashboard/credits" style="display: inline-block; padding: 14px 32px; background-color: #171717; color: #ffffff; text-decoration: none; border-radius: 9999px; font-weight: 500; font-size: 16px;">Add Credits</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 20px 40px 40px 40px; text-align: center; border-top: 1px solid #e5e5e5;">
+                            <p style="margin: 0; font-size: 12px; color: #a3a3a3;">
+                                © ${new Date().getFullYear()} Craft. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `.trim();
+
+    return sendEmail({
+        to: email,
+        subject: "⚠️ Low Balance Warning - Add Credits to Craft",
+        html,
+    });
+}
+
+/**
+ * Send service paused notification email
+ * Sent when user services are paused due to low balance
+ */
+export async function sendServicePausedEmail(params: {
+    email: string;
+    name?: string | null;
+    balance: number;
+    serviceName: string;
+    projectName?: string;
+}): Promise<boolean> {
+    const { email, name, balance, serviceName, projectName } = params;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Paused</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">⏸️</div>
+                            <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #171717;">Service Paused</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #525252;">
+                                Hi${name ? ` ${name}` : ''},
+                            </p>
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #525252;">
+                                Your <strong>${serviceName}</strong>${projectName ? ` for "${projectName}"` : ''} has been paused due to insufficient balance.
+                            </p>
+                            <div style="background-color: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; padding: 16px; text-align: center; margin: 20px 0;">
+                                <p style="margin: 0; font-size: 14px; color: #991b1b;">Current Balance</p>
+                                <p style="margin: 8px 0 0 0; font-size: 32px; font-weight: 700; color: #dc2626;">$${balance.toFixed(2)}</p>
+                                <p style="margin: 8px 0 0 0; font-size: 14px; color: #991b1b;">Minimum required: $0.50</p>
+                            </div>
+                            <p style="margin: 20px 0; font-size: 16px; line-height: 1.6; color: #525252;">
+                                <strong>Don't worry!</strong> Your data is safe. Add credits and you can resume the service instantly from your project settings.
+                            </p>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="https://craft.fast/dashboard/credits" style="display: inline-block; padding: 14px 32px; background-color: #171717; color: #ffffff; text-decoration: none; border-radius: 9999px; font-weight: 500; font-size: 16px;">Add Credits Now</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 20px 40px 40px 40px; text-align: center; border-top: 1px solid #e5e5e5;">
+                            <p style="margin: 0; font-size: 12px; color: #a3a3a3;">
+                                © ${new Date().getFullYear()} Craft. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `.trim();
+
+    return sendEmail({
+        to: email,
+        subject: `⏸️ ${serviceName} Paused - Add Credits to Resume`,
+        html,
+    });
+}

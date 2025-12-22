@@ -31,6 +31,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { INFRASTRUCTURE_COSTS } from "@/lib/pricing-constants";
+import {
+  handleBillingError,
+  isBillingError,
+} from "@/lib/billing-error-handler";
 
 interface DatabaseConnectionDialogProps {
   open: boolean;
@@ -40,7 +44,14 @@ interface DatabaseConnectionDialogProps {
 
 interface SupabaseStatus {
   enabled: boolean;
-  status?: "active" | "inactive" | "provisioning" | "paused" | "error";
+  status?:
+    | "active"
+    | "inactive"
+    | "provisioning"
+    | "paused"
+    | "paused_low_balance"
+    | "resuming"
+    | "error";
   projectRef?: string;
   apiUrl?: string;
   provisionedAt?: string;
@@ -73,6 +84,7 @@ export default function DatabaseConnectionDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +136,14 @@ export default function DatabaseConnectionDialog({
         headers: { "Content-Type": "application/json" },
       });
 
+      // Handle billing errors (402)
+      if (isBillingError(res)) {
+        await handleBillingError(res);
+        setError("Insufficient balance. Please add credits.");
+        setIsProvisioning(false);
+        return;
+      }
+
       if (res.ok) {
         const data = await res.json();
         toast.success("Database provisioning started!");
@@ -171,6 +191,46 @@ export default function DatabaseConnectionDialog({
       toast.error("Failed to delete database");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleResume = async () => {
+    setIsResuming(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/supabase/resume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // Handle billing errors (402)
+      if (isBillingError(res)) {
+        await handleBillingError(res);
+        setError("Insufficient balance. Please add credits to resume.");
+        setIsResuming(false);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(data.message || "Database resuming...");
+        // Update status immediately
+        setStatus((prev) =>
+          prev ? { ...prev, status: data.status || "resuming" } : null
+        );
+        // Check status after a short delay
+        setTimeout(checkStatus, 3000);
+      } else {
+        setError(data.error || data.message || "Failed to resume database");
+        toast.error(data.error || data.message || "Failed to resume database");
+      }
+    } catch (err) {
+      console.error("Failed to resume Supabase:", err);
+      setError("Failed to resume database");
+      toast.error("Failed to resume database");
+    } finally {
+      setIsResuming(false);
     }
   };
 
@@ -474,11 +534,11 @@ export default function DatabaseConnectionDialog({
 
                   {/* External Links */}
                   <div className="flex gap-2">
-                    {status.apiUrl && (
+                    {status.apiUrl && status.projectRef && (
                       <Button
                         onClick={() =>
                           window.open(
-                            `${status.apiUrl.replace(
+                            `${status.apiUrl!.replace(
                               ".supabase.co",
                               ".supabase.com"
                             )}/project/${status.projectRef}`,
@@ -542,6 +602,91 @@ export default function DatabaseConnectionDialog({
                         Paused
                       </span>
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Paused Due to Low Balance State */}
+            {!isLoading && status?.status === "paused_low_balance" && (
+              <div className="space-y-4">
+                <div className="border border-orange-200 dark:border-orange-900 rounded-xl p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                        <Database className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-orange-700 dark:text-orange-400">
+                          Database Paused - Low Balance
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Add credits and click Resume to re-enable
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-orange-500" />
+                      <span className="text-xs font-medium text-orange-600 dark:text-orange-500">
+                        Paused
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => window.open("/settings/billing", "_blank")}
+                      variant="outline"
+                      className="flex-1 rounded-lg"
+                    >
+                      Add Credits
+                    </Button>
+                    <Button
+                      onClick={handleResume}
+                      disabled={isResuming}
+                      className="flex-1 rounded-lg"
+                    >
+                      {isResuming ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Resuming...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Resume Database
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    Minimum $0.50 balance required to resume
+                  </p>
+                </div>
+
+                {/* Info */}
+                <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 text-sm text-muted-foreground">
+                  <p>
+                    Your database was paused because your account balance fell
+                    below the minimum threshold. Your data is safe - simply add
+                    credits and resume to continue.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Resuming State */}
+            {!isLoading && status?.status === "resuming" && (
+              <div className="space-y-4">
+                <div className="border rounded-xl p-6 space-y-4 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-neutral-600" />
+                  <div>
+                    <h3 className="font-semibold">Resuming Database</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      This usually takes about a minute...
+                    </p>
                   </div>
                 </div>
               </div>

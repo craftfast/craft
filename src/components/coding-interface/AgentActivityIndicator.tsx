@@ -144,12 +144,12 @@ export function AgentActivityIndicator({
       {currentActivity && (
         <div className="flex items-center gap-2 py-1.5 px-3 rounded-lg bg-neutral-100 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700">
           {/* Spinning loader */}
-          <RefreshCw className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400 animate-spin flex-shrink-0" />
+          <RefreshCw className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400 animate-spin shrink-0" />
           {/* Tool icon */}
           {(() => {
             const Icon = getToolIcon(currentActivity.name);
             return (
-              <Icon className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400 flex-shrink-0" />
+              <Icon className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400 shrink-0" />
             );
           })()}
           {/* Tool name */}
@@ -177,12 +177,12 @@ export function AgentActivityIndicator({
               >
                 {/* Status icon */}
                 {isSuccess ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-500 flex-shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-500 shrink-0" />
                 ) : (
-                  <XCircle className="w-3.5 h-3.5 text-red-500 dark:text-red-400 flex-shrink-0" />
+                  <XCircle className="w-3.5 h-3.5 text-red-500 dark:text-red-400 shrink-0" />
                 )}
                 {/* Tool icon */}
-                <Icon className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 flex-shrink-0" />
+                <Icon className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 shrink-0" />
                 {/* Tool name */}
                 <span className="text-xs text-neutral-500 dark:text-neutral-500">
                   {getToolLabel(activity.name)}

@@ -29,6 +29,10 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
+  handleBillingError,
+  isBillingError,
+} from "@/lib/billing-error-handler";
+import {
   Settings,
   Lock,
   Unlock,
@@ -780,6 +784,13 @@ export default function ProjectSettingsDialog({
         body: JSON.stringify({ provider: "vercel", environment: "production" }),
       });
 
+      // Handle billing errors (402)
+      if (isBillingError(res)) {
+        await handleBillingError(res);
+        setIsDeploying(false);
+        return;
+      }
+
       const data = await res.json();
 
       if (res.ok) {
@@ -835,6 +846,7 @@ export default function ProjectSettingsDialog({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setIsUploading(true);
+    let uploadedCount = 0;
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const formData = new FormData();
@@ -844,10 +856,20 @@ export default function ProjectSettingsDialog({
           method: "POST",
           body: formData,
         });
+
+        // Handle billing errors (402)
+        if (isBillingError(response)) {
+          await handleBillingError(response);
+          setIsUploading(false);
+          e.target.value = "";
+          return;
+        }
+
         if (response.ok) {
           const data = await response.json();
           if (data.file) {
             setKnowledgeFiles((prev) => [data.file, ...prev]);
+            uploadedCount++;
           }
         } else {
           const error = await response.json();
@@ -858,9 +880,13 @@ export default function ProjectSettingsDialog({
       }
     }
     setIsUploading(false);
-    toast.success(
-      files.length === 1 ? "File uploaded" : `${files.length} files uploaded`
-    );
+    if (uploadedCount > 0) {
+      toast.success(
+        uploadedCount === 1
+          ? "File uploaded"
+          : `${uploadedCount} files uploaded`
+      );
+    }
     e.target.value = "";
   };
 

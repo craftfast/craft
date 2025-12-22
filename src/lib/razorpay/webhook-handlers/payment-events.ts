@@ -107,11 +107,12 @@ export async function handlePaymentCaptured(event: PaymentCapturedEvent) {
                     const balanceBefore = parseFloat(currentUser?.accountBalance.toString() || "0");
                     const balanceAfter = balanceBefore + requestedBalance;
 
-                    // Update user balance
+                    // Update user balance and reset low balance warning flag
                     await tx.user.update({
                         where: { id: user.id },
                         data: {
                             accountBalance: balanceAfter,
+                            lowBalanceWarnedAt: null, // Reset so they get warned again if balance drops
                         },
                     });
 

@@ -9,6 +9,10 @@ import {
   useImperativeHandle,
 } from "react";
 import { uploadScreenshot } from "@/lib/utils/screenshot";
+import {
+  handleBillingError,
+  isBillingError,
+} from "@/lib/billing-error-handler";
 
 interface PreviewPanelProps {
   projectId: string;
@@ -537,6 +541,16 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
           }),
         });
 
+        // Handle billing errors (402) with toast and redirect option
+        if (isBillingError(response)) {
+          await handleBillingError(response);
+          setError(
+            "Insufficient balance to start preview. Please add credits."
+          );
+          setSandboxStatus("error");
+          return;
+        }
+
         const data = await response.json();
 
         // Check for error status from backend
@@ -630,6 +644,15 @@ const PreviewPanel = forwardRef<PreviewPanelRef, PreviewPanelProps>(
             packages: packages.length > 0 ? packages : undefined,
           }),
         });
+
+        // Handle billing errors (402)
+        if (isBillingError(response)) {
+          await handleBillingError(response);
+          setError("Insufficient balance. Please add credits to continue.");
+          setSandboxStatus("error");
+          setIsRefreshing(false);
+          return;
+        }
 
         if (response.ok) {
           const data = await response.json();

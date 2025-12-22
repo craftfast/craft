@@ -186,6 +186,27 @@ export const INFRASTRUCTURE_COSTS = {
         includedInvocations: 1_000_000, // 1M function invocations
         // Note: Actual costs passed through at cost via Vercel for Platforms
     },
+
+    // Deployment costs (build time billing)
+    deployment: {
+        // Vercel build time - charged per minute
+        // Source: https://vercel.com/docs/deployments/usage-and-pricing
+        perBuildMinute: 0.01, // $0.01/minute build time (estimate)
+        perDeploy: 0.05, // Fixed cost per deployment (covers minimal build)
+        // Railway/Netlify would have similar pricing
+    },
+
+    // R2 Storage - Cloudflare R2 pricing
+    // Source: https://developers.cloudflare.com/r2/pricing/
+    storage: {
+        perGBMonth: 0.015, // $0.015/GB/month
+        perMillionOps: 0.36, // $0.36/million Class A operations (writes)
+    },
+
+    // Database storage (alias for Supabase database storage)
+    database: {
+        storagePerGBMonth: 0.125, // $0.125/GB/month (same as supabase.databaseStoragePerGBMonth)
+    },
 } as const;
 
 // ============================================================================

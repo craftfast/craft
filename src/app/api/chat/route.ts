@@ -111,7 +111,7 @@ export async function POST(req: Request) {
                     balance: balanceCheck.balance,
                     estimatedCost: balanceCheck.estimatedCost,
                 }),
-                { status: 429, headers: { "Content-Type": "application/json" } }
+                { status: 402, headers: { "Content-Type": "application/json" } } // 402 Payment Required
             );
         }
 

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { prisma } from "@/lib/db";
 import { uploadFile, getFileSizeLimit } from "@/lib/r2-storage";
+import { checkUserBalance } from "@/lib/ai-usage";
 
 // Note: In Next.js App Router, body parsing is handled automatically by NextRequest
 // No need for config.api.bodyParser = false like in Pages Router
@@ -31,6 +32,20 @@ export async function POST(req: NextRequest) {
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
+        // 🔒 BALANCE CHECK: Require minimum balance for uploads
+        // Storage is billed daily but we block uploads at low balance to prevent abuse
+        const balanceCheck = await checkUserBalance(user.id, 0);
+        if (!balanceCheck.allowed) {
+            return NextResponse.json(
+                {
+                    error: "Insufficient balance",
+                    message: balanceCheck.reason || "Please add credits to continue.",
+                    balance: balanceCheck.balance,
+                },
+                { status: 402 } // Payment Required
+            );
         }
 
         // Get query params

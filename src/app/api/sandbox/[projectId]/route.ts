@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getOrCreateProjectSandbox } from "@/lib/e2b/sandbox-manager";
 import { decryptValue } from "@/lib/crypto";
 import { acquireRedisLock } from "@/lib/redis-lock";
+import { checkUserBalance } from "@/lib/ai-usage";
+import { INFRASTRUCTURE_COSTS } from "@/lib/pricing-constants";
 
 /**
  * POST /api/sandbox/[projectId]
@@ -13,6 +15,7 @@ import { acquireRedisLock } from "@/lib/redis-lock";
  * - Has 90s overall timeout to prevent hanging
  * - Limits restart attempts to prevent infinite loops
  * - Uses Redis distributed lock (multi-instance safe for Vercel)
+ * - Requires minimum $0.50 balance to access sandbox
  */
 export async function POST(
     request: NextRequest,
@@ -44,6 +47,23 @@ export async function POST(
         return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    // 🔒 BALANCE CHECK: Require minimum balance to access sandbox
+    // Sandbox costs ~$0.10/hour - require at least 10 minutes worth + buffer
+    const estimatedCost = INFRASTRUCTURE_COSTS.sandbox.perMinute * 10; // ~$0.017
+    const balanceCheck = await checkUserBalance(session.user.id, estimatedCost);
+
+    if (!balanceCheck.allowed) {
+        return NextResponse.json(
+            {
+                error: "Insufficient balance",
+                message: balanceCheck.reason || "Please add credits to continue.",
+                balance: balanceCheck.balance,
+                estimatedCost: balanceCheck.estimatedCost,
+            },
+            { status: 402 } // Payment Required
+        );
+    }
+
     // Acquire Redis distributed lock AFTER auth/ownership checks
     // This prevents holding locks for unauthorized or invalid requests
     const releaseLock = await acquireRedisLock(`sandbox:lock:${projectId}`, {
@@ -54,7 +74,7 @@ export async function POST(
     try {
 
         // Use sandbox manager - will resume paused sandbox if exists, or create new one
-        console.log(`� Getting or creating sandbox for project: ${projectId}`);
+        console.log(`🏖️ Getting or creating sandbox for project: ${projectId}`);
 
         const sandboxOpts = {
             metadata: { projectId, userId: session.user.id },
@@ -167,7 +187,8 @@ export async function POST(
                         { timeoutMs: 3000 }
                     );
                     const statusCode = portCheck.stdout?.trim() || '000';
-                    isServerRunning = statusCode.startsWith('2') || statusCode === '404';
+                    // Any valid HTTP response means server is running (including 5xx = app errors)
+                    isServerRunning = /^[2-5]\d\d$/.test(statusCode);
 
                     if (isServerRunning) {
                         console.log(`✅ Dev server is responding (HTTP ${statusCode})`);
@@ -185,7 +206,8 @@ export async function POST(
                             { timeoutMs: 3000 }
                         );
                         const statusCode = retry.stdout?.trim() || '000';
-                        isServerRunning = statusCode.startsWith('2') || statusCode === '404';
+                        // Any valid HTTP response means server is running (including 5xx = app errors)
+                        isServerRunning = /^[2-5]\d\d$/.test(statusCode);
 
                         if (isServerRunning) {
                             console.log(`✅ Dev server responding on retry (HTTP ${statusCode})`);
@@ -334,13 +356,16 @@ export async function POST(
                     method: 'HEAD',
                     signal: AbortSignal.timeout(5000)
                 });
+                // ANY HTTP response means the server is reachable (even 500 = app error, server is running)
+                // Only network errors (caught in catch block) indicate true inaccessibility
+                isExternallyAccessible = true;
                 if (response.ok || response.status === 404) {
-                    isExternallyAccessible = true;
                     console.log(`✅ External URL is accessible (HTTP ${response.status})`);
-                    break;
                 } else {
-                    console.log(`⚠️ External URL returned HTTP ${response.status}`);
+                    // HTTP 500/502/503 etc = server running but app has errors
+                    console.log(`⚠️ External URL is accessible but has app errors (HTTP ${response.status})`);
                 }
+                break;
             } catch (error) {
                 if (i < maxRetries - 1) {
                     const delay = (i + 1) * 1500;
@@ -400,11 +425,10 @@ export async function POST(
                             method: 'HEAD',
                             signal: AbortSignal.timeout(5000)
                         });
-                        if (response.ok || response.status === 404) {
-                            isExternallyAccessible = true;
-                            console.log(`✅ External URL is now accessible (HTTP ${response.status})`);
-                            break;
-                        }
+                        // ANY HTTP response means reachable (even 500 = app error but server is running)
+                        isExternallyAccessible = true;
+                        console.log(`✅ External URL is now accessible (HTTP ${response.status})`);
+                        break;
                     } catch (error) {
                         if (i < 4) {
                             await new Promise(resolve => setTimeout(resolve, 2000));

@@ -304,7 +304,8 @@ export async function trackStorageUsage(params: {
 // ============================================================================
 
 /**
- * Track deployment usage
+ * Track deployment usage (Vercel, Netlify, Railway)
+ * Charges: Fixed per-deploy cost + build time cost
  */
 export async function trackDeploymentUsage(params: {
     userId: string;
@@ -314,8 +315,10 @@ export async function trackDeploymentUsage(params: {
     buildDurationMin?: number;
     metadata?: Record<string, unknown>;
 }): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
-    // Fixed provider cost per deployment (no markup)
-    const providerCostUsd = INFRASTRUCTURE_COSTS.deployment.perDeploy;
+    // Calculate cost: fixed per-deploy + build time
+    const fixedCost = INFRASTRUCTURE_COSTS.deployment.perDeploy;
+    const buildTimeCost = (params.buildDurationMin || 0) * INFRASTRUCTURE_COSTS.deployment.perBuildMinute;
+    const providerCostUsd = fixedCost + buildTimeCost;
 
     // Deduct from balance and create usage record in transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -365,6 +368,102 @@ export async function trackDeploymentUsage(params: {
                     projectId: params.projectId,
                     platform: params.platform || "vercel",
                     buildDurationMin: params.buildDurationMin || 0,
+                },
+            },
+        });
+
+        return {
+            id: record.id,
+            providerCostUsd,
+            balanceAfter,
+        };
+    });
+
+    return result;
+}
+
+/**
+ * Track Vercel runtime usage (CPU hours, memory, invocations)
+ * Called by cron job daily to bill for active Vercel deployments
+ */
+export async function trackVercelRuntimeUsage(params: {
+    userId: string;
+    projectId: string;
+    vercelProjectId: string;
+    cpuHours?: number;
+    memoryGBHours?: number;
+    invocations?: number;
+    metadata?: Record<string, unknown>;
+}): Promise<{ id: string; providerCostUsd: number; balanceAfter: number }> {
+    // Calculate runtime costs
+    const cpuCost = (params.cpuHours || 0) * INFRASTRUCTURE_COSTS.vercel.activeCPUPerHour;
+    const memoryCost = (params.memoryGBHours || 0) * INFRASTRUCTURE_COSTS.vercel.provisionedMemoryPerGBHour;
+    const invocationCost = ((params.invocations || 0) / 1_000_000) * INFRASTRUCTURE_COSTS.vercel.invocationsPerMillion;
+    const providerCostUsd = cpuCost + memoryCost + invocationCost;
+
+    // Skip if no meaningful cost
+    if (providerCostUsd < 0.001) {
+        return { id: "", providerCostUsd: 0, balanceAfter: 0 };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+        // Create deployment usage record (reusing deployment usage table)
+        const record = await tx.deploymentUsage.create({
+            data: {
+                userId: params.userId,
+                projectId: params.projectId,
+                deploymentId: `runtime-${params.vercelProjectId}-${Date.now()}`,
+                platform: "vercel-runtime",
+                providerCostUsd,
+                buildDurationMin: 0,
+                metadata: {
+                    type: "runtime",
+                    vercelProjectId: params.vercelProjectId,
+                    cpuHours: params.cpuHours || 0,
+                    memoryGBHours: params.memoryGBHours || 0,
+                    invocations: params.invocations || 0,
+                    cpuCost,
+                    memoryCost,
+                    invocationCost,
+                    ...params.metadata,
+                } as Prisma.InputJsonValue,
+            },
+        });
+
+        // Deduct from user balance
+        const user = await tx.user.findUnique({
+            where: { id: params.userId },
+            select: { accountBalance: true },
+        });
+
+        if (!user) {
+            throw new Error(`User ${params.userId} not found`);
+        }
+
+        const balanceBefore = Number(user.accountBalance || 0);
+        const balanceAfter = balanceBefore - providerCostUsd;
+
+        await tx.user.update({
+            where: { id: params.userId },
+            data: { accountBalance: balanceAfter },
+        });
+
+        // Create balance transaction record
+        await tx.balanceTransaction.create({
+            data: {
+                userId: params.userId,
+                type: "DEPLOYMENT",
+                amount: -providerCostUsd,
+                balanceBefore,
+                balanceAfter,
+                description: `Vercel runtime: ${(params.cpuHours || 0).toFixed(2)} CPU-hrs, ${(params.memoryGBHours || 0).toFixed(2)} GB-hrs`,
+                metadata: {
+                    usageId: record.id,
+                    vercelProjectId: params.vercelProjectId,
+                    projectId: params.projectId,
+                    cpuHours: params.cpuHours || 0,
+                    memoryGBHours: params.memoryGBHours || 0,
+                    invocations: params.invocations || 0,
                 },
             },
         });

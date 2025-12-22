@@ -10,6 +10,8 @@ import {
     waitForDeployment,
 } from "@/lib/services/vercel-platforms";
 import { trackDeploymentUsage } from "@/lib/infrastructure-usage";
+import { checkUserBalance } from "@/lib/ai-usage";
+import { MINIMUM_BALANCE_THRESHOLD } from "@/lib/pricing-constants";
 
 // GET /api/projects/[id]/deployments - Get all deployments
 export async function GET(
@@ -88,6 +90,19 @@ export async function POST(
             return NextResponse.json(
                 { error: "Provider is required" },
                 { status: 400 }
+            );
+        }
+
+        // Check balance before deployment
+        const { balance, allowed } = await checkUserBalance(session.user.id, MINIMUM_BALANCE_THRESHOLD);
+        if (!allowed) {
+            return NextResponse.json(
+                {
+                    error: `Insufficient balance. Minimum $${MINIMUM_BALANCE_THRESHOLD.toFixed(2)} required.`,
+                    balance,
+                    required: MINIMUM_BALANCE_THRESHOLD,
+                },
+                { status: 402 }
             );
         }
 
@@ -304,11 +319,12 @@ async function deployToVercel(
             await trackDeploymentUsage({
                 userId: project.userId,
                 projectId: project.id,
-                provider: "vercel",
                 deploymentId: deployment.id,
-                durationSec: Math.ceil((Date.now() - deployment.createdAt) / 1000),
+                platform: "vercel",
+                buildDurationMin: Math.ceil((Date.now() - deployment.createdAt) / (1000 * 60)),
                 metadata: {
                     vercelProjectId: vercelProject.id,
+                    vercelProjectName: vercelProject.name,
                     url: deploymentUrl,
                 },
             });

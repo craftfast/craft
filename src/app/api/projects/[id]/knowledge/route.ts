@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { withCsrfProtection } from "@/lib/csrf";
 import { uploadFile, deleteFile } from "@/lib/r2-storage";
+import { checkUserBalance } from "@/lib/ai-usage";
 
 // GET /api/projects/[id]/knowledge - Get all knowledge files
 export async function GET(
@@ -126,6 +127,19 @@ export async function POST(
             return NextResponse.json(
                 { error: "You don't have permission to upload files" },
                 { status: 403 }
+            );
+        }
+
+        // 🔒 BALANCE CHECK: Require minimum balance for uploads
+        const balanceCheck = await checkUserBalance(session.user.id, 0);
+        if (!balanceCheck.allowed) {
+            return NextResponse.json(
+                {
+                    error: "Insufficient balance",
+                    message: balanceCheck.reason || "Please add credits to continue.",
+                    balance: balanceCheck.balance,
+                },
+                { status: 402 }
             );
         }
 

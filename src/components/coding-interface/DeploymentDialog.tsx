@@ -20,6 +20,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { INFRASTRUCTURE_COSTS } from "@/lib/pricing-constants";
+import {
+  handleBillingError,
+  isBillingError,
+} from "@/lib/billing-error-handler";
 
 interface DeploymentDialogProps {
   open: boolean;
@@ -118,6 +122,14 @@ export default function DeploymentDialog({
           environment: "production",
         }),
       });
+
+      // Handle billing errors (402)
+      if (isBillingError(res)) {
+        await handleBillingError(res);
+        setError("Insufficient balance. Please add credits.");
+        setIsDeploying(false);
+        return;
+      }
 
       const data = await res.json();
 

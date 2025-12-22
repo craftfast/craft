@@ -18,6 +18,10 @@ import { toast } from "sonner";
 import { OrchestratorProgress } from "./OrchestratorProgress";
 import { AgentActivityIndicator } from "./AgentActivityIndicator";
 import { SuggestionChips } from "./SuggestionChips";
+import {
+  handleBillingError,
+  isBillingError,
+} from "@/lib/billing-error-handler";
 
 // Speech Recognition types
 interface SpeechRecognitionEvent extends Event {
@@ -440,6 +444,12 @@ export default function ChatPanel({
         }
       );
 
+      // Handle billing errors (402)
+      if (isBillingError(uploadResponse)) {
+        await handleBillingError(uploadResponse);
+        throw new Error("Insufficient balance. Please add credits.");
+      }
+
       if (!uploadResponse.ok) {
         throw new Error(`Failed to upload ${image.name}`);
       }
@@ -678,6 +688,14 @@ export default function ChatPanel({
           // Note: Model is now determined server-side from user settings
         }),
       });
+
+      // Handle billing errors (402) with toast + Add Credits button
+      if (isBillingError(response)) {
+        await handleBillingError(response);
+        throw new Error(
+          "Insufficient balance. Please add credits to continue."
+        );
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -1218,9 +1236,12 @@ export default function ChatPanel({
         } else if (error.message.includes("400")) {
           errorContent =
             "Invalid request. Please try again or refresh the page.";
+        } else if (error.message.includes("402")) {
+          errorContent =
+            "Insufficient balance. Please add credits to continue using AI features.";
         } else if (error.message.includes("429")) {
           errorContent =
-            "Token limit reached. Please upgrade your plan or purchase additional tokens.";
+            "Rate limit reached. Please wait a moment and try again.";
         } else if (error.message.includes("500")) {
           errorContent =
             "Server error. Please check your OpenRouter API key in the .env file and restart the server.";

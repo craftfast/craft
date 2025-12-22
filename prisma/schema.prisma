@@ -74,6 +74,7 @@ model User {
   sendInvoiceEmail      Boolean                      @default(true) // Send invoice email after each purchase
   // Balance system (replaces subscription credits)
   accountBalance        Decimal                      @default(0) @db.Decimal(10, 2)
+  lowBalanceWarnedAt    DateTime? // Track when low balance warning was sent (reset when credits added)
   // Relations
   accounts              Account[]
   files                 File[]
