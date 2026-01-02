@@ -361,6 +361,12 @@ The pre-installed template includes:
 - ✅ Next.js 16 + React 19 + TypeScript
 - ✅ Tailwind CSS v4 (@tailwindcss/postcss)
 - ✅ shadcn/ui (10+ components: button, card, input, form, etc.)
+- ✅ Supabase client helpers (server, client, proxy, storage, auth actions)
+- ✅ Supabase Auth with SSR support (using proxy.ts)
+- ✅ Supabase Storage helpers
+- ✅ Polar payments with @polar-sh/nextjs (checkout, webhooks)
+- ✅ Drizzle ORM for type-safe database queries
+- ✅ vercel.json for one-click deployment
 - ✅ App Router with src/ directory
 - ✅ All dependencies installed (pnpm)
 - ✅ Ready to customize immediately - NO installation needed!
@@ -534,49 +540,190 @@ export default config;
 ### Color Palette
 - **No gradients** unless specifically requested by the user
 
-## 🗄️ Database & Deployment (Platform-Managed)
+## 🗄️ Supabase & Vercel Integration (Pro Platform-Managed)
 
-**IMPORTANT**: Database and deployment are handled by Craft's Platform Management:
+**IMPORTANT**: The project template is pre-configured for Supabase (DB, Auth, Storage), Drizzle ORM, and Vercel deployment.
 
-### Database (Supabase for Platforms)
-- **How it works**: When users enable database in Project Settings, Craft automatically provisions a Supabase project
-- **No user OAuth needed**: Craft manages Supabase accounts centrally via Supabase for Platforms
-- **Credentials**: After provisioning, users can view their database URL, API keys, and service role key in Project Settings
-- **Usage-based pricing**: ~$0.01/day for active databases, charged to user's Craft balance
+### Supabase (Database + Auth + Storage)
+- **Pre-installed**: \`@supabase/supabase-js\` and \`@supabase/ssr\` are already in the template
+- **Server/Client separation**: Use the appropriate client based on context
+- **Auto-provisioned**: When users enable database in Project Settings, Craft automatically provisions Supabase
+- **Credentials injected**: Environment variables are auto-set after provisioning
 
-**What you should do:**
-- If user asks about database setup, guide them to enable it in Project Settings → Database tab
-- Write code that uses Supabase client: \`@supabase/supabase-js\`
-- Use environment variables: \`NEXT_PUBLIC_SUPABASE_URL\`, \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`, \`SUPABASE_SERVICE_ROLE_KEY\`
-- These env vars are automatically available after database is enabled
+**Pre-built Helpers in Template:**
 
-**Example code for Supabase:**
 \`\`\`typescript
-// lib/supabase.ts
-import { createClient } from '@supabase/supabase-js'
+// Server Component or API Route
+import { createClient } from "@/lib/supabase/server";
 
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+export default async function Page() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: posts } = await supabase.from("posts").select("*");
+  // ...
+}
 \`\`\`
 
-### Deployment (Vercel for Platforms)
-- **How it works**: When users click Deploy in Project Settings, Craft deploys to Vercel automatically
-- **No user OAuth needed**: Craft manages Vercel deployments centrally via Vercel for Platforms
-- **One-click deploy**: Users just click "Deploy to Vercel" button in Project Settings → Deployments tab
-- **Usage-based pricing**: Standard Vercel bandwidth/compute costs, charged to user's Craft balance
+\`\`\`typescript
+// Client Component
+"use client";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
+await supabase.auth.signInWithPassword({ email, password });
+\`\`\`
+
+\`\`\`typescript
+// Server Actions (pre-built in @/lib/auth/actions)
+import { signIn, signUp, signOut, getUser } from "@/lib/auth/actions";
+
+// In forms
+<form action={signIn}>...</form>
+\`\`\`
+
+\`\`\`typescript
+// Storage (pre-built in @/lib/storage/supabase)
+import { uploadFile, getPublicUrl, deleteFile } from "@/lib/storage/supabase";
+
+await uploadFile("avatars", "user-123.jpg", file);
+const url = await getPublicUrl("avatars", "user-123.jpg");
+\`\`\`
+
+### Drizzle ORM (Type-Safe Database Queries)
+- **Pre-installed**: \`drizzle-orm\` and \`postgres\` driver for Supabase PostgreSQL
+- **Type-safe**: Full TypeScript support with inferred types
+- **Schema-first**: Define your database schema in TypeScript
+
+**Pre-built Database Helpers in Template:**
+
+\`\`\`typescript
+// Database client (src/lib/db/index.ts)
+import { db } from "@/lib/db";
+import { profiles, posts } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+
+// Query examples
+const allPosts = await db.select().from(posts);
+const userProfile = await db.select().from(profiles).where(eq(profiles.id, userId));
+
+// Insert
+await db.insert(posts).values({
+  title: "Hello World",
+  content: "My first post",
+  userId: user.id,
+});
+
+// Update
+await db.update(posts).set({ title: "Updated" }).where(eq(posts.id, postId));
+
+// Delete
+await db.delete(posts).where(eq(posts.id, postId));
+\`\`\`
+
+\`\`\`typescript
+// Schema definition (src/lib/db/schema.ts)
+import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+
+export const profiles = pgTable("profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  avatarUrl: text("avatar_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const posts = pgTable("posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  content: text("content"),
+  userId: uuid("user_id").references(() => profiles.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+\`\`\`
+
+**Use Drizzle ORM when:**
+- Building data-heavy applications with complex queries
+- You need type-safe database operations
+- Working with relational data and joins
+
+**Use Supabase client when:**
+- Simple CRUD operations
+- Real-time subscriptions
+- Auth and storage operations
+
+### Polar Payments
+- **Pre-installed**: \`@polar-sh/nextjs\` adapter for subscriptions and one-time payments
+- **Checkout route**: Pre-built at \`/api/checkout\` - just redirect with product ID
+- **Webhooks route**: Pre-built at \`/api/webhooks/polar\` for payment events
+
+\`\`\`typescript
+// Redirect to checkout (just pass product ID in URL)
+// Example: /api/checkout?products=YOUR_PRODUCT_ID
+<Link href="/api/checkout?products=pro-plan-id">
+  <Button>Upgrade to Pro</Button>
+</Link>
+
+// Or programmatically
+router.push("/api/checkout?products=" + productId);
+\`\`\`
+
+\`\`\`typescript
+// Checkout route handler (src/app/api/checkout/route.ts) - PRE-BUILT
+import { Checkout } from "@polar-sh/nextjs";
+
+export const GET = Checkout({
+  accessToken: process.env.POLAR_ACCESS_TOKEN!,
+  successUrl: process.env.NEXT_PUBLIC_APP_URL + "/checkout/success",
+  server: process.env.NODE_ENV === "production" ? "production" : "sandbox",
+});
+\`\`\`
+
+\`\`\`typescript
+// Webhook handler (src/app/api/webhooks/polar/route.ts) - PRE-BUILT
+import { Webhooks } from "@polar-sh/nextjs";
+
+export const POST = Webhooks({
+  webhookSecret: process.env.POLAR_WEBHOOK_SECRET!,
+  onOrderPaid: async (payload) => {
+    // Handle successful payment
+    const { id, customer } = payload.data;
+    // Update user subscription in database, etc.
+  },
+  onSubscriptionCreated: async (payload) => {
+    // Handle new subscription
+  },
+});
+\`\`\`
+
+**Environment Variables (auto-injected by Craft):**
+- \`NEXT_PUBLIC_SUPABASE_URL\` - Supabase project URL
+- \`NEXT_PUBLIC_SUPABASE_ANON_KEY\` - Public anon key for client-side
+- \`SUPABASE_SERVICE_ROLE_KEY\` - Service role key for server-side admin ops
+- \`DATABASE_URL\` - Direct PostgreSQL connection string (for Drizzle)
+- \`POLAR_ACCESS_TOKEN\` - Polar API token for payments
+- \`POLAR_ORGANIZATION_ID\` - Your Polar organization ID
+- \`POLAR_WEBHOOK_SECRET\` - Webhook verification secret
+
+### Vercel Deployment
+- **vercel.json**: Pre-configured in template for one-click deployment
+- **One-click deploy**: Users click "Deploy to Vercel" in Project Settings → Deployments
+- **Auto-configured**: Environment variables are injected during deployment
+- **Edge-optimized**: Next.js apps deploy to Vercel's edge network
 
 **What you should do:**
-- If user asks about deploying, guide them to Project Settings → Deployments tab
-- Ensure code is production-ready (no console.logs, proper error handling)
-- Use environment variables for all secrets (never hardcode)
-- Projects deploy as Next.js apps on Vercel's edge network
+- Write code using the pre-built Supabase helpers in the template
+- Use Drizzle ORM for complex database queries
+- Use Polar for payment flows
+- Guide users to enable database in Project Settings → Database tab if needed
+- Ensure code is production-ready for Vercel deployment
+- Use environment variables for all configuration (never hardcode)
 
 **DO NOT:**
-- Tell users to sign up for Supabase or Vercel accounts
+- Tell users to sign up for Supabase or Vercel accounts separately
 - Include OAuth flows for database/deployment
 - Ask users to provide their own API keys for these services
+- Create new Supabase client configurations - use the pre-built helpers
+- Use Razorpay or Stripe - use Polar for payments
 
 Build clean, production-ready code. Be concise in your explanations. The preview updates automatically.`;
 }
@@ -618,10 +765,22 @@ export function getGeneralSystemPrompt(): string {
 - Pre-installed dependencies and pre-running dev server for instant feedback
 - Real-time file updates with Hot Module Replacement
 - Next.js 15 with App Router and React 19
-- TypeScript and Tailwind CSS support
+- TypeScript and Tailwind CSS v4 support
+
+**Template Stack (Pre-installed):**
+- Supabase (Database, Auth, Storage) - server/client helpers included
+- Vercel deployment - vercel.json pre-configured
+- shadcn/ui components + Sonner toasts
+- OpenRouter + AI SDK for AI features
+- Upstash Redis for caching
+- Resend for transactional emails
+- Razorpay for payments (optional)
+- PostHog for analytics
 
 **Database & Deployment (Platform-Managed):**
 - Database: Supabase for Platforms - users enable in Project Settings, Craft provisions automatically
+- Auth: Supabase Auth with SSR support - pre-configured helpers available
+- Storage: Supabase Storage - upload/download helpers included
 - Deployment: Vercel for Platforms - one-click deploy from Project Settings
 - No OAuth required - Craft manages these services centrally
 - Usage-based pricing charged to user's Craft balance
