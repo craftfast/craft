@@ -107,3 +107,53 @@ See `docs/professional-project-creation-summary.md` for complete details.
 
 - `tailwind.config.ts` - Tailwind CSS configuration
 - `next.config.js` - Next.js configuration
+
+## Git Commit Messages
+
+**CRITICAL: All commit messages MUST follow Conventional Commits format.**
+
+This project uses `commitlint` with `@commitlint/config-conventional`.
+
+### Format
+
+```
+type(scope): subject
+
+body (optional)
+
+footer (optional)
+```
+
+### Types (required)
+
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation changes
+- `style` - Code style changes (formatting, semicolons, etc.)
+- `refactor` - Code refactoring (no feature/fix)
+- `perf` - Performance improvements
+- `test` - Adding/updating tests
+- `build` - Build system or dependencies
+- `ci` - CI configuration
+- `chore` - Other changes (tooling, etc.)
+
+### Scope (optional but recommended)
+
+Use the main area affected: `ai`, `api`, `ui`, `db`, `auth`, `billing`, `sandbox`, etc.
+
+### Examples
+
+```
+feat(ai): add database SQL execution tools
+fix(api): handle null response in chat endpoint
+docs: update README with new setup instructions
+refactor(ui): extract button component from dialog
+chore(deps): upgrade Next.js to 15.1
+```
+
+### Rules
+
+- Subject must be lowercase
+- No period at the end of subject
+- Subject should be imperative mood ("add" not "added")
+- Body should explain "what" and "why" (not "how")
