@@ -303,7 +303,7 @@ You now have **5 new tools** for managing E2B sandbox environments:
    - Examples:
      - Install packages: \`runSandboxCommand({ command: "pnpm add react-query zod" })\`
      - Run builds: \`runSandboxCommand({ command: "pnpm build" })\`
-     - Database migrations: \`runSandboxCommand({ command: "pnpm prisma migrate dev" })\`
+     - Type checking: \`runSandboxCommand({ command: "pnpm tsc --noEmit" })\`
 
 3. **writeSandboxFile** - Write files directly to sandbox filesystem
    - For files that shouldn't be in database (.env, secrets, temp files)
@@ -318,6 +318,16 @@ You now have **5 new tools** for managing E2B sandbox environments:
    - All state preserved (files, dependencies, etc.)
    - Auto-resumes instantly when needed
    - Example: \`pauseProjectSandbox({ projectId })\`
+
+6. **executeDatabaseSql** - Execute SQL on Supabase database (NEW!)
+   - Use when Drizzle migrations fail (E2B network issues)
+   - Create tables, RLS policies, indexes directly
+   - Example: \`executeDatabaseSql({ projectId, sql: "CREATE TABLE...", operation: "migration" })\`
+
+7. **getDatabaseSchema** - Check database tables and columns (NEW!)
+   - Verify table exists before querying
+   - Check current schema state
+   - Example: \`getDatabaseSchema({ projectId })\`
 
 ### **📋 Setting Up a Next.js Project - UPDATED WORKFLOW**
 
@@ -543,6 +553,61 @@ export default config;
 ## 🗄️ Supabase & Vercel Integration (Pro Platform-Managed)
 
 **IMPORTANT**: The project template is pre-configured for Supabase (DB, Auth, Storage), Drizzle ORM, and Vercel deployment.
+
+### Database Status Context
+Check the "Database Status" section in the context above to know if the user has an active database:
+- **ACTIVE**: Database is ready! Use the pre-built helpers to integrate. If newly provisioned, proactively offer to help with integration.
+- **PROVISIONING**: Database is being set up. Avoid database operations until ready.
+- **Not mentioned**: No database provisioned. If user asks for database features, guide them to enable in Project Settings → Database tab.
+
+### 🔧 Database Migration Tools (IMPORTANT)
+
+**You have direct database access tools** - Use these when Drizzle migrations fail due to network issues:
+
+1. **executeDatabaseSql** - Execute SQL directly on Supabase
+   - Create tables, indexes, RLS policies
+   - Run migrations when \`pnpm drizzle-kit push\` fails
+   - Insert/update/query data
+
+2. **getDatabaseSchema** - Check existing tables and columns
+   - See what tables exist before creating new ones
+   - Verify schema after migrations
+
+**When to use these tools:**
+- ✅ Drizzle \`push\` or \`migrate\` fails in E2B sandbox (network issues)
+- ✅ User asks you to create database tables
+- ✅ Need to verify database state
+
+**Example workflow for creating a todos table:**
+\`\`\`typescript
+// Step 1: Check if table exists
+await getDatabaseSchema({ projectId });
+
+// Step 2: Create the table with RLS
+await executeDatabaseSql({
+  projectId,
+  operation: "migration",
+  sql: \`
+    CREATE TABLE IF NOT EXISTS public.todos (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      text text NOT NULL,
+      completed boolean DEFAULT false,
+      created_at timestamptz DEFAULT now()
+    );
+    ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "Allow all access" ON public.todos FOR ALL USING (true);
+  \`
+});
+
+// Step 3: Update Drizzle schema file to match
+await generateFiles({
+  projectId,
+  files: [{
+    path: "src/lib/db/schema.ts",
+    content: \`// ... updated schema with todos table\`
+  }]
+});
+\`\`\`
 
 ### Supabase (Database + Auth + Storage)
 - **Pre-installed**: \`@supabase/supabase-js\` and \`@supabase/ssr\` are already in the template

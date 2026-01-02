@@ -1,12 +1,106 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { decryptValue } from "@/lib/crypto";
 import {
     getProjectHealth,
-    getProjectCredentials,
     isSupabaseConfigured,
 } from "@/lib/services/supabase-platforms";
+
+/**
+ * Migrate Supabase env vars from JSON field to ProjectEnvironmentVariable table
+ * This handles projects provisioned before we switched to the proper table
+ */
+async function migrateEnvVarsIfNeeded(
+    projectId: string,
+    userId: string,
+    jsonEnvVars: Record<string, string>
+) {
+    // Check if env vars exist in the table
+    const existingVars = await prisma.projectEnvironmentVariable.findMany({
+        where: { projectId, key: { in: ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"] } },
+    });
+
+    // If already migrated, skip
+    if (existingVars.length >= 2) {
+        return;
+    }
+
+    // Check if we have env vars in JSON field to migrate
+    const supabaseUrl = jsonEnvVars.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = jsonEnvVars.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const serviceRoleKey = jsonEnvVars.SUPABASE_SERVICE_ROLE_KEY;
+    const databaseUrl = jsonEnvVars.DATABASE_URL;
+
+    if (!supabaseUrl || !anonKey) {
+        return; // Nothing to migrate
+    }
+
+    console.log(`🔄 Migrating Supabase env vars for project ${projectId}...`);
+
+    const envVarsToMigrate = [
+        {
+            key: "NEXT_PUBLIC_SUPABASE_URL",
+            value: supabaseUrl,
+            isSecret: false,
+            description: "Supabase project URL (auto-provisioned by Craft)",
+        },
+        {
+            key: "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+            value: anonKey,
+            isSecret: false,
+            description: "Supabase anonymous key for client-side access (auto-provisioned by Craft)",
+        },
+    ];
+
+    // Service role key and database URL are already encrypted in JSON
+    if (serviceRoleKey) {
+        envVarsToMigrate.push({
+            key: "SUPABASE_SERVICE_ROLE_KEY",
+            value: serviceRoleKey, // Already encrypted
+            isSecret: true,
+            description: "Supabase service role key for server-side admin operations (auto-provisioned by Craft)",
+        });
+    }
+
+    if (databaseUrl) {
+        envVarsToMigrate.push({
+            key: "DATABASE_URL",
+            value: databaseUrl, // Already encrypted
+            isSecret: true,
+            description: "PostgreSQL connection string for Drizzle ORM (auto-provisioned by Craft)",
+        });
+    }
+
+    for (const envVar of envVarsToMigrate) {
+        // For non-secret values, we need to check if they need encryption
+        // Values from JSON were already encrypted if secret, so just store as-is
+        await prisma.projectEnvironmentVariable.upsert({
+            where: {
+                projectId_key: {
+                    projectId,
+                    key: envVar.key,
+                },
+            },
+            create: {
+                projectId,
+                key: envVar.key,
+                value: envVar.value,
+                isSecret: envVar.isSecret,
+                description: envVar.description,
+                createdBy: userId,
+            },
+            update: {
+                value: envVar.value,
+                isSecret: envVar.isSecret,
+                description: envVar.description,
+                updatedBy: userId,
+                deletedAt: null,
+            },
+        });
+    }
+
+    console.log(`✅ Migrated ${envVarsToMigrate.length} Supabase env vars for project ${projectId}`);
+}
 
 /**
  * GET /api/projects/[id]/supabase/status
@@ -77,8 +171,26 @@ export async function GET(
             console.error("Failed to get Supabase health:", error);
         }
 
-        // Get environment variables (public key only)
-        const envVars = (project.environmentVariables as Record<string, string>) || {};
+        // Get environment variables from JSON (for migration/backward compat)
+        const jsonEnvVars = (project.environmentVariables as Record<string, string>) || {};
+
+        // Migrate env vars from JSON field to table if needed (runs once per project)
+        await migrateEnvVarsIfNeeded(projectId, session.user.id, jsonEnvVars);
+
+        // Read env vars from the proper table (this is what sandbox uses)
+        const tableEnvVars = await prisma.projectEnvironmentVariable.findMany({
+            where: {
+                projectId,
+                key: { in: ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"] },
+                deletedAt: null,
+            },
+            select: { key: true, value: true },
+        });
+
+        const envVarsMap: Record<string, string> = {};
+        for (const v of tableEnvVars) {
+            envVarsMap[v.key] = v.value;
+        }
 
         return NextResponse.json({
             enabled: true,
@@ -90,8 +202,8 @@ export async function GET(
             health,
             // Only return public info
             credentials: {
-                supabaseUrl: envVars.NEXT_PUBLIC_SUPABASE_URL || project.supabaseApiUrl,
-                anonKey: envVars.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                supabaseUrl: envVarsMap.NEXT_PUBLIC_SUPABASE_URL || project.supabaseApiUrl,
+                anonKey: envVarsMap.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                 // Don't return service role key or database URL for security
             },
         });

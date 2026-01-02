@@ -318,8 +318,59 @@ export async function POST(req: Request) {
             logger.ai.warn('⚠️ Could not load project knowledge:', error);
         }
 
-        // Combine memory and knowledge context
-        const additionalContext = [userMemoryContext, knowledgeContext].filter(Boolean).join('\n\n');
+        // ============================================================================
+        // DATABASE STATUS CHECK
+        // ============================================================================
+        // Fetch project's database provisioning status to inform AI
+        let databaseContext = '';
+        try {
+            const project = await prisma.project.findUnique({
+                where: { id: projectId, userId: user.id },
+                select: {
+                    supabaseStatus: true,
+                    supabaseProjectRef: true,
+                    supabaseProvisionedAt: true,
+                },
+            });
+
+            if (project?.supabaseStatus === 'active' && project.supabaseProjectRef) {
+                // Check if this is a recently provisioned database (within last hour)
+                const isNewlyProvisioned = project.supabaseProvisionedAt &&
+                    (Date.now() - new Date(project.supabaseProvisionedAt).getTime()) < 3600000;
+
+                databaseContext = `
+## 🗄️ Database Status: ACTIVE
+
+**Supabase database is provisioned and ready to use!**
+${isNewlyProvisioned ? '\n🆕 **Newly provisioned** - Environment variables have been automatically configured.\n' : ''}
+**Available Services:**
+- PostgreSQL Database (via Drizzle ORM or Supabase client)
+- Supabase Auth (SSO, OAuth, magic links)
+- Supabase Storage (file uploads)
+- Realtime subscriptions
+
+**Quick Integration Guide:**
+1. Use the pre-built helpers in the template (\`@/lib/supabase/server\`, \`@/lib/supabase/client\`)
+2. Define your schema in \`src/lib/db/schema.ts\` using Drizzle ORM
+3. Use \`db\` from \`@/lib/db\` for type-safe queries
+4. Auth actions are ready at \`@/lib/auth/actions\`
+
+${isNewlyProvisioned ? '**Suggestion:** Would you like me to help integrate the database into your app? I can create a schema, set up auth, or add data fetching.' : ''}`;
+                logger.ai.debug('📡 Including active database context for AI');
+            } else if (project?.supabaseStatus === 'provisioning') {
+                databaseContext = `
+## 🗄️ Database Status: PROVISIONING
+
+Supabase database is currently being provisioned. It should be ready within a few minutes.
+Avoid database operations until provisioning completes.`;
+            }
+            // If no database, don't add context - let AI guide user to enable if needed
+        } catch (error) {
+            logger.ai.warn('⚠️ Could not check database status:', error);
+        }
+
+        // Combine memory, knowledge, and database context
+        const additionalContext = [userMemoryContext, knowledgeContext, databaseContext].filter(Boolean).join('\n\n');
 
         // Get environment-aware system prompt with projectId, memory, knowledge, and personalization
         const systemPrompt = getSystemPrompt(

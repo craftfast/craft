@@ -171,6 +171,17 @@ async function supabaseApi<T>(
 // =============================================================================
 
 /**
+ * Generate a unique project name by appending a random suffix
+ */
+function generateUniqueProjectName(baseName: string): string {
+    const suffix = crypto.randomBytes(4).toString("hex");
+    // Supabase project names have a max length, truncate if needed
+    const maxBaseLength = 50 - suffix.length - 1; // -1 for hyphen
+    const truncatedBase = baseName.slice(0, maxBaseLength);
+    return `${truncatedBase}-${suffix}`;
+}
+
+/**
  * Create a new Supabase project under Craft's organization
  * 
  * @param options Project creation options
@@ -184,12 +195,14 @@ export async function createSupabaseProject(
     }
 
     const dbPassword = options.dbPassword || generateSecurePassword();
+    // Always use a unique name to avoid conflicts with existing projects
+    const projectName = generateUniqueProjectName(options.name);
 
-    console.log(`🗄️ Creating Supabase project: ${options.name}`);
+    console.log(`🗄️ Creating Supabase project: ${projectName}`);
 
     // Build request body - don't include instance_size for free plan orgs
     const requestBody: Record<string, unknown> = {
-        name: options.name,
+        name: projectName,
         organization_slug: SUPABASE_ORG_SLUG,
         db_pass: dbPassword,
         region_selection: {
@@ -210,7 +223,6 @@ export async function createSupabaseProject(
     });
 
     console.log(`✅ Supabase project created: ${project.ref}`);
-
     return { project, dbPassword };
 }
 

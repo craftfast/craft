@@ -1319,6 +1319,198 @@ export const syncFilesToDB = tool({
     },
 });
 
+// ============================================================================
+// DATABASE OPERATIONS (SUPABASE)
+// ============================================================================
+
+export const executeDatabaseSql = tool({
+    description: `Execute SQL on the project's Supabase PostgreSQL database. Use this to:
+- Create tables, indexes, and RLS policies
+- Run migrations when Drizzle migrate fails (E2B sandbox network issues)
+- Insert/update/delete data
+- Query data for debugging
+
+IMPORTANT: This runs SQL directly on Supabase via our server, bypassing E2B network issues.
+For schema changes, always enable RLS and create appropriate policies.
+
+Example: Create a todos table:
+\`\`\`sql
+CREATE TABLE IF NOT EXISTS public.todos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  text text NOT NULL,
+  completed boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON public.todos FOR ALL USING (true);
+\`\`\``,
+    inputSchema: z.object({
+        projectId: z.string().describe('The project ID'),
+        sql: z.string().describe('SQL query to execute. Can be DDL (CREATE TABLE, etc.) or DML (INSERT, SELECT, etc.)'),
+        operation: z.enum(['migration', 'schema', 'query', 'data']).optional()
+            .describe('Type of operation: migration (schema change), schema (DDL), query (SELECT), data (INSERT/UPDATE/DELETE)'),
+        allowDestructive: z.boolean().optional()
+            .describe('Set to true to allow DROP, TRUNCATE, or DELETE without WHERE'),
+    }),
+    execute: async ({ projectId, sql, operation = 'query', allowDestructive = false }) => {
+        console.log(`🗄️ Executing database SQL for project ${projectId}`);
+        console.log(`   Operation: ${operation}`);
+        console.log(`   SQL: ${sql.substring(0, 100)}${sql.length > 100 ? '...' : ''}`);
+
+        // Get project to verify it exists and has Supabase provisioned
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            select: {
+                id: true,
+                userId: true,
+                supabaseProjectRef: true,
+                supabaseStatus: true,
+            },
+        });
+
+        if (!project) {
+            return {
+                success: false,
+                error: 'Project not found',
+            };
+        }
+
+        if (!project.supabaseProjectRef) {
+            return {
+                success: false,
+                error: 'Supabase is not provisioned for this project. Tell the user to enable database in Project Settings first.',
+            };
+        }
+
+        if (project.supabaseStatus !== 'active') {
+            return {
+                success: false,
+                error: `Supabase is not active (status: ${project.supabaseStatus}). Wait for provisioning to complete or resume the database.`,
+            };
+        }
+
+        try {
+            // Import the executeQuery function dynamically to avoid circular dependencies
+            const { executeQuery } = await import('@/lib/services/supabase-platforms');
+
+            const result = await executeQuery(project.supabaseProjectRef, sql);
+
+            console.log(`✅ SQL executed successfully`);
+
+            return {
+                success: true,
+                operation,
+                result,
+                message: operation === 'migration'
+                    ? '✅ Migration executed successfully'
+                    : operation === 'schema'
+                        ? '✅ Schema updated successfully'
+                        : '✅ Query executed successfully',
+            };
+        } catch (error) {
+            console.error('❌ SQL execution failed:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to execute SQL',
+                hint: 'Check your SQL syntax and ensure Supabase is active.',
+            };
+        }
+    },
+});
+
+export const getDatabaseSchema = tool({
+    description: `Get the current database schema from the project's Supabase PostgreSQL database. Use this to:
+- Understand existing tables before creating new ones
+- Check if a table already exists
+- See column definitions and types
+- Plan migrations based on current state`,
+    inputSchema: z.object({
+        projectId: z.string().describe('The project ID'),
+        tableName: z.string().optional().describe('Optional: specific table name to get details for'),
+    }),
+    execute: async ({ projectId, tableName }) => {
+        console.log(`🗄️ Getting database schema for project ${projectId}`);
+
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            select: {
+                id: true,
+                supabaseProjectRef: true,
+                supabaseStatus: true,
+            },
+        });
+
+        if (!project) {
+            return { success: false, error: 'Project not found' };
+        }
+
+        if (!project.supabaseProjectRef) {
+            return {
+                success: false,
+                error: 'Supabase is not provisioned. Enable database in Project Settings first.',
+            };
+        }
+
+        if (project.supabaseStatus !== 'active') {
+            return {
+                success: false,
+                error: `Supabase is not active (status: ${project.supabaseStatus}).`,
+            };
+        }
+
+        try {
+            const { executeQuery } = await import('@/lib/services/supabase-platforms');
+
+            let query: string;
+
+            if (tableName) {
+                // Get detailed schema for specific table
+                query = `
+                    SELECT 
+                        c.column_name,
+                        c.data_type,
+                        c.column_default,
+                        c.is_nullable,
+                        c.character_maximum_length
+                    FROM information_schema.columns c
+                    WHERE c.table_schema = 'public' 
+                    AND c.table_name = '${tableName}'
+                    ORDER BY c.ordinal_position;
+                `;
+            } else {
+                // Get list of all tables
+                query = `
+                    SELECT 
+                        t.table_name,
+                        (SELECT count(*) FROM information_schema.columns c 
+                         WHERE c.table_schema = 'public' AND c.table_name = t.table_name) as column_count
+                    FROM information_schema.tables t
+                    WHERE t.table_schema = 'public' 
+                    AND t.table_type = 'BASE TABLE'
+                    ORDER BY t.table_name;
+                `;
+            }
+
+            const result = await executeQuery(project.supabaseProjectRef, query);
+
+            return {
+                success: true,
+                tableName: tableName || null,
+                schema: result,
+                message: tableName
+                    ? `Schema for table '${tableName}'`
+                    : 'List of all tables in public schema',
+            };
+        } catch (error) {
+            console.error('❌ Failed to get schema:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to get schema',
+            };
+        }
+    },
+});
+
 export const validateProject = tool({
     description: 'Validate the Next.js project structure and check for common issues. Use after initialization or major changes to ensure everything is set up correctly.',
     inputSchema: z.object({
@@ -1447,6 +1639,10 @@ export const tools = {
     writeSandboxFile,
     readSandboxFile,
     runSandboxCommand,
+
+    // Database operations (Supabase)
+    executeDatabaseSql,
+    getDatabaseSchema,
 };
 
 // Export orchestrator tools separately (for orchestrator agent only)

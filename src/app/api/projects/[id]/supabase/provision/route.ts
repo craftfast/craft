@@ -93,26 +93,121 @@ export async function POST(
             // Wait for project to be healthy (up to 5 minutes)
             const isHealthy = await waitForProjectHealth(supabaseProject.ref, 300000, 10000);
 
-            if (!isHealthy) {
-                // Update status but don't fail - project may still come up
-                await prisma.project.update({
-                    where: { id: projectId },
-                    data: {
-                        supabaseProjectId: supabaseProject.id,
-                        supabaseProjectRef: supabaseProject.ref,
-                        supabaseApiUrl: `https://${supabaseProject.ref}.supabase.co`,
-                        supabaseDbPassword: encryptValue(dbPassword),
-                        supabaseStatus: "pending",
-                        supabaseProvisionedAt: new Date(),
+            // Helper function to inject env vars into the ProjectEnvironmentVariable table
+            const injectSupabaseEnvVars = async (credentials: {
+                apiUrl: string;
+                anonKey: string;
+                serviceRoleKey: string;
+                databaseUrl: string;
+            }) => {
+                const supabaseEnvVars = [
+                    {
+                        key: "NEXT_PUBLIC_SUPABASE_URL",
+                        value: credentials.apiUrl,
+                        isSecret: false,
+                        description: "Supabase project URL (auto-provisioned by Craft)",
                     },
-                });
+                    {
+                        key: "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+                        value: credentials.anonKey,
+                        isSecret: false,
+                        description: "Supabase anonymous key for client-side access (auto-provisioned by Craft)",
+                    },
+                    {
+                        key: "SUPABASE_SERVICE_ROLE_KEY",
+                        value: credentials.serviceRoleKey,
+                        isSecret: true,
+                        description: "Supabase service role key for server-side admin operations (auto-provisioned by Craft)",
+                    },
+                    {
+                        key: "DATABASE_URL",
+                        value: credentials.databaseUrl,
+                        isSecret: true,
+                        description: "PostgreSQL connection string for Drizzle ORM (auto-provisioned by Craft)",
+                    },
+                ];
 
-                return NextResponse.json({
-                    success: true,
-                    status: "pending",
-                    message: "Supabase project created but still initializing",
-                    projectRef: supabaseProject.ref,
-                });
+                for (const envVar of supabaseEnvVars) {
+                    const storedValue = envVar.isSecret ? encryptValue(envVar.value) : envVar.value;
+
+                    await prisma.projectEnvironmentVariable.upsert({
+                        where: {
+                            projectId_key: {
+                                projectId,
+                                key: envVar.key,
+                            },
+                        },
+                        create: {
+                            projectId,
+                            key: envVar.key,
+                            value: storedValue,
+                            isSecret: envVar.isSecret,
+                            description: envVar.description,
+                            createdBy: session.user.id,
+                        },
+                        update: {
+                            value: storedValue,
+                            isSecret: envVar.isSecret,
+                            description: envVar.description,
+                            updatedBy: session.user.id,
+                            deletedAt: null,
+                        },
+                    });
+                }
+                console.log(`✅ Provisioned Supabase env vars for project ${projectId}`);
+            };
+
+            if (!isHealthy) {
+                // Project created but not healthy yet - try to get credentials anyway
+                // API keys might be available even before all services are up
+                try {
+                    const credentials = await getProjectCredentials(supabaseProject.ref, dbPassword);
+
+                    // Update status with credentials
+                    await prisma.project.update({
+                        where: { id: projectId },
+                        data: {
+                            supabaseProjectId: supabaseProject.id,
+                            supabaseProjectRef: supabaseProject.ref,
+                            supabaseApiUrl: credentials.apiUrl,
+                            supabaseDbPassword: encryptValue(dbPassword),
+                            supabaseStatus: "pending",
+                            supabaseProvisionedAt: new Date(),
+                        },
+                    });
+
+                    // Inject env vars even if pending - they'll work once services are up
+                    await injectSupabaseEnvVars(credentials);
+
+                    return NextResponse.json({
+                        success: true,
+                        status: "pending",
+                        message: "Supabase project created but still initializing. Environment variables are configured.",
+                        projectRef: supabaseProject.ref,
+                    });
+                } catch (credError) {
+                    // Could not get credentials yet - user will need to wait
+                    console.warn("Could not get credentials for pending project:", credError);
+
+                    await prisma.project.update({
+                        where: { id: projectId },
+                        data: {
+                            supabaseProjectId: supabaseProject.id,
+                            supabaseProjectRef: supabaseProject.ref,
+                            supabaseApiUrl: `https://${supabaseProject.ref}.supabase.co`,
+                            supabaseDbPassword: encryptValue(dbPassword),
+                            supabaseStatus: "pending",
+                            supabaseProvisionedAt: new Date(),
+                        },
+                    });
+
+                    return NextResponse.json({
+                        success: true,
+                        status: "pending",
+                        message: "Supabase project created but still initializing. Please wait a few minutes.",
+                        projectRef: supabaseProject.ref,
+                    });
+                }
             }
 
             // Get full credentials
@@ -131,20 +226,8 @@ export async function POST(
                 },
             });
 
-            // Auto-inject environment variables
-            const existingEnvVars = (project.environmentVariables as Record<string, string>) || {};
-            const newEnvVars = {
-                ...existingEnvVars,
-                NEXT_PUBLIC_SUPABASE_URL: credentials.apiUrl,
-                NEXT_PUBLIC_SUPABASE_ANON_KEY: credentials.anonKey,
-                SUPABASE_SERVICE_ROLE_KEY: encryptValue(credentials.serviceRoleKey),
-                DATABASE_URL: encryptValue(credentials.databaseUrl),
-            };
-
-            await prisma.project.update({
-                where: { id: projectId },
-                data: { environmentVariables: newEnvVars },
-            });
+            // Inject env vars using the helper function
+            await injectSupabaseEnvVars(credentials);
 
             return NextResponse.json({
                 success: true,
