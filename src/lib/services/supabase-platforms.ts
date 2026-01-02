@@ -17,8 +17,49 @@ import crypto from "crypto";
 const SUPABASE_API_URL = "https://api.supabase.com/v1";
 const SUPABASE_SERVICE_TOKEN = process.env.SUPABASE_SERVICE_TOKEN;
 const SUPABASE_ORG_SLUG = process.env.SUPABASE_ORG_SLUG;
-const SUPABASE_DEFAULT_REGION = process.env.SUPABASE_DEFAULT_REGION || "americas";
 const SUPABASE_DEFAULT_INSTANCE_SIZE = process.env.SUPABASE_DEFAULT_INSTANCE_SIZE || "micro";
+
+// Map AWS region codes to Supabase smart group codes
+// Supabase only accepts: 'americas' | 'emea' | 'apac'
+function getSupabaseRegion(): "americas" | "emea" | "apac" {
+    const envRegion = process.env.SUPABASE_DEFAULT_REGION || "americas";
+
+    // If already a valid Supabase region, return it
+    if (envRegion === "americas" || envRegion === "emea" || envRegion === "apac") {
+        return envRegion;
+    }
+
+    // Map AWS/common region codes to Supabase smart groups
+    const regionMapping: Record<string, "americas" | "emea" | "apac"> = {
+        // Americas
+        "us-east-1": "americas",
+        "us-east-2": "americas",
+        "us-west-1": "americas",
+        "us-west-2": "americas",
+        "ca-central-1": "americas",
+        "sa-east-1": "americas",
+        // EMEA (Europe, Middle East, Africa)
+        "eu-west-1": "emea",
+        "eu-west-2": "emea",
+        "eu-west-3": "emea",
+        "eu-central-1": "emea",
+        "eu-north-1": "emea",
+        "me-south-1": "emea",
+        "af-south-1": "emea",
+        // APAC (Asia Pacific)
+        "ap-southeast-1": "apac",
+        "ap-southeast-2": "apac",
+        "ap-northeast-1": "apac",
+        "ap-northeast-2": "apac",
+        "ap-northeast-3": "apac",
+        "ap-south-1": "apac",
+        "ap-east-1": "apac",
+    };
+
+    return regionMapping[envRegion] || "americas";
+}
+
+const SUPABASE_DEFAULT_REGION = getSupabaseRegion();
 
 // =============================================================================
 // TYPES
@@ -146,18 +187,26 @@ export async function createSupabaseProject(
 
     console.log(`🗄️ Creating Supabase project: ${options.name}`);
 
+    // Build request body - don't include instance_size for free plan orgs
+    const requestBody: Record<string, unknown> = {
+        name: options.name,
+        organization_slug: SUPABASE_ORG_SLUG,
+        db_pass: dbPassword,
+        region_selection: {
+            type: "smartGroup",
+            code: options.region || SUPABASE_DEFAULT_REGION,
+        },
+    };
+
+    // Only add instance size if explicitly provided (paid plans only)
+    // Free plan organizations cannot specify instance size
+    if (options.instanceSize && SUPABASE_DEFAULT_INSTANCE_SIZE !== "free") {
+        requestBody.desired_instance_size = options.instanceSize;
+    }
+
     const project = await supabaseApi<SupabaseProject>("/projects", {
         method: "POST",
-        body: JSON.stringify({
-            name: options.name,
-            organization_slug: SUPABASE_ORG_SLUG,
-            db_pass: dbPassword,
-            region_selection: {
-                type: "smartGroup",
-                code: options.region || SUPABASE_DEFAULT_REGION,
-            },
-            desired_instance_size: options.instanceSize || SUPABASE_DEFAULT_INSTANCE_SIZE,
-        }),
+        body: JSON.stringify(requestBody),
     });
 
     console.log(`✅ Supabase project created: ${project.ref}`);
@@ -175,9 +224,19 @@ export async function getSupabaseProject(projectRef: string): Promise<SupabasePr
 /**
  * Get project health status
  * Use this to check if services are ready after creation
+ * 
+ * @param projectRef Project reference ID
+ * @param services Services to check health for (default: all critical services)
  */
-export async function getProjectHealth(projectRef: string): Promise<SupabaseProjectHealth[]> {
-    return supabaseApi<SupabaseProjectHealth[]>(`/projects/${projectRef}/health`);
+export async function getProjectHealth(
+    projectRef: string,
+    services: string[] = ["auth", "rest", "db", "realtime", "storage"]
+): Promise<SupabaseProjectHealth[]> {
+    // The health endpoint requires services query parameter
+    const servicesParam = services.join(",");
+    return supabaseApi<SupabaseProjectHealth[]>(
+        `/projects/${projectRef}/health?services=${servicesParam}`
+    );
 }
 
 /**
@@ -193,24 +252,31 @@ export async function waitForProjectHealth(
     pollIntervalMs = 5000
 ): Promise<boolean> {
     const startTime = Date.now();
+    const criticalServices = ["auth", "rest", "db", "storage"];
 
     while (Date.now() - startTime < maxWaitMs) {
         try {
-            const health = await getProjectHealth(projectRef);
+            const health = await getProjectHealth(projectRef, criticalServices);
 
             // Check if all critical services are healthy
-            const criticalServices = ["database", "auth", "rest", "storage"];
-            const allHealthy = criticalServices.every(serviceName => {
-                const service = health.find(h => h.name.toLowerCase().includes(serviceName));
-                return service?.status === "ACTIVE_HEALTHY";
-            });
+            const allHealthy = health.every(service =>
+                service.status === "ACTIVE_HEALTHY" || service.status === "COMING_UP"
+            );
 
-            if (allHealthy) {
+            const allActive = health.every(service =>
+                service.status === "ACTIVE_HEALTHY"
+            );
+
+            if (allActive) {
                 console.log(`✅ Supabase project ${projectRef} is healthy`);
                 return true;
             }
 
-            console.log(`⏳ Waiting for project ${projectRef} to be healthy...`);
+            if (allHealthy) {
+                console.log(`⏳ Project ${projectRef} is starting up...`);
+            } else {
+                console.log(`⏳ Waiting for project ${projectRef} to be healthy...`);
+            }
         } catch (error) {
             console.log(`⏳ Project ${projectRef} not ready yet...`);
         }

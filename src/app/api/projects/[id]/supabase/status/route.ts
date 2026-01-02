@@ -52,6 +52,7 @@ export async function GET(
         // If not provisioned yet
         if (!project.supabaseProjectRef) {
             return NextResponse.json({
+                enabled: false,
                 provisioned: false,
                 configured: isSupabaseConfigured(),
             });
@@ -80,6 +81,7 @@ export async function GET(
         const envVars = (project.environmentVariables as Record<string, string>) || {};
 
         return NextResponse.json({
+            enabled: true,
             provisioned: true,
             status: isHealthy ? "active" : project.supabaseStatus,
             projectRef: project.supabaseProjectRef,
@@ -88,7 +90,7 @@ export async function GET(
             health,
             // Only return public info
             credentials: {
-                url: envVars.NEXT_PUBLIC_SUPABASE_URL || project.supabaseApiUrl,
+                supabaseUrl: envVars.NEXT_PUBLIC_SUPABASE_URL || project.supabaseApiUrl,
                 anonKey: envVars.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                 // Don't return service role key or database URL for security
             },

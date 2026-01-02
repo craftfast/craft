@@ -417,7 +417,19 @@ export async function waitForDeployment(
         }
 
         if (deployment.readyState === "ERROR" || deployment.readyState === "CANCELED") {
-            throw new Error(`Deployment ${deployment.readyState.toLowerCase()}`);
+            // Try to get build logs for debugging
+            let errorDetails = "";
+            try {
+                const logs = await getDeploymentLogs(deploymentId);
+                if (logs.length > 0) {
+                    // Get last 20 log lines for context
+                    const recentLogs = logs.slice(-20).join("\n");
+                    errorDetails = `\n\nBuild logs:\n${recentLogs}`;
+                }
+            } catch (logError) {
+                console.error("Failed to fetch deployment logs:", logError);
+            }
+            throw new Error(`Deployment ${deployment.readyState.toLowerCase()}${errorDetails}`);
         }
 
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));

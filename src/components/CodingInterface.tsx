@@ -20,6 +20,7 @@ import {
   Minimize,
   Github,
   GitBranch,
+  Database,
 } from "lucide-react";
 import AppHeader from "./AppHeader";
 import SidebarLayout from "./SidebarLayout";
@@ -692,6 +693,7 @@ function CodingInterfaceContent({
                 size="icon"
                 className="rounded-lg h-8"
                 onClick={() => setIsSettingsDialogOpen(true)}
+                title="Project Settings"
               >
                 <Settings className="w-4 h-4" />
               </Button>
@@ -699,7 +701,17 @@ function CodingInterfaceContent({
                 variant="outline"
                 size="icon"
                 className="rounded-lg h-8"
+                onClick={() => setIsDatabaseDialogOpen(true)}
+                title="Database & Storage"
+              >
+                <Database className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-lg h-8"
                 onClick={() => setIsSyncGitDialogOpen(true)}
+                title="Sync to GitHub"
               >
                 <svg
                   className="w-4 h-4"
